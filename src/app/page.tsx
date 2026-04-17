@@ -56,18 +56,30 @@ export default async function Home() {
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <a
-              href="#try-it"
+            <Link
+              href="/challenge/1"
               className="inline-flex items-center rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
-              Try it now
-            </a>
+              Start with L1 →
+            </Link>
             <a
+              href="/api/challenge/0"
+              className="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-50 px-5 py-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100"
+            >
+              Start with L0 (optional onboarding)
+            </a>
+            <Link
+              href="/play"
+              className="inline-flex items-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+            >
+              Browse L0-L8
+            </Link>
+            <Link
               href="/leaderboard"
               className="inline-flex items-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
             >
               Leaderboard
-            </a>
+            </Link>
             <a
               href="https://github.com/kolk-arena/app"
               target="_blank"
