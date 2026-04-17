@@ -14,9 +14,11 @@ This document defines the page and state contract that frontend work must implem
 - The hard auth wall is enforced at `GET /api/challenge/6` and above.
 - Submit-time scoring outages fail closed with `503 SCORING_UNAVAILABLE`.
 - `VALIDATION_ERROR` does not consume the fetched session. The user may fix input and resubmit without re-fetching.
-- `SESSION_EXPIRED` means the fetched session is dead. The user must re-fetch.
+- `ATTEMPT_TOKEN_EXPIRED` (alias: legacy `SESSION_EXPIRED`) means the fetched session is dead — the 24-hour ceiling elapsed. The user must re-fetch.
+- `ATTEMPT_ALREADY_PASSED` (alias: legacy `SESSION_ALREADY_SUBMITTED`) means a prior submission on this `attemptToken` already passed the Dual-Gate. The retry window is closed; user must re-fetch.
+- Other submit failures (including scored RED / ORANGE / YELLOW without Dual-Gate clear, `400 VALIDATION_ERROR`, `422 L5_INVALID_JSON`, `503 SCORING_UNAVAILABLE`) **do not** consume the `attemptToken`. The client should keep the same `attemptToken`, fix the input if needed, and resubmit (subject to the 2/min per-`attemptToken` rate limit).
 - `L5` is the **only** level where `primaryText` content is a JSON object string. The `SubmitForm` surface on L5 should render a JSON editor (or code-aware textarea with JSON highlighting). Result-page preview for L5 must `JSON.parse` and pretty-print the three fields — not section-header-split.
-- `422 L5_INVALID_JSON` is L5-specific, does NOT consume the fetched session, and allows fix-and-retry with the same `fetchToken`. Error-state UI should echo the parser-position hint and warn explicitly against Markdown code fences.
+- `422 L5_INVALID_JSON` is L5-specific, does NOT consume the fetched session, and allows fix-and-retry with the same `attemptToken`. Error-state UI should echo the parser-position hint and warn explicitly against Markdown code fences.
 
 ## Home
 
@@ -55,7 +57,7 @@ This document defines the page and state contract that frontend work must implem
 - Primary timer shown to the player is `suggestedTimeMinutes`.
 - `deadlineUtc` is shown separately as the 24-hour hard ceiling.
 - Going over suggested time does not lock the form and does not change score semantics.
-- Refresh must preserve fetched-session state from the server response already tied to `fetchToken`.
+- Refresh must preserve fetched-session state from the server response already tied to `attemptToken`.
 
 ## Submit States
 
@@ -72,10 +74,10 @@ This document defines the page and state contract that frontend work must implem
 
 ### `422 L5_INVALID_JSON` (L5-only)
 
-- Keep the same fetched session active. Does not consume the fetchToken.
+- Keep the same fetched session active. Does not consume the attemptToken.
 - Show the server message inline above the L5 JSON editor, including the `parser_position` hint if present.
 - Surface the warning "Do not wrap the JSON in Markdown code fences." prominently.
-- Do not force re-fetch; the player may edit JSON and resubmit with the same `fetchToken`.
+- Do not force re-fetch; the player may edit JSON and resubmit with the same `attemptToken`.
 
 ### `401 AUTH_REQUIRED`
 
@@ -86,26 +88,30 @@ This document defines the page and state contract that frontend work must implem
 - Show unrecoverable error for the current session.
 - Require re-fetch under the correct identity.
 
-### `408 SESSION_EXPIRED`
+### `408 ATTEMPT_TOKEN_EXPIRED`
 
 - Explain that the 24-hour session ceiling was reached.
 - Primary CTA is `Fetch a new challenge`.
+- Server continues to emit legacy `SESSION_EXPIRED` as alias for one minor release.
 
-### `409 SESSION_ALREADY_SUBMITTED`
+### `409 ATTEMPT_ALREADY_PASSED`
 
-- Explain that the fetched session is consumed.
+- Explain that a prior submission on this `attemptToken` already cleared the Dual-Gate; the retry window is closed.
 - Primary CTA is `Fetch a new challenge`.
+- Server continues to emit legacy `SESSION_ALREADY_SUBMITTED` as alias for one minor release.
+- Non-passing scored submissions (RED / ORANGE / YELLOW without Dual-Gate clear) must **not** produce this state — the UI should keep the form usable for another retry with the same `attemptToken`.
 
 ### `429 RATE_LIMITED`
 
 - Disable submit temporarily.
-- Respect `Retry-After`.
+- Respect `Retry-After` (scoped to this `attemptToken`, 2/min).
+- The retry cap is per `attemptToken`, not per account — the UI should state that clearly so players do not think their whole session is limited.
 
 ### `503 SCORING_UNAVAILABLE`
 
-- Explain that scoring is temporarily unavailable.
+- Explain that scoring is temporarily unavailable (fail-closed).
 - Do not show partial scores.
-- Require a new fetch before the next full scored attempt.
+- The `attemptToken` is **not** consumed. The UI should offer "Retry submit" without forcing a re-fetch.
 
 ## L5 to L6 Transition
 

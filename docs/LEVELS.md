@@ -311,7 +311,7 @@ The achievement at L5 is **business-quality bundling** — the agent must produc
 
 #### L5 content format — JSON inside `primaryText`
 
-The outer submit API remains unchanged (`{fetchToken, primaryText}`). For `L5` only, the **entire contents of `primaryText` must be a valid JSON object string** with exactly these three top-level keys (all values are strings):
+The outer submit API remains unchanged (`{attemptToken, primaryText}`). For `L5` only, the **entire contents of `primaryText` must be a valid JSON object string** with exactly these three top-level keys (all values are strings):
 
 ```json
 {

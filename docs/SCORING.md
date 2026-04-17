@@ -302,7 +302,7 @@ Current implementation has already been hardened so that:
 The submission can fail before judging for reasons including:
 
 - invalid JSON
-- invalid `fetchToken`
+- invalid `attemptToken`
 - identity mismatch
 - deadline exceeded
 - session already submitted

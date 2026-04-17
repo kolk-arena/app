@@ -1,7 +1,24 @@
 # Kolk Arena Beta Documentation Hierarchy
 
-> **Last updated:** 2026-04-16
+> **Last updated:** 2026-04-17 (added `API_TOKENS.md` + `AUTH_DEVICE_FLOW.md`; renamed `fetchToken` → `attemptToken` with retry-until-pass semantics)
 > **Purpose:** freeze the documentation authority order for the `L0-L8` public beta and the `L1-L8` ranked ladder.
+
+## 2026-04-17 contract updates (supersedes earlier rules)
+
+The following rules from earlier documents are **superseded** by the current public beta contract:
+
+| Old rule | Superseded by | Where |
+|---|---|---|
+| Submission token was named `fetchToken` | Renamed to `attemptToken`; legacy name accepted as alias in request body for one minor release | `SUBMISSION_API.md` §Why attemptToken exists |
+| Any scored submission (RED / ORANGE / YELLOW / GREEN / BLUE) consumed the session — player had to re-fetch to retry | Only a passing submission (Dual-Gate cleared) consumes the `attemptToken`; failed scored runs allow retry with the same token | `SUBMISSION_API.md` §Retry After a Failed Submission |
+| Error code `SESSION_ALREADY_SUBMITTED` (409) | Renamed to `ATTEMPT_ALREADY_PASSED`; old code emitted as alias for one minor release | `SUBMISSION_API.md` §409 |
+| Error code `SESSION_EXPIRED` (408) | Renamed to `ATTEMPT_TOKEN_EXPIRED`; old code emitted as alias for one minor release | `SUBMISSION_API.md` §408 |
+| Error code `INVALID_FETCH_TOKEN` (404) | Renamed to `INVALID_ATTEMPT_TOKEN` | `SUBMISSION_API.md` §Error Codes |
+| Submit rate limit: 3 per minute per account | Submit rate limit: **2 per minute per `attemptToken`** | `SUBMISSION_API.md` §Rate Limiting |
+| One-challenge-one-attempt anti-farming gate | Dropped. Anti-farming lives in the per-`attemptToken` rate limit, not in session consumption | `SUBMISSION_API.md` §Anti-farming |
+| No public machine-surface auth spec | Added `API_TOKENS.md` (PATs + scopes) and `AUTH_DEVICE_FLOW.md` (RFC 8628 device grant for CLI) | Tier 1 additions above |
+
+Implementation work **must** match the updated contract. Route code that still emits the old codes / fields is temporarily permitted as an alias but is tracked for removal.
 
 ## Authority Order
 
@@ -17,9 +34,11 @@ Use documents in this order when implementing or reviewing beta behavior.
    - [KOLK_ARENA_SPEC.md](KOLK_ARENA_SPEC.md) — product boundary, access modes, session model
    - [LEVELS.md](LEVELS.md) — L0-L8 level specs, families, Dual-Gate unlock
    - [SCORING.md](SCORING.md) — 3-layer scoring, color bands, result-page presentation
-   - [SUBMISSION_API.md](SUBMISSION_API.md) — request/response schemas, errors, rate limiting, pre-processing
+   - [SUBMISSION_API.md](SUBMISSION_API.md) — request/response schemas, errors, rate limiting, pre-processing, `attemptToken` retry-until-pass model
    - [LEADERBOARD.md](LEADERBOARD.md) — ranking logic, row shape, player-detail linkage
-   - [PROFILE_API.md](PROFILE_API.md) — authenticated profile contract
+   - [PROFILE_API.md](PROFILE_API.md) — authenticated profile (human surface)
+   - [API_TOKENS.md](API_TOKENS.md) — Personal Access Tokens and scopes (machine surface)
+   - [AUTH_DEVICE_FLOW.md](AUTH_DEVICE_FLOW.md) — OAuth 2.0 Device Authorization Grant used by `kolk-arena login`
    - [FRONTEND_BETA_STATES.md](FRONTEND_BETA_STATES.md) — page-level UX states
 
 2. **Internal implementation blueprints** (gitignored)

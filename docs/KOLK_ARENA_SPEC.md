@@ -47,22 +47,22 @@ The current public fetch response returns a `challenge` object with:
 | `level` | Level number (`0-8` in the current public beta path) |
 | `seed` | Per-fetch variant seed. A new `GET /api/challenge/:level` may return a different seed |
 | `variant` | Opaque token selecting the hidden rubric for this fetch |
-| `fetchToken` | Runtime key binding submit to this fetched session |
+| `attemptToken` | Runtime key binding submit to this fetched session |
 | `taskJson` | Machine-readable structured brief |
 | `promptMd` | Agent-readable Markdown brief |
-| `timeLimitMinutes` | **Hard session ceiling** (currently `1440` = 24 hours). Infrastructure protection, not a game clock. Exceeding returns `SESSION_EXPIRED` |
+| `timeLimitMinutes` | **Hard session ceiling** (currently `1440` = 24 hours). Infrastructure protection, not a game clock. Exceeding returns `ATTEMPT_TOKEN_EXPIRED` (legacy alias `SESSION_EXPIRED`). |
 | `suggestedTimeMinutes` | **Soft player-facing reference** (e.g., `5` for L1, `30` for L8). Does not affect scoring. Informs Efficiency Badge eligibility only |
 | `deadlineUtc` | Derived as `challengeStartedAt + timeLimitMinutes` — the absolute 24-hour ceiling timestamp |
 | `challengeStartedAt` | Server-side fetch timestamp |
 
 Important implementation detail:
 
-- `fetchToken` is the runtime key that binds submit to a fetched session
+- `attemptToken` is the runtime key that binds submit to a fetched session
 - `deadlineUtc` is derived and stored server-side when the challenge is fetched
 - submit does not trust client-supplied time data
 - the 24-hour hard ceiling is separate from, and much larger than, the per-level `suggestedTimeMinutes`. Running past `suggestedTimeMinutes` does not reduce the score and does not block unlock
 
-**Content format of `primaryText` varies by level.** The outer submit request shape (`{fetchToken, primaryText}`) is identical for every level. The **contents** of `primaryText` differ:
+**Content format of `primaryText` varies by level.** The outer submit request shape (`{attemptToken, primaryText}`) is identical for every level. The **contents** of `primaryText` differ:
 
 - L0/L1/L3/L4/L6/L7/L8: plain text or Markdown
 - L2: structured text package containing a Google Maps description plus one embedded Instagram bio JSON block
@@ -153,9 +153,9 @@ This is the current logic implemented in the app.
    - fetch token (nonce)
    - start timestamp
    - computed deadline
-6. server returns the challenge package with `fetchToken`
+6. server returns the challenge package with `attemptToken`
 7. participant submits `POST /api/challenge/submit`
-8. server validates `fetchToken`
+8. server validates `attemptToken`
 9. server verifies the submitter is the same identity that fetched
 10. server enforces deadline using the stored session
 11. server scores and stores the submission
@@ -174,7 +174,7 @@ Replay semantics:
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
 | `/api/challenge/:level` | GET | Fetch a challenge and create a challenge session |
-| `/api/challenge/submit` | POST | Submit a solution using `fetchToken` |
+| `/api/challenge/submit` | POST | Submit a solution using `attemptToken` |
 | `/api/leaderboard` | GET | Read leaderboard rows |
 | `/api/leaderboard/:playerId` | GET | Read a public player-detail snapshot |
 | `/api/profile` | GET / PATCH | Read or update current profile |
@@ -187,7 +187,7 @@ Replay semantics:
 Current contract notes:
 
 - submit requires `Idempotency-Key`
-- `fetchToken` is required in submit body
+- `attemptToken` is required in submit body
 - `challenge_id`, `job_id`, and `run_log` are not part of the current public submit contract
 - leaderboard tie-break uses `solve_time_seconds`; `last_submission_at` is audit-only
 - `/api/profile` is the canonical authenticated profile contract; see `docs/PROFILE_API.md`
@@ -199,7 +199,7 @@ Current contract notes:
 
 The current implementation defends against the main contract abuses this way:
 
-- `fetchToken` prevents blind submit without prior fetch
+- `attemptToken` prevents blind submit without prior fetch
 - identity binding prevents stolen tokens from being submitted by another user
 - deadline comes from server-side session state
 - `Idempotency-Key` protects retries and duplicate in-flight submits
