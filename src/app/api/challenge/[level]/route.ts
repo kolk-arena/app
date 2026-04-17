@@ -2,8 +2,8 @@
  * GET /api/challenge/:level — Fetch a challenge package
  *
  * Flow:
- * 1. Validate level (current dynamic route handles 1-20; public beta publishes L1-L8 here)
- * 2. Check level gating (must pass N-1 to attempt N; anon for L1-L5)
+ * 1. Validate level (public beta publishes L0-L8 here)
+ * 2. Check level gating (must unlock N-1 to attempt N; anon for L0-L5)
  * 3. Pick a random challenge NOT already submitted by this user
  * 4. Create a ka_challenge_sessions row (server-side start time + fetch nonce)
  * 5. Return challenge package with fetchToken (required on submit)
@@ -13,35 +13,28 @@ import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { assertRuntimeSchemaReady, supabaseAdmin } from '@/lib/kolk/db';
 import { getLevel, isBossLevel } from '@/lib/kolk/levels';
-import { getAnonToken } from '@/lib/kolk/auth';
+import { applyAnonTokenCookie, resolveAnonToken } from '@/lib/kolk/auth';
 import { resolveArenaUserFromRequest } from '@/lib/kolk/auth/server';
-import { ANONYMOUS_MAX_LEVEL } from '@/lib/kolk/constants';
 import type { ChallengePackage } from '@/lib/kolk/types';
+import {
+  ANONYMOUS_BETA_MAX_LEVEL,
+  getSuggestedTimeMinutes,
+  isAiJudgedLevel,
+  isPublicBetaLevel,
+  L0_ONBOARDING_LEVEL,
+} from '@/lib/kolk/beta-contract';
+import { getAnonymousMaxUnlockedLevel } from '@/lib/kolk/progression';
 
 const HARD_SESSION_CEILING_MINUTES = 1440;
 
-function getSuggestedTimeMinutes(level: number): number {
-  switch (level) {
-    case 1:
-      return 5;
-    case 2:
-      return 8;
-    case 3:
-      return 10;
-    case 4:
-      return 12;
-    case 5:
-      return 15;
-    case 6:
-      return 20;
-    case 7:
-      return 25;
-    case 8:
-      return 30;
-    default:
-      return 5;
-  }
-}
+type ChallengeRow = {
+  id: string;
+  level: number;
+  seed: number;
+  variant: string;
+  task_json: Record<string, unknown>;
+  prompt_md: string;
+};
 
 export async function GET(
   request: NextRequest,
@@ -58,17 +51,16 @@ export async function GET(
   }
 
   const { level: levelStr } = await params;
-  const level = parseInt(levelStr, 10);
+  const level = Number.parseInt(levelStr, 10);
 
-  // 1. Validate level
-  if (isNaN(level) || level < 1 || level > 20) {
+  if (!Number.isFinite(level) || level < 0 || level > 20) {
     return NextResponse.json(
-      { error: 'Level must be between 1 and 20', code: 'INVALID_LEVEL' },
+      { error: 'Level must be between 0 and 20', code: 'INVALID_LEVEL' },
       { status: 400 },
     );
   }
 
-  if (level > 8) {
+  if (!isPublicBetaLevel(level)) {
     return NextResponse.json(
       {
         error: `Level ${level} is not in the current public beta scope (L0-L8)`,
@@ -82,9 +74,9 @@ export async function GET(
 
   const levelDef = getLevel(level);
 
-  // 2. Resolve identity
   let participantId: string | null = null;
   let anonToken: string | null = null;
+  let shouldSetAnonCookie = false;
   let maxLevelPassed = 0;
 
   const arenaUser = await resolveArenaUserFromRequest(request);
@@ -92,7 +84,7 @@ export async function GET(
   if (arenaUser?.is_verified) {
     participantId = arenaUser.id;
     maxLevelPassed = arenaUser.max_level;
-  } else if (level > ANONYMOUS_MAX_LEVEL) {
+  } else if (level > ANONYMOUS_BETA_MAX_LEVEL) {
     return NextResponse.json(
       {
         error: `Authentication required for level ${level}. Pass L1-L5 first, then sign in with GitHub, Google, or email.`,
@@ -101,32 +93,12 @@ export async function GET(
       { status: 401 },
     );
   } else {
-    // Anonymous: check anon tracking for L1-L5
-    anonToken = getAnonToken(request);
-    const { data: anonSubs } = await supabaseAdmin
-      .from('ka_submissions')
-      .select('level, unlocked, structure_score, coverage_score, quality_score, total_score')
-      .eq('anon_token', anonToken)
-      .order('level', { ascending: false })
-      .limit(20);
-
-    if (anonSubs) {
-      for (const sub of anonSubs) {
-        const structureScore = typeof sub.structure_score === 'number' ? sub.structure_score : Number(sub.structure_score ?? 0);
-        const coverageScore = typeof sub.coverage_score === 'number' ? sub.coverage_score : Number(sub.coverage_score ?? 0);
-        const qualityScore = typeof sub.quality_score === 'number' ? sub.quality_score : Number(sub.quality_score ?? 0);
-        const unlocked = sub.unlocked === true
-          || (Number.isFinite(structureScore) && Number.isFinite(coverageScore) && Number.isFinite(qualityScore)
-            && structureScore >= 25
-            && coverageScore + qualityScore >= 15);
-        if (unlocked && sub.level > maxLevelPassed) {
-          maxLevelPassed = sub.level;
-        }
-      }
-    }
+    const anonState = resolveAnonToken(request);
+    anonToken = anonState.token;
+    shouldSetAnonCookie = anonState.shouldSetCookie;
+    maxLevelPassed = await getAnonymousMaxUnlockedLevel(anonToken);
   }
 
-  // Gate check: must have passed level-1 (L1 is always accessible)
   if (level > 1 && maxLevelPassed < level - 1) {
     return NextResponse.json(
       {
@@ -139,8 +111,6 @@ export async function GET(
     );
   }
 
-  // 3. Pick a challenge NOT already submitted by this user
-  // First, get IDs of challenges this user already submitted to
   const submittedFilter = supabaseAdmin
     .from('ka_submissions')
     .select('challenge_id');
@@ -152,12 +122,11 @@ export async function GET(
   }
 
   const { data: submittedRows } = await submittedFilter;
-  const submittedIds = new Set((submittedRows ?? []).map((r) => r.challenge_id));
+  const submittedIds = new Set((submittedRows ?? []).map((row) => row.challenge_id));
 
-  // Fetch all active challenges for this level
   const { data: allChallenges, error: fetchError } = await supabaseAdmin
     .from('ka_challenges')
-    .select('*')
+    .select('id, level, seed, variant, task_json, prompt_md')
     .eq('level', level)
     .eq('active', true);
 
@@ -168,28 +137,28 @@ export async function GET(
     );
   }
 
-  // Filter out already-submitted challenges
-  const available = allChallenges.filter((c) => !submittedIds.has(c.id));
+  const available = (allChallenges as ChallengeRow[]).filter((challenge) => !submittedIds.has(challenge.id));
+  const challengePool = available.length > 0 ? available : (allChallenges as ChallengeRow[]);
+  const challenge = challengePool[Math.floor(Math.random() * challengePool.length)];
 
-  if (available.length === 0) {
-    // All challenges exhausted — allow replaying any (re-attempts still scored)
-    // Pick from full pool but warn
-    const challenge = allChallenges[Math.floor(Math.random() * allChallenges.length)];
-    return buildSessionAndRespond(challenge, levelDef, level, participantId, anonToken, true);
+  const response = await buildSessionAndRespond(
+    challenge,
+    levelDef,
+    level,
+    participantId,
+    anonToken,
+    available.length === 0,
+  );
+
+  if (anonToken && shouldSetAnonCookie) {
+    applyAnonTokenCookie(response, anonToken);
   }
 
-  // Random selection from available pool
-  const challenge = available[Math.floor(Math.random() * available.length)];
-  return buildSessionAndRespond(challenge, levelDef, level, participantId, anonToken, false);
+  return response;
 }
 
-// ============================================================================
-// Helper: create session + build response
-// ============================================================================
-
 async function buildSessionAndRespond(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  challenge: any,
+  challenge: ChallengeRow,
   levelDef: ReturnType<typeof getLevel>,
   level: number,
   participantId: string | null,
@@ -202,10 +171,8 @@ async function buildSessionAndRespond(
     startedAt.getTime() + HARD_SESSION_CEILING_MINUTES * 60 * 1000,
   );
 
-  // Generate fetch nonce
   const fetchToken = crypto.randomBytes(24).toString('base64url');
 
-  // 4. Persist session (server-side source of truth for deadline)
   const { error: sessionError } = await supabaseAdmin
     .from('ka_challenge_sessions')
     .insert({
@@ -225,7 +192,6 @@ async function buildSessionAndRespond(
     );
   }
 
-  // 5. Build response
   const pkg: ChallengePackage = {
     challengeId: challenge.id,
     level: challenge.level,
@@ -246,9 +212,11 @@ async function buildSessionAndRespond(
       name: levelDef.name,
       family: levelDef.family,
       band: levelDef.band,
+      unlock_rule: level === L0_ONBOARDING_LEVEL ? 'contains_hello_or_kolk' : 'dual_gate',
       suggested_time_minutes: suggestedTimeMinutes,
-      pass_threshold: levelDef.passThreshold,
       is_boss: levelDef.isBoss,
+      ai_judged: isAiJudgedLevel(level),
+      leaderboard_eligible: level >= 1 && participantId !== null,
     },
   };
 

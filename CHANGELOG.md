@@ -19,5 +19,5 @@ Initial public beta release at TecMilenio. Planned scope:
 - L0 onboarding flow for first-time integrators.
 - L5 JSON-in-`primaryText` submission format with three required keys (`whatsapp_message` / `quick_facts` / `first_step_checklist`).
 
-[Unreleased]: https://github.com/bihlaw-create/kolk-arena/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/bihlaw-create/kolk-arena/releases/tag/v0.1.0
+[Unreleased]: https://github.com/kolk-arena/app/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/kolk-arena/app/releases/tag/v0.1.0

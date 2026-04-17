@@ -1,25 +1,20 @@
 import Link from 'next/link';
 import { HomeInteractive } from './home-interactive';
-import { supabaseAdmin } from '@/lib/kolk/db';
+import { fetchRankedLeaderboardRows } from '@/lib/kolk/leaderboard/ranking';
 
 async function getTopPlayers() {
   try {
-    const { data } = await supabaseAdmin
-      .from('ka_leaderboard')
-      .select('display_name, highest_level, total_score, tier')
-      .order('highest_level', { ascending: false })
-      .order('total_score', { ascending: false })
-      .limit(5);
-    return (data ?? []) as { display_name: string; highest_level: number; total_score: number; tier: string }[];
+    const { rows } = await fetchRankedLeaderboardRows();
+    return rows.slice(0, 5);
   } catch {
     return [];
   }
 }
 
 const featureItems = [
-  "L0-L8 public beta: translation, itineraries, research memos, adversarial tasks",
+  "L0-L8 public beta: onboarding, translation, bios, itineraries, prompt packs, business packages",
   "Server-side scoring: deterministic checks + AI judge",
-  "Leaderboard with progression-based rankings",
+  "Leaderboard ranked by progression, frontier score, then solve time",
   "GitHub / Google / email sign-in for competitive play",
 ];
 
@@ -37,7 +32,7 @@ export default async function Home() {
       <section className="mx-auto flex max-w-6xl flex-col gap-12 px-6 py-14 sm:px-10 sm:py-20">
         <div className="flex flex-col gap-6">
           <div className="inline-flex w-fit items-center rounded-full border border-emerald-300/80 bg-emerald-50/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700 shadow-sm">
-            Live
+            Public Beta
           </div>
 
           <div className="max-w-4xl space-y-5">
@@ -62,12 +57,12 @@ export default async function Home() {
             >
               Start with L1 →
             </Link>
-            <a
-              href="/api/challenge/0"
+            <Link
+              href="/challenge/0"
               className="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-50 px-5 py-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100"
             >
               Start with L0 (optional onboarding)
-            </a>
+            </Link>
             <Link
               href="/play"
               className="inline-flex items-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
@@ -102,9 +97,9 @@ export default async function Home() {
 
             <div className="space-y-4">
               <p className="text-sm leading-7 text-slate-600">
-                Kolk Arena v1 covers text-first and structured-delivery tasks:
-                translation, itineraries, research memos, legal memos, landing pages,
-                prompt packs, and multi-asset bundles. Multimodal tracks come later.
+                Kolk Arena public beta is intentionally narrow: L0-L8 only, focused on
+                text-first business deliveries such as translation, bios, itineraries,
+                landing copy, prompt packs, and bundled business outputs.
               </p>
 
               <div className="grid gap-3 sm:grid-cols-2">
@@ -134,8 +129,8 @@ export default async function Home() {
                   Benchmark core
                 </p>
                 <p className="mt-2 text-sm leading-7 text-slate-200">
-                  Challenge fetch, AI scoring, leaderboard, and auth are all live.
-                  L1-L5 are free (no signup). Register after L5 to unlock L6-L8 in the current public beta.
+                  Challenge fetch, scoring, leaderboard, and auth are all live for the current beta.
+                  L0 is onboarding-only. L1-L5 are anonymous. Register after L5 to unlock L6-L8.
                 </p>
               </div>
 
@@ -178,10 +173,10 @@ export default async function Home() {
             </div>
             <div className="divide-y divide-slate-200">
               {topPlayers.map((player, i) => (
-                <div key={`${player.display_name}-${i}`} className="flex items-center justify-between py-3">
+                <div key={`${player.player_id}-${i}`} className="flex items-center justify-between py-3">
                   <div className="flex items-center gap-3">
                     <span className="inline-flex min-w-8 items-center justify-center rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-sm font-bold text-slate-700">
-                      {i + 1}
+                      {player.rank}
                     </span>
                     <span className="text-sm font-semibold text-slate-900">{player.display_name}</span>
                     <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ${
@@ -193,7 +188,9 @@ export default async function Home() {
                   </div>
                   <div className="text-right">
                     <span className="text-sm font-medium text-slate-900">L{player.highest_level}</span>
-                    <span className="ml-2 text-xs text-slate-500">{Math.round(player.total_score)} pts</span>
+                    <span className="ml-2 text-xs text-slate-500">
+                      {Math.round(player.best_score_on_highest)} frontier · {player.solve_time_seconds != null ? `${player.solve_time_seconds}s` : 'time pending'}
+                    </span>
                   </div>
                 </div>
               ))}

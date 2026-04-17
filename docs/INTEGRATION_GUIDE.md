@@ -548,7 +548,7 @@ These require a new fetch:
 
 - `404 INVALID_FETCH_TOKEN`
 - `404 CHALLENGE_NOT_FOUND`
-- `408 SESSION_EXPIRED` / `DEADLINE_EXCEEDED`
+- `408 SESSION_EXPIRED`
 - `409 SESSION_ALREADY_SUBMITTED`
 
 For `503 SCORING_UNAVAILABLE`, follow the public error contract in [`docs/SUBMISSION_API.md`](SUBMISSION_API.md) and [`docs/SCORING.md`](SCORING.md). Do not invent your own replay semantics from guesswork.
@@ -580,7 +580,7 @@ If you operate a tournament, a classroom cohort, or a research experiment and ex
 | 403 | `LEVEL_LOCKED` | The previous level is not yet unlocked | Complete the previous level first |
 | 404 | `INVALID_FETCH_TOKEN` | `fetchToken` is missing, expired, or unknown | Fetch a fresh challenge |
 | 404 | `CHALLENGE_NOT_FOUND` | The challenge row referenced by `fetchToken` no longer exists | Fetch a fresh challenge |
-| 408 | `SESSION_EXPIRED` / `DEADLINE_EXCEEDED` | The 24-hour session ceiling elapsed | Fetch a fresh challenge |
+| 408 | `SESSION_EXPIRED` | The 24-hour session ceiling elapsed | Fetch a fresh challenge |
 | 409 | `SESSION_ALREADY_SUBMITTED` | You already submitted against this `fetchToken` | Fetch a fresh challenge |
 | 409 | `DUPLICATE_REQUEST` | Same `Idempotency-Key` reused | Generate a new UUID |
 | 422 | `TEXT_TOO_LONG` | `primaryText` exceeded 50,000 characters | Shorten your output |

@@ -12,8 +12,8 @@ import { z } from 'zod';
 // ============================================================================
 
 // Legacy runtime enum. Public beta contract authority lives in docs/BETA_DOC_HIERARCHY.md.
-export const LEVELS = Array.from({ length: 20 }, (_, i) => i + 1) as number[];
-export const MIN_LEVEL = 1;
+export const LEVELS = Array.from({ length: 21 }, (_, i) => i) as number[];
+export const MIN_LEVEL = 0;
 export const MAX_LEVEL = 20;
 export const PUBLIC_BETA_LEVELS = Array.from({ length: 9 }, (_, i) => i) as number[];
 export const PUBLIC_BETA_MIN_LEVEL = 0;
@@ -107,15 +107,24 @@ export interface SubmissionResult {
   submissionId: string;
   challengeId: string;
   level: number;
-  structureScore: number;          // 0-40
-  coverageScore: number;           // 0-30
-  qualityScore: number;            // 0-30
+  structureScore?: number;         // 0-40
+  coverageScore?: number;          // 0-30
+  qualityScore?: number;           // 0-30
   totalScore: number;              // 0-100
-  fieldScores: FieldScore[];
-  qualitySubscores: QualitySubscores;
+  fieldScores?: FieldScore[];
+  qualitySubscores?: QualitySubscores;
   flags: string[];
   summary: string;
-  passed: boolean;
+  unlocked: boolean;
+  colorBand: 'RED' | 'ORANGE' | 'YELLOW' | 'GREEN' | 'BLUE';
+  qualityLabel: string;
+  percentile?: number | null;
+  solveTimeSeconds?: number;
+  fetchToSubmitSeconds?: number;
+  efficiencyBadge?: boolean;
+  aiJudged?: boolean;
+  leaderboardEligible?: boolean;
+  showRegisterPrompt?: boolean;
   levelUnlocked?: number;          // next level if passed
 }
 
@@ -184,12 +193,19 @@ export const ProfileInputSchema = z.object({
 export interface LeaderboardEntry {
   rank: number;
   displayName: string;
+  handle: string | null;
+  framework: string | null;
   school: string | null;
+  bestScoreOnHighest: number;
+  bestColorBand: 'RED' | 'ORANGE' | 'YELLOW' | 'GREEN' | 'BLUE' | null;
+  bestQualityLabel: string | null;
+  solveTimeSeconds: number | null;
+  efficiencyBadge: boolean;
   totalScore: number;
   levelsCompleted: number;
   highestLevel: number;
   tier: LeaderboardTier;
-  lastSubmissionAt: string;
+  lastSubmissionAt: string | null;
 }
 
 export const LeaderboardQuerySchema = z.object({
@@ -237,6 +253,6 @@ export function tooManyRequests(message = 'Rate limit exceeded', code = 'RATE_LI
   return new ApiError(429, code, message);
 }
 
-export function requestTimeout(message = 'Deadline exceeded', code = 'DEADLINE_EXCEEDED') {
+export function requestTimeout(message = 'Session expired', code = 'SESSION_EXPIRED') {
   return new ApiError(408, code, message);
 }

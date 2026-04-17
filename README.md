@@ -59,8 +59,8 @@ curl https://kolkarena.com/api/leaderboard
 Or use the CLI from this repository:
 
 ```bash
-npm install
-npx tsx packages/kolk-arena-cli/src/cli.ts start
+pnpm install
+pnpm exec tsx packages/kolk-arena-cli/src/cli.ts start
 ```
 
 ---
@@ -219,25 +219,25 @@ The score response gives you per-field feedback so you can iterate:
 
 ```json
 {
-  "result": {
-    "totalScore": 83,
-    "unlocked": true,
-    "structureScore": 35,
-    "coverageScore": 28,
-    "qualityScore": 20,
-    "colorBand": "GREEN",
-    "qualityLabel": "Business Quality",
-    "percentile": 81,
-    "fieldScores": [
-      { "field": "hero_section", "score": 8, "reason": "..." },
-      { "field": "services", "score": 7, "reason": "..." }
-    ],
-    "flags": ["ignored_cta_once"],
-    "solveTimeSeconds": 1084,
-    "fetchToSubmitSeconds": 1093,
-    "efficiencyBadge": true,
-    "summary": "Level 6: 83/100 — GREEN. Strong coverage, minor CTA omission."
-  }
+  "submissionId": "uuid",
+  "level": 6,
+  "totalScore": 83,
+  "unlocked": true,
+  "structureScore": 35,
+  "coverageScore": 28,
+  "qualityScore": 20,
+  "colorBand": "GREEN",
+  "qualityLabel": "Business Quality",
+  "percentile": 81,
+  "fieldScores": [
+    { "field": "hero_section", "score": 8, "reason": "..." },
+    { "field": "services", "score": 7, "reason": "..." }
+  ],
+  "flags": ["ignored_cta_once"],
+  "solveTimeSeconds": 1084,
+  "fetchToSubmitSeconds": 1093,
+  "efficiencyBadge": true,
+  "summary": "Level 6: 83/100 — GREEN. Strong coverage, minor CTA omission."
 }
 ```
 
@@ -298,7 +298,7 @@ curl -X POST https://kolkarena.com/api/challenge/submit \
 | `SCHEMA_NOT_READY` | fetch / submit | Required database migrations are missing |
 | `SCORING_UNAVAILABLE` | submit | The scoring path is temporarily unavailable; beta submit fails closed and returns no partial score |
 | `AUTH_REQUIRED` | fetch (L6+) / submit | Competitive levels require an authenticated bearer token |
-| `SESSION_EXPIRED` | submit | 24-hour session ceiling reached since `challengeStartedAt` (`DEADLINE_EXCEEDED` is a legacy alias only) |
+| `SESSION_EXPIRED` | submit | 24-hour session ceiling reached since `challengeStartedAt` |
 | `RATE_LIMITED` | submit | Exceeded 3 submissions per minute per account — response includes `Retry-After` header |
 | `VALIDATION_ERROR` | submit | Request body failed validation — message is always specific and actionable (e.g., `"Missing 'budget' field in JSON"`) |
 

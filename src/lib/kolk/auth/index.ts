@@ -6,6 +6,7 @@
 
 import crypto from 'crypto';
 import type { User } from '@supabase/supabase-js';
+import type { NextResponse } from 'next/server';
 
 export type ArenaAuthMethod = 'email' | 'github' | 'google';
 
@@ -85,13 +86,68 @@ export function extractToken(headers: Headers): string | null {
 }
 
 /**
- * Extract anonymous tracking token from request.
- * Uses IP + User-Agent hash for L1-L5 anonymous tracking.
+ * Anonymous beta identity.
+ * Prefer the browser-session cookie when present, but keep the IP+UA fallback
+ * so non-browser agent clients can still complete fetch -> submit flows.
  */
-export function getAnonToken(request: Request): string {
+export const ANON_SESSION_COOKIE = 'kolk_anon_session';
+
+function readCookieHeader(headers: Headers, name: string): string | null {
+  const raw = headers.get('cookie');
+  if (!raw) return null;
+
+  const parts = raw.split(';');
+  for (const part of parts) {
+    const [rawName, ...rawValue] = part.trim().split('=');
+    if (rawName === name) {
+      const value = rawValue.join('=').trim();
+      return value.length > 0 ? decodeURIComponent(value) : null;
+    }
+  }
+
+  return null;
+}
+
+function getLegacyAnonFingerprint(request: Request): string {
   const ip = request.headers.get('x-forwarded-for')
     ?? request.headers.get('x-real-ip')
     ?? 'unknown';
   const ua = request.headers.get('user-agent') ?? '';
   return hashCode(`${ip}:${ua}`);
+}
+
+export function resolveAnonToken(request: Request): { token: string; shouldSetCookie: boolean } {
+  const requestWithCookies = request as Request & {
+    cookies?: {
+      get?: (name: string) => { value: string } | undefined;
+    };
+  };
+
+  const fromCookie =
+    readCookieHeader(request.headers, ANON_SESSION_COOKIE)
+    || (typeof requestWithCookies.cookies?.get === 'function'
+      ? requestWithCookies.cookies.get(ANON_SESSION_COOKIE)?.value ?? null
+      : null);
+
+  if (fromCookie) {
+    return { token: fromCookie, shouldSetCookie: false };
+  }
+
+  return {
+    token: getLegacyAnonFingerprint(request),
+    shouldSetCookie: true,
+  };
+}
+
+export function getAnonToken(request: Request): string {
+  return resolveAnonToken(request).token;
+}
+
+export function applyAnonTokenCookie(response: NextResponse, token: string): void {
+  response.cookies.set(ANON_SESSION_COOKIE, token, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+  });
 }

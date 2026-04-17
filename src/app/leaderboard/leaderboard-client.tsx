@@ -10,9 +10,14 @@ type LeaderboardEntry = {
   rank: number;
   display_name: string;
   handle?: string | null;
+  framework?: string | null;
   school: string | null;
   highest_level: number;
   best_score_on_highest: number;
+  best_color_band?: 'RED' | 'ORANGE' | 'YELLOW' | 'GREEN' | 'BLUE' | null;
+  best_quality_label?: string | null;
+  solve_time_seconds?: number | null;
+  efficiency_badge?: boolean;
   total_score: number;
   tier: string;
   last_submission_at: string | null;
@@ -73,6 +78,13 @@ function formatUpdatedLabel(value: string | null) {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(date);
+}
+
+function formatSolveTime(value: number | null | undefined) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 'Time pending';
+  const minutes = Math.floor(value / 60);
+  const seconds = value % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
 export function LeaderboardClient() {
@@ -223,7 +235,7 @@ export function LeaderboardClient() {
                 <div>
                   <h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Leaderboard</h1>
                   <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">
-                    Public standings for Kolk Arena. Progression comes first, frontier performance breaks ties, and recent activity stays visible.
+                    Public standings for Kolk Arena. Progression comes first, frontier performance breaks ties, and solve time decides equal-score races.
                   </p>
                 </div>
               </div>
@@ -239,13 +251,13 @@ export function LeaderboardClient() {
                     {topEntry ? topEntry.display_name : 'No entries yet'}
                   </p>
                   <p className="mt-1 text-xs text-slate-500">
-                    {topEntry ? `L${topEntry.highest_level} · ${formatScore(topEntry.best_score_on_highest)}` : 'Waiting for first official result'}
+                    {topEntry ? `L${topEntry.highest_level} · ${formatScore(topEntry.best_score_on_highest)} · ${formatSolveTime(topEntry.solve_time_seconds)}` : 'Waiting for first official result'}
                   </p>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 sm:col-span-2">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Leaderboard Rule</p>
                   <p className="mt-2 text-sm font-medium text-slate-900">
-                    Highest level first. Frontier score breaks ties.
+                    Highest level first. Frontier score breaks ties. Faster solve time wins identical-score ties.
                   </p>
                   <p className="mt-1 text-xs text-slate-500">
                     Current top tier: {topTier}
@@ -335,7 +347,7 @@ export function LeaderboardClient() {
                 {showingFrom}-{showingTo} of {total}
               </p>
               <p className="mt-1 text-xs leading-5 text-slate-500">
-                Sorted by highest level, then best frontier score, then earlier submission time.
+                Sorted by highest level, then best frontier score, then faster solve time.
               </p>
               {selectedPlayerId ? (
                 <p className="mt-2 text-xs leading-5 text-slate-500">

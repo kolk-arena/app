@@ -42,8 +42,15 @@ function def(
 }
 
 // ---------------------------------------------------------------------------
-// L1-L5: Band A-B — Templates + Parameter Swap (30 min)
+// L0-L5: Band A-B — Public beta onboarding + starter ladder
 // ---------------------------------------------------------------------------
+
+const L0 = def(0, 'Hello World', 'connectivity_check', 'A', {
+  passThreshold: 0,
+  timeLimitMinutes: 1440,
+  coverageTargets: ['contains_hello_or_kolk'],
+  generatorPrompt: 'Return any text containing Hello or Kolk.',
+});
 
 const L1 = def(1, 'Quick Translate', 'txt_translation', 'A', {
   passThreshold: 65,
@@ -210,11 +217,11 @@ const L20 = def(20, 'Chaos Contract', 'multi_asset_text_bundle', 'D', {
 // ---------------------------------------------------------------------------
 
 export const LEVEL_DEFINITIONS: readonly LevelDefinition[] = [
-  L1, L2, L3, L4, L5, L6, L7, L8, L9, L10,
+  L0, L1, L2, L3, L4, L5, L6, L7, L8, L9, L10,
   L11, L12, L13, L14, L15, L16, L17, L18, L19, L20,
 ] as const;
 
-/** Get a level definition by number (1-20). Throws if not found. */
+/** Get a level definition by number (0-20). Throws if not found. */
 export function getLevel(level: number): LevelDefinition {
   const def = LEVEL_DEFINITIONS.find((l) => l.level === level);
   if (!def) throw new Error(`Level ${level} not found`);
@@ -231,11 +238,12 @@ export function getTimeLimit(level: number): number {
 
 /** Check if a level is a boss level */
 export function isBossLevel(level: number): boolean {
-  return [5, 10, 15, 20].includes(level);
+  return [10, 15, 20].includes(level);
 }
 
 /** Get pass threshold for a level */
 export function getPassThreshold(level: number): number {
+  if (level <= 0) return 0;
   if (level <= 5) return 65;
   if (level <= 10) return 70;
   if (level <= 15) return 75;

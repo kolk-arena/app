@@ -45,15 +45,29 @@ let schemaReadyCache: boolean | null = null;
 export async function assertRuntimeSchemaReady(): Promise<void> {
   if (schemaReadyCache) return;
 
-  const [sessionCheck, submissionCheck] = await Promise.all([
+  const [sessionCheck, submissionCheck, leaderboardCheck, l0Check] = await Promise.all([
     supabaseAdmin.from('ka_challenge_sessions').select('id', { head: true, count: 'exact' }).limit(1),
-    supabaseAdmin.from('ka_submissions').select('challenge_session_id', { head: true, count: 'exact' }).limit(1),
+    supabaseAdmin
+      .from('ka_submissions')
+      .select('challenge_session_id, unlocked, solve_time_seconds', { head: true, count: 'exact' })
+      .limit(1),
+    supabaseAdmin
+      .from('ka_leaderboard')
+      .select('best_score_on_highest, solve_time_seconds, framework', { head: true, count: 'exact' })
+      .limit(1),
+    supabaseAdmin
+      .from('ka_challenges')
+      .select('id', { head: true, count: 'exact' })
+      .eq('level', 0)
+      .limit(1),
   ]);
 
-  if (sessionCheck.error || submissionCheck.error) {
+  if (sessionCheck.error || submissionCheck.error || leaderboardCheck.error || l0Check.error || (l0Check.count ?? 0) < 1) {
     const details = [
       sessionCheck.error?.message,
       submissionCheck.error?.message,
+      leaderboardCheck.error?.message,
+      (l0Check.count ?? 0) < 1 ? 'L0 onboarding seed is missing from ka_challenges.' : null,
     ].filter(Boolean).join(' | ');
 
     throw new Error(

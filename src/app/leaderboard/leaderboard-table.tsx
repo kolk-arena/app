@@ -5,9 +5,14 @@ type LeaderboardEntry = {
   rank: number;
   display_name: string;
   handle?: string | null;
+  framework?: string | null;
   school: string | null;
   highest_level: number;
   best_score_on_highest: number;
+  best_color_band?: 'RED' | 'ORANGE' | 'YELLOW' | 'GREEN' | 'BLUE' | null;
+  best_quality_label?: string | null;
+  solve_time_seconds?: number | null;
+  efficiency_badge?: boolean;
   total_score: number;
   tier: string;
   last_submission_at: string | null;
@@ -31,6 +36,30 @@ function formatDate(value: string | null) {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(date);
+}
+
+function formatSolveTime(value: number | null | undefined) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
+  const minutes = Math.floor(value / 60);
+  const seconds = value % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function bandDotClasses(band: LeaderboardEntry['best_color_band']) {
+  switch (band) {
+    case 'BLUE':
+      return 'bg-sky-500';
+    case 'GREEN':
+      return 'bg-emerald-500';
+    case 'YELLOW':
+      return 'bg-amber-400';
+    case 'ORANGE':
+      return 'bg-orange-500';
+    case 'RED':
+      return 'bg-rose-500';
+    default:
+      return 'bg-slate-300';
+  }
 }
 
 function tierClasses(tier: string) {
@@ -91,6 +120,9 @@ export function LeaderboardTable({
                 <p className="text-sm text-slate-500">
                   {entry.handle ? `@${entry.handle}` : 'No public handle'}
                 </p>
+                <p className="text-xs text-slate-400">
+                  {entry.framework ?? 'Framework not set'}
+                </p>
               </div>
               <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
                 View
@@ -108,11 +140,20 @@ export function LeaderboardTable({
               </div>
               <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
                 <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Frontier</dt>
-                <dd className="mt-1 font-medium text-slate-900">{formatScore(entry.best_score_on_highest)}</dd>
+                <dd className="mt-1 flex items-center gap-2 font-medium text-slate-900">
+                  <span
+                    aria-hidden="true"
+                    className={`inline-flex h-2.5 w-2.5 rounded-full ${bandDotClasses(entry.best_color_band ?? null)}`}
+                  />
+                  {formatScore(entry.best_score_on_highest)}
+                </dd>
               </div>
               <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
-                <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Total</dt>
-                <dd className="mt-1 font-medium text-slate-900">{formatScore(entry.total_score)}</dd>
+                <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Solve Time</dt>
+                <dd className="mt-1 font-medium text-slate-900">
+                  {formatSolveTime(entry.solve_time_seconds)}
+                  {entry.efficiency_badge ? ' ⚡' : ''}
+                </dd>
               </div>
             </dl>
 
@@ -132,7 +173,7 @@ export function LeaderboardTable({
               <th className="border-b border-slate-200 px-4 py-3 font-semibold">School</th>
               <th className="border-b border-slate-200 px-4 py-3 font-semibold">Highest</th>
               <th className="border-b border-slate-200 px-4 py-3 font-semibold">Frontier Score</th>
-              <th className="border-b border-slate-200 px-4 py-3 font-semibold">Total Score</th>
+              <th className="border-b border-slate-200 px-4 py-3 font-semibold">Solve Time</th>
               <th className="border-b border-slate-200 px-4 py-3 font-semibold">Tier</th>
               <th className="border-b border-slate-200 px-4 py-3 font-semibold">Last Submission</th>
             </tr>
@@ -173,6 +214,7 @@ export function LeaderboardTable({
                     ) : (
                       <span className="text-xs text-slate-400">No public handle</span>
                     )}
+                    <span className="text-xs text-slate-400">{entry.framework ?? 'Framework not set'}</span>
                   </div>
                 </td>
                 <td className="border-b border-slate-200 px-4 py-3 text-slate-600">
@@ -186,13 +228,21 @@ export function LeaderboardTable({
                 <td className="border-b border-slate-200 px-4 py-3 font-medium text-slate-950">
                   <div className="flex flex-col gap-1">
                     <span>{formatScore(entry.best_score_on_highest)}</span>
-                    <span className="text-xs text-slate-400">frontier</span>
+                    <span className="flex items-center gap-1 text-xs text-slate-400">
+                      <span
+                        aria-hidden="true"
+                        className={`inline-flex h-2.5 w-2.5 rounded-full ${bandDotClasses(entry.best_color_band ?? null)}`}
+                      />
+                      {entry.best_quality_label ?? 'frontier'}
+                    </span>
                   </div>
                 </td>
                 <td className="border-b border-slate-200 px-4 py-3 font-medium text-slate-950">
                   <div className="flex flex-col gap-1">
-                    <span>{formatScore(entry.total_score)}</span>
-                    <span className="text-xs text-slate-400">aggregate</span>
+                    <span>{formatSolveTime(entry.solve_time_seconds)}</span>
+                    <span className="text-xs text-slate-400">
+                      {entry.efficiency_badge ? 'efficiency badge' : 'time tie-break'}
+                    </span>
                   </div>
                 </td>
                 <td className="border-b border-slate-200 px-4 py-3">

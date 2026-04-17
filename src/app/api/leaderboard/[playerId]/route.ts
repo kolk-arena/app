@@ -63,6 +63,14 @@ export async function GET(_request: Request, { params }: RouteProps) {
     leaderboardRow: {
       ...detail.leaderboardRow,
       highest_level: Math.max(0, Math.trunc(asFiniteNumber(detail.leaderboardRow.highest_level, 0))),
+      best_score_on_highest: asFiniteNumber(detail.leaderboardRow.best_score_on_highest, 0),
+      best_color_band: asOptionalString(detail.leaderboardRow.best_color_band),
+      best_quality_label: asOptionalString(detail.leaderboardRow.best_quality_label),
+      solve_time_seconds: Number.isFinite(asFiniteNumber(detail.leaderboardRow.solve_time_seconds, NaN))
+        ? Math.max(0, Math.trunc(asFiniteNumber(detail.leaderboardRow.solve_time_seconds, 0)))
+        : null,
+      efficiency_badge: detail.leaderboardRow.efficiency_badge === true,
+      framework: asOptionalString(detail.leaderboardRow.framework),
       total_score: asFiniteNumber(detail.leaderboardRow.total_score, 0),
       levels_completed: Math.max(0, Math.trunc(asFiniteNumber(detail.leaderboardRow.levels_completed, 0))),
       tier: tier && VALID_TIERS.has(tier) ? tier : 'starter',

@@ -7,7 +7,7 @@ const ANONYMOUS_MAX_LEVEL = 5;
 
 type AuthState =
   | { status: 'loading' }
-  | { status: 'anonymous' }
+  | { status: 'anonymous'; maxLevel: number }
   | { status: 'signed_in'; displayName: string | null; maxLevel: number };
 
 type LevelCard = {
@@ -53,20 +53,35 @@ export function PlayClient() {
     })
       .then(async (response) => {
         if (!active) return;
+
         if (response.status === 401) {
-          setAuth({ status: 'anonymous' });
+          const anonResponse = await fetch('/api/play-state', {
+            credentials: 'include',
+            cache: 'no-store',
+            signal: controller.signal,
+          });
+          const anonPayload = await anonResponse.json().catch(() => ({}));
+          if (!active) return;
+
+          setAuth({
+            status: 'anonymous',
+            maxLevel: Number(anonPayload?.max_level ?? 0),
+          });
           return;
         }
+
         if (!response.ok) {
-          setAuth({ status: 'anonymous' });
+          setAuth({ status: 'anonymous', maxLevel: 0 });
           return;
         }
+
         const payload = await response.json().catch(() => ({}));
         const profile = payload?.profile as { display_name: string | null; max_level: number } | undefined;
         if (!profile) {
-          setAuth({ status: 'anonymous' });
+          setAuth({ status: 'anonymous', maxLevel: 0 });
           return;
         }
+
         setAuth({
           status: 'signed_in',
           displayName: profile.display_name,
@@ -75,7 +90,7 @@ export function PlayClient() {
       })
       .catch(() => {
         if (!active || controller.signal.aborted) return;
-        setAuth({ status: 'anonymous' });
+        setAuth({ status: 'anonymous', maxLevel: 0 });
       });
 
     return () => {
@@ -85,7 +100,8 @@ export function PlayClient() {
   }, []);
 
   const signedIn = auth.status === 'signed_in';
-  const maxLevel = auth.status === 'signed_in' ? auth.maxLevel : 0;
+  const anonymousMaxLevel = auth.status === 'anonymous' ? auth.maxLevel : 0;
+  const maxLevel = auth.status === 'signed_in' ? auth.maxLevel : anonymousMaxLevel;
   const displayName = auth.status === 'signed_in' ? auth.displayName : null;
 
   return (
@@ -106,6 +122,14 @@ export function PlayClient() {
               <>
                 Signed in as <span className="font-semibold text-slate-900">{displayName ?? 'your account'}</span> · highest level passed: <span className="font-semibold text-slate-900">L{maxLevel}</span>
               </>
+            ) : maxLevel > 0 ? (
+              <>
+                Anonymous browser-session progress detected up to <span className="font-semibold text-slate-900">L{maxLevel}</span>.{' '}
+                <Link href="/profile" className="font-semibold text-emerald-700 underline decoration-emerald-300 underline-offset-2 hover:decoration-emerald-700">
+                  Sign in
+                </Link>{' '}
+                to save progress and unlock the competitive ladder.
+              </>
             ) : (
               <>
                 Not signed in. Anonymous play is capped at L{ANONYMOUS_MAX_LEVEL}.{' '}
@@ -123,8 +147,8 @@ export function PlayClient() {
             const requiresAuth = card.level > ANONYMOUS_MAX_LEVEL;
             const isL0 = card.level === 0;
             const isLocked = requiresAuth && !signedIn;
-            const hasUnlockedProgression = card.level <= 1 || maxLevel >= card.level - 1;
-            const isBlockedByProgression = !isL0 && !isLocked && !hasUnlockedProgression;
+            const hasUnlockedProgression = isL0 || card.level === 1 || maxLevel >= card.level - 1;
+            const isBlockedByProgression = !isLocked && !hasUnlockedProgression;
 
             return (
               <article
@@ -154,12 +178,12 @@ export function PlayClient() {
                       <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600">
                         Onboarding only
                       </span>
-                      <a
-                        href="/api/challenge/0"
+                      <Link
+                        href="/challenge/0"
                         className="inline-flex items-center rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
                       >
-                        Open endpoint (curl-first)
-                      </a>
+                        Start L0
+                      </Link>
                     </>
                   ) : isLocked ? (
                     <>

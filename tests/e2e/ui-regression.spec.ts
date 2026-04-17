@@ -17,6 +17,19 @@ function mockAnonymousSession(page: Page) {
   });
 }
 
+async function mockPlayState(page: Page, maxLevel: number) {
+  await page.route('**/api/play-state', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        status: 'anonymous',
+        max_level: maxLevel,
+      }),
+    });
+  });
+}
+
 async function mockAuthenticatedProfile(page: Page) {
   type MockProfile = {
     id: string;
@@ -252,6 +265,8 @@ function playerDetailPayload() {
 }
 
 test.describe('frontend UI regression', () => {
+  test.describe.configure({ timeout: 60_000 });
+
   test('home anonymous flow renders sign-in panel and email success state', async ({ page }) => {
     await mockAnonymousSession(page);
     await mockEmailRegister(page);
@@ -307,9 +322,141 @@ test.describe('frontend UI regression', () => {
     await expect(page.getByRole('main').getByRole('link', { name: 'GitHub' })).toBeVisible();
   });
 
+  test('play hub restores anonymous progression from browser-session state', async ({ page }) => {
+    await mockAnonymousSession(page);
+    await mockPlayState(page, 3);
+
+    await page.goto('/play');
+
+    await expect(page.getByText('Anonymous browser-session progress detected up to')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Start L4 →' })).toBeVisible();
+    await expect(page.getByText('Locked · clear L4 first')).toBeVisible();
+  });
+
+  test('challenge L0 completes onboarding flow', async ({ page }) => {
+    await page.route('**/api/challenge/0*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          challenge: {
+            challengeId: 'l0-onboarding',
+            level: 0,
+            seed: 0,
+            variant: 'onboarding',
+            fetchToken: 'fetch-token-l0',
+            taskJson: { mode: 'onboarding' },
+            promptMd: "# Kolk Arena Onboarding\n\nReply with any text that contains `Hello` or `Kolk` (case-insensitive).",
+            suggestedTimeMinutes: 1,
+            timeLimitMinutes: 1440,
+            deadlineUtc: '2026-04-18T00:00:00.000Z',
+            challengeStartedAt: '2026-04-17T00:00:00.000Z',
+          },
+          level_info: {
+            name: 'Hello World',
+            family: 'connectivity_check',
+            band: 'A',
+            unlock_rule: 'contains_hello_or_kolk',
+            suggested_time_minutes: 1,
+            is_boss: false,
+            ai_judged: false,
+            leaderboard_eligible: false,
+          },
+        }),
+      });
+    });
+
+    await page.route('**/api/challenge/submit', async (route) => {
+      const body = route.request().postDataJSON() as { fetchToken: string; primaryText: string };
+      expect(body.fetchToken).toBe('fetch-token-l0');
+      expect(body.primaryText).toContain('Hello');
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          submissionId: 'submission-l0',
+          challengeId: 'l0-onboarding',
+          level: 0,
+          totalScore: 100,
+          unlocked: true,
+          colorBand: 'BLUE',
+          qualityLabel: 'Exceptional',
+          summary: 'L0 onboarding check passed. Your integration is connected.',
+          solveTimeSeconds: 18,
+          fetchToSubmitSeconds: 18,
+          efficiencyBadge: true,
+          aiJudged: false,
+          leaderboardEligible: false,
+          levelUnlocked: 1,
+          flags: [],
+        }),
+      });
+    });
+
+    const fetchResponse = page.waitForResponse('**/api/challenge/0*');
+    await page.goto('/challenge/0', { waitUntil: 'domcontentloaded' });
+    await fetchResponse;
+
+    await expect(page.locator('textarea')).toHaveValue('Hello, Kolk Arena!');
+    await page.getByRole('button', { name: 'Submit delivery' }).click();
+
+    await expect(page.getByText('L0 onboarding check passed. Your integration is connected.')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Try L1 →' })).toBeVisible();
+  });
+
+  test('challenge re-fetch gets a fresh brief without relying on same-url remounts', async ({ page }) => {
+    let fetchCount = 0;
+
+    await page.route('**/api/challenge/1*', async (route) => {
+      fetchCount += 1;
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          challenge: {
+            challengeId: `challenge-${fetchCount}`,
+            level: 1,
+            seed: fetchCount,
+            variant: 'v1',
+            fetchToken: `fetch-token-${fetchCount}`,
+            taskJson: { structured_brief: { source_lang: 'en', target_lang: 'es-MX' } },
+            promptMd: fetchCount === 1 ? '# Order Brief A' : '# Order Brief B',
+            suggestedTimeMinutes: 5,
+            timeLimitMinutes: 1440,
+            deadlineUtc: '2026-04-18T00:00:00.000Z',
+            challengeStartedAt: '2026-04-17T00:00:00.000Z',
+          },
+          level_info: {
+            name: 'Quick Translate',
+            family: 'txt_translation',
+            band: 'A',
+            unlock_rule: 'dual_gate',
+            suggested_time_minutes: 5,
+            is_boss: false,
+            ai_judged: true,
+            leaderboard_eligible: false,
+          },
+        }),
+      });
+    });
+
+    const firstFetch = page.waitForResponse('**/api/challenge/1*');
+    await page.goto('/challenge/1', { waitUntil: 'domcontentloaded' });
+    await firstFetch;
+
+    await expect(page.getByText('# Order Brief A')).toBeVisible();
+    const secondFetch = page.waitForResponse('**/api/challenge/1*');
+    await page.getByRole('button', { name: 'Re-fetch a fresh brief' }).click();
+    await secondFetch;
+    await expect(page.getByText('# Order Brief B')).toBeVisible();
+    await expect.poll(() => fetchCount).toBe(2);
+  });
+
   test('leaderboard preserves detail selection across refresh', async ({ page }) => {
     await mockLeaderboard(page);
-    await page.route(`**/api/leaderboard/${PLAYER_ID}`, async (route) => {
+    await page.route(`**/api/leaderboard/${PLAYER_ID}*`, async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -319,14 +466,19 @@ test.describe('frontend UI regression', () => {
 
     await page.goto('/leaderboard');
 
-    const detailResponse = page.waitForResponse(`**/api/leaderboard/${PLAYER_ID}`);
-    await page.getByRole('button', { name: 'Open player detail for Ada Lovelace' }).click();
-    await detailResponse;
+    await Promise.all([
+      page.waitForResponse(`**/api/leaderboard/${PLAYER_ID}*`),
+      page.getByRole('button', { name: 'Open player detail for Ada Lovelace' }).click(),
+    ]);
     await expect(page).toHaveURL(new RegExp(`\\/leaderboard\\?player=${PLAYER_ID}`));
     await expect(page.getByText('Strong structured delivery with clear coverage.')).toBeVisible();
     await expect(page.getByText('Detail selection is stored in the URL and survives refresh.')).toBeVisible();
 
-    await page.reload();
+    await Promise.all([
+      page.waitForResponse('**/api/leaderboard?*'),
+      page.waitForResponse(`**/api/leaderboard/${PLAYER_ID}*`),
+      page.reload({ waitUntil: 'domcontentloaded' }),
+    ]);
 
     await expect(page).toHaveURL(new RegExp(`\\/leaderboard\\?player=${PLAYER_ID}`));
     await expect(page.getByText('Strong structured delivery with clear coverage.')).toBeVisible();

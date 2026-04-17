@@ -25,9 +25,11 @@ type LevelInfo = {
   name: string;
   family: string;
   band: string;
+  unlock_rule: string;
   suggested_time_minutes: number;
-  pass_threshold: number;
   is_boss: boolean;
+  ai_judged: boolean;
+  leaderboard_eligible: boolean;
 };
 
 type FetchResponse = {
@@ -41,21 +43,24 @@ type SubmitResponse = {
   submissionId: string;
   challengeId: string;
   level: number;
-  structureScore: number;
-  coverageScore: number;
-  qualityScore: number;
+  structureScore?: number;
+  coverageScore?: number;
+  qualityScore?: number;
   totalScore: number;
-  fieldScores: { field: string; score: number; reason: string }[];
-  qualitySubscores: { toneFit: number; clarity: number; usefulness: number; businessFit: number };
+  fieldScores?: { field: string; score: number; reason: string }[];
+  qualitySubscores?: { toneFit: number; clarity: number; usefulness: number; businessFit: number };
   flags: string[];
   summary: string;
-  passed?: boolean;
-  unlocked?: boolean;
-  colorBand?: 'RED' | 'ORANGE' | 'YELLOW' | 'GREEN' | 'BLUE';
-  qualityLabel?: string;
+  unlocked: boolean;
+  colorBand: 'RED' | 'ORANGE' | 'YELLOW' | 'GREEN' | 'BLUE';
+  qualityLabel: string;
   levelUnlocked?: number;
-  percentile?: number;
+  percentile?: number | null;
   solveTimeSeconds?: number;
+  fetchToSubmitSeconds?: number;
+  efficiencyBadge?: boolean;
+  aiJudged?: boolean;
+  leaderboardEligible?: boolean;
   showRegisterPrompt?: boolean;
 };
 
@@ -76,7 +81,6 @@ type SubmitStatus =
   | { kind: 'validation_error'; message: string; parserPosition?: string; isL5JsonError?: boolean }
   | { kind: 'auth_required'; message: string }
   | { kind: 'identity_mismatch'; message: string }
-  | { kind: 'deadline_exceeded'; message: string }
   | { kind: 'session_expired'; message: string }
   | { kind: 'session_already_submitted'; message: string }
   | { kind: 'rate_limited'; message: string; retryAfterSeconds?: number }
@@ -150,12 +154,21 @@ function validateL5Json(text: string): { ok: true } | { ok: false; message: stri
 export function ChallengeClient({ level }: { level: number }) {
   const [fetchState, setFetchState] = useState<FetchState>({ kind: 'loading' });
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>({ kind: 'idle' });
-  const [primaryText, setPrimaryText] = useState('');
+  const [primaryText, setPrimaryText] = useState(level === 0 ? 'Hello, Kolk Arena!' : '');
   const [now, setNow] = useState<number>(() => Date.now());
   const [registerPromptOpen, setRegisterPromptOpen] = useState(false);
+  const [refreshNonce, setRefreshNonce] = useState(0);
   const idempotencyKeyRef = useRef<string>('');
 
-  // ── Fetch challenge on mount ──
+  const requestFreshChallenge = useCallback(() => {
+    setSubmitStatus({ kind: 'idle' });
+    setRegisterPromptOpen(false);
+    setPrimaryText(level === 0 ? 'Hello, Kolk Arena!' : '');
+    idempotencyKeyRef.current = randomIdempotencyKey();
+    setRefreshNonce((current) => current + 1);
+  }, [level]);
+
+  // ── Fetch challenge on mount / refetch ──
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
@@ -175,6 +188,9 @@ export function ChallengeClient({ level }: { level: number }) {
         if (resp.ok) {
           setFetchState({ kind: 'ready', data: payload as FetchResponse });
           idempotencyKeyRef.current = randomIdempotencyKey();
+          if (level === 0) {
+            setPrimaryText((current) => (current.trim().length > 0 ? current : 'Hello, Kolk Arena!'));
+          }
           return;
         }
 
@@ -214,7 +230,7 @@ export function ChallengeClient({ level }: { level: number }) {
       active = false;
       controller.abort();
     };
-  }, [level]);
+  }, [level, refreshNonce]);
 
   // ── Timer tick (1s) while ready ──
   useEffect(() => {
@@ -284,7 +300,9 @@ export function ChallengeClient({ level }: { level: number }) {
 
         if (resp.status === 422 && code === 'L5_INVALID_JSON') {
           const parserPosition =
-            typeof payload?.parser_position === 'string' ? payload.parser_position : undefined;
+            typeof payload?.parser_position === 'string'
+              ? payload.parser_position
+              : resp.headers.get('x-parser-position') ?? undefined;
           setSubmitStatus({
             kind: 'validation_error',
             message,
@@ -310,11 +328,6 @@ export function ChallengeClient({ level }: { level: number }) {
 
         if (resp.status === 403 && code === 'IDENTITY_MISMATCH') {
           setSubmitStatus({ kind: 'identity_mismatch', message });
-          return;
-        }
-
-        if (resp.status === 408 && code === 'DEADLINE_EXCEEDED') {
-          setSubmitStatus({ kind: 'deadline_exceeded', message });
           return;
         }
 
@@ -349,7 +362,7 @@ export function ChallengeClient({ level }: { level: number }) {
           return;
         }
 
-        if (resp.status === 503 && (code === 'JUDGE_UNAVAILABLE' || code === 'JUDGE_FAILED' || code === 'RUBRIC_UNAVAILABLE' || code === 'SCORING_UNAVAILABLE' || code === 'SCHEMA_NOT_READY')) {
+        if (resp.status === 503 && (code === 'SCORING_UNAVAILABLE' || code === 'SCHEMA_NOT_READY')) {
           setSubmitStatus({ kind: 'scoring_unavailable', message });
           return;
         }
@@ -437,7 +450,7 @@ export function ChallengeClient({ level }: { level: number }) {
         title="No challenges available right now"
         accent="amber"
         message={fetchState.message}
-        primary={{ href: `/challenge/${level}`, label: 'Retry' }}
+        primary={{ label: 'Retry', onClick: requestFreshChallenge }}
         secondary={{ href: '/play', label: 'Back to Play' }}
       />
     );
@@ -449,7 +462,7 @@ export function ChallengeClient({ level }: { level: number }) {
         title="Service temporarily unavailable"
         accent="rose"
         message={fetchState.message}
-        primary={{ href: `/challenge/${level}`, label: 'Retry' }}
+        primary={{ label: 'Retry', onClick: requestFreshChallenge }}
         secondary={{ href: '/play', label: 'Back to Play' }}
       />
     );
@@ -461,7 +474,7 @@ export function ChallengeClient({ level }: { level: number }) {
         title="Could not load challenge"
         accent="rose"
         message={fetchState.message}
-        primary={{ href: `/challenge/${level}`, label: 'Retry' }}
+        primary={{ label: 'Retry', onClick: requestFreshChallenge }}
         secondary={{ href: '/play', label: 'Back to Play' }}
       />
     );
@@ -478,6 +491,7 @@ export function ChallengeClient({ level }: { level: number }) {
         levelName={level_info.name}
         registerPromptOpen={registerPromptOpen}
         onDismissRegisterPrompt={() => setRegisterPromptOpen(false)}
+        onRetry={requestFreshChallenge}
       />
     );
   }
@@ -543,13 +557,15 @@ export function ChallengeClient({ level }: { level: number }) {
 
         {/* Submit form */}
         <form onSubmit={handleSubmit} className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_10px_40px_rgba(15,23,42,0.04)] sm:p-8">
-          <SubmitErrorBanner status={submitStatus} level={level} onRefetch={() => window.location.reload()} />
+          <SubmitErrorBanner status={submitStatus} level={level} onRefetch={requestFreshChallenge} />
 
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Your delivery</p>
               <p className="mt-1 text-sm font-medium text-slate-800">
-                {level === 5
+                {level === 0
+                  ? "Submit any text containing 'Hello' or 'Kolk'. L0 is a connectivity check only — no AI judge, no leaderboard."
+                  : level === 5
                   ? 'L5 requires a JSON object string with three keys: whatsapp_message, quick_facts, first_step_checklist.'
                   : level === 1
                   ? 'Return translated text only. No headings, no translator notes.'
@@ -568,7 +584,9 @@ export function ChallengeClient({ level }: { level: number }) {
               level === 5 ? 'border-slate-300 bg-slate-50 font-mono' : 'border-slate-300 bg-white'
             }`}
             placeholder={
-              level === 5
+              level === 0
+                ? 'Hello, Kolk Arena!'
+                : level === 5
                 ? '{\n  "whatsapp_message": "...",\n  "quick_facts": "...",\n  "first_step_checklist": "..."\n}'
                 : 'Your delivery text here...'
             }
@@ -593,12 +611,13 @@ export function ChallengeClient({ level }: { level: number }) {
             >
               {submitStatus.kind === 'submitting' ? 'Scoring…' : 'Submit delivery'}
             </button>
-            <Link
-              href={`/challenge/${level}`}
+            <button
+              type="button"
+              onClick={requestFreshChallenge}
               className="inline-flex items-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             >
               Re-fetch a fresh brief
-            </Link>
+            </button>
             <Link
               href="/play"
               className="inline-flex items-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
@@ -648,8 +667,8 @@ function ErrorShell({
   title: string;
   message: string;
   accent: 'rose' | 'amber' | 'slate';
-  primary?: { href: string; label: string };
-  secondary?: { href: string; label: string };
+  primary?: { href?: string; label: string; onClick?: () => void };
+  secondary?: { href?: string; label: string; onClick?: () => void };
 }) {
   const accentMap = {
     rose: 'border-rose-200 bg-rose-50 text-rose-800',
@@ -664,20 +683,40 @@ function ErrorShell({
           <p className="mt-3 text-sm leading-6">{message}</p>
           <div className="mt-5 flex flex-wrap gap-3">
             {primary ? (
-              <Link
-                href={primary.href}
-                className="inline-flex items-center rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
-              >
-                {primary.label}
-              </Link>
+              primary.onClick ? (
+                <button
+                  type="button"
+                  onClick={primary.onClick}
+                  className="inline-flex items-center rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                >
+                  {primary.label}
+                </button>
+              ) : primary.href ? (
+                <Link
+                  href={primary.href}
+                  className="inline-flex items-center rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                >
+                  {primary.label}
+                </Link>
+              ) : null
             ) : null}
             {secondary ? (
-              <Link
-                href={secondary.href}
-                className="inline-flex items-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-              >
-                {secondary.label}
-              </Link>
+              secondary.onClick ? (
+                <button
+                  type="button"
+                  onClick={secondary.onClick}
+                  className="inline-flex items-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  {secondary.label}
+                </button>
+              ) : secondary.href ? (
+                <Link
+                  href={secondary.href}
+                  className="inline-flex items-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  {secondary.label}
+                </Link>
+              ) : null
             ) : null}
           </div>
         </div>
@@ -703,7 +742,6 @@ function SubmitErrorBanner({
     || status.kind === 'session_already_submitted'
     || status.kind === 'identity_mismatch'
     || status.kind === 'scoring_unavailable'
-    || status.kind === 'deadline_exceeded'
     || status.kind === 'auth_required';
 
   const tone =
@@ -722,8 +760,6 @@ function SubmitErrorBanner({
       ? 'Sign-in required'
       : status.kind === 'identity_mismatch'
       ? 'Identity mismatch — re-fetch under the correct account'
-      : status.kind === 'deadline_exceeded'
-      ? 'Submission deadline passed'
       : status.kind === 'session_expired'
       ? 'Session expired (24h ceiling hit)'
       : status.kind === 'session_already_submitted'
@@ -785,17 +821,20 @@ function ResultCard({
   levelName,
   registerPromptOpen,
   onDismissRegisterPrompt,
+  onRetry,
 }: {
   result: SubmitResponse;
   levelName: string;
   registerPromptOpen: boolean;
   onDismissRegisterPrompt: () => void;
+  onRetry: () => void;
 }) {
-  const unlocked = result.unlocked ?? result.passed ?? false;
+  const unlocked = result.unlocked;
   const band = result.colorBand;
   const nextLevel = result.levelUnlocked;
   const hasFieldFeedback = Array.isArray(result.fieldScores) && result.fieldScores.length > 0;
   const hasPercentile = typeof result.percentile === 'number' && Number.isFinite(result.percentile);
+  const isOnboarding = result.level === 0 || result.aiJudged === false;
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
@@ -832,22 +871,36 @@ function ResultCard({
           </div>
 
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
-            <ScoreTile label="Structure" value={result.structureScore} max={40} />
-            <ScoreTile label="Coverage" value={result.coverageScore} max={30} />
-            <ScoreTile label="Quality" value={result.qualityScore} max={30} />
+            {!isOnboarding ? (
+              <>
+                <ScoreTile label="Structure" value={result.structureScore ?? 0} max={40} />
+                <ScoreTile label="Coverage" value={result.coverageScore ?? 0} max={30} />
+                <ScoreTile label="Quality" value={result.qualityScore ?? 0} max={30} />
+              </>
+            ) : (
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 sm:col-span-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-700">Onboarding</p>
+                <p className="mt-2 text-sm font-medium text-emerald-950">
+                  L0 is a connectivity check. This run confirms your integration can fetch and submit successfully.
+                </p>
+              </div>
+            )}
           </div>
 
-          {hasPercentile ? (
+          {hasPercentile && !isOnboarding ? (
             <div className="mt-4 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-xs font-medium text-sky-900">
               Percentile on L{result.level}: {Math.round(result.percentile!)}%
             </div>
           ) : null}
 
           {typeof result.solveTimeSeconds === 'number' ? (
-            <p className="mt-3 text-xs text-slate-500">Solve time: {Math.round(result.solveTimeSeconds)}s</p>
+            <p className="mt-3 text-xs text-slate-500">
+              Solve time: {Math.round(result.solveTimeSeconds)}s
+              {result.efficiencyBadge ? ' · Efficiency Badge earned' : ''}
+            </p>
           ) : null}
 
-          {Array.isArray(result.flags) && result.flags.length > 0 ? (
+          {Array.isArray(result.flags) && result.flags.length > 0 && !isOnboarding ? (
             <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-900">
               <p className="font-semibold">Judge flags</p>
               <ul className="mt-1 list-inside list-disc space-y-0.5">
@@ -858,11 +911,11 @@ function ResultCard({
             </div>
           ) : null}
 
-          {hasFieldFeedback ? (
+          {hasFieldFeedback && !isOnboarding ? (
             <div className="mt-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Field feedback</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Field feedback</p>
               <ul className="mt-2 space-y-2">
-                {result.fieldScores.map((f) => (
+                {(result.fieldScores ?? []).map((f) => (
                   <li key={f.field} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-sm font-semibold text-slate-900">{f.field}</p>
@@ -881,15 +934,16 @@ function ResultCard({
                 href={`/challenge/${nextLevel}`}
                 className="inline-flex items-center rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
-                Attempt L{nextLevel} →
+                {result.level === 0 ? 'Try L1 →' : `Attempt L${nextLevel} →`}
               </Link>
             ) : null}
-            <Link
-              href={`/challenge/${result.level}`}
+            <button
+              type="button"
+              onClick={onRetry}
               className="inline-flex items-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             >
               Retry L{result.level}
-            </Link>
+            </button>
             <Link
               href="/play"
               className="inline-flex items-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"

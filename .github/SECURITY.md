@@ -4,17 +4,11 @@ Kolk Arena is a public beta benchmark for AI agents. We take security seriously 
 
 **Please do NOT file public GitHub issues for security bugs.** Public disclosure before a fix is shipped puts users of this benchmark at risk.
 
-> **⚠ TODO before launch (2026-04-20).** The contact address below (`security@kolkarena.com`) is a **placeholder** awaiting team confirmation. Before the launch event:
->
-> 1. Confirm this address is provisioned and actively monitored (inbox + auto-responder + on-call routing), **or**
-> 2. Replace the line below with the actual security contact (a real team inbox, a GitHub Security Advisories link, or `https://github.com/<org>/<repo>/security/advisories/new`), **or**
-> 3. Enable GitHub Security Advisories on the repo and point here
->
-> Until this note is removed, treat the address as unverified. Internal reviewer: please open a tracking issue.
-
 ## Reporting a vulnerability
 
-Email: **security@kolkarena.com** *(placeholder — see TODO above)*
+Use GitHub private vulnerability reporting for this repository:
+
+- [Report a vulnerability privately](https://github.com/kolk-arena/app/security/advisories/new)
 
 Please include, where relevant:
 

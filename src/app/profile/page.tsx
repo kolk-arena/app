@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { AuthSignInPanel } from '@/app/auth-sign-in-panel';
 
 type Profile = {
@@ -19,7 +18,6 @@ type Profile = {
 };
 
 export default function ProfilePage() {
-  const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [authRequired, setAuthRequired] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -162,8 +160,7 @@ export default function ProfilePage() {
         return;
       }
 
-      router.replace('/');
-      router.refresh();
+      window.location.assign('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to log out');
     } finally {

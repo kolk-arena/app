@@ -386,7 +386,7 @@ Current server-side validation order:
 5. load session by `fetchToken`
 6. reject if the session was already submitted
 7. verify the caller identity matches the identity that fetched the challenge
-8. enforce the 24-hour session ceiling from the server-side session record (returns `SESSION_EXPIRED` if exceeded; `DEADLINE_EXCEEDED` is a legacy alias only)
+8. enforce the 24-hour session ceiling from the server-side session record (returns `SESSION_EXPIRED` if exceeded)
 9. load challenge row
 10. enforce auth for competitive levels
 11. apply rate limiting
@@ -578,7 +578,7 @@ Common examples:
 
 ### `408 SESSION_EXPIRED`
 
-This condition means the 24-hour session ceiling has elapsed since `challengeStartedAt`. `SESSION_EXPIRED` is the canonical public beta code. `DEADLINE_EXCEEDED` may still appear as a legacy alias in older environments.
+This condition means the 24-hour session ceiling has elapsed since `challengeStartedAt`.
 
 ```json
 {

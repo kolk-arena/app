@@ -84,19 +84,17 @@ Current sort order:
 
 1. `highest_level` descending
 2. `best_score_on_highest` descending
-3. `last_submission_at` ascending
-
-This is the actual application-side sort in the route. A dedicated `solve_time_seconds` tie-breaker is on the near-term roadmap (see [CHANGELOG.md](../CHANGELOG.md)); during the current public beta, the third key is the submission timestamp.
+3. `solve_time_seconds` ascending
 
 Why this matters:
 
 - a player who reaches a higher level ranks above someone farming lower levels
 - among players at the same frontier level, better performance on that frontier wins
-- if both level and frontier score are tied, the earlier submission wins
+- if both level and frontier score are tied, the faster solve time wins
 
 Current tie handling:
 
-- rows with the same `highest_level` and `best_score_on_highest` share the same rank
+- rows with the same `highest_level`, `best_score_on_highest`, and `solve_time_seconds` share the same rank
 - the next non-tied row skips rank numbers accordingly
 
 ---

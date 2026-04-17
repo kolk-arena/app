@@ -6,7 +6,7 @@ export const metadata = {
   description: 'Kolk Arena challenge page',
 };
 
-const PUBLIC_BETA_LEVELS = new Set([1, 2, 3, 4, 5, 6, 7, 8]);
+const PUBLIC_BETA_LEVELS = new Set([0, 1, 2, 3, 4, 5, 6, 7, 8]);
 
 export default async function ChallengePage({
   params,
