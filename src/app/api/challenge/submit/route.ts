@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
 
   // Auth check for competitive levels
   if (!participantId && challenge.level > ANONYMOUS_MAX_LEVEL) {
-    return errorResponse(keyHash, 403, 'AUTH_REQUIRED',
+    return errorResponse(keyHash, 401, 'AUTH_REQUIRED',
       `Authentication required for level ${challenge.level}`);
   }
 
@@ -303,7 +303,7 @@ export async function POST(request: NextRequest) {
   }
 
   const totalScore = layer1.totalScore + coverageScore + qualityScore;
-  const passed = totalScore >= levelDef.passThreshold;
+  const passed = layer1.totalScore >= STRUCTURAL_GATE && coverageScore + qualityScore >= 15;
 
   // ── Step 8: Save submission ──
   const { data: submission, error: insertError } = await supabaseAdmin
@@ -379,8 +379,9 @@ export async function POST(request: NextRequest) {
     levelUnlocked: passed && challenge.level < 20 ? challenge.level + 1 : undefined,
   };
 
-  // Cache final response
-  const responseBody = { result };
+  // Cache final response (flat shape per SUBMISSION_API + INTEGRATION_GUIDE contract;
+  // no outer { result } envelope — the SubmissionResult fields are the response body)
+  const responseBody = result as unknown as Record<string, unknown>;
   void supabaseAdmin
     .from('ka_idempotency_keys')
     .update({ response: responseBody, status_code: 200 })

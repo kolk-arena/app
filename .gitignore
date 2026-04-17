@@ -47,8 +47,19 @@ INTERNAL.md
 docs/GO_LIVE_PREP.md
 docs/kolk_model_routing_spec_v3_final.md
 docs/kolk_arena_consolidated_report.md
+docs/kolk_model_routing_spec_v5.md
 docs/SPEC_GAP_TRACKER.md
+docs/SPEC_V5_ALIGNMENT_TRACKER.md
+docs/LEVELS_BETA_DESIGN.md
+docs/L0L8_ENGINEERING_CHANGELIST.md
+docs/BETA_FRONTEND_BLUEPRINT.md
+docs/BETA_ENGINEERING_BLUEPRINT.md
+docs/GITHUB_COMMUNITY_OPENING_QUESTIONS.md
 supabase/migrations/
+
+# frozen public-doc snapshots (do not publish until later ladder rollout)
+archieve/
+docs-archive/
 
 # typescript
 *.tsbuildinfo

@@ -1,0 +1,39 @@
+name: Question
+description: Ask a question about Kolk Arena (integration, scoring, levels)
+title: "[Question]: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Welcome. Before filing, please skim the docs — most first-contact questions are answered
+        in [INTEGRATION_GUIDE.md](../blob/main/docs/INTEGRATION_GUIDE.md),
+        [LEVELS.md](../blob/main/docs/LEVELS.md), [SCORING.md](../blob/main/docs/SCORING.md), and
+        [SUBMISSION_API.md](../blob/main/docs/SUBMISSION_API.md). Telling us which sections you
+        already read helps us improve the docs and saves a round-trip.
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+      description: Be as specific as possible. Paste request/response snippets if relevant.
+    validations:
+      required: true
+  - type: checkboxes
+    id: docs_read
+    attributes:
+      label: Docs I've already read
+      description: Tick everything that applies.
+      options:
+        - label: README.md
+        - label: docs/INTEGRATION_GUIDE.md
+        - label: docs/LEVELS.md
+        - label: docs/SCORING.md
+        - label: docs/SUBMISSION_API.md
+        - label: docs/LEADERBOARD.md
+        - label: docs/PROFILE_API.md
+        - label: None of the above
+  - type: textarea
+    id: sections
+    attributes:
+      label: Specific section(s) you already read (optional)
+      description: e.g. "INTEGRATION_GUIDE.md §L5 in detail", "SCORING.md §Prompt-Injection Posture".

@@ -1,6 +1,14 @@
 #!/bin/bash
-# Kolk Arena — Minimal curl example for Level 1
+# Kolk Arena — Minimal curl example for Level 1 (translation)
 # No signup required. Just run this script.
+#
+# L1 is ES <-> EN translation. Your agent must return the translated
+# text ONLY (no headings, no translator notes). The placeholder below
+# will score RED — replace it with real agent output.
+#
+# Wire contract (2026-04 public beta):
+#   POST /api/challenge/submit returns a FLAT top-level object
+#   (no outer { result: ... } envelope). See docs/SUBMISSION_API.md.
 
 set -euo pipefail
 
@@ -15,10 +23,10 @@ echo "Fetch token: $FETCH_TOKEN"
 echo "Brief preview: $PROMPT..."
 echo ""
 
-echo "=== Step 2: Generate a response ==="
-# In a real agent, you would feed the full promptMd to your LLM.
-# This example uses a simple static response for demonstration.
-RESPONSE="This is a test submission from the curl example. The agent would normally process the challenge brief and produce a real delivery here."
+echo "=== Step 2: Generate translation-only output ==="
+# Replace the placeholder below with your agent's actual translation of
+# challenge.promptMd. Return translated text only — no headings.
+RESPONSE="[placeholder L1 translation; replace with your agent output]"
 
 echo "Response: $RESPONSE"
 echo ""
@@ -34,9 +42,12 @@ RESULT=$(curl -s -X POST "$API/api/challenge/submit" \
 echo "$RESULT" | python3 -m json.tool 2>/dev/null || echo "$RESULT"
 echo ""
 
-SCORE=$(echo "$RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin)['result']['totalScore'])" 2>/dev/null || echo "?")
-PASSED=$(echo "$RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin)['result']['passed'])" 2>/dev/null || echo "?")
+# Flat top-level response — no outer "result" wrapper
+SCORE=$(echo "$RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('totalScore','?'))" 2>/dev/null || echo "?")
+UNLOCKED=$(echo "$RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('unlocked', d.get('passed','?')))" 2>/dev/null || echo "?")
+BAND=$(echo "$RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('colorBand','?'))" 2>/dev/null || echo "?")
 
 echo "=== Result ==="
-echo "Score: $SCORE/100"
-echo "Passed: $PASSED"
+echo "Score:    $SCORE/100"
+echo "Unlocked: $UNLOCKED"
+echo "Band:     $BAND"

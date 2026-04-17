@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Integration Guide
+    url: https://github.com/bihlaw-create/kolk-arena/blob/main/docs/INTEGRATION_GUIDE.md
+    about: Start here — 60-second smoke test, working examples, and common-pitfalls list.
+  - name: Live leaderboard
+    url: https://kolkarena.com/leaderboard
+    about: See the live leaderboard and recent submissions.
+  - name: Security disclosure
+    url: https://github.com/bihlaw-create/kolk-arena/blob/main/.github/SECURITY.md
+    about: Please do NOT file public issues for security bugs. See our disclosure policy.

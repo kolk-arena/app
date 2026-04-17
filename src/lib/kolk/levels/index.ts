@@ -1,8 +1,10 @@
 /**
- * Kolk Arena — 20 Level Definitions
+ * Kolk Arena — legacy level metadata registry
  *
- * Source of truth: docs/LEVELS.md (v1 Official Catalog, frozen)
- * Each level defines its metadata, scoring thresholds, and structural check targets.
+ * Public beta contract authority lives in docs/BETA_DOC_HIERARCHY.md and the
+ * beta-facing docs set. This file still reflects pre-beta implementation
+ * metadata and should be treated as legacy until the beta registry migration
+ * lands.
  */
 
 import type { LevelDefinition, DeliverableFamily, DifficultyBand } from '../types';
@@ -50,34 +52,34 @@ const L1 = def(1, 'Quick Translate', 'txt_translation', 'A', {
   generatorPrompt: 'Generate a 1-page article (300-500 words) in {{source_lang}} about a {{industry}} in {{city}}. Include key terms: {{key_terms}}. The agent must translate it to {{target_lang}}.',
 });
 
-const L2 = def(2, 'Rewrite & Localize', 'txt_translation', 'A', {
+const L2 = def(2, 'Biz Bio', 'biz_bio', 'A', {
   passThreshold: 65,
   timeLimitMinutes: 30,
-  coverageTargets: ['tone_match', 'key_facts_preserved', 'language_match', 'audience_fit', 'naturalness'],
-  generatorPrompt: 'Generate a {{source_tone}} text (200-400 words) about a {{industry}} in {{city}}. Include key_facts that MUST be preserved. The agent must rewrite it in {{target_tone}} for {{target_audience}}.',
+  coverageTargets: ['google_maps_description', 'instagram_bio_fields', 'required_mentions', 'placeholder_url', 'format_compliance'],
+  generatorPrompt: 'Generate a business brief for {{business_name}} in {{city}}. The deliverable is a Google Maps description plus an Instagram bio package with required fields and a placeholder URL.',
 });
 
-const L3 = def(3, 'Trip Planner', 'structured_plan', 'A', {
+const L3 = def(3, 'Business Profile', 'structured_plan', 'A', {
   passThreshold: 65,
   timeLimitMinutes: 30,
-  coverageTargets: ['destination', 'days', 'budget', 'activities', 'accommodation'],
-  generatorPrompt: 'Generate a {{days}}-day travel brief for {{destination}}. Budget: ${{budget_total}} MXN. Traveler: {{traveler_type}}. Interests: {{interests}}. The agent must produce a structured itinerary where daily costs sum to budget_total.',
+  coverageTargets: ['intro_section', 'services_section', 'cta_section', 'business_facts', 'format_compliance'],
+  generatorPrompt: 'Generate a one-page business profile brief requiring exact Intro, Services, and CTA sections plus a fixed business-facts list.',
 });
 
-const L4 = def(4, 'Prompt Pack', 'prompt_pack', 'B', {
+const L4 = def(4, 'Travel Itinerary', 'structured_plan', 'B', {
   passThreshold: 65,
   timeLimitMinutes: 30,
-  coverageTargets: ['theme', 'style', 'prompt_count', 'variety', 'usability'],
-  generatorPrompt: 'Generate a brief requesting {{prompt_count}} AI image prompts for {{brand_name}} ({{industry}}). Style: {{style}}. Palette: {{color_palette}}. Usage: {{usage_context}}. We score prompt TEXT quality, not generated images.',
+  coverageTargets: ['trip_days', 'day_structure', 'budget_line', 'tip_line', 'constraint_handling'],
+  generatorPrompt: 'Generate a {{trip_days}}-day travel itinerary brief with Morning, Afternoon, Evening, Budget, and Tip requirements for each day.',
 });
 
-const L5 = def(5, 'Welcome Kit', 'multi_asset_text_bundle', 'B', {
+const L5 = def(5, 'Welcome Kit', 'json_bundle', 'B', {
   passThreshold: 65,
   timeLimitMinutes: 30,
-  isBoss: true,
-  bossSpecial: 'Gateway Boss — registration wall after passing. Price math trap: brief contains item prices that must sum correctly in the catalog.',
-  coverageTargets: ['whatsapp_welcome', 'catalog_items', 'price_math', 'brand_tone', 'format_compliance'],
-  generatorPrompt: 'Generate a multi-format brief for {{business_name}} ({{industry}} in {{city}}). Deliverables: (1) WhatsApp welcome message, (2) product/service catalog with {{item_count}} items and prices. Include a price math trap where items must sum to {{total_price}}.',
+  isBoss: false,
+  bossSpecial: undefined,
+  coverageTargets: ['whatsapp_message', 'quick_facts', 'first_step_checklist', 'cross_bundle_consistency', 'json_structure'],
+  generatorPrompt: 'Generate a welcome-kit brief whose entire submission body must be a JSON object string with whatsapp_message, quick_facts, and first_step_checklist.',
 });
 
 // ---------------------------------------------------------------------------
@@ -91,18 +93,18 @@ const L6 = def(6, 'Pro One-Page', 'landing_page_copy', 'B', {
   generatorPrompt: 'Generate a brief for a one-page professional service site for {{business_name}} ({{industry}} in {{city}}). Must include hero, services ({{service_count}} items), CTA, and contact section. Output: structured HTML/markdown.',
 });
 
-const L7 = def(7, 'Asset Spec', 'structured_plan', 'B', {
+const L7 = def(7, 'AI Prompt Pack', 'structured_plan', 'B', {
   passThreshold: 70,
   timeLimitMinutes: 25,
-  coverageTargets: ['item_count', 'specification_fields', 'consistency', 'special_instructions', 'format_compliance'],
-  generatorPrompt: 'Generate a brief requesting a structured specification document for managing/editing {{item_count}} assets ({{asset_type}}) for {{business_name}}. Each entry needs: ID, dimensions, adjustments, format, notes. Include {{special_count}} entries with special instructions.',
+  coverageTargets: ['prompt_count', 'style_rules', 'forbidden_mistakes', 'negative_prompts', 'format_compliance'],
+  generatorPrompt: 'Generate a prompt-pack brief that requires exactly 8 prompts, 2 style rules, 2 forbidden mistakes, and one negative prompt line per prompt.',
 });
 
-const L8 = def(8, 'Creative Pack', 'prompt_pack', 'B', {
+const L8 = def(8, 'Complete Business Package', 'multi_asset_text_bundle', 'B', {
   passThreshold: 70,
   timeLimitMinutes: 25,
-  coverageTargets: ['prompt_count', 'style_consistency', 'composition_variety', 'intended_uses', 'brand_elements', 'usability'],
-  generatorPrompt: 'Generate a brief requesting {{prompt_count}} themed image prompts with creative direction for {{brand_name}} ({{industry}}). Theme: {{theme}}. Include composition notes, intended usage, and brand element integration for each prompt.',
+  coverageTargets: ['one_page_copy', 'prompt_pack', 'whatsapp_welcome', 'cross_document_consistency', 'header_structure'],
+  generatorPrompt: 'Generate a complete business-package brief requiring One-Page Copy, Prompt Pack, and WhatsApp Welcome in one header-structured text package.',
 });
 
 const L9 = def(9, 'Script Pack', 'prompt_pack', 'B', {

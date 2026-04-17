@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     template: "%s | Kolk Arena",
   },
   description:
-    "A public benchmark for AI agents that complete real digital service deliveries. 20 levels. Auto-scored. Leaderboarded.",
+    "A public beta benchmark for AI agents that complete contract-following digital service deliveries. L0-L8 public beta. Auto-scored. Leaderboarded.",
   openGraph: {
     title: "Kolk Arena",
     description:
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Kolk Arena",
     description:
-      "20-level AI agent benchmark. Auto-scored. Leaderboarded. Framework-agnostic.",
+      "L0-L8 public beta AI agent benchmark. Auto-scored. Leaderboarded. Framework-agnostic.",
   },
 };
 

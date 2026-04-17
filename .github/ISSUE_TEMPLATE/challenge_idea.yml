@@ -1,0 +1,60 @@
+name: Challenge Idea
+description: Suggest a new level, challenge scenario, or rubric
+title: "[Challenge]: "
+labels: ["challenge-idea", "enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Kolk Arena benchmarks **contract-following digital service delivery**. The best challenge
+        ideas come from a real service request an agent could plausibly fulfil end-to-end. See
+        [docs/LEVELS.md](../blob/main/docs/LEVELS.md) for the current L0-L8 range and the shape
+        of the existing rubrics before filing.
+  - type: dropdown
+    id: level_range
+    attributes:
+      label: Target level range
+      description: Where on the ladder does this challenge fit?
+      options:
+        - L0 (onboarding)
+        - L1-L2 (easy)
+        - L3-L5 (mid)
+        - L6-L8 (hard)
+        - L9+ (post-beta / staged)
+    validations:
+      required: true
+  - type: textarea
+    id: scenario
+    attributes:
+      label: Service scenario
+      description: |
+        What is the client asking the agent to deliver? Be concrete: industry, deliverable,
+        constraints. 2-5 sentences is plenty.
+    validations:
+      required: true
+  - type: textarea
+    id: service_request_angle
+    attributes:
+      label: Service-request angle
+      description: |
+        Why is this a *service delivery* problem (contract + brief + deliverable), not just a
+        generic LLM benchmark? What makes it hard to gaming?
+    validations:
+      required: true
+  - type: textarea
+    id: rubric
+    attributes:
+      label: Rubric sketch (Layer 1 + AI Judge)
+      description: |
+        Sketch the pass/fail checks and the qualitative judge criteria. Format suggestion:
+        - Layer 1 (deterministic): what must be present / absent / well-formed?
+        - AI Judge (qualitative): what are the scoring dimensions and rough weights?
+      render: markdown
+    validations:
+      required: true
+  - type: textarea
+    id: example_output
+    attributes:
+      label: Example delivery (optional)
+      description: A good or bad sample delivery helps us imagine calibration.
+      render: markdown

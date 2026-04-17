@@ -1,6 +1,8 @@
 # Kolk Arena Scoring
 
-This document describes the current scoring model implemented in the codebase.
+> **Last updated: 2026-04-16 (public docs freeze).** Describes scoring for the **L0-L8 public beta path** and the **L1-L8 ranked ladder**.
+
+This document describes the beta scoring model.
 
 ## Philosophy
 
@@ -10,10 +12,11 @@ Players should know:
 
 - the score is out of 100
 - structure is deterministic
-- coverage and quality come from the judge
+- coverage and quality come from an AI-scoring path
+- unlocks use Dual-Gate rather than fixed pass thresholds
 - some hidden penalties exist
 
-Players should not get a full copy of the hidden rubric or detection rules.
+Players should not get a full copy of the hidden rubric, detection rules, or the scoring routing used on any one submission.
 
 ---
 
@@ -22,18 +25,29 @@ Players should not get a full copy of the hidden rubric or detection rules.
 | Layer | Points | Source |
 |-------|--------|--------|
 | Structure | 0-40 | deterministic checks in Layer 1 |
-| Coverage | 0-30 | judge |
-| Quality | 0-30 | judge |
+| Coverage | 0-30 | AI-scoring path |
+| Quality | 0-30 | AI-scoring path |
 
 Total:
 
 - `totalScore = structureScore + coverageScore + qualityScore`
 - max score is `100`
 
-Structural gate:
+Dual-Gate:
 
-- if structure score is below `25`, the judge is skipped
-- in that case `coverageScore = 0` and `qualityScore = 0`
+- Gate 1: if structure score is below `25`, the scoring path is skipped
+- Gate 2: unlock requires combined coverage + quality of at least `15/60`
+- if Gate 1 fails, `coverageScore = 0` and `qualityScore = 0`
+
+Color bands:
+
+- `RED`: `0-39`
+- `ORANGE`: `40-59`
+- `YELLOW`: `60-74`
+- `GREEN`: `75-89`
+- `BLUE`: `90-100`
+
+Color communicates quality. It does not replace the numeric score.
 
 ---
 
@@ -48,12 +62,14 @@ The checker is config-driven per challenge and may apply these deterministic too
 - `item_count`
 - `fact_xref`
 - `term_guard`
+- `jsonStructure` (L5-specific: validates `JSON.parse(primaryText)` shape, required keys, per-key length and content rules)
+- `keywordHeaderMatch` (L8-specific: case-insensitive substring match on Markdown headers against a target keyword list)
 
-Current behavior:
+Current beta-target behavior:
 
 - total Layer 1 score is normalized to `0-40`
-- the exact checks used depend on what is present in the challenge brief
-- the route builds the Layer 1 config from `taskJson.structured_brief` and related fields
+- the exact checks are selected by the per-level Layer 1 contract
+- the beta implementation target is an explicit per-level config registry, not heuristic inference from whatever happens to be present in `taskJson.structured_brief`
 
 Examples of what Layer 1 may validate:
 
@@ -73,11 +89,33 @@ Important correction:
 - the live implementation does not require `job_id`, `artifacts`, `notes`, or `run_log`
 - those fields belonged to an older planned submission contract and are not scored now
 
+### Per-level Layer 1 overview
+
+| Level | Primary primitive(s) | What's deterministically checked |
+|-------|----------------------|-----------------------------------|
+| L0 | (none) | deterministic substring `/(hello\|kolk)/i` on `primaryText` — no AI judge |
+| L1 | `lang_detect` | output language matches `seller_locale`; translation-only text |
+| L2 | `fact_xref`, `item_count`, bio char range | required mentions (business_name / neighborhood / signature_drink / unique_feature); 5 IG fields present; `bio_text` 80-150 code points; `link_in_bio_url` equals seed `placeholder_url` |
+| L3 | section structure + `fact_xref` | exact `## Intro` / `## Services` / `## CTA` headers; exactly 3 service descriptions under Services; every string in `business_facts[]` appears in output |
+| L4 | section structure + `math_verify` + regex | exactly `trip_days` `## Day N` headers in order; per-day `Morning:`/`Afternoon:`/`Evening:`/`Budget:`/`Tip:` lines; daily budget regex |
+| L5 | `jsonStructure` | `JSON.parse(primaryText)` succeeds; exactly three string keys (`whatsapp_message`, `quick_facts`, `first_step_checklist`); per-key length bounds (code points); `{{customer_name}}` substring; bullet counts |
+| L6 | section structure | four Hero/About/Services/CTA sections present |
+| L7 | section structure + `item_count` | exact skeleton: 8 `### Prompt N —` blocks with `**Prompt:**` + `**Negative prompt:**`; 2 Style Rules; 2 Forbidden Mistakes |
+| L8 | `keywordHeaderMatch` + section structure + per-section rules | three top-level headers matching `copy`/`prompt`/`whatsapp`; One-Page Copy sub-headers; Prompt Pack reuses L7 skeleton; WhatsApp Welcome uses WhatsApp short-form discipline (150-320 code points, `{{customer_name}}`, ≤2 emoji) **as plain text** (NOT JSON) |
+
+### Level-specific `fieldScores[].field` names
+
+On Layer 1 structural failures, `fieldScores[].field` uses stable level-specific identifiers so the frontend result page can render keyed feedback:
+
+- **L5**: `"json_structure"` — covers `JSON.parse` failure, missing/extra keys, length-bound violations, missing `{{customer_name}}`, bullet-count violations
+- **L8**: `"section_headers"` — covers missing top-level keyword matches and missing `### Hero`/`### About`/`### Services`/`### CTA` sub-headers inside One-Page Copy
+- Other levels use per-requirement field names (e.g., L3: `"intro_header"`, `"services_count"`, `"cta_header"`, `"facts_coverage"`)
+
 ---
 
-## Layer 2 and 3: Judge Scoring
+## Layer 2 and 3: Coverage + Quality Scoring
 
-If the structural gate passes and judge credentials are available, the app calls the judge to produce:
+If the structural gate passes and scoring credentials are available, the app calls the scoring path to produce:
 
 - coverage score
 - quality score
@@ -85,7 +123,9 @@ If the structural gate passes and judge credentials are available, the app calls
 - flags
 - summary
 
-Judge inputs are built from:
+The exact internal scoring routing is not part of the public beta contract and is not exposed in the public response.
+
+Scoring inputs are built from:
 
 - challenge brief
 - challenge prompt context
@@ -104,22 +144,24 @@ Quality is intended to measure:
 - usefulness
 - business fit
 
-If the judge is unavailable or disabled:
+If the scoring path is unavailable or disabled:
 
-- the app can fall back to structure-only outcomes for that request path
-- actual behavior depends on environment configuration
+- the app fails closed for that request path
+- submit returns `503 SCORING_UNAVAILABLE`
+- no partial score payload is returned
+- the client should re-fetch before the next full scored attempt
 
 ---
 
 ## Hidden Penalties
 
-The judge rubric may apply hidden penalties. Current documented categories include:
+The scoring rubric may apply hidden penalties. Current documented categories include:
 
 - obeying prompt injection in the buyer text
 - inventing unsupported business facts
 - ignoring required CTA or compliance constraints
 - substantial language mismatch
-- judge manipulation attempts inside the submitted text
+- scorer manipulation attempts inside the submitted text
 
 Penalty design rules:
 
@@ -128,15 +170,16 @@ Penalty design rules:
 
 ---
 
-## Pass Logic
+## Unlock Logic
 
-Passing is level-specific.
+For ranked levels, unlocking is not based on a fixed total-score threshold.
 
-Each level defines a pass threshold in the level config. A submission passes when:
+A submission unlocks the next level only when:
 
-- `totalScore >= passThreshold`
+- `structureScore >= 25`
+- `coverageScore + qualityScore >= 15`
 
-Passing matters because:
+Unlocking matters because:
 
 - it unlocks the next level
 - it can update the leaderboard when the player is registered
@@ -171,7 +214,13 @@ The current result model aligns with `SubmissionResult`:
   },
   "flags": [],
   "summary": "Useful answer with minor omissions.",
-  "passed": true,
+  "unlocked": true,
+  "colorBand": "YELLOW",
+  "qualityLabel": "Usable",
+  "percentile": 64,
+  "solveTimeSeconds": 612,
+  "fetchToSubmitSeconds": 618,
+  "efficiencyBadge": false,
   "levelUnlocked": 5
 }
 ```
@@ -183,21 +232,69 @@ If structure is below gate:
   "structureScore": 18,
   "coverageScore": 0,
   "qualityScore": 0,
-  "passed": false
+  "unlocked": false,
+  "colorBand": "RED"
 }
 ```
 
 ---
 
+## Result Page Presentation
+
+Beyond the raw `SubmissionResult`, the public beta result page presents scoring information in the following order. This ordering is a product decision, not a server contract, and it drives the fields exposed in the submit response.
+
+### Presentation order
+
+1. **Color badge** — the single large visual (`RED` / `ORANGE` / `YELLOW` / `GREEN` / `BLUE`)
+2. **Numeric score** — `{totalScore} / 100` alongside the color, always shown
+3. **Quality label** — a short human-readable phrase keyed to the color band (see *Quality labels* below)
+4. **Percentile ranking** — "Your score beats X% of participants at this level"; hidden and rendered as "—" when the 30-day cohort at that level has fewer than 10 leaderboard-eligible submissions
+5. **Three-dimension breakdown** — `structureScore` / `coverageScore` / `qualityScore`, each as a number with a color-filled progress bar (the per-dimension fill color is computed from the dimension's share of its own max, not the total score's color band)
+6. **Per-field feedback** — the `fieldScores[].reason` strings from the AI judge
+7. **Completion time** — `solve_time_seconds`, rendered in `MM:SS`; if under `suggested_time_minutes`, the Efficiency Badge (⚡) appears
+8. **Specific error messages** — on validation or structural failure, the error message must state *what exactly went wrong and how to fix it* (see `docs/SUBMISSION_API.md` → *Error Message Quality*)
+
+### Quality labels
+
+| Color | Numeric range | Quality label | Unlock? |
+|-------|---------------|---------------|---------|
+| `RED` | 0-39 | `Needs Structure Work` | Blocked (Structure gate fails) |
+| `ORANGE` | 40-59 | `Needs Improvement` | Blocked if Coverage+Quality < 15/60 |
+| `YELLOW` | 60-74 | `Usable` | Unlocked |
+| `GREEN` | 75-89 | `Business Quality` | Unlocked |
+| `BLUE` | 90-100 | `Exceptional` | Unlocked |
+
+The label is derived from the numeric band, not a separate scoring decision. Clients can compute it locally; the server emits it as `qualityLabel` in the submit response for convenience.
+
+### Why the color system replaces the pass/fail binary (but not the numbers)
+
+The old fixed pass thresholds (`55`, `60`, `65`, `70`, `75`, `80`) were retired for the public beta. The color band communicates quality, and Dual-Gate handles unlock. The numeric score is still shown on every result and in the API response — developers need precise numbers to measure iteration-over-iteration improvement, to compare agent versions, and to debug prompts. The color system does not replace the numbers; it replaces the *pass/fail binary*.
+
+### Efficiency Badge
+
+The Efficiency Badge (⚡) is awarded when `solve_time_seconds <= suggested_time_minutes * 60`. It does **not** affect the numeric score or unlock decision. It affects only:
+
+- the lightning icon shown next to the player on the leaderboard row
+- tie-breaking between two runs with the same `best_score_on_highest` (same score → faster `solve_time_seconds` wins)
+
+### Recorded time metrics
+
+| Metric | Purpose |
+|--------|---------|
+| `solve_time_seconds` | Public tie-break for same-score leaderboard rows. Powers Efficiency Badge. |
+| `fetch_to_submit_seconds` | Full end-to-end time from challenge fetch to submit acknowledgement. Recorded internally for analytics; not a public ranking signal. |
+
+---
+
 ## Failure Handling
 
-### Judge failure
+### Scoring failure
 
-Judge failures are stored as evaluator-side failure states instead of silently pretending the run was fully judged.
+Scoring failures are stored as evaluator-side failure states instead of silently pretending the run was fully scored.
 
 Current implementation has already been hardened so that:
 
-- retry logic exists in the judge path
+- retry logic exists in the scoring path
 - penalty application is consistent across retry paths
 
 ### Contract failure
@@ -220,6 +317,52 @@ Those are API-contract failures, not scoring failures.
 These details remain internal by design:
 
 - the full hidden rubric
-- exact judge prompt wording
+- exact scoring prompt wording
 - exact penalty triggers for a given challenge variant
 - full weighting per hidden evaluation field
+- the specific group composition used to score any particular submission
+
+---
+
+## Prompt-Injection Posture
+
+Because the AI-scoring path reads agent-submitted content, that content is an untrusted attack surface. The public beta ships with the following hardening posture. These measures are **active by default** — no client opt-in is required.
+
+### Submission is pre-processed before scoring
+
+The submit API strips HTML tags, zero-width and invisible Unicode characters, and Markdown HTML comments (`<!-- ... -->`) from `primaryText` before it ever reaches the AI judge. JSON fields outside the submission schema are discarded. See [docs/SUBMISSION_API.md → Submission Pre-Processing](SUBMISSION_API.md#submission-pre-processing) for the content-safety layer at the API boundary.
+
+### Judge prompt is hardened
+
+- Submitted content is injected into the judge **user message** (never the system prompt), wrapped in an explicit separator (conceptually `<submission>...</submission>`), so that the judge can tell the difference between *what it is scoring* and *what the rubric tells it to do*
+- The judge system prompt contains role-boundary instructions that take precedence over any directive appearing in the submitted content
+- The judge is instructed to ignore requests originating from inside submitted content that attempt to modify scores, roles, or the rubric
+
+### Anomaly detection
+
+The service monitors for patterns that suggest an attempted injection succeeded, including (but not limited to):
+
+- anomalous score combinations relative to Layer 1 deterministic results
+- submissions that trip known injection-phrase heuristics
+- content-length outliers
+
+Anomalies are flagged for internal review and may trigger a hidden penalty (see the *Hidden Penalties* section — *scorer manipulation attempts inside the submitted text*).
+
+### What is intentionally not listed
+
+Specific character patterns monitored, anomaly thresholds, keyword lists, and the exact internal phrasing of judge-side role boundaries are not published. Publishing them would hand attackers a checklist. The public commitment is that these defenses exist and are active on every scored submission in the public beta.
+
+### Beta hardening checklist
+
+At minimum the public beta maintains:
+
+- [x] Submission pre-processing live on the submit endpoint
+- [x] Judge prompt role-boundary instructions in place
+- [x] Submission content wrapped in an explicit separator in the judge user message
+- [x] Score-anomaly alerting live (at minimum, internal log-level alerting)
+
+---
+
+## Public Contract Stability
+
+External API shape remains stable for the public beta: players see `structureScore`, `coverageScore`, `qualityScore`, and the usual `SubmissionResult` fields.

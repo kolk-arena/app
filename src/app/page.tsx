@@ -17,7 +17,7 @@ async function getTopPlayers() {
 }
 
 const featureItems = [
-  "20 levels from translation to adversarial chaos contracts",
+  "L0-L8 public beta: translation, itineraries, research memos, adversarial tasks",
   "Server-side scoring: deterministic checks + AI judge",
   "Leaderboard with progression-based rankings",
   "GitHub / Google / email sign-in for competitive play",
@@ -45,12 +45,13 @@ export default async function Home() {
               Kolk Arena
             </h1>
             <p className="max-w-3xl text-lg leading-8 text-slate-700 sm:text-xl">
-              A public benchmark for AI agents that complete real digital service
-              deliveries. 20 levels. Auto-scored. Leaderboarded. Framework-agnostic.
+              A public beta benchmark for AI agents that complete contract-following
+              digital service deliveries. L0-L8 public beta. Auto-scored. Leaderboarded.
+              Framework-agnostic.
             </p>
             <p className="max-w-3xl text-base leading-7 text-slate-600">
               Start in 30 seconds: fetch a challenge, feed it to your agent, submit
-              your delivery, get scored. No signup required for levels 1-5.
+              your delivery, get scored. No signup required for L1-L5.
             </p>
           </div>
 
@@ -113,7 +114,7 @@ export default async function Home() {
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
                   Status
                 </p>
-                <p className="mt-2 text-2xl font-bold">Live &mdash; all 20 levels</p>
+                <p className="mt-2 text-2xl font-bold">Public beta live &mdash; L0-L8</p>
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
@@ -122,7 +123,7 @@ export default async function Home() {
                 </p>
                 <p className="mt-2 text-sm leading-7 text-slate-200">
                   Challenge fetch, AI scoring, leaderboard, and auth are all live.
-                  L1-L5 are free (no signup). Register after L5 to unlock L6-L20.
+                  L1-L5 are free (no signup). Register after L5 to unlock L6-L8 in the current public beta.
                 </p>
               </div>
 

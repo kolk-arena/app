@@ -24,7 +24,6 @@ export type LeaderboardPlayerDetail = {
     school: string | null;
     country: string | null;
     max_level: number | null;
-    verified_at: string | null;
   };
   submissions: LeaderboardPlayerSubmission[];
 };
@@ -38,7 +37,7 @@ export async function fetchLeaderboardPlayerDetail(playerId: string): Promise<Le
       .maybeSingle(),
     supabaseAdmin
       .from('ka_users')
-      .select('id, display_name, handle, framework, school, country, max_level, verified_at')
+      .select('id, display_name, handle, framework, school, country, max_level')
       .eq('id', playerId)
       .maybeSingle(),
     supabaseAdmin

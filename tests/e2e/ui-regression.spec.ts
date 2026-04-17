@@ -18,7 +18,20 @@ function mockAnonymousSession(page: Page) {
 }
 
 async function mockAuthenticatedProfile(page: Page) {
-  let profile = {
+  type MockProfile = {
+    id: string;
+    email: string;
+    display_name: string;
+    handle: string | null;
+    framework: string | null;
+    school: string | null;
+    country: string | null;
+    auth_methods: string[];
+    max_level: number;
+    verified_at: string;
+  };
+
+  let profile: MockProfile = {
     id: PLAYER_ID,
     email: 'ada@example.com',
     display_name: 'Ada Lovelace',
@@ -65,6 +78,56 @@ async function mockAuthenticatedProfile(page: Page) {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({ profile }),
+      });
+      return;
+    }
+
+    await route.continue();
+  });
+}
+
+async function mockProfileSessionExpiresOnSave(page: Page) {
+  const profile: {
+    id: string;
+    email: string;
+    display_name: string;
+    handle: string | null;
+    framework: string | null;
+    school: string | null;
+    country: string | null;
+    auth_methods: string[];
+    max_level: number;
+    verified_at: string;
+  } = {
+    id: PLAYER_ID,
+    email: 'ada@example.com',
+    display_name: 'Ada Lovelace',
+    handle: 'ada',
+    framework: 'OpenAI Agents',
+    school: 'Independent',
+    country: 'UK',
+    auth_methods: ['github'],
+    max_level: 7,
+    verified_at: '2026-04-16T00:00:00.000Z',
+  };
+
+  await page.route('**/api/profile', async (route) => {
+    const method = route.request().method();
+
+    if (method === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ profile }),
+      });
+      return;
+    }
+
+    if (method === 'PATCH') {
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Authentication required', code: 'UNAUTHORIZED' }),
       });
       return;
     }
@@ -230,6 +293,20 @@ test.describe('frontend UI regression', () => {
     await expect(page).toHaveURL('/');
   });
 
+  test('profile falls back to sign-in when session expires during save', async ({ page }) => {
+    await mockProfileSessionExpiresOnSave(page);
+
+    await page.goto('/profile');
+
+    await expect(page.getByLabel('Display name')).toHaveValue('Ada Lovelace');
+    await page.getByLabel('Display name').fill('Ada Byron');
+    await page.getByRole('button', { name: 'Save profile' }).click();
+
+    await expect(page.getByText('Session expired')).toBeVisible();
+    await expect(page.getByText('Your session has expired. Sign in again to save your changes.', { exact: true })).toBeVisible();
+    await expect(page.getByRole('main').getByRole('link', { name: 'GitHub' })).toBeVisible();
+  });
+
   test('leaderboard preserves detail selection across refresh', async ({ page }) => {
     await mockLeaderboard(page);
     await page.route(`**/api/leaderboard/${PLAYER_ID}`, async (route) => {
@@ -262,7 +339,7 @@ test.describe('frontend UI regression', () => {
     await page.route(`**/api/leaderboard/${PLAYER_ID}`, async (route) => {
       detailRequests += 1;
 
-      if (detailRequests === 1) {
+      if (detailRequests <= 2) {
         await route.fulfill({
           status: 500,
           contentType: 'application/json',
@@ -283,6 +360,8 @@ test.describe('frontend UI regression', () => {
     const firstDetailResponse = page.waitForResponse(`**/api/leaderboard/${PLAYER_ID}`);
     await page.getByRole('button', { name: 'Open player detail for Ada Lovelace' }).click();
     await firstDetailResponse;
+    await expect.poll(() => detailRequests).toBeGreaterThanOrEqual(1);
+    await expect(page.getByText('Failed to load player detail')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Retry' })).toBeVisible();
 
     const secondDetailResponse = page.waitForResponse(`**/api/leaderboard/${PLAYER_ID}`);
@@ -291,6 +370,33 @@ test.describe('frontend UI regression', () => {
 
     await expect(page.getByText('Strong structured delivery with clear coverage.')).toBeVisible();
     await expect.poll(() => detailRequests).toBeGreaterThan(1);
+  });
+
+  test('leaderboard filter clears selected player and returns to list-only state', async ({ page }) => {
+    await mockLeaderboard(page);
+    await page.route(`**/api/leaderboard/${PLAYER_ID}`, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(playerDetailPayload()),
+      });
+    });
+
+    await page.goto('/leaderboard');
+
+    const detailResponse = page.waitForResponse(`**/api/leaderboard/${PLAYER_ID}`);
+    await page.getByRole('button', { name: 'Open player detail for Ada Lovelace' }).click();
+    await detailResponse;
+
+    await expect(page).toHaveURL(new RegExp(`\\/leaderboard\\?player=${PLAYER_ID}`));
+    await expect(page.getByText('Strong structured delivery with clear coverage.')).toBeVisible();
+
+    await page.getByLabel('School Filter').fill('UNAM');
+    await page.getByRole('button', { name: 'Apply' }).click();
+
+    await expect(page).toHaveURL(/\/leaderboard\?page=1&limit=25&school=UNAM|\/leaderboard\?school=UNAM&page=1&limit=25|\/leaderboard\?school=UNAM&page=1|\/leaderboard\?page=1&school=UNAM|\/leaderboard\?school=UNAM/);
+    await expect(page).not.toHaveURL(new RegExp(`player=${PLAYER_ID}`));
+    await expect(page.getByRole('heading', { name: 'Select a player' })).toBeVisible();
   });
 
   test('mobile leaderboard cards keep navigation semantics instead of expand semantics', async ({ page }) => {

@@ -11,13 +11,20 @@ import { z } from 'zod';
 // Level & Family enums
 // ============================================================================
 
+// Legacy runtime enum. Public beta contract authority lives in docs/BETA_DOC_HIERARCHY.md.
 export const LEVELS = Array.from({ length: 20 }, (_, i) => i + 1) as number[];
 export const MIN_LEVEL = 1;
 export const MAX_LEVEL = 20;
+export const PUBLIC_BETA_LEVELS = Array.from({ length: 9 }, (_, i) => i) as number[];
+export const PUBLIC_BETA_MIN_LEVEL = 0;
+export const PUBLIC_BETA_MAX_LEVEL = 8;
 
 export const DELIVERABLE_FAMILIES = [
+  'connectivity_check',
   'txt_translation',
+  'biz_bio',
   'structured_plan',
+  'json_bundle',
   'prompt_pack',
   'message_bundle',
   'landing_page_copy',
@@ -46,7 +53,7 @@ export interface LevelDefinition {
   family: DeliverableFamily;
   band: DifficultyBand;
   timeLimitMinutes: number;
-  passThreshold: number;           // minimum total_score to pass
+  passThreshold: number;           // legacy field; beta unlock logic is Dual-Gate, not fixed total_score
   generatorPrompt: string;         // system prompt for challenge generation
   coverageTargets: string[];       // fields the rubric evaluates
   isBoss: boolean;
@@ -61,6 +68,7 @@ export interface ChallengePackage {
   fetchToken: string;              // opaque nonce — must be sent back on submit
   taskJson: Record<string, unknown>;
   promptMd: string;
+  suggestedTimeMinutes?: number;
   timeLimitMinutes: number;
   deadlineUtc: string;             // ISO 8601
   challengeStartedAt: string;      // ISO 8601

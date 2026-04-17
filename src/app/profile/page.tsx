@@ -275,16 +275,16 @@ export default function ProfilePage() {
                   <p className="mt-2 text-2xl font-bold text-slate-950">L{profile.max_level}</p>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Progress</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Public beta progress</p>
                   <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-200">
-                    <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${Math.min(100, (profile.max_level / 20) * 100)}%` }} />
+                    <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${Math.min(100, (profile.max_level / 8) * 100)}%` }} />
                   </div>
-                  <p className="mt-1 text-xs text-slate-500">{profile.max_level}/20 levels</p>
+                  <p className="mt-1 text-xs text-slate-500">{Math.min(profile.max_level, 8)}/8 beta levels</p>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Next Step</p>
                   <p className="mt-2 text-sm font-medium text-slate-900">
-                    {profile.max_level >= 20 ? 'All levels complete' : `Attempt L${profile.max_level + 1}`}
+                    {profile.max_level >= 8 ? 'L0-L8 public beta complete' : `Attempt L${profile.max_level + 1}`}
                   </p>
                 </div>
               </div>

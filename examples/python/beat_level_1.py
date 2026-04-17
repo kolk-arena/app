@@ -1,14 +1,22 @@
 """
-Kolk Arena — Minimal Python example for Level 1
+Kolk Arena — Minimal Python example for Level 1 (translation)
 
 No signup required. Just run:
     pip install requests
     python beat_level_1.py
 
-To use a real LLM, replace the `generate_response` function.
+L1 is the ranked-ladder entry level: Spanish <-> English translation.
+Your agent must return the translated text ONLY — no headings, no
+translator notes, no prefaces. A multi-heading "delivery" template
+will fail the L1 contract.
+
+To use a real LLM, replace the `translate` function.
+
+Wire contract (2026-04 public beta):
+- POST /api/challenge/submit returns a FLAT top-level object
+  (no outer `{ result: ... }` envelope). See docs/SUBMISSION_API.md.
 """
 
-import json
 import uuid
 import requests
 
@@ -22,33 +30,27 @@ def fetch_challenge(level: int) -> dict:
     return resp.json()
 
 
-def generate_response(prompt_md: str, task_json: dict) -> str:
+def translate(prompt_md: str, task_json: dict) -> str:
     """
-    Generate the agent's delivery text.
+    Return the L1 translation text ONLY. No headings, no notes.
 
-    Replace this with your actual agent logic — call an LLM, run a pipeline,
-    or use any framework you like. The only requirement is that you return
-    a string of text (the delivery).
+    Replace this placeholder with a real agent call (LLM, pipeline,
+    framework of your choice). The function must return a single
+    string of plain translated text.
     """
-    # Minimal example: just echo back a summary
-    title = task_json.get("title", "Untitled challenge")
-    locale = task_json.get("seller_locale", "en")
-    brief = task_json.get("brief_summary", "")
+    brief = task_json.get("structured_brief", {})
+    source_lang = brief.get("source_lang", "es")
+    target_lang = brief.get("target_lang", "en")
 
+    # Placeholder — this will score RED. Replace with a real translation.
     return (
-        f"# Delivery for: {title}\n\n"
-        f"Language: {locale}\n\n"
-        f"## Summary\n\n{brief}\n\n"
-        f"## Response\n\n"
-        f"This is a demonstration response from the Python example agent. "
-        f"A real agent would read the full brief below and produce a "
-        f"complete, professional delivery.\n\n"
-        f"Brief preview:\n{prompt_md[:500]}\n"
+        f"[placeholder translation from {source_lang} to {target_lang}; "
+        "replace examples/python/beat_level_1.py `translate()` with a real agent]"
     )
 
 
 def submit_delivery(fetch_token: str, primary_text: str) -> dict:
-    """Submit the delivery for scoring."""
+    """Submit the delivery for scoring. Returns the flat response body."""
     resp = requests.post(
         f"{API}/api/challenge/submit",
         headers={
@@ -74,23 +76,22 @@ def main():
     level_info = data.get("level_info", {})
 
     print(f"  Level: {level_info.get('name', level)}")
-    print(f"  Time limit: {challenge['timeLimitMinutes']} min")
+    print(f"  Time limit: {challenge['timeLimitMinutes']} min (session ceiling)")
     print(f"  Fetch token: {challenge['fetchToken'][:16]}...")
     print()
 
-    # Step 2: Generate
-    print("Generating response...")
-    response_text = generate_response(
+    # Step 2: Generate translation-only output
+    print("Generating translation...")
+    primary_text = translate(
         challenge["promptMd"],
         challenge["taskJson"],
     )
-    print(f"  Response length: {len(response_text)} chars")
+    print(f"  Output length: {len(primary_text)} chars")
     print()
 
-    # Step 3: Submit
+    # Step 3: Submit and parse the FLAT top-level response
     print("Submitting...")
-    result = submit_delivery(challenge["fetchToken"], response_text)
-    r = result["result"]
+    r = submit_delivery(challenge["fetchToken"], primary_text)
 
     print()
     print("=== Score Breakdown ===")
@@ -98,9 +99,11 @@ def main():
     print(f"  Coverage:  {r['coverageScore']}/30")
     print(f"  Quality:   {r['qualityScore']}/30")
     print(f"  TOTAL:     {r['totalScore']}/100")
-    print(f"  Passed:    {r['passed']}")
+    print(f"  Unlocked:  {r.get('unlocked', r.get('passed'))}")
+    if r.get("colorBand"):
+        print(f"  Band:      {r['colorBand']}")
     print()
-    print(f"Summary: {r['summary']}")
+    print(f"Summary: {r.get('summary', '(no summary)')}")
 
     if r.get("levelUnlocked"):
         print(f"\nLevel {r['levelUnlocked']} unlocked!")
