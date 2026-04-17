@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 /**
- * Kolk Arena CLI — Interactive benchmark runner
+ * Kolk Arena CLI — Interactive benchmark runner (L0-L8 public beta)
  *
  * Usage:
- *   npx kolk-arena start               # Start from Level 1
- *   npx kolk-arena start --level 5     # Start from Level 5
- *   npx kolk-arena start --token <tok> # Authenticated mode
+ *   npx kolk-arena start               # Start from L0 onboarding
+ *   npx kolk-arena start --level 1     # Start from ranked entry (L1)
+ *   npx kolk-arena start --level 5     # Start from L5
+ *   npx kolk-arena start --token <tok> # Authenticated (required for L6-L8)
  *   npx kolk-arena leaderboard         # View leaderboard
  *
  * Env:
@@ -112,21 +113,23 @@ async function readMultiline(prompt: string): Promise<string> {
 // Commands
 // ---------------------------------------------------------------------------
 
+const PUBLIC_BETA_MAX_LEVEL = 8;
+
 async function cmdStart(startLevel: number, token?: string) {
   console.log();
   console.log(bold('╔══════════════════════════════════════╗'));
   console.log(bold('║             KOLK ARENA               ║'));
-  console.log(bold('║        Interactive Benchmark CLI     ║'));
+  console.log(bold('║   Interactive Benchmark CLI (L0-L8)  ║'));
   console.log(bold('╚══════════════════════════════════════╝'));
   console.log();
   console.log(`  API: ${cyan(API_BASE)}`);
-  console.log(`  Auth: ${token ? green('authenticated') : yellow('anonymous (L1-L5 only)')}`);
+  console.log(`  Auth: ${token ? green('authenticated') : yellow('anonymous (L1-L5; L6-L8 need --token)')}`);
   console.log(`  Starting at: ${bold(`Level ${startLevel}`)}`);
   console.log();
 
   let level = startLevel;
 
-  while (level <= 20) {
+  while (level <= PUBLIC_BETA_MAX_LEVEL) {
     console.log(bold(`\n${'='.repeat(50)}`));
     console.log(bold(`  LEVEL ${level}`));
     console.log(bold(`${'='.repeat(50)}\n`));
@@ -136,11 +139,13 @@ async function cmdStart(startLevel: number, token?: string) {
     try {
       challenge = await api(`/api/challenge/${level}`, { token }) as Record<string, unknown>;
     } catch (err) {
-      console.log(red(`  Failed to fetch challenge: ${(err as Error).message}`));
-      if ((err as Error).message.includes('403')) {
-        console.log(yellow('\n  Registration required for this level.'));
-        console.log(dim(`  Register: POST ${API_BASE}/api/auth/register`));
-        console.log(dim(`  Then pass --token <your_token>`));
+      const message = (err as Error).message;
+      console.log(red(`  Failed to fetch challenge: ${message}`));
+      if (message.includes('401') || message.includes('AUTH_REQUIRED')) {
+        console.log(yellow('\n  Sign-in required for L6-L8.'));
+        console.log(dim(`  Register or sign in at ${API_BASE}/profile, then pass --token <your_token>.`));
+      } else if (message.includes('LEVEL_LOCKED')) {
+        console.log(yellow('\n  Progression gate not cleared — finish the previous level first.'));
       }
       break;
     }
@@ -188,7 +193,9 @@ async function cmdStart(startLevel: number, token?: string) {
     // Submit
     console.log(dim('\n  Submitting...'));
     try {
-      const result = await api('/api/challenge/submit', {
+      // Submit response is flat top-level (no { result: ... } envelope).
+      // See docs/SUBMISSION_API.md for the public contract.
+      const r = await api('/api/challenge/submit', {
         method: 'POST',
         token,
         headers: { 'Idempotency-Key': uuid() },
@@ -196,25 +203,41 @@ async function cmdStart(startLevel: number, token?: string) {
           fetchToken: chal.fetchToken,
           primaryText: response,
         },
-      }) as { result: Record<string, unknown> };
+      });
 
-      const r = result.result;
       console.log();
       console.log(bold('  SCORE BREAKDOWN:'));
-      console.log(`  Structure (0-40):  ${bar(Number(r.structureScore), 40)} ${bold(String(r.structureScore))}/40`);
-      console.log(`  Coverage  (0-30):  ${bar(Number(r.coverageScore), 30)} ${bold(String(r.coverageScore))}/30`);
-      console.log(`  Quality   (0-30):  ${bar(Number(r.qualityScore), 30)} ${bold(String(r.qualityScore))}/30`);
-      console.log(`  ${'─'.repeat(46)}`);
+
+      // L0 onboarding skips structure/coverage/quality — it's a binary pass check.
+      const isOnboarding = Number(r.level) === 0;
+      if (!isOnboarding) {
+        console.log(`  Structure (0-40):  ${bar(Number(r.structureScore), 40)} ${bold(String(r.structureScore))}/40`);
+        console.log(`  Coverage  (0-30):  ${bar(Number(r.coverageScore), 30)} ${bold(String(r.coverageScore))}/30`);
+        console.log(`  Quality   (0-30):  ${bar(Number(r.qualityScore), 30)} ${bold(String(r.qualityScore))}/30`);
+        console.log(`  ${'─'.repeat(46)}`);
+      }
       console.log(`  TOTAL:             ${bar(Number(r.totalScore), 100)} ${bold(String(r.totalScore))}/100`);
+      if (r.colorBand) {
+        console.log(`  Band / Label:      ${bold(String(r.colorBand))}${r.qualityLabel ? ` · ${String(r.qualityLabel)}` : ''}`);
+      }
+      if (typeof r.percentile === 'number') {
+        console.log(`  Percentile:        ${bold(`${r.percentile}%`)}`);
+      }
+      if (typeof r.solveTimeSeconds === 'number') {
+        const efficiency = r.efficiencyBadge === true ? green(' ✓ efficiency badge') : '';
+        console.log(`  Solve time:        ${String(r.solveTimeSeconds)}s${efficiency}`);
+      }
       console.log();
 
-      if (r.passed) {
-        console.log(green(`  PASSED! Level ${Number(r.levelUnlocked ?? level + 1)} unlocked.`));
+      const unlocked = r.unlocked === true;
+      if (unlocked) {
+        const nextLevel = typeof r.levelUnlocked === 'number' ? r.levelUnlocked : level + 1;
+        console.log(green(`  UNLOCKED! Level ${nextLevel} available.`));
       } else {
-        console.log(red(`  NOT PASSED. Score below threshold.`));
+        console.log(red(`  NOT UNLOCKED. Dual-Gate not cleared (structure ≥ 25 AND coverage + quality ≥ 15).`));
       }
 
-      console.log(dim(`  Summary: ${String(r.summary)}`));
+      console.log(dim(`  Summary: ${String(r.summary ?? '')}`));
 
       // Show flags
       const flags = (r.flags ?? []) as string[];
@@ -222,7 +245,7 @@ async function cmdStart(startLevel: number, token?: string) {
         console.log(yellow(`  Flags: ${flags.join(', ')}`));
       }
 
-      // Field scores
+      // Field scores (non-L0 only — L0 has no rubric)
       const fieldScores = (r.fieldScores ?? []) as { field: string; score: number; reason: string }[];
       if (fieldScores.length > 0) {
         console.log(dim('\n  Field scores:'));
@@ -231,8 +254,10 @@ async function cmdStart(startLevel: number, token?: string) {
         }
       }
 
-      if (r.passed) {
-        level = Number(r.levelUnlocked ?? level + 1);
+      if (unlocked) {
+        const nextLevel = typeof r.levelUnlocked === 'number' ? r.levelUnlocked : level + 1;
+        level = nextLevel;
+        if (level > PUBLIC_BETA_MAX_LEVEL) break;
         const next = await readStdin('\n  Continue to next level? (y/n) ');
         if (next.toLowerCase() !== 'y') break;
       } else {
@@ -246,10 +271,10 @@ async function cmdStart(startLevel: number, token?: string) {
     }
   }
 
-  if (level > 20) {
+  if (level > PUBLIC_BETA_MAX_LEVEL) {
     console.log();
-    console.log(bold(green('  CONGRATULATIONS! You completed all 20 levels!')));
-    console.log(bold('  You are a Kolk Arena Champion! 🏆'));
+    console.log(bold(green('  CONGRATULATIONS! You cleared the L0-L8 public beta ladder.')));
+    console.log(bold('  Kolk Arena public beta complete 🏆'));
     console.log();
   }
 }
@@ -297,7 +322,7 @@ async function main() {
   switch (command) {
     case 'start': {
       const levelIdx = args.indexOf('--level');
-      const level = levelIdx >= 0 ? parseInt(args[levelIdx + 1]!, 10) : 1;
+      const level = levelIdx >= 0 ? parseInt(args[levelIdx + 1]!, 10) : 0;
       await cmdStart(level, token);
       break;
     }
@@ -314,28 +339,29 @@ async function main() {
     case '-h':
     default: {
       console.log(`
-${bold('Kolk Arena CLI')} — Interactive Benchmark Client
+${bold('Kolk Arena CLI')} — Interactive Benchmark Client (L0-L8 public beta)
 
 ${bold('Usage:')}
-  kolk-arena start                    Start from Level 1
-  kolk-arena start --level 5          Start from Level 5
-  kolk-arena start --token <tok>      Authenticated mode
+  kolk-arena start                    Start from L0 onboarding (default)
+  kolk-arena start --level 1          Start from the ranked ladder entry
+  kolk-arena start --level 5          Start from L5 (Welcome Kit — JSON-in-primaryText)
+  kolk-arena start --token <tok>      Authenticated mode (required for L6-L8)
   kolk-arena leaderboard              View leaderboard
   kolk-arena leaderboard --school X   Filter by school
   kolk-arena help                     Show this help
 
 ${bold('Environment:')}
   KOLK_ARENA_URL   API base URL (default: https://kolkarena.com)
-  KOLK_TOKEN       Bearer token for auth
+  KOLK_TOKEN       Bearer token for auth (needed for L6-L8)
 
-${bold('Levels:')} 20 levels across 4 bands (A-D)
-  L1-L5:   Band A-B  (30 min, pass: 65)
-  L6-L10:  Band B    (25 min, pass: 70)  — Boss at L10
-  L11-L15: Band C    (20 min, pass: 75)  — Boss at L15
-  L16-L20: Band D    (15 min, pass: 80)  — Final Boss at L20
+${bold('Public beta scope:')} L0-L8 across bands A-B
+  L0:      Band A  — onboarding connectivity check (not AI-judged)
+  L1-L5:   Band A-B (anonymous play OK; L5 uses JSON-in-primaryText)
+  L6-L8:   Band B  (bearer token required)
 
-  Boss levels: L5 (Gateway), L10, L15, L20 (Chaos Contract)
-  Anonymous play: L1-L5. Register after L5 to continue.
+  Unlock rule: Dual-Gate — structure ≥ 25/40 AND coverage + quality ≥ 15/60.
+  Submit response is a flat top-level object (no { result: ... } wrapper).
+  See docs/LEVELS.md, docs/SCORING.md, and docs/SUBMISSION_API.md.
 `);
       break;
     }

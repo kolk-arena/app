@@ -233,7 +233,9 @@ async function main() {
       throw new Error('Challenge response is missing fetchToken');
     }
 
-    const result = await api(apiBase, '/api/challenge/submit', {
+    // Submit response is flat top-level (no { result: ... } envelope).
+    // See docs/SUBMISSION_API.md for the public contract.
+    const r = await api(apiBase, '/api/challenge/submit', {
       method: 'POST',
       token,
       headers: { 'Idempotency-Key': uuid() },
@@ -241,23 +243,38 @@ async function main() {
         fetchToken,
         primaryText: response,
       },
-    }) as { result: Record<string, unknown> };
+    });
 
-    const r = result.result;
     console.log('\n=== RESULTS ===');
-    console.log(`   Structure: ${r.structureScore}/40`);
-    console.log(`   Coverage:  ${r.coverageScore}/30`);
-    console.log(`   Quality:   ${r.qualityScore}/30`);
+    const isOnboarding = Number(r.level) === 0;
+    if (!isOnboarding) {
+      console.log(`   Structure: ${r.structureScore}/40`);
+      console.log(`   Coverage:  ${r.coverageScore}/30`);
+      console.log(`   Quality:   ${r.qualityScore}/30`);
+    }
     console.log(`   TOTAL:     ${r.totalScore}/100`);
-    console.log(`   Passed:    ${r.passed ? '✅ YES' : '❌ NO'}`);
-    console.log(`   Summary:   ${r.summary}`);
+    if (r.colorBand) {
+      console.log(`   Band:      ${r.colorBand}${r.qualityLabel ? ` · ${String(r.qualityLabel)}` : ''}`);
+    }
+    if (typeof r.percentile === 'number') {
+      console.log(`   Percentile: ${r.percentile}%`);
+    }
+    if (typeof r.solveTimeSeconds === 'number') {
+      const efficiency = r.efficiencyBadge === true ? ' ✓ efficiency badge' : '';
+      console.log(`   Solve time: ${String(r.solveTimeSeconds)}s${efficiency}`);
+    }
+    console.log(`   Unlocked:  ${r.unlocked === true ? '✅ YES' : '❌ NO'}`);
+    if (typeof r.levelUnlocked === 'number') {
+      console.log(`   Next:      L${r.levelUnlocked}`);
+    }
+    console.log(`   Summary:   ${r.summary ?? ''}`);
 
     const flags = (r.flags ?? []) as string[];
     if (flags.length > 0) {
       console.log(`   Flags:     ${flags.join(', ')}`);
     }
 
-    // Field scores
+    // Field scores (non-L0 only — L0 has no rubric)
     const fieldScores = (r.fieldScores ?? []) as { field: string; score: number; reason: string }[];
     if (fieldScores.length > 0) {
       console.log('\n   Field scores:');
