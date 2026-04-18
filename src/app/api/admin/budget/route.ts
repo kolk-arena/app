@@ -8,6 +8,7 @@
 import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { getBudgetStatus } from '@/lib/kolk/evaluator/judge';
+import { getAiReadinessSummary } from '@/lib/kolk/ai/runtime';
 
 export async function GET(request: NextRequest) {
   const secret = request.headers.get('x-kolk-admin-secret');
@@ -28,6 +29,7 @@ export async function GET(request: NextRequest) {
   }
 
   const status = getBudgetStatus();
+  const ai = getAiReadinessSummary();
 
   return NextResponse.json({
     judge: {
@@ -35,6 +37,16 @@ export async function GET(request: NextRequest) {
       maxPerHour: 1000,
       resetsAt: status.resetsAt,
       utilizationPct: Math.round((status.callsThisHour / 1000) * 100),
+    },
+    ai: {
+      fullyConfigured: ai.fullyConfigured,
+      operatorStackReady: ai.operatorStackReady,
+      scoringReady: ai.scoringReady,
+      availableScoringGroups: ai.availableScoringGroups,
+      availableScoringCombos: ai.availableScoringCombos,
+      preferredScoringCombo: ai.preferredScoringCombo,
+      missingEnvKeys: ai.missingEnvKeys,
+      scoringMissingEnvKeys: ai.scoringMissingEnvKeys,
     },
     note: 'In-memory counter. Resets on server restart.',
   });

@@ -86,9 +86,8 @@ X-Kolk-Token: kat_<40-chars>
 
 | HTTP | Code | Meaning |
 |---|---|---|
-| 401 | `AUTH_REQUIRED` | No token presented and the endpoint required one |
-| 401 | `TOKEN_INVALID` | Token is malformed, revoked, or expired |
-| 403 | `INSUFFICIENT_SCOPE` | Token is valid but missing one or more scopes required by the endpoint. Response body includes `required_scopes: string[]` and `missing_scopes: string[]` |
+| 401 | `AUTH_REQUIRED` | No valid session or PAT credential was resolved for a route that requires authentication |
+| 403 | `INSUFFICIENT_SCOPE` | Token is valid but missing one or more scopes required by the endpoint. Response body includes `missing_scopes: string[]` |
 
 ## Endpoints
 
@@ -242,7 +241,7 @@ The server does not gate behavior by `client_kind`; it is purely for display and
 ### Leak handling
 
 - PATs are logged **by prefix only** (first 12 chars). Raw tokens never appear in server logs.
-- On any `401 TOKEN_INVALID` or `403 INSUFFICIENT_SCOPE`, the server records a low-priority audit event on the token id (throttled).
+- On PAT-authenticated authorization failures (for example insufficient scope) the server may record a low-priority audit event on the token id (throttled).
 - Users can revoke a leaked token from `/profile`; revocation is immediate.
 - Planned post-launch: automated `kat_` prefix scanning on public GitHub gists / commits via a bot bound to the Kolk Arena GitHub App, with automatic server-side revocation.
 

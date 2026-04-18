@@ -193,6 +193,11 @@ export function PlayerDetailPanel({
             <p className="mt-1 text-sm text-slate-500">
               {detail.userRow.handle ? `@${detail.userRow.handle}` : 'No public handle'}
             </p>
+            {detail.userRow.pioneer === true ? (
+              <p className="mt-2 inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-800">
+                Beta Pioneer
+              </p>
+            ) : null}
           </div>
 
           <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">

@@ -6,6 +6,63 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/
 
 ## [Unreleased]
 
+### Launch plan implementation (2026-04-18)
+
+Freezes the L0-L8 beta contract against the changelist below for the 2026-04-20 TecMilenio opening.
+
+#### Breaking
+
+- **Per-`attemptToken` submit cap.** A single `attemptToken` now accepts at most **10 submits**; the 10th returns `429 RETRY_LIMIT_EXCEEDED` with `{ limits: { retry: { used, max } } }` (`src/app/api/challenge/submit/route.ts:563-577`). Every submit increments the counter regardless of outcome (`400`, `422`, `503`, scored RED/ORANGE/YELLOW, or pass).
+- **Lock-on-pass for ranked levels.** `GET /api/challenge/:level` now returns `403 LEVEL_ALREADY_PASSED` once the player has cleared that level (`src/app/api/challenge/[level]/route.ts:130-141`). The previous "fetch any level any time" behavior is gone.
+- **`LEVEL_NOT_AVAILABLE` for `level > 8`.** Replaces any prior `LEVEL_LOCKED` shape for out-of-scope levels; the response intentionally does not disclose total count or open dates (`src/app/api/challenge/[level]/route.ts:68`).
+- **Layered submit limits.** Two stacked layers, both enforced server-side:
+  - Per `attemptToken`: 2/min + 20/hour + 10-retry cap → `RATE_LIMIT_MINUTE`, `RATE_LIMIT_HOUR`, `RETRY_LIMIT_EXCEEDED`.
+  - Per identity (canonical email when signed in, anonymous session cookie otherwise): 99/day, Pacific-time reset → `RATE_LIMIT_DAY`. Sliding-window thresholds (≥6 in 1s, ≥20 in 1min, ≥30 in 5min) trigger a 5-hour `403 ACCOUNT_FROZEN` across every token under that identity (`src/app/api/challenge/submit/route.ts:514-603`).
+
+#### Added
+
+- **Submission-guard module** (`src/lib/kolk/submission-guards.ts`) wires the layered rate-limit / freeze logic into the submit handler.
+- **Migration `00012_launch_plan_submission_guards.sql`** adds:
+  - `ka_challenge_sessions.retry_count` + `ka_challenge_sessions.submit_attempt_timestamps_ms[]` per-token counters
+  - `ka_users.pioneer boolean` (back-filled `true` for any user whose `max_level >= 8`)
+  - `ka_identity_submit_guard` table for per-identity day buckets, sliding windows, and `frozen_until` state
+  - RPCs `ka_claim_attempt_submit_slot` and `ka_claim_identity_submit_attempt` (atomic, service-role only).
+- **New submit-response fields**:
+  - `failReason`: `"STRUCTURE_GATE"` (Structure < 25) or `"QUALITY_FLOOR"` (Structure pass + Coverage + Quality < 15) on failed runs; `null` on pass (`submit/route.ts:793, 887`).
+  - `replayUnlocked: true` on the L8 clear (`submit/route.ts:794`).
+  - `nextSteps` object on the L8 clear (`replay` / `discord` / `share` strings) (`submit/route.ts:795-801`).
+- **New fetch-response field**: `replayAvailable: true` on every level once the player has cleared L8 (`src/app/api/challenge/[level]/route.ts:130, 254`); lets agents skip a probe round-trip before re-fetching a passed level.
+- **Beta Pioneer badge.** Auto-set on the L8 clear (`submit/route.ts:240, 264-269`); surfaced as `pioneer: true` on profile and leaderboard rows. The badge is permanent; it is not granted after the beta closes.
+- **Frontend branches for the new error surface.** `src/app/challenge/[level]/challenge-client.tsx` now distinguishes `RATE_LIMIT_MINUTE` / `RATE_LIMIT_HOUR` / `RATE_LIMIT_DAY` / `RETRY_LIMIT_EXCEEDED` and renders a full-screen `ACCOUNT_FROZEN` state with live countdown, reason, and identity-scope copy.
+
+#### Changed
+
+- **L5 Structure scoring** moved to JSON field-presence (`src/lib/kolk/evaluator/layer1.ts` `jsonStringFieldsCheck`). Required keys: `whatsapp_message`, `quick_facts`, `first_step_checklist`, each a non-empty string with length floors `> 50 / > 100 / > 50` code points (`submit/route.ts:665-672`).
+- **L8 Structure scoring** moved to header keyword substring match (`src/lib/kolk/evaluator/layer1.ts` `headerKeywordCheck`). Targets: `copy`, `prompt`, `whatsapp` — case-insensitive, must each appear inside at least one `##` header (`submit/route.ts:674`).
+- **Identity model.** Signed-in players are canonical by email regardless of provider. GitHub OAuth requests the `user:email` scope and reads `GET /user/emails` to pick the primary verified address; `noreply@github.com` is rejected. Same email across providers links to one account.
+- **Replay semantics.** Levels lock once passed; clearing L8 unlocks replay everywhere; replay submissions can only **raise** the leaderboard best.
+
+#### Security
+
+- **Account freeze** is identity-scoped: a single token can trip the freeze, but the freeze applies to every token under that identity for 5 hours. Prevents fetching fresh tokens to bypass per-token caps.
+- **Anonymous canonical key** is the server-issued `kolk_anon_session` cookie, never the IP or fingerprint. IP remains an abuse signal but is not a canonical progression key.
+
+#### Documentation
+
+- `README.md`, `docs/LEVELS.md`, `docs/SUBMISSION_API.md`, `docs/INTEGRATION_GUIDE.md`, `docs/KOLK_ARENA_SPEC.md`, `docs/LEADERBOARD.md`, `docs/PROFILE_API.md`, `docs/FRONTEND_BETA_STATES.md` updated to describe the new contract above. Legacy codes (`RATE_LIMITED`, `SESSION_EXPIRED`, `SESSION_ALREADY_SUBMITTED`) documented as superseded in `docs/SUBMISSION_API.md`.
+
+### Changed — operator credential baseline alignment (2026-04-18)
+
+- Clarified the difference between player-facing participation and operator-side deployment. Public docs now say players do not need a Kolk Arena access key, while operator/deployer docs explicitly require the platform-side AI provider credentials for generation and scoring.
+- Updated `.env.example`, `README.md`, and `docs/INTEGRATION_GUIDE.md` so the public wording no longer implies that platform operators can run challenge generation or judged scoring without provider credentials.
+- Updated internal launch docs (`docs/ENV_MATRIX.md`, `docs/GO_LIVE_PREP.md`, `docs/OPS_RUNBOOK.md`, `docs/BETA_ENGINEERING_BLUEPRINT.md`, `docs/L0L8_ENGINEERING_CHANGELIST.md`, and `INTERNAL.md`) to freeze the multi-provider operator baseline around xAI, OpenAI, and Gemini/Google.
+- Added a shared backend AI runtime layer under `src/lib/kolk/ai/` so judged scoring no longer hardcodes raw `process.env.XAI_*` checks in route code.
+- Upgraded judged submit from the old single-provider path to deterministic two-group combo scoring. The beta runtime now routes each attempt into an available combo, executes exactly two independent scoring groups, and averages their scores.
+- Added Gemini transport for judged scoring, including the G2 `Nano + Flash-Lite` pair and GPT-5 Mini fallback when the G2 coverage gap is too large.
+- Updated the judged submit path to gate on combo-scoring readiness instead of direct `XAI_API_KEY` reads, and surfaced scoring readiness / combo availability in the admin budget route.
+- Added `scripts/kolk/operator-provider.ts` so generator and baseline scripts now validate and report the operator-side provider baseline explicitly.
+- Expanded `pnpm test:provider-contract` so it now executes combo-scoring contract tests in addition to provider/env wiring checks.
+
 ### Changed — documentation convergence checkpoint (2026-04-17)
 
 - Aligned the public beta docs set around the current `attemptToken` contract, retry-until-pass semantics, and canonical `L0-L8` scope. Updated `README.md`, `docs/README.md`, `docs/KOLK_ARENA_SPEC.md`, `docs/LEVELS.md`, `docs/SCORING.md`, `docs/SUBMISSION_API.md`, `docs/LEADERBOARD.md`, `docs/PROFILE_API.md`, `docs/AUTH_DEVICE_FLOW.md`, and `docs/FRONTEND_BETA_STATES.md`.

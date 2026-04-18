@@ -56,6 +56,10 @@ export function AuthSignInPanel({
         title: 'Session exchange failed',
         body: 'The provider login completed, but Kolk Arena could not finish establishing the session.',
       },
+      github_email_required: {
+        title: 'GitHub email required',
+        body: 'GitHub did not return a verified primary email for this account. Use email sign-in below or retry GitHub after granting email access.',
+      },
       unexpected: {
         title: 'Unexpected auth error',
         body: 'A server-side auth error interrupted sign-in. Try again in a new tab if this keeps happening.',

@@ -356,6 +356,104 @@ export interface Layer1Config {
   facts?: string[];
   /** Prohibited terms + language */
   prohibitedTerms?: { terms: string[]; lang: 'es' | 'en' };
+  /** L5 beta contract: JSON object string with required string keys and minimum lengths */
+  jsonStringFields?: {
+    requiredKeys: readonly string[];
+    minLengths: Record<string, number>;
+  };
+  /** L8 beta contract: required keyword substrings inside Markdown ## headers */
+  requiredHeaderKeywords?: readonly string[];
+}
+
+function jsonStringFieldsCheck(
+  text: string,
+  config: NonNullable<Layer1Config['jsonStringFields']>,
+  maxPoints: number,
+): Layer1Check {
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse(text.trim());
+  } catch {
+    return {
+      name: 'json_string_fields',
+      passed: false,
+      score: 0,
+      maxPoints,
+      reason: 'Output is not valid JSON.',
+    };
+  }
+
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return {
+      name: 'json_string_fields',
+      passed: false,
+      score: 0,
+      maxPoints,
+      reason: 'Output must be a JSON object with string values.',
+    };
+  }
+
+  const obj = parsed as Record<string, unknown>;
+  const failures: string[] = [];
+
+  for (const key of config.requiredKeys) {
+    const value = obj[key];
+    if (typeof value !== 'string' || value.trim().length === 0) {
+      failures.push(`${key} must be a non-empty string`);
+      continue;
+    }
+
+    const minLength = config.minLengths[key];
+    if (Number.isFinite(minLength) && value.trim().length < minLength) {
+      failures.push(`${key} must be at least ${minLength} characters`);
+    }
+  }
+
+  if (failures.length > 0) {
+    return {
+      name: 'json_string_fields',
+      passed: false,
+      score: 0,
+      maxPoints,
+      reason: failures.join('; '),
+    };
+  }
+
+  return {
+    name: 'json_string_fields',
+    passed: true,
+    score: maxPoints,
+    maxPoints,
+    reason: 'All required JSON string fields are present and meet minimum length.',
+  };
+}
+
+function headerKeywordCheck(
+  text: string,
+  requiredKeywords: readonly string[],
+  maxPoints: number,
+): Layer1Check {
+  const headers = Array.from(text.matchAll(/^##\s+(.+)$/gm)).map((match) => match[1]?.trim().toLowerCase() ?? '');
+  const missing = requiredKeywords.filter((keyword) => !headers.some((header) => header.includes(keyword.toLowerCase())));
+
+  if (missing.length > 0) {
+    return {
+      name: 'header_keyword_match',
+      passed: false,
+      score: 0,
+      maxPoints,
+      reason: `Missing required header keyword(s): ${missing.join(', ')}.`,
+    };
+  }
+
+  return {
+    name: 'header_keyword_match',
+    passed: true,
+    score: maxPoints,
+    maxPoints,
+    reason: 'All required header keywords were found in Markdown ## headers.',
+  };
 }
 
 /**
@@ -377,6 +475,8 @@ export function runLayer1(
     config.itemExpected != null,
     config.facts != null && config.facts.length > 0,
     config.prohibitedTerms != null && config.prohibitedTerms.terms.length > 0,
+    config.jsonStringFields != null,
+    config.requiredHeaderKeywords != null && config.requiredHeaderKeywords.length > 0,
   ].filter(Boolean).length;
 
   if (activeChecks === 0) {
@@ -420,6 +520,12 @@ export function runLayer1(
   if (config.prohibitedTerms != null && config.prohibitedTerms.terms.length > 0) {
     const { terms, lang } = config.prohibitedTerms;
     checks.push(termGuard(text, terms, lang, getPoints()));
+  }
+  if (config.jsonStringFields != null) {
+    checks.push(jsonStringFieldsCheck(text, config.jsonStringFields, getPoints()));
+  }
+  if (config.requiredHeaderKeywords != null && config.requiredHeaderKeywords.length > 0) {
+    checks.push(headerKeywordCheck(text, config.requiredHeaderKeywords, getPoints()));
   }
 
   const totalScore = checks.reduce((sum, c) => sum + c.score, 0);

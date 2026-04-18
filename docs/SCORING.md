@@ -95,21 +95,23 @@ Important correction:
 |-------|----------------------|-----------------------------------|
 | L0 | (none) | deterministic substring `/(hello\|kolk)/i` on `primaryText` — no AI judge |
 | L1 | `lang_detect` | output language matches `seller_locale`; translation-only text |
-| L2 | `fact_xref`, `item_count`, bio char range | required mentions (business_name / neighborhood / signature_drink / unique_feature); 5 IG fields present; `bio_text` 80-150 code points; `link_in_bio_url` equals seed `placeholder_url` |
-| L3 | section structure + `fact_xref` | exact `## Intro` / `## Services` / `## CTA` headers; exactly 3 service descriptions under Services; every string in `business_facts[]` appears in output |
-| L4 | section structure + `math_verify` + regex | exactly `trip_days` `## Day N` headers in order; per-day `Morning:`/`Afternoon:`/`Evening:`/`Budget:`/`Tip:` lines; daily budget regex |
-| L5 | `jsonStructure` | `JSON.parse(primaryText)` succeeds; exactly three string keys (`whatsapp_message`, `quick_facts`, `first_step_checklist`); per-key length bounds (code points); `{{customer_name}}` substring; bullet counts |
-| L6 | section structure | four Hero/About/Services/CTA sections present |
-| L7 | section structure + `item_count` | exact skeleton: 8 `### Prompt N —` blocks with `**Prompt:**` + `**Negative prompt:**`; 2 Style Rules; 2 Forbidden Mistakes |
-| L8 | `keywordHeaderMatch` + section structure + per-section rules | three top-level headers matching `copy`/`prompt`/`whatsapp`; One-Page Copy sub-headers; Prompt Pack reuses L7 skeleton; WhatsApp Welcome uses WhatsApp short-form discipline (150-320 code points, `{{customer_name}}`, ≤2 emoji) **as plain text** (NOT JSON) |
+| L2 | `lang_detect`, `fact_xref`, `item_count` when configured | current beta runtime may check target language, generic item-count shape, and brief key-fact coverage when those fields are configured; it does not ship a dedicated Instagram-field or `placeholder_url` parser |
+| L3 | `fact_xref`, `item_count` when configured | current beta runtime may check generic item-count shape and brief key-fact coverage when configured; it does not ship a dedicated exact-header/service-count parser |
+| L4 | `item_count`, `math_verify`, `fact_xref` when configured | current beta runtime may check generic item counts, numeric consistency, and brief key-fact coverage when configured; it does not ship a dedicated per-line itinerary parser |
+| L5 | `jsonStructure` | `JSON.parse(primaryText)` succeeds; parsed value is a non-null object; required string keys (`whatsapp_message`, `quick_facts`, `first_step_checklist`) exist; minimum trimmed lengths are met |
+| L6 | `baseline` | no dedicated deterministic structure parser beyond the configured baseline check in the current build |
+| L7 | `baseline` | no dedicated deterministic dash-variant or prompt-pack skeleton parser in the current build; structure quality is primarily AI-judge-side |
+| L8 | `headerKeywordMatch` | three top-level `##` headers match the keywords `copy` / `prompt` / `whatsapp`; deeper package structure remains primarily AI-judge-side in the current build |
 
 ### Level-specific `fieldScores[].field` names
 
 On Layer 1 structural failures, `fieldScores[].field` uses stable level-specific identifiers so the frontend result page can render keyed feedback:
 
-- **L5**: `"json_structure"` — covers `JSON.parse` failure, missing/extra keys, length-bound violations, missing `{{customer_name}}`, bullet-count violations
-- **L8**: `"section_headers"` — covers missing top-level keyword matches and missing `### Hero`/`### About`/`### Services`/`### CTA` sub-headers inside One-Page Copy
-- Other levels use per-requirement field names (e.g., L3: `"intro_header"`, `"services_count"`, `"cta_header"`, `"facts_coverage"`)
+- `"json_string_fields"` — JSON parse/object/required-string-key checks used for L5
+- `"header_keyword_match"` — top-level header keyword matcher used for L8
+- `"lang_detect"`, `"math_verify"`, `"item_count"`, `"fact_xref"`, `"term_guard"`, `"baseline"` — stable check names returned when those configured checks run for a level
+
+Some older drafts described stricter per-level parsers for L2-L4/L6-L8. The public beta contract should treat the table above as the runtime truth: only checks explicitly configured in the current evaluator are deterministic.
 
 ---
 
@@ -248,7 +250,7 @@ Beyond the raw `SubmissionResult`, the public beta result page presents scoring 
 1. **Color badge** — the single large visual (`RED` / `ORANGE` / `YELLOW` / `GREEN` / `BLUE`)
 2. **Numeric score** — `{totalScore} / 100` alongside the color, always shown
 3. **Quality label** — a short human-readable phrase keyed to the color band (see *Quality labels* below)
-4. **Percentile ranking** — "Your score beats X% of participants at this level"; hidden and rendered as "—" when the 30-day cohort at that level has fewer than 10 leaderboard-eligible submissions
+4. **Percentile ranking** — "Your score beats X% of participants at this level"; hide the percentile block entirely when the 30-day cohort at that level has fewer than 10 leaderboard-eligible submissions
 5. **Three-dimension breakdown** — `structureScore` / `coverageScore` / `qualityScore`, each as a number with a color-filled progress bar (the per-dimension fill color is computed from the dimension's share of its own max, not the total score's color band)
 6. **Per-field feedback** — the `fieldScores[].reason` strings from the AI judge
 7. **Completion time** — `solve_time_seconds`, rendered in `MM:SS`; if under `suggested_time_minutes`, the Efficiency Badge (⚡) appears

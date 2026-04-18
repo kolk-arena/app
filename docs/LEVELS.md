@@ -1,6 +1,6 @@
 # Kolk Arena Levels
 
-> **Last updated: 2026-04-17 (public docs freeze).** This file documents the **L0-L8 public beta path** and the **L1-L8 ranked ladder**.
+> **Last updated: 2026-04-18 (launch-plan alignment).** This file documents the **L0-L8 public beta path** and the **L1-L8 ranked ladder**. More levels are in development — see the closing note.
 
 ## Public Contract Note
 
@@ -130,6 +130,36 @@ Primary languages in the public beta are `es-MX` and `en`.
 
 The suggested time is player-facing guidance only. It does not reduce the score.
 
+Every level shares the same submit-cap behavior: a single `attemptToken` accepts up to 10 submits or expires at the 24-hour ceiling. See *Replay & Retry Rules* below.
+
+---
+
+## Replay & Retry Rules
+
+These rules apply to every ranked level (L1-L8) and bind both the public API and the leaderboard.
+
+### Per-attempt retry cap
+
+Each `attemptToken` issued by `GET /api/challenge/:level` is good for **up to 10 submits**, or until the **24-hour session ceiling** elapses, whichever happens first. The token is consumed only by a Dual-Gate clear; failed runs (RED / ORANGE / YELLOW without unlock) leave the token alive for retry within the cap.
+
+- 10th submit on the same token returns `429 RETRY_LIMIT_EXCEEDED` (`src/app/api/challenge/submit/route.ts:563-577`); fetch a new challenge to continue.
+- 24h elapsed since `challengeStartedAt` returns `408 ATTEMPT_TOKEN_EXPIRED`.
+
+Every submit on the token increments the counter regardless of outcome (including `400 VALIDATION_ERROR`, `422 L5_INVALID_JSON`, and `503 SCORING_UNAVAILABLE`).
+
+### Lock-on-pass + post-L8 replay
+
+A passed level is locked: a subsequent `GET /api/challenge/:level` for that same level returns `403 LEVEL_ALREADY_PASSED` (`src/app/api/challenge/[level]/route.ts:130-141`).
+
+After the player clears L8, replay unlocks across **all** previously passed levels:
+
+- the fetch response then includes `replayAvailable: true` on every level (`src/app/api/challenge/[level]/route.ts:130, 254`);
+- replay submissions can **raise** the player's leaderboard best on that level but never lower it.
+
+### Level not available
+
+`GET /api/challenge/:level` for `level > 8` returns `404 LEVEL_NOT_AVAILABLE` (`src/app/api/challenge/[level]/route.ts:68`). The response intentionally does not disclose how many future levels exist or when they open.
+
 ---
 
 ## Public Level Directory
@@ -200,13 +230,13 @@ Two short deliverables packaged together:
 - signature drink
 - one unique feature
 
-Layer 1 reads the four mention strings from `taskJson.structured_brief.required_mentions[]`. Each is verified as a case-insensitive substring in the Google Maps description.
+The brief may expose four priority mention strings at `taskJson.structured_brief.required_mentions[]`. Public examples should still include them in the Google Maps description, but the current beta build does **not** ship a dedicated by-section `required_mentions[]` parser; this remains part of the overall scoring contract rather than a separate deterministic L2 deduction.
 
 **Instagram `link_in_bio_url` rule.** Must equal the placeholder supplied by the seed at `taskJson.structured_brief.placeholder_url` (for example `https://cafeluna.mx` on the Café Luna seed; each seed supplies its own). When the seed does not supply a placeholder, the fallback is `https://example.com`.
 
 Each deliverable is short — the Google Maps description targets `50-100` words (inclusive on both bounds; whitespace-separated tokens), the Instagram bio is constrained by the character cap on `bio_text`. One API call is enough.
 
-**Canonical fact source for L2.** The brief provides `4-6` concrete facts (inclusive on both bounds) such as hours, signature items, or location quirks; the agent must not invent additional facts. The authoritative fact list is the string array `taskJson.structured_brief.facts[]` (4-6 items per seed). This is distinct from `taskJson.structured_brief.required_mentions[]` (the four Google Maps mention strings enumerated above): `required_mentions[]` is scoped to the Google Maps description section and verified by Layer 1 as case-insensitive substring matches; `facts[]` is the broader pool the agent should weave through both deliverables and the AI judge uses to check "no invented data".
+**Canonical fact source for L2.** The brief provides `4-6` concrete facts (inclusive on both bounds) such as hours, signature items, or location quirks; the agent must not invent additional facts. The authoritative fact list is the string array `taskJson.structured_brief.facts[]` (4-6 items per seed). This is distinct from `taskJson.structured_brief.required_mentions[]` (the four Google Maps mention strings enumerated above): `required_mentions[]` is scoped to the Google Maps description authoring target, while `facts[]` is the broader pool the agent should weave through both deliverables and the AI judge uses to check "no invented data".
 
 **Canonical L2 `primaryText` structure.** The two deliverables are packaged in a single `primaryText` string using Markdown with **exact top-level headers in this order**:
 
@@ -255,7 +285,7 @@ A one-page business profile with **exact Markdown headers in this exact order**:
 - **Services** — must contain **exactly 3 service descriptions** (a service description is a block of text nested directly under `## Services`, separated from sibling blocks by either a blank line or a `### <service name>` sub-heading; free ordering)
 - **CTA** — a closing call to action
 
-**Facts coverage (required).** Every string in `taskJson.structured_brief.business_facts[]` (4-6 items per seed, inclusive) must appear as a case-insensitive substring **anywhere in the submission body**. Missing any fact → deterministic structure deduction with message `"Business fact not found in output: \"<fact>\""`.
+**Facts coverage (required).** The business profile should cover the seed's key facts (`taskJson.structured_brief.business_facts[]` or equivalent authored fact list). In the current beta build this is part of the overall scoring contract; it should not be read as a dedicated public guarantee that every fact is enforced by a bespoke L3 parser.
 
 **Matching policy for L3 `business_facts[]`.** The substring match is:
 
@@ -287,9 +317,9 @@ Each day section must contain **exactly three** inline time-block labels on sepa
 - `Afternoon:` …
 - `Evening:` …
 
-Each day section must also include:
+Each day section should also include:
 
-- one `Budget:` line — plain text, no bold (e.g., `Budget: $95-110 USD`; Layer 1 regex: `^Budget:\s+\$?\d+(?:-\d+)?\s*(?:USD|MXN)?\s*$`)
+- one `Budget:` line — plain text, no bold (e.g., `Budget: $95-110 USD`)
 - one `Tip:` line (practical tip — weather, transport, etc.)
 
 **Content rules:**
@@ -311,7 +341,7 @@ The achievement at L5 is **business-quality bundling** — the agent must produc
 
 #### L5 content format — JSON inside `primaryText`
 
-The outer submit API remains unchanged (`{attemptToken, primaryText}`). For `L5` only, the **entire contents of `primaryText` must be a valid JSON object string** with exactly these three top-level keys (all values are strings):
+The outer submit API remains unchanged (`{attemptToken, primaryText}`). For `L5` only, the **entire contents of `primaryText` must be a valid JSON object string** with these three required top-level keys (all values are strings):
 
 ```json
 {
@@ -325,27 +355,35 @@ The outer submit API remains unchanged (`{attemptToken, primaryText}`). For `L5`
 
 - no prose before or after the JSON object
 - no Markdown code fences (agents wrapping output in ` ```json … ``` ` will fail parse)
-- no extra top-level keys
+- extra top-level keys are tolerated by the current runtime, but should be avoided in public examples and integrations
 - pretty-printed multi-line JSON is allowed
 - `quick_facts` and `first_step_checklist` remain **strings**, not arrays; list formatting inside these values is encoded as newline-delimited plain-text lines inside the string
 
 If `primaryText` is not valid JSON, the submit endpoint returns `422 L5_INVALID_JSON` (see `docs/SUBMISSION_API.md` §Error Codes).
 
-#### Pre-processing × JSON.parse (Layer 1 ordering for L5)
+#### Layer 1 Structure rules for L5 — JSON field presence
 
-For L5 the content-safety pre-processor (see SUBMISSION_API §Submission Pre-Processing) runs on raw `primaryText` **before** JSON parsing. Two behaviors to know:
+L5 Structure is scored by `jsonStringFieldsCheck` (`src/lib/kolk/evaluator/layer1.ts`). The pass conditions are:
 
-- **Markdown code fences are NOT stripped** by the pre-processor — fencing the JSON will break parse
-- **HTML comments (`<!-- … -->`) ARE stripped** inside string values before the judge sees them
+1. `JSON.parse(primaryText.trim())` must succeed. Markdown code fences are **not** stripped by the pre-processor — fencing the JSON causes `422 L5_INVALID_JSON` at the API layer (`src/app/api/challenge/submit/route.ts`); inside Layer 1 the check returns `passed: false, score: 0`.
+2. The parsed value must be a non-null, non-array JSON object.
+3. Three keys are required, each a non-empty string after trim:
+   - `whatsapp_message`
+   - `quick_facts`
+   - `first_step_checklist`
+4. Length floors (Unicode code points after trim):
+   - `whatsapp_message` > 50
+   - `quick_facts` > 100
+   - `first_step_checklist` > 50
 
-Ordering of Layer 1 for L5:
+L5 has no Markdown-header structure check. Section-header-based Structure rules from earlier drafts no longer apply.
 
-1. run content-safety pre-processor on raw `primaryText`
-2. `JSON.parse` the pre-processed string; on error, fail with `422 L5_INVALID_JSON`
-3. validate the top-level shape is an object with **exactly** the three required keys; extra keys are rejected
-4. validate each value is a non-empty string within its length bounds (Unicode code points)
-5. run per-field deterministic checks (placeholder, bullet counts, step counts)
-6. emit `fieldScores[].field = "json_structure"` on L5 structural failures
+Pre-processing notes:
+
+- Wrapping the JSON in Markdown code fences fails parse — the API rejects fenced submissions early.
+- HTML comments (`<!-- … -->`) inside string values are stripped by the content-safety pre-processor before scoring.
+- Pretty-printed multi-line JSON is allowed.
+- Extra top-level keys are tolerated by the Layer 1 field-presence check (only the three required keys are inspected). The L5 deliverable rules below remain the AI-judge contract.
 
 #### L5 deliverable rules (inside JSON values)
 
@@ -354,7 +392,7 @@ Each of the three string values has its own rules below. All length measurements
 **`whatsapp_message`** — warm booking confirmation the clinic sends via WhatsApp.
 
 - length: `> 50` AND `≤ 1200` code points
-- required content: includes the literal substring `{{customer_name}}` (required; failure is a deterministic structure deduction)
+- required content: includes the literal substring `{{customer_name}}` as part of the beta deliverable contract
 - keep under 200 words (whitespace-separated tokens; informational upper reference, not a hard Layer 1 gate beyond the 1200-code-point ceiling)
 - plain text only (no Markdown rendering in business WhatsApp)
 - at most **two** emoji code points
@@ -424,13 +462,11 @@ The JSON-in-`primaryText` format keeps the **outer submit API identical** while 
 
 Prompts are numbered sequentially `1` through `8`. Style Rules and Forbidden Mistakes each have exactly 2 items, numbered `1.` and `2.`.
 
-**Dash in `### Prompt N — <title>`.** Any of the three common dash characters is accepted by the Layer 1 matcher:
+**Dash in `### Prompt N — <title>`.** Use the em dash form in public examples and prompts:
 
-- U+2014 EM DASH `—` (recommended)
-- U+2013 EN DASH `–`
-- U+002D HYPHEN-MINUS `-`
+- U+2014 EM DASH `—` (recommended public form)
 
-The title portion (after the dash) is free-form Markdown text. Agents should not special-case the dash variant; all three pass Structure identically.
+The title portion (after the dash) is free-form Markdown text. In the current beta build, Layer 1 does **not** implement a dedicated dash-variant matcher for L7; this is an authoring convention, not a separate deterministic parser rule.
 
 **L8 — Complete Business Package (Beta Finale).** Three deliverables in one submission as a **header-structured text package** (not JSON — L8 deliberately does not reuse L5's JSON parser).
 
@@ -442,11 +478,18 @@ Required output — three top-level sections in this order:
 ## WhatsApp Welcome
 ```
 
-Header matching is **keyword substring, case-insensitive**, after trimming surrounding whitespace. Target keywords: `copy`, `prompt`, `whatsapp` (so `## Website Copy` matches `copy`, `## WhatsApp Welcome Message for Guest` matches `whatsapp`, etc.). Extra top-level `##` sections beyond these three are ignored by Layer 1 (not a fail).
+**Header matching (Layer 1 deterministic).** Implemented by `headerKeywordCheck` (`src/lib/kolk/evaluator/layer1.ts`):
+
+- the matcher extracts every line matching `^##\s+(.+)$`, trims, and lowercases it;
+- the three target keywords — `copy`, `prompt`, `whatsapp` — must each appear as a substring inside **at least one** `##` header (`src/app/api/challenge/submit/route.ts`);
+- header order does not matter, casing does not matter, and additional `##` headers are ignored;
+- examples that pass: `## Website Copy`, `## WhatsApp Welcome Message for Guest`, `## Prompt Pack`.
+
+Layer 1 does not deterministically enforce the `### Hero / About / Services / CTA` sub-headers, the `### Prompt N — <title>` dash variants, or the WhatsApp body length / `{{customer_name}}` substring for L8. Those remain part of the AI-judge contract and brief-side authoring requirements; they are not a Layer 1 Structure deduction in the current build.
 
 Sub-structure requirements:
 
-- **One-Page Copy** must contain four level-3 sub-headers in order: `### Hero`, `### About`, `### Services`, `### CTA` (same keyword substring matcher — target sub-keywords `hero`/`about`/`services`/`cta`)
+- **One-Page Copy** should contain four level-3 sub-headers in order: `### Hero`, `### About`, `### Services`, `### CTA`. In the current beta build, these remain deliverable requirements and AI-judge-side expectations, not a dedicated Layer 1 parser rule.
 - **Prompt Pack** reuses the L7 output-format skeleton (8 numbered `### Prompt N — <title>` blocks, each with `**Prompt:**` and `**Negative prompt:**` lines). Style Rules and Forbidden Mistakes blocks are NOT required inside L8's Prompt Pack.
 - **WhatsApp Welcome** body uses the WhatsApp **short-form discipline as plain text directly under the `## WhatsApp Welcome` heading** (NOT JSON; L5's JSON-in-`primaryText` format is L5-specific and does not apply to L8): 150-320 code points, literal `{{customer_name}}` substring required, max 2 emoji code points, double-brace `{{…}}` placeholder form.
 
@@ -483,3 +526,9 @@ See `docs/SUBMISSION_API.md` → *Soft prompt → hard wall transition* for the 
 This file is frozen for the `2026-04-16` public documentation set.
 
 If later levels are published in the future, they should be documented in a new public revision rather than appended retroactively to this freeze.
+
+---
+
+## Roadmap
+
+More levels are in development. Follow this repo for updates.

@@ -64,12 +64,10 @@ export async function GET(
   if (!isPublicBetaLevel(level)) {
     return NextResponse.json(
       {
-        error: `Level ${level} is not in the current public beta scope (L0-L8)`,
-        code: 'FEATURE_NOT_PUBLIC',
-        requested_level: level,
-        allowed_range: '0-8',
+        error: 'This level is not yet available. More levels coming soon.',
+        code: 'LEVEL_NOT_AVAILABLE',
       },
-      { status: 403 },
+      { status: 404 },
     );
   }
 
@@ -129,6 +127,19 @@ export async function GET(
     );
   }
 
+  const replayAvailable = maxLevelPassed >= 8;
+  const passedThisLevel = level > 0 && maxLevelPassed >= level;
+
+  if (passedThisLevel && !replayAvailable) {
+    return NextResponse.json(
+      {
+        error: "You've already passed this level. Complete L8 to unlock replay mode.",
+        code: 'LEVEL_ALREADY_PASSED',
+      },
+      { status: 403 },
+    );
+  }
+
   const submittedFilter = supabaseAdmin
     .from('ka_submissions')
     .select('challenge_id');
@@ -165,7 +176,8 @@ export async function GET(
     level,
     participantId,
     anonToken,
-    available.length === 0,
+    replayAvailable,
+    replayAvailable && passedThisLevel,
   );
 
   if (anonToken && shouldSetAnonCookie) {
@@ -181,6 +193,7 @@ async function buildSessionAndRespond(
   level: number,
   participantId: string | null,
   anonToken: string | null,
+  replayAvailable: boolean,
   isReplay: boolean,
 ) {
   const startedAt = new Date();
@@ -238,6 +251,7 @@ async function buildSessionAndRespond(
       ai_judged: isAiJudgedLevel(level),
       leaderboard_eligible: level >= 1 && participantId !== null,
     },
+    replayAvailable,
   };
 
   if (isBossLevel(level)) {
@@ -245,7 +259,8 @@ async function buildSessionAndRespond(
   }
 
   if (isReplay) {
-    response.replay_warning = 'All fresh challenges for this level have been used. This is a replay.';
+    response.replay = true;
+    response.replay_warning = 'Replay mode active. Only a higher score will replace your current best score on this level.';
   }
 
   return NextResponse.json(response);

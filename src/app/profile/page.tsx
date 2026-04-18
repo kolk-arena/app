@@ -16,6 +16,7 @@ type Profile = {
   auth_methods: string[];
   max_level: number;
   verified_at: string | null;
+  pioneer: boolean;
 };
 
 export default function ProfilePage() {
@@ -249,6 +250,10 @@ export default function ProfilePage() {
                 <p className="mt-2 text-sm font-medium text-slate-900">L{profile.max_level}</p>
               </div>
               <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Beta Pioneer</p>
+                <p className="mt-2 text-sm font-medium text-slate-900">{profile.pioneer ? 'Yes' : 'Not yet'}</p>
+              </div>
+              <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Verified at</p>
                 <p className="mt-2 text-sm font-medium text-slate-900">{profile.verified_at ? new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(profile.verified_at)) : 'Not set'}</p>
               </div>
@@ -286,6 +291,11 @@ export default function ProfilePage() {
                   </p>
                 </div>
               </div>
+              {profile.pioneer ? (
+                <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900">
+                  Beta Pioneer unlocked. You completed the full L0-L8 public beta.
+                </div>
+              ) : null}
             </div>
 
             <form

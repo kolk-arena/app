@@ -1,24 +1,34 @@
 /**
- * Kolk Arena — Layer 2+3 Merged AI Judge
+ * Kolk Arena — beta scoring runtime
  *
- * Single xAI Grok call scores BOTH coverage (0-30) and quality (0-30).
- * Hardened prompt: sandwich defense, XML delimiters, output schema enforcement,
- * temperature=0, anti-injection penalty.
+ * Structure (0-40) is deterministic and runs before this file.
+ * This module handles Coverage + Quality (0-30 each) using exactly two
+ * independent scoring groups, which is the minimum v5-compliant beta posture.
  *
- * See docs/SCORING.md for full spec.
+ * Current beta implementation:
+ * - Combo selection is deterministic per routing key, not pure random.
+ * - G1 = xAI / Grok
+ * - G2 = OpenAI Nano + Gemini Flash-Lite, with GPT-5 Mini fallback
+ * - G3 = Gemini Flash
  */
 
-import OpenAI from 'openai';
-import { TRUNCATE_FOR_JUDGE_CHARS, COVERAGE_MAX, QUALITY_MAX } from '../constants';
+import { COVERAGE_MAX, QUALITY_MAX, TRUNCATE_FOR_JUDGE_CHARS } from '../constants';
 import type { VariantRubric } from '../types';
-
-// ============================================================================
-// Types
-// ============================================================================
+import {
+  getAvailableScoringCombos,
+  getGeminiRuntime,
+  getOpenAICompatibleRuntime,
+  SCORING_MODEL_DEFAULTS,
+  type AiProvider,
+  type GeminiRuntime,
+  type OpenAICompatibleRuntime,
+  type ScoringCombo,
+  type ScoringGroup,
+} from '../ai';
 
 export interface JudgeResult {
-  coverageScore: number;       // 0-30
-  qualityScore: number;        // 0-30
+  coverageScore: number;
+  qualityScore: number;
   fieldScores: { field: string; score: number; reason: string }[];
   qualitySubscores: {
     toneFit: number;
@@ -28,36 +38,93 @@ export interface JudgeResult {
   };
   flags: string[];
   summary: string;
+  combo?: ScoringCombo;
+  groups?: ScoringGroup[];
+  providers?: AiProvider[];
   model: string;
   error: boolean;
 }
 
-// ============================================================================
-// Judge client (lazy init)
-// ============================================================================
-
-const XAI_BASE_URL = 'https://api.x.ai/v1';
-const XAI_DEFAULT_MODEL = 'grok-4-1-fast-non-reasoning';
-
-let _client: OpenAI | null = null;
-
-function getClient(): OpenAI {
-  if (!_client) {
-    _client = new OpenAI({
-      apiKey: process.env.XAI_API_KEY,
-      baseURL: process.env.XAI_BASE_URL ?? XAI_BASE_URL,
-    });
-  }
-  return _client;
+interface ParsedJudgeScores {
+  coverageScore: number;
+  qualityScore: number;
+  fieldScores: { field: string; score: number; reason: string }[];
+  qualitySubscores: {
+    toneFit: number;
+    clarity: number;
+    usefulness: number;
+    businessFit: number;
+  };
+  flags: string[];
+  summary: string;
 }
 
-function getModel(): string {
-  return process.env.XAI_MODEL ?? XAI_DEFAULT_MODEL;
+interface GroupJudgeResult extends ParsedJudgeScores {
+  group: ScoringGroup;
+  providers: AiProvider[];
+  model: string;
 }
 
-// ============================================================================
-// Budget tracking (in-memory for MVP; upgrade to Redis for production)
-// ============================================================================
+type JudgeRawResponse = {
+  coverage_score?: number;
+  quality_score?: number;
+  field_scores?: { field: string; score: number; reason: string }[];
+  quality_subscores?: { tone_fit?: number; clarity?: number; usefulness?: number; business_fit?: number };
+  flags?: string[];
+  summary?: string;
+};
+
+const OPENAI_JUDGE_RESPONSE_FORMAT = {
+  type: 'json_schema' as const,
+  json_schema: {
+    name: 'kolk_arena_judge_scores',
+    strict: true,
+    schema: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        coverage_score: { type: 'number' },
+        quality_score: { type: 'number' },
+        field_scores: {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              field: { type: 'string' },
+              score: { type: 'number' },
+              reason: { type: 'string' },
+            },
+            required: ['field', 'score', 'reason'],
+          },
+        },
+        quality_subscores: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            tone_fit: { type: 'number' },
+            clarity: { type: 'number' },
+            usefulness: { type: 'number' },
+            business_fit: { type: 'number' },
+          },
+          required: ['tone_fit', 'clarity', 'usefulness', 'business_fit'],
+        },
+        flags: {
+          type: 'array',
+          items: { type: 'string' },
+        },
+        summary: { type: 'string' },
+      },
+      required: ['coverage_score', 'quality_score', 'field_scores', 'quality_subscores', 'flags', 'summary'],
+    },
+  },
+};
+
+const SCORING_COMBO_WEIGHTS: Record<ScoringCombo, number> = {
+  A: 37,
+  B: 34,
+  C: 29,
+};
 
 let judgeCallsThisHour = 0;
 let hourResetAt = Date.now() + 3600_000;
@@ -82,19 +149,21 @@ export function getBudgetStatus() {
   };
 }
 
-// ============================================================================
-// Hardened Judge Prompt
-// ============================================================================
+function roundScore(value: number) {
+  if (!Number.isFinite(value)) return 0;
+  return Math.round(value * 10) / 10;
+}
 
-/**
- * Build the judge system prompt with sandwich defense.
- *
- * Structure:
- * 1. SYSTEM FENCE (top) — role + rules
- * 2. RUBRIC — what to evaluate
- * 3. AGENT OUTPUT — the submission (potentially adversarial)
- * 4. SYSTEM FENCE (bottom) — repeat rules + output schema
- */
+function clampScore(value: number, max: number) {
+  return roundScore(Math.min(max, Math.max(0, value)));
+}
+
+function normalizeSubmissionText(primaryText: string) {
+  return primaryText.length > TRUNCATE_FOR_JUDGE_CHARS
+    ? `${primaryText.slice(0, TRUNCATE_FOR_JUDGE_CHARS)}\n\n[... truncated at 20,000 chars ...]`
+    : primaryText;
+}
+
 function buildJudgePrompt(
   rubric: VariantRubric,
   briefSummary: string,
@@ -109,7 +178,7 @@ function buildJudgePrompt(
     .map(([dim, desc]) => `  - ${dim}: ${desc}`)
     .join('\n');
 
-  return `<SYSTEM_FENCE role="kolk_arena_judge" version="1">
+  return `<SYSTEM_FENCE role="kolk_arena_judge" version="2">
 You are the Kolk Arena scoring judge for Level ${level} ("${levelName}").
 You evaluate agent submissions against a hidden rubric. You are a fair, strict, deterministic evaluator.
 
@@ -168,48 +237,41 @@ Respond with ONLY this JSON schema — nothing else:
 </SYSTEM_FENCE>`;
 }
 
-// ============================================================================
-// Judge response parsing + penalty application helpers
-// ============================================================================
+function extractJsonText(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed.startsWith('```')) {
+    return trimmed;
+  }
 
-type JudgeRawResponse = {
-  coverage_score?: number;
-  quality_score?: number;
-  field_scores?: { field: string; score: number; reason: string }[];
-  quality_subscores?: { tone_fit?: number; clarity?: number; usefulness?: number; business_fit?: number };
-  flags?: string[];
-  summary?: string;
-};
+  const stripped = trimmed
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/, '');
 
-interface ParsedJudgeScores {
-  coverageScore: number;
-  qualityScore: number;
-  fieldScores: { field: string; score: number; reason: string }[];
-  qualitySubscores: { toneFit: number; clarity: number; usefulness: number; businessFit: number };
-  flags: string[];
-  summary: string;
+  return stripped.trim();
 }
 
 function parseJudgeResponse(parsed: JudgeRawResponse): ParsedJudgeScores {
   return {
-    coverageScore: Math.min(COVERAGE_MAX, Math.max(0, parsed.coverage_score ?? 0)),
-    qualityScore: Math.min(QUALITY_MAX, Math.max(0, parsed.quality_score ?? 0)),
-    fieldScores: parsed.field_scores ?? [],
+    coverageScore: clampScore(parsed.coverage_score ?? 0, COVERAGE_MAX),
+    qualityScore: clampScore(parsed.quality_score ?? 0, QUALITY_MAX),
+    fieldScores: (parsed.field_scores ?? []).map((fieldScore) => ({
+      field: fieldScore.field,
+      score: clampScore(fieldScore.score ?? 0, COVERAGE_MAX),
+      reason: typeof fieldScore.reason === 'string' ? fieldScore.reason : '',
+    })),
     qualitySubscores: {
-      toneFit: parsed.quality_subscores?.tone_fit ?? 0,
-      clarity: parsed.quality_subscores?.clarity ?? 0,
-      usefulness: parsed.quality_subscores?.usefulness ?? 0,
-      businessFit: parsed.quality_subscores?.business_fit ?? 0,
+      toneFit: clampScore(parsed.quality_subscores?.tone_fit ?? 0, 7.5),
+      clarity: clampScore(parsed.quality_subscores?.clarity ?? 0, 7.5),
+      usefulness: clampScore(parsed.quality_subscores?.usefulness ?? 0, 7.5),
+      businessFit: clampScore(parsed.quality_subscores?.business_fit ?? 0, 7.5),
     },
-    flags: parsed.flags ?? [],
-    summary: parsed.summary ?? 'Scoring complete',
+    flags: Array.isArray(parsed.flags) ? parsed.flags.filter((flag): flag is string => typeof flag === 'string') : [],
+    summary: typeof parsed.summary === 'string' && parsed.summary.trim().length > 0
+      ? parsed.summary.trim()
+      : 'Scoring complete',
   };
 }
 
-/**
- * Apply rubric penalties to parsed scores.
- * Uses Math.abs() to ensure deductions always subtract, regardless of sign convention.
- */
 function applyPenalties(scores: ParsedJudgeScores, rubric: VariantRubric): ParsedJudgeScores {
   let { coverageScore, qualityScore } = scores;
 
@@ -217,148 +279,418 @@ function applyPenalties(scores: ParsedJudgeScores, rubric: VariantRubric): Parse
     const penalty = rubric.penaltyConfig[flag] as
       | { deduction: number; appliedTo?: string; applied_to?: string }
       | undefined;
-    if (penalty) {
-      const target = penalty.appliedTo ?? penalty.applied_to;
-      const deduction = Math.abs(penalty.deduction);
-      if (target === 'coverage') {
-        coverageScore = Math.max(0, coverageScore - deduction);
-      } else {
-        qualityScore = Math.max(0, qualityScore - deduction);
-      }
+
+    if (!penalty) continue;
+
+    const target = penalty.appliedTo ?? penalty.applied_to;
+    const deduction = Math.abs(penalty.deduction);
+
+    if (target === 'coverage') {
+      coverageScore = Math.max(0, coverageScore - deduction);
+    } else {
+      qualityScore = Math.max(0, qualityScore - deduction);
     }
   }
 
-  return { ...scores, coverageScore, qualityScore };
+  return {
+    ...scores,
+    coverageScore: roundScore(coverageScore),
+    qualityScore: roundScore(qualityScore),
+  };
 }
 
-// ============================================================================
-// Main judge function
-// ============================================================================
+function mergeFieldScores(groupScores: ParsedJudgeScores[]): { field: string; score: number; reason: string }[] {
+  const merged = new Map<string, { scoreTotal: number; count: number; reasons: string[] }>();
 
-/**
- * Run the Layer 2+3 merged AI judge on a submission.
- *
- * @param primaryText - The agent's output text
- * @param rubric - The hidden variant rubric
- * @param briefSummary - Short summary of the original brief
- * @param levelName - Level name for context
- * @param level - Level number
- * @param budgetMax - Max judge calls per hour (default: 1000)
- * @returns JudgeResult with scores, flags, and summary
- */
+  for (const groupScore of groupScores) {
+    for (const fieldScore of groupScore.fieldScores) {
+      const entry = merged.get(fieldScore.field) ?? { scoreTotal: 0, count: 0, reasons: [] };
+      entry.scoreTotal += fieldScore.score;
+      entry.count += 1;
+      if (fieldScore.reason.trim().length > 0 && !entry.reasons.includes(fieldScore.reason.trim())) {
+        entry.reasons.push(fieldScore.reason.trim());
+      }
+      merged.set(fieldScore.field, entry);
+    }
+  }
+
+  return [...merged.entries()].map(([field, value]) => ({
+    field,
+    score: roundScore(value.scoreTotal / Math.max(1, value.count)),
+    reason: value.reasons[0] ?? '',
+  }));
+}
+
+function averageQualitySubscores(groupScores: ParsedJudgeScores[]) {
+  const count = Math.max(1, groupScores.length);
+
+  return {
+    toneFit: roundScore(groupScores.reduce((sum, group) => sum + group.qualitySubscores.toneFit, 0) / count),
+    clarity: roundScore(groupScores.reduce((sum, group) => sum + group.qualitySubscores.clarity, 0) / count),
+    usefulness: roundScore(groupScores.reduce((sum, group) => sum + group.qualitySubscores.usefulness, 0) / count),
+    businessFit: roundScore(groupScores.reduce((sum, group) => sum + group.qualitySubscores.businessFit, 0) / count),
+  };
+}
+
+function mergeFlags(groupScores: ParsedJudgeScores[]) {
+  return [...new Set(groupScores.flatMap((group) => group.flags))];
+}
+
+export function calculateRelativeCoverageGap(leftCoverage: number, rightCoverage: number) {
+  const denominator = Math.max(leftCoverage, rightCoverage);
+  if (denominator <= 0) return 0;
+  return Math.abs(leftCoverage - rightCoverage) / denominator;
+}
+
+function stableHash(text: string) {
+  let hash = 0;
+
+  for (let i = 0; i < text.length; i += 1) {
+    hash = (hash * 31 + text.charCodeAt(i)) >>> 0;
+  }
+
+  return hash;
+}
+
+export function selectScoringCombo(
+  routingKey: string,
+  availableCombos: ScoringCombo[] = getAvailableScoringCombos(),
+): ScoringCombo | null {
+  if (availableCombos.length === 0) return null;
+
+  const totalWeight = availableCombos.reduce((sum, combo) => sum + SCORING_COMBO_WEIGHTS[combo], 0);
+  const bucket = stableHash(routingKey) % totalWeight;
+
+  let cursor = 0;
+  for (const combo of availableCombos) {
+    cursor += SCORING_COMBO_WEIGHTS[combo];
+    if (bucket < cursor) {
+      return combo;
+    }
+  }
+
+  return availableCombos[availableCombos.length - 1] ?? null;
+}
+
+async function invokeWithRetry<T>(label: string, invoke: () => Promise<T>): Promise<T> {
+  try {
+    return await invoke();
+  } catch (firstError) {
+    console.error(`[judge] ${label} failed on first attempt:`, firstError);
+    return invoke();
+  }
+}
+
+function assertBudgetAvailable(budgetMax: number) {
+  if (!checkBudget(budgetMax)) {
+    throw new Error('judge_budget_exceeded');
+  }
+  incrementBudget();
+}
+
+async function runOpenAIJudgeModel(
+  runtime: OpenAICompatibleRuntime,
+  systemPrompt: string,
+  submissionText: string,
+  rubric: VariantRubric,
+  budgetMax: number,
+): Promise<ParsedJudgeScores> {
+  const invoke = async () => {
+    assertBudgetAvailable(budgetMax);
+
+    const response = await runtime.client.chat.completions.create({
+      model: runtime.model,
+      temperature: 0.1,
+      max_tokens: 1000,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: submissionText },
+      ],
+      response_format: OPENAI_JUDGE_RESPONSE_FORMAT,
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('Empty response from OpenAI-compatible judge');
+    }
+
+    const parsed = JSON.parse(extractJsonText(content)) as JudgeRawResponse;
+    return applyPenalties(parseJudgeResponse(parsed), rubric);
+  };
+
+  return invokeWithRetry(`${runtime.provider}:${runtime.model}`, invoke);
+}
+
+async function runGeminiJudgeModel(
+  runtime: GeminiRuntime,
+  systemPrompt: string,
+  submissionText: string,
+  rubric: VariantRubric,
+  budgetMax: number,
+): Promise<ParsedJudgeScores> {
+  const invoke = async () => {
+    assertBudgetAvailable(budgetMax);
+
+    const response = await fetch(
+      `${runtime.baseURL}/models/${encodeURIComponent(runtime.model)}:generateContent?key=${encodeURIComponent(runtime.apiKey)}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [{ text: systemPrompt }],
+          },
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: submissionText }],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.1,
+            responseMimeType: 'application/json',
+          },
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      throw new Error(`Gemini judge request failed (${response.status}): ${body}`);
+    }
+
+    const payload = await response.json() as {
+      candidates?: Array<{
+        content?: {
+          parts?: Array<{ text?: string }>;
+        };
+      }>;
+    };
+
+    const text = payload.candidates?.[0]?.content?.parts
+      ?.map((part) => (typeof part.text === 'string' ? part.text : ''))
+      .join('')
+      .trim();
+
+    if (!text) {
+      throw new Error('Empty response from Gemini judge');
+    }
+
+    const parsed = JSON.parse(extractJsonText(text)) as JudgeRawResponse;
+    return applyPenalties(parseJudgeResponse(parsed), rubric);
+  };
+
+  return invokeWithRetry(`gemini:${runtime.model}`, invoke);
+}
+
+async function runG1Score(
+  systemPrompt: string,
+  submissionText: string,
+  rubric: VariantRubric,
+  budgetMax: number,
+): Promise<GroupJudgeResult> {
+  const runtime = getOpenAICompatibleRuntime('xai', SCORING_MODEL_DEFAULTS.G1_XAI);
+  if (!runtime) {
+    throw new Error('G1 unavailable');
+  }
+
+  const scores = await runOpenAIJudgeModel(runtime, systemPrompt, submissionText, rubric, budgetMax);
+
+  return {
+    group: 'G1',
+    providers: ['xai'],
+    model: `${runtime.provider}:${runtime.model}`,
+    ...scores,
+  };
+}
+
+async function runG2Score(
+  systemPrompt: string,
+  submissionText: string,
+  rubric: VariantRubric,
+  budgetMax: number,
+): Promise<GroupJudgeResult> {
+  const nanoRuntime = getOpenAICompatibleRuntime('openai', SCORING_MODEL_DEFAULTS.G2_OPENAI_NANO);
+  const miniRuntime = getOpenAICompatibleRuntime('openai', SCORING_MODEL_DEFAULTS.G2_OPENAI_FALLBACK);
+  const flashLiteRuntime = getGeminiRuntime(SCORING_MODEL_DEFAULTS.G2_GEMINI_FLASH_LITE);
+
+  if (!nanoRuntime || !miniRuntime || !flashLiteRuntime) {
+    throw new Error('G2 unavailable');
+  }
+
+  const [nanoResult, flashLiteResult] = await Promise.allSettled([
+    runOpenAIJudgeModel(nanoRuntime, systemPrompt, submissionText, rubric, budgetMax),
+    runGeminiJudgeModel(flashLiteRuntime, systemPrompt, submissionText, rubric, budgetMax),
+  ]);
+
+  if (nanoResult.status === 'fulfilled' && flashLiteResult.status === 'fulfilled') {
+    const nanoScores = nanoResult.value;
+    const flashScores = flashLiteResult.value;
+    const gap = calculateRelativeCoverageGap(nanoScores.coverageScore, flashScores.coverageScore);
+
+    if (Math.max(nanoScores.coverageScore, flashScores.coverageScore) === 0 || gap <= 0.65) {
+      return {
+        group: 'G2',
+        providers: ['openai', 'gemini'],
+        model: `${nanoRuntime.provider}:${nanoRuntime.model}+${flashLiteRuntime.provider}:${flashLiteRuntime.model}`,
+        coverageScore: roundScore((nanoScores.coverageScore + flashScores.coverageScore) / 2),
+        qualityScore: roundScore((nanoScores.qualityScore + flashScores.qualityScore) / 2),
+        fieldScores: mergeFieldScores([nanoScores, flashScores]),
+        qualitySubscores: averageQualitySubscores([nanoScores, flashScores]),
+        flags: mergeFlags([nanoScores, flashScores]),
+        summary: `G2 averaged Nano + Flash-Lite (gap ${Math.round(gap * 100)}%).`,
+      };
+    }
+  }
+
+  const miniScores = await runOpenAIJudgeModel(miniRuntime, systemPrompt, submissionText, rubric, budgetMax);
+
+  return {
+    group: 'G2',
+    providers: ['openai', 'gemini'],
+    model: `${miniRuntime.provider}:${miniRuntime.model}`,
+    ...miniScores,
+    summary: 'G2 fallback to GPT-5 Mini.',
+  };
+}
+
+async function runG3Score(
+  systemPrompt: string,
+  submissionText: string,
+  rubric: VariantRubric,
+  budgetMax: number,
+): Promise<GroupJudgeResult> {
+  const runtime = getGeminiRuntime(SCORING_MODEL_DEFAULTS.G3_GEMINI_FLASH);
+  if (!runtime) {
+    throw new Error('G3 unavailable');
+  }
+
+  const scores = await runGeminiJudgeModel(runtime, systemPrompt, submissionText, rubric, budgetMax);
+
+  return {
+    group: 'G3',
+    providers: ['gemini'],
+    model: `${runtime.provider}:${runtime.model}`,
+    ...scores,
+  };
+}
+
+function getComboGroups(combo: ScoringCombo): readonly ScoringGroup[] {
+  switch (combo) {
+    case 'A':
+      return ['G1', 'G2'];
+    case 'B':
+      return ['G2', 'G3'];
+    case 'C':
+    default:
+      return ['G1', 'G3'];
+  }
+}
+
+function summarizeCombo(combo: ScoringCombo, groupResults: GroupJudgeResult[]) {
+  const groupSummary = groupResults
+    .map((result) => `${result.group}: ${result.summary}`)
+    .join(' | ');
+
+  return `Combo ${combo} (${groupResults.map((result) => result.group).join(' + ')}). ${groupSummary}`;
+}
+
+async function runComboScore(
+  combo: ScoringCombo,
+  systemPrompt: string,
+  submissionText: string,
+  rubric: VariantRubric,
+  budgetMax: number,
+): Promise<JudgeResult> {
+  const groups = getComboGroups(combo);
+  const groupCalls = groups.map((group) => {
+    switch (group) {
+      case 'G1':
+        return runG1Score(systemPrompt, submissionText, rubric, budgetMax);
+      case 'G2':
+        return runG2Score(systemPrompt, submissionText, rubric, budgetMax);
+      case 'G3':
+      default:
+        return runG3Score(systemPrompt, submissionText, rubric, budgetMax);
+    }
+  });
+
+  const groupResults = await Promise.all(groupCalls);
+  const mergedScores = groupResults.map((groupResult) => ({
+    coverageScore: groupResult.coverageScore,
+    qualityScore: groupResult.qualityScore,
+    fieldScores: groupResult.fieldScores,
+    qualitySubscores: groupResult.qualitySubscores,
+    flags: groupResult.flags,
+    summary: groupResult.summary,
+  }));
+
+  return {
+    coverageScore: roundScore(groupResults.reduce((sum, group) => sum + group.coverageScore, 0) / groupResults.length),
+    qualityScore: roundScore(groupResults.reduce((sum, group) => sum + group.qualityScore, 0) / groupResults.length),
+    fieldScores: mergeFieldScores(mergedScores),
+    qualitySubscores: averageQualitySubscores(mergedScores),
+    flags: mergeFlags(mergedScores),
+    summary: summarizeCombo(combo, groupResults),
+    combo,
+    groups: [...groups],
+    providers: [...new Set(groupResults.flatMap((group) => group.providers))],
+    model: `combo:${combo}|${groupResults.map((group) => `${group.group}=${group.model}`).join('|')}`,
+    error: false,
+  };
+}
+
 export async function runJudge(
   primaryText: string,
   rubric: VariantRubric,
   briefSummary: string,
   levelName: string,
   level: number,
+  routingKey: string,
   budgetMax = 1000,
 ): Promise<JudgeResult> {
-  const model = getModel();
+  const availableCombos = getAvailableScoringCombos();
+  const combo = selectScoringCombo(routingKey, availableCombos);
+  const model = combo ? `combo:${combo}` : 'judge-unavailable';
 
-  // Budget check
-  if (!checkBudget(budgetMax)) {
+  if (!combo) {
     return {
       coverageScore: 0,
       qualityScore: 0,
       fieldScores: [],
       qualitySubscores: { toneFit: 0, clarity: 0, usefulness: 0, businessFit: 0 },
-      flags: ['judge_budget_exceeded'],
-      summary: 'Judge budget exceeded (1,000 calls/hr). Submission queued for later scoring.',
+      flags: ['judge_provider_unavailable'],
+      summary: 'Scoring groups unavailable. Configure xAI, OpenAI, and Gemini credentials.',
       model,
       error: true,
     };
   }
 
-  // Truncate text for judge
-  const truncated = primaryText.length > TRUNCATE_FOR_JUDGE_CHARS
-    ? primaryText.slice(0, TRUNCATE_FOR_JUDGE_CHARS) + '\n\n[... truncated at 20,000 chars ...]'
-    : primaryText;
-
+  const submissionText = normalizeSubmissionText(primaryText);
   const systemPrompt = buildJudgePrompt(rubric, briefSummary, levelName, level);
 
   try {
-    const client = getClient();
-    incrementBudget();
+    return await runComboScore(combo, systemPrompt, submissionText, rubric, budgetMax);
+  } catch (error) {
+    console.error('[judge] Combo scoring failed:', error);
 
-    const response = await client.chat.completions.create({
-      model,
-      temperature: 0,
-      max_tokens: 1000,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: truncated },
-      ],
-      response_format: { type: 'json_object' },
-    });
-
-    const content = response.choices[0]?.message?.content;
-    if (!content) {
-      throw new Error('Empty response from judge');
-    }
-
-    const parsed = JSON.parse(content) as {
-      coverage_score?: number;
-      quality_score?: number;
-      field_scores?: { field: string; score: number; reason: string }[];
-      quality_subscores?: { tone_fit?: number; clarity?: number; usefulness?: number; business_fit?: number };
-      flags?: string[];
-      summary?: string;
-    };
-
-    const rawScores = parseJudgeResponse(parsed);
-    const penalized = applyPenalties(rawScores, rubric);
+    const isBudgetError = error instanceof Error && error.message === 'judge_budget_exceeded';
 
     return {
-      ...penalized,
+      coverageScore: 0,
+      qualityScore: 0,
+      fieldScores: [],
+      qualitySubscores: { toneFit: 0, clarity: 0, usefulness: 0, businessFit: 0 },
+      flags: [isBudgetError ? 'judge_budget_exceeded' : 'judge_error'],
+      summary: isBudgetError
+        ? 'Judge budget exceeded. Submission cannot be scored right now.'
+        : 'AI judge failed. Coverage and quality scored as 0 for this attempt.',
+      combo,
+      groups: [...getComboGroups(combo)],
       model,
-      error: false,
+      error: true,
     };
-  } catch (err) {
-    console.error('[judge] AI judge failed:', err);
-
-    // Retry once
-    try {
-      const client = getClient();
-      incrementBudget();
-
-      const retryResponse = await client.chat.completions.create({
-        model,
-        temperature: 0,
-        max_tokens: 1000,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: truncated },
-        ],
-        response_format: { type: 'json_object' },
-      });
-
-      const retryContent = retryResponse.choices[0]?.message?.content;
-      if (!retryContent) throw new Error('Empty retry response');
-
-      const retryParsed = JSON.parse(retryContent) as JudgeRawResponse;
-      const retryScores = parseJudgeResponse(retryParsed);
-      const retryPenalized = applyPenalties(retryScores, rubric);
-
-      return {
-        ...retryPenalized,
-        summary: retryPenalized.summary + ' (retry)',
-        model,
-        error: false,
-      };
-    } catch (retryErr) {
-      console.error('[judge] Retry also failed:', retryErr);
-      // Score 0 for AI layers, flag judge_error
-      return {
-        coverageScore: 0,
-        qualityScore: 0,
-        fieldScores: [],
-        qualitySubscores: { toneFit: 0, clarity: 0, usefulness: 0, businessFit: 0 },
-        flags: ['judge_error'],
-        summary: 'AI judge failed after retry. Layer 2+3 scored as 0.',
-        model,
-        error: true,
-      };
-    }
   }
 }

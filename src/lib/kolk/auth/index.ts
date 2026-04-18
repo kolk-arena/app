@@ -24,6 +24,10 @@ export function generateToken(): string {
   return crypto.randomBytes(32).toString('hex');
 }
 
+export function generateAnonSessionToken(): string {
+  return crypto.randomBytes(24).toString('base64url');
+}
+
 export function inferAuthMethodFromProvider(provider: string | null | undefined): ArenaAuthMethod {
   if (provider === 'github') return 'github';
   if (provider === 'google') return 'google';
@@ -87,8 +91,8 @@ export function extractToken(headers: Headers): string | null {
 
 /**
  * Anonymous beta identity.
- * Prefer the browser-session cookie when present, but keep the IP+UA fallback
- * so non-browser agent clients can still complete fetch -> submit flows.
+ * Browser-session cookie is the canonical anonymous progression key.
+ * If it is missing, the server issues a fresh anonymous session cookie.
  */
 export const ANON_SESSION_COOKIE = 'kolk_anon_session';
 
@@ -108,33 +112,30 @@ function readCookieHeader(headers: Headers, name: string): string | null {
   return null;
 }
 
-function getLegacyAnonFingerprint(request: Request): string {
-  const ip = request.headers.get('x-forwarded-for')
-    ?? request.headers.get('x-real-ip')
-    ?? 'unknown';
-  const ua = request.headers.get('user-agent') ?? '';
-  return hashCode(`${ip}:${ua}`);
-}
-
-export function resolveAnonToken(request: Request): { token: string; shouldSetCookie: boolean } {
+export function readAnonTokenCookie(request: Request): string | null {
   const requestWithCookies = request as Request & {
     cookies?: {
       get?: (name: string) => { value: string } | undefined;
     };
   };
 
-  const fromCookie =
+  return (
     readCookieHeader(request.headers, ANON_SESSION_COOKIE)
     || (typeof requestWithCookies.cookies?.get === 'function'
       ? requestWithCookies.cookies.get(ANON_SESSION_COOKIE)?.value ?? null
-      : null);
+      : null)
+  );
+}
+
+export function resolveAnonToken(request: Request): { token: string; shouldSetCookie: boolean } {
+  const fromCookie = readAnonTokenCookie(request);
 
   if (fromCookie) {
     return { token: fromCookie, shouldSetCookie: false };
   }
 
   return {
-    token: getLegacyAnonFingerprint(request),
+    token: generateAnonSessionToken(),
     shouldSetCookie: true,
   };
 }

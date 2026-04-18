@@ -92,7 +92,7 @@ Called by the CLI to start a new device flow.
 Rules:
 
 - `client_id` is required. Public CLI value is `kolk-arena-cli`.
-- `scopes` is required and non-empty.
+- `scopes` is optional. If omitted, the server uses the default device-flow scope set: `submit:onboarding`, `submit:ranked`, `fetch:challenge`, `read:profile`.
 - Unknown scopes return `400 UNKNOWN_SCOPE`.
 
 **Response**

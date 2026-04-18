@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAnonToken } from '@/lib/kolk/auth';
+import { applyAnonTokenCookie, resolveAnonToken } from '@/lib/kolk/auth';
 import { resolveArenaUserFromRequest } from '@/lib/kolk/auth/server';
 import { getAnonymousMaxUnlockedLevel } from '@/lib/kolk/progression';
 
@@ -14,11 +14,18 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  const anonToken = getAnonToken(request);
+  const anonState = resolveAnonToken(request);
+  const anonToken = anonState.token;
   const maxLevel = await getAnonymousMaxUnlockedLevel(anonToken);
 
-  return NextResponse.json({
+  const response = NextResponse.json({
     status: 'anonymous',
     max_level: maxLevel,
   });
+
+  if (anonState.shouldSetCookie) {
+    applyAnonTokenCookie(response, anonToken);
+  }
+
+  return response;
 }

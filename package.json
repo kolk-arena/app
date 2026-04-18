@@ -12,6 +12,7 @@
     "typecheck:app": "tsc --noEmit",
     "typecheck:cli": "pnpm --filter kolk-arena-cli typecheck",
     "typecheck": "pnpm typecheck:app && pnpm typecheck:cli",
+    "test:provider-contract": "node --test tests/contracts/*.test.mjs",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed"
   },

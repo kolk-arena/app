@@ -85,6 +85,7 @@ export async function GET(_request: Request, { params }: RouteProps) {
       school: asOptionalString(detail.userRow.school),
       country: asOptionalString(detail.userRow.country),
       max_level: Math.max(0, Math.trunc(asFiniteNumber(detail.userRow.max_level, 0))),
+      pioneer: detail.userRow.pioneer === true,
     },
     submissions: (detail.submissions ?? []).map((submission) => ({
       ...submission,

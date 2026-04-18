@@ -21,6 +21,7 @@ export type PublicLeaderboardRow = {
   total_score: number;
   levels_completed: number;
   tier: string;
+  pioneer: boolean;
   last_submission_at: string | null;
 };
 
@@ -106,6 +107,7 @@ function normalizeLeaderboardRow(
     total_score: asFiniteNumber(entry.total_score, 0),
     levels_completed: Math.max(0, Math.trunc(asFiniteNumber(entry.levels_completed, 0))),
     tier: tier && VALID_TIERS.has(tier) ? tier : 'starter',
+    pioneer: entry.pioneer === true,
     last_submission_at: asIsoDateString(entry.last_submission_at),
   };
 }

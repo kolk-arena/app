@@ -7,18 +7,31 @@
  * At challenge-fetch time, the server picks a random template.
  *
  * Usage:
- *   XAI_API_KEY=xai-... npx tsx scripts/kolk/generate-templates.ts
- *   XAI_API_KEY=xai-... npx tsx scripts/kolk/generate-templates.ts --level 3 --count 5
+ *   XAI_API_KEY=xai-... OPENAI_API_KEY=sk-... GEMINI_API_KEY=gemini-... npx tsx scripts/kolk/generate-templates.ts
+ *   KOLK_OPERATOR_PROVIDER=xai XAI_API_KEY=xai-... OPENAI_API_KEY=sk-... GEMINI_API_KEY=gemini-... npx tsx scripts/kolk/generate-templates.ts --level 3 --count 5
  *   XAI_API_KEY=xai-... npx tsx scripts/kolk/generate-templates.ts --dry-run
  *
  * Env:
- *   XAI_API_KEY             — required
+ *   KOLK_OPERATOR_PROVIDER  — optional; current executable script path is `xai` only
+ *   XAI_API_KEY             — required for script execution
+ *   OPENAI_API_KEY          — validated as part of the broader operator credential baseline
+ *   GEMINI_API_KEY          — validated as part of the broader operator credential baseline
+ *   KOLK_OPERATOR_MODEL     — optional model override for the current xAI execution path
+ *   XAI_MODEL               — optional provider-specific model override
+ *   KOLK_OPERATOR_BASE_URL  — optional shared base URL override
+ *   XAI_BASE_URL            — optional provider-specific base URL override
  *   KOLK_SUPABASE_URL       — required (unless --dry-run)
  *   KOLK_SUPABASE_SERVICE_ROLE_KEY — required (unless --dry-run)
  */
 
 import OpenAI from 'openai';
 import crypto from 'crypto';
+import {
+  createOperatorProviderClient,
+  formatOperatorBaselineStatus,
+  type OperatorProviderConfig,
+  resolveOperatorProviderConfig,
+} from './operator-provider';
 
 // ---------------------------------------------------------------------------
 // Config
@@ -26,8 +39,6 @@ import crypto from 'crypto';
 
 const LEVELS_TO_GENERATE = [1, 2, 3, 4, 5];
 const DEFAULT_COUNT_PER_LEVEL = 10; // LAUNCH_SEEDS_PER_LEVEL
-const MODEL = process.env.XAI_MODEL ?? 'grok-4-1-fast-non-reasoning';
-const BASE_URL = process.env.XAI_BASE_URL ?? 'https://api.x.ai/v1';
 
 // ---------------------------------------------------------------------------
 // Level metadata (inline to avoid import path issues in scripts)
@@ -147,6 +158,8 @@ function fillTemplate(template: string): Record<string, string> {
 
 async function generateChallenge(
   openai: OpenAI,
+  executionProvider: string,
+  model: string,
   levelMeta: LevelMeta,
   seed: number,
 ): Promise<{
@@ -213,7 +226,7 @@ Coverage targets: ${levelMeta.coverageTargets.join(', ')}
 Generate a unique, realistic challenge. Seed: ${seed}`;
 
   const response = await openai.chat.completions.create({
-    model: MODEL,
+    model,
     temperature: 0.8,  // diversity across seeds
     max_tokens: 3000,
     messages: [
@@ -240,7 +253,8 @@ Generate a unique, realistic challenge. Seed: ${seed}`;
     `band: ${levelMeta.level <= 5 ? 'A' : 'B'}`,
     `seed: ${seed}`,
     `generated_at: "${new Date().toISOString()}"`,
-    `generator_model: "${MODEL}"`,
+    `generator_provider: "${executionProvider}"`,
+    `generator_model: "${model}"`,
     `time_limit_minutes: ${levelMeta.timeLimitMinutes}`,
     `is_boss: ${levelMeta.isBoss}`,
     `parameters: ${JSON.stringify(params)}`,
@@ -259,6 +273,7 @@ Generate a unique, realistic challenge. Seed: ${seed}`;
 // ---------------------------------------------------------------------------
 
 async function insertToSupabase(
+  model: string,
   level: number,
   seed: number,
   variant: string,
@@ -304,7 +319,7 @@ async function insertToSupabase(
       prompt_md: promptMd,
       metadata_yaml: metadataYaml,
       time_limit_minutes: timeLimitMinutes,
-      generator_model: MODEL,
+      generator_model: model,
       active: true,
       generated_at: new Date().toISOString(),
     }, { onConflict: 'level,seed,variant' });
@@ -335,8 +350,11 @@ async function main() {
     ? parseInt(args[countArg + 1]!, 10)
     : DEFAULT_COUNT_PER_LEVEL;
 
-  if (!process.env.XAI_API_KEY) {
-    console.error('XAI_API_KEY is required');
+  let providerConfig: OperatorProviderConfig;
+  try {
+    providerConfig = resolveOperatorProviderConfig({ enforceBaseline: !dryRun });
+  } catch (error) {
+    console.error((error as Error).message);
     process.exit(1);
   }
 
@@ -345,13 +363,19 @@ async function main() {
     process.exit(1);
   }
 
-  const openai = new OpenAI({ apiKey: process.env.XAI_API_KEY, baseURL: BASE_URL });
+  const openai = createOperatorProviderClient(providerConfig);
 
   console.log(`\n=== Kolk Arena L1-L5 Template Generator ===`);
   console.log(`Levels: ${targetLevels.join(', ')}`);
   console.log(`Seeds per level: ${count}`);
   console.log(`Mode: ${dryRun ? 'DRY RUN (no DB writes)' : 'LIVE (writing to Supabase)'}`);
-  console.log(`Model: ${MODEL}\n`);
+  console.log(`Execution provider: ${providerConfig.executionProvider} (${providerConfig.apiKeyEnv})`);
+  console.log(`Operator baseline: ${formatOperatorBaselineStatus(providerConfig)}`);
+  console.log(`Model: ${providerConfig.model}`);
+  if (providerConfig.baseURL) {
+    console.log(`Base URL: ${providerConfig.baseURL}`);
+  }
+  console.log('');
 
   let totalGenerated = 0;
   let totalErrors = 0;
@@ -370,7 +394,13 @@ async function main() {
       process.stdout.write(`  Seed ${seed}/${count} (${variant})... `);
 
       try {
-        const result = await generateChallenge(openai, levelMeta, seed);
+        const result = await generateChallenge(
+          openai,
+          providerConfig.executionProvider,
+          providerConfig.model,
+          levelMeta,
+          seed,
+        );
 
         if (dryRun) {
           console.log('OK (dry run)');
@@ -378,6 +408,7 @@ async function main() {
           console.log(`    Brief: ${(result.taskJson.brief_summary as string)?.slice(0, 80) ?? ''}...`);
         } else {
           const ok = await insertToSupabase(
+            providerConfig.model,
             levelNum, seed, variant,
             result.taskJson, result.promptMd,
             result.rubricJson, result.metadataYaml,

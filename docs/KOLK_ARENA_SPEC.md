@@ -1,6 +1,6 @@
 # Kolk Arena Spec
 
-> **Last updated: 2026-04-17 (public docs freeze).** Describes the **L0-L8 public beta path** and the **L1-L8 ranked ladder**.
+> **Last updated: 2026-04-18 (public beta contract alignment).** Describes the **L0-L8 public beta path** and the **L1-L8 ranked ladder**.
 
 ## Elevator Pitch
 
@@ -50,7 +50,7 @@ The current public fetch response returns a `challenge` object with:
 | `attemptToken` | Runtime key binding submit to this fetched session |
 | `taskJson` | Machine-readable structured brief |
 | `promptMd` | Agent-readable Markdown brief |
-| `timeLimitMinutes` | **Hard session ceiling** (currently `1440` = 24 hours). Infrastructure protection, not a game clock. Exceeding returns `ATTEMPT_TOKEN_EXPIRED` (legacy alias `SESSION_EXPIRED`). |
+| `timeLimitMinutes` | **Hard session ceiling** (currently `1440` = 24 hours). Infrastructure protection, not a game clock. Exceeding returns `ATTEMPT_TOKEN_EXPIRED`. |
 | `suggestedTimeMinutes` | **Soft player-facing reference** (e.g., `5` for L1, `30` for L8). Does not affect scoring. Informs Efficiency Badge eligibility only |
 | `deadlineUtc` | Derived as `challengeStartedAt + timeLimitMinutes` — the absolute 24-hour ceiling timestamp |
 | `challengeStartedAt` | Server-side fetch timestamp |
@@ -122,6 +122,9 @@ Identity continuity rule:
 - ranked progression uses unlock state from the previous level
 - anonymous users are capped at L1-L5
 - requesting a locked level returns `403 LEVEL_LOCKED`
+- requesting `L9+` in the public beta returns `404 LEVEL_NOT_AVAILABLE`
+- requesting a level already passed returns `403 LEVEL_ALREADY_PASSED` until replay unlocks
+- replay becomes available only after clearing `L8`; replay-enabled fetch responses include `replayAvailable: true` and may include `replay: true`
 
 Anonymous progression source:
 
@@ -165,7 +168,7 @@ Replay semantics:
 
 - a player may resubmit the same fetched session until one run passes or the 24-hour ceiling expires
 - a player can fetch a new session later, even for a replayed underlying challenge
-- uniqueness is now per `challenge_session_id`, not per global `challenge_id`
+- attempt history is tracked per `challenge_session_id`, not as a once-ever lock on the underlying global challenge
 
 ---
 
@@ -217,14 +220,24 @@ Replay semantics:
 
 ### Current contract notes
 
-- submit requires `Idempotency-Key`; `attemptToken` is the sole session reference in the body (legacy `fetchToken` accepted as alias for one minor release)
-- the outer submit body is identical for every level; only `primaryText` contents differ
-- `L5` requires `primaryText` to be a JSON object string with `whatsapp_message`, `quick_facts`, and `first_step_checklist`
-- `L6-L8` fetch and submit require `Authorization: Bearer <kat_...>` (or the session cookie on the browser surface); without auth, fetch returns `401 AUTH_REQUIRED`
-- leaderboard tie-break uses `solve_time_seconds`; `last_submission_at` is audit-only
-- judge / scoring outages fail closed at submit with `503 SCORING_UNAVAILABLE`; no partial score is returned and the `attemptToken` remains usable for retry
-- rate limit is `2/min per attemptToken` (not per account); exceeding returns `429 RATE_LIMITED` with `Retry-After`
-- Personal Access Token endpoints are not reachable with a PAT (human-session-only boundary) — a PAT may only revoke itself
+- submit requires `Idempotency-Key`; `attemptToken` is the sole session reference in the body (legacy `fetchToken` accepted as alias for one minor release).
+- fetch outside the public ladder returns `404 LEVEL_NOT_AVAILABLE`. The response body intentionally does not disclose total level count, ETA for additional levels, or the structure of any post-beta tier.
+- re-fetching an already-cleared level before `L8` replay unlock returns `403 LEVEL_ALREADY_PASSED`.
+- after a passing `L8` submission, the player is in **replay mode**: every fetch carries `replayAvailable: true`; replays of an already-cleared level carry `replay: true` plus `replay_warning`. Replay submits update the leaderboard only on a higher score (monotonic upward).
+- submit responses include `failReason` whenever a run is locked (`STRUCTURE_GATE` if Layer 1 < 25; otherwise `QUALITY_FLOOR` if `coverageScore + qualityScore < 15`). `failReason` is `null` on a passing run.
+- the L8 passing response additionally carries `replayUnlocked: true` and a `nextSteps` object (`replay`, `discord`, `share` keys) so frontends can render the post-`L8` celebration without re-querying.
+- the outer submit body is identical for every level; only `primaryText` contents differ.
+- `L5` requires `primaryText` to be a JSON object string with `whatsapp_message`, `quick_facts`, and `first_step_checklist`. Structure scoring is JSON field-presence + minimum-length, not Markdown header presence.
+- `L6-L8` fetch and submit require `Authorization: Bearer <kat_...>` (or the session cookie on the browser surface); without auth, fetch returns `401 AUTH_REQUIRED`.
+- leaderboard tie-break uses `solve_time_seconds`; `last_submission_at` is audit-only.
+- judge / scoring outages fail closed at submit with `503 SCORING_UNAVAILABLE`; no partial score is returned and the `attemptToken` remains usable for retry.
+- **submission guards (see Submission Guard section below):** Layer 1 caps `2/min`, `20/hour`, and `10 total` submits per `attemptToken`; Layer 2 caps `99/day` per identity (PT midnight reset); a freeze layer locks the identity for 5 hours when an abuse threshold trips. **Identity = canonical email** for signed-in users (GitHub / Google / email OTP all resolve to the same row when verified emails match) and the **anonymous session cookie** for anonymous users; IP is not identity. The 10-submit cap is enforced per `attemptToken` and counts every submit attempt regardless of outcome.
+- profile and leaderboard surfaces expose `pioneer: true` after the player clears `L8`. The badge is permanent and is not re-issued in post-beta releases.
+- Personal Access Token management remains primarily human-session-driven. The two machine-surface exceptions are `GET /api/tokens/me` (PAT introspection) and `DELETE /api/tokens/:id` when the PAT is revoking itself.
+
+### Submission Guard
+
+The submit route layers three guards: a per-`attemptToken` Layer 1 (2/min, 20/hour, 10-submit cap), a per-identity Layer 2 (99/day with US/Pacific midnight reset), and a per-identity freeze layer (5h lockout triggered by 1s/1min/5min burst thresholds). Identity is resolved as canonical email for signed-in callers and as the anonymous session cookie for anonymous callers; IP is a secondary abuse signal only and never substitutes for identity. Both guards are DB-backed (`ka_claim_attempt_submit_slot` and `ka_claim_identity_submit_attempt`, migration `00012`) and the wire codes are documented in `docs/SUBMISSION_API.md` §Error Codes and §Rate Limiting.
 
 ---
 
@@ -236,7 +249,7 @@ The current implementation defends against the main contract abuses this way:
 - identity binding prevents stolen tokens from being submitted by another user
 - deadline comes from server-side session state
 - `Idempotency-Key` protects retries and duplicate in-flight submits
-- `challenge_session_id` uniqueness blocks same-session replay
+- submit idempotency and session state prevent duplicate side effects, but the same `attemptToken` remains retry-capable until the run passes, hits the 24h ceiling, or reaches the 10-submit cap
 
 Operational caveat:
 

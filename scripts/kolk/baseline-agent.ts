@@ -6,26 +6,36 @@
  * a submission. Used to validate the current attemptToken-based end-to-end pipeline.
  *
  * Usage:
- *   XAI_API_KEY=xai-... npx tsx scripts/kolk/baseline-agent.ts
- *   XAI_API_KEY=xai-... npx tsx scripts/kolk/baseline-agent.ts --level 3
- *   XAI_API_KEY=xai-... npx tsx scripts/kolk/baseline-agent.ts --level 1 --url http://localhost:3000
- *   XAI_API_KEY=xai-... npx tsx scripts/kolk/baseline-agent.ts --token <tok> --level 8
- *   XAI_API_KEY=xai-... npx tsx scripts/kolk/baseline-agent.ts --dry-run --level 1
+ *   XAI_API_KEY=xai-... OPENAI_API_KEY=sk-... GEMINI_API_KEY=gemini-... npx tsx scripts/kolk/baseline-agent.ts
+ *   XAI_API_KEY=xai-... OPENAI_API_KEY=sk-... GEMINI_API_KEY=gemini-... npx tsx scripts/kolk/baseline-agent.ts --level 3
+ *   XAI_API_KEY=xai-... OPENAI_API_KEY=sk-... GEMINI_API_KEY=gemini-... npx tsx scripts/kolk/baseline-agent.ts --level 1 --url http://localhost:3000
+ *   XAI_API_KEY=xai-... OPENAI_API_KEY=sk-... GEMINI_API_KEY=gemini-... npx tsx scripts/kolk/baseline-agent.ts --token <tok> --level 8
+ *   XAI_API_KEY=xai-... OPENAI_API_KEY=sk-... GEMINI_API_KEY=gemini-... npx tsx scripts/kolk/baseline-agent.ts --dry-run --level 1
  *
  * Env:
- *   XAI_API_KEY      — required
+ *   KOLK_OPERATOR_PROVIDER  — optional; current executable script path is `xai` only
+ *   XAI_API_KEY             — required for script execution
+ *   OPENAI_API_KEY          — validated against the broader operator credential baseline
+ *   GEMINI_API_KEY          — validated against the broader operator credential baseline
+ *   KOLK_OPERATOR_MODEL     — optional model override for the current xAI execution path
+ *   XAI_MODEL               — optional provider-specific model override
+ *   KOLK_OPERATOR_BASE_URL  — optional shared base URL override
+ *   XAI_BASE_URL            — optional provider-specific base URL override
  *   KOLK_ARENA_URL   — API base (default: http://localhost:3000)
  *   KOLK_TOKEN       — bearer token for authenticated levels
  */
 
 import OpenAI from 'openai';
+import {
+  createOperatorProviderClient,
+  formatOperatorBaselineStatus,
+  type OperatorProviderConfig,
+  resolveOperatorProviderConfig,
+} from './operator-provider';
 
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
-
-const MODEL = process.env.XAI_MODEL ?? 'grok-4-1-fast-non-reasoning';
-const BASE_URL = process.env.XAI_BASE_URL ?? 'https://api.x.ai/v1';
 
 function getConfig() {
   const args = process.argv.slice(2);
@@ -88,6 +98,7 @@ async function api(
 
 async function solveChallenge(
   openai: OpenAI,
+  model: string,
   promptMd: string,
   taskJson: Record<string, unknown>,
   levelName: string,
@@ -128,7 +139,7 @@ You have ${timeLimitMinutes} minutes for this task. Produce a complete, polished
   userPrompt += '\n\n---\nProduce your complete deliverable below. Be thorough and follow the brief precisely.';
 
   const response = await openai.chat.completions.create({
-    model: MODEL,
+    model,
     temperature: 0.4,
     max_tokens: 4000,
     messages: [
@@ -147,19 +158,28 @@ You have ${timeLimitMinutes} minutes for this task. Produce a complete, polished
 async function main() {
   const { level, apiBase, token, dryRun } = getConfig();
 
-  if (!process.env.XAI_API_KEY) {
-    console.error('XAI_API_KEY is required');
+  let providerConfig: OperatorProviderConfig;
+  try {
+    providerConfig = resolveOperatorProviderConfig({ enforceBaseline: !dryRun });
+  } catch (error) {
+    console.error((error as Error).message);
     process.exit(1);
   }
 
-  const openai = new OpenAI({ apiKey: process.env.XAI_API_KEY, baseURL: BASE_URL });
+  const openai = createOperatorProviderClient(providerConfig);
 
   console.log('\n=== Kolk Arena Baseline Agent ===');
   console.log(`Level: ${level}`);
   console.log(`API: ${apiBase}`);
   console.log(`Auth: ${token ? 'token provided' : 'anonymous'}`);
   console.log(`Mode: ${dryRun ? 'DRY RUN' : 'LIVE'}`);
-  console.log(`Agent model: ${MODEL}\n`);
+  console.log(`Execution provider: ${providerConfig.executionProvider} (${providerConfig.apiKeyEnv})`);
+  console.log(`Operator baseline: ${formatOperatorBaselineStatus(providerConfig)}`);
+  console.log(`Agent model: ${providerConfig.model}`);
+  if (providerConfig.baseURL) {
+    console.log(`Base URL: ${providerConfig.baseURL}`);
+  }
+  console.log('');
 
   // Step 1: Fetch challenge
   console.log('1. Fetching challenge...');
@@ -200,13 +220,14 @@ async function main() {
   console.log(`   Time limit: ${timeLimit} min`);
   console.log(`   Challenge ID: ${chalId.slice(0, 8)}...`);
 
-  // Step 2: Solve with Grok
-  console.log('\n2. Generating response with Grok...');
+  // Step 2: Solve with the current xAI-backed script path
+  console.log(`\n2. Generating response with ${providerConfig.executionProvider}...`);
   const startTime = Date.now();
 
   const taskJsonData = (challenge.taskJson ?? challenge.task_json ?? {}) as Record<string, unknown>;
   const response = await solveChallenge(
     openai,
+    providerConfig.model,
     promptMd,
     taskJsonData,
     levelName,

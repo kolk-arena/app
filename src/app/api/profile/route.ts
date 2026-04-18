@@ -53,6 +53,7 @@ export async function GET(request: NextRequest) {
       auth_methods: user.auth_methods ?? [],
       max_level: user.max_level,
       verified_at: user.verified_at,
+      pioneer: user.pioneer === true,
     },
   });
 }
@@ -105,6 +106,7 @@ export async function PATCH(request: NextRequest) {
       'auth_methods',
       'max_level',
       'verified_at',
+      'pioneer',
     ].join(', '))
     .single();
 

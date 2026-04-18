@@ -36,6 +36,7 @@ export interface ArenaUserRecord {
   token_hash: string | null;
   last_login_method: string | null;
   verified_at: string | null;
+  pioneer: boolean;
 }
 
 const ARENA_USER_SELECT = [
@@ -53,6 +54,7 @@ const ARENA_USER_SELECT = [
   'token_hash',
   'last_login_method',
   'verified_at',
+  'pioneer',
 ].join(', ');
 
 function dedupe(values: Array<string | null | undefined>): string[] {

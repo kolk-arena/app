@@ -32,6 +32,7 @@ export async function GET(
     provider: parsed.data,
     options: {
       redirectTo: `${getAppUrl(request)}/api/auth/callback?next=${encodeURIComponent(nextPath)}`,
+      scopes: parsed.data === 'github' ? 'user:email' : undefined,
     },
   });
 

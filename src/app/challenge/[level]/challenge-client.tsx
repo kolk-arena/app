@@ -37,6 +37,8 @@ type LevelInfo = {
 type FetchResponse = {
   challenge: ChallengePackage;
   level_info: LevelInfo;
+  replayAvailable?: boolean;
+  replay?: boolean;
   boss_hint?: string;
   replay_warning?: string;
 };
@@ -54,6 +56,7 @@ type SubmitResponse = {
   flags: string[];
   summary: string;
   unlocked: boolean;
+  failReason?: 'STRUCTURE_GATE' | 'QUALITY_FLOOR' | null;
   colorBand: 'RED' | 'ORANGE' | 'YELLOW' | 'GREEN' | 'BLUE';
   qualityLabel: string;
   levelUnlocked?: number;
@@ -64,6 +67,12 @@ type SubmitResponse = {
   aiJudged?: boolean;
   leaderboardEligible?: boolean;
   showRegisterPrompt?: boolean;
+  replayUnlocked?: boolean;
+  nextSteps?: {
+    replay: string;
+    discord: string;
+    share: string;
+  };
 };
 
 type FetchState =
@@ -71,10 +80,23 @@ type FetchState =
   | { kind: 'ready'; data: FetchResponse }
   | { kind: 'auth_required'; message: string }
   | { kind: 'level_locked'; message: string; highestPassed?: number; nextLevel?: number }
-  | { kind: 'feature_not_public'; message: string }
+  | { kind: 'level_already_passed'; message: string }
+  | { kind: 'level_not_available'; message: string }
   | { kind: 'no_challenges'; message: string }
   | { kind: 'schema_not_ready'; message: string }
   | { kind: 'error'; message: string; code?: string };
+
+// Shape of the `limits` block returned by the submission-guard layer (see
+// `docs/SUBMISSION_API.md` §Error Codes and `src/lib/kolk/submission-guards.ts`).
+// All counters are optional; only the windows that apply to a given response
+// are populated. The client uses these to render precise budget context.
+type SubmitLimits = {
+  minute?: { used: number; max: number };
+  hour?: { used: number; max: number };
+  day?: { used: number; max: number };
+  retry?: { used: number; max: number };
+  fiveMinute?: { used: number; max: number };
+};
 
 type SubmitStatus =
   | { kind: 'idle' }
@@ -85,7 +107,13 @@ type SubmitStatus =
   | { kind: 'identity_mismatch'; message: string }
   | { kind: 'session_expired'; message: string }
   | { kind: 'session_already_submitted'; message: string }
-  | { kind: 'rate_limited'; message: string; retryAfterSeconds?: number }
+  // Four distinct 429 codes; each has its own message + counter UX.
+  | { kind: 'rate_limit_minute'; message: string; retryAfterSeconds?: number; limits?: SubmitLimits }
+  | { kind: 'rate_limit_hour'; message: string; retryAfterSeconds?: number; limits?: SubmitLimits }
+  | { kind: 'rate_limit_day'; message: string; retryAfterSeconds?: number; limits?: SubmitLimits }
+  | { kind: 'retry_limit_exceeded'; message: string; limits?: SubmitLimits }
+  // Full-screen abuse lockout; identity-scoped, 5h, not a cooldown.
+  | { kind: 'account_frozen'; message: string; frozenUntil?: string; reason?: string; retryAfterSeconds?: number; limits?: SubmitLimits }
   | { kind: 'scoring_unavailable'; message: string }
   | { kind: 'error'; message: string; code?: string };
 
@@ -208,8 +236,10 @@ export function ChallengeClient({ level }: { level: number }) {
             highestPassed: typeof payload?.highest_passed === 'number' ? payload.highest_passed : undefined,
             nextLevel: typeof payload?.next_level === 'number' ? payload.next_level : undefined,
           });
-        } else if (resp.status === 403 && code === 'FEATURE_NOT_PUBLIC') {
-          setFetchState({ kind: 'feature_not_public', message: msg });
+        } else if (resp.status === 403 && code === 'LEVEL_ALREADY_PASSED') {
+          setFetchState({ kind: 'level_already_passed', message: msg });
+        } else if (resp.status === 404 && code === 'LEVEL_NOT_AVAILABLE') {
+          setFetchState({ kind: 'level_not_available', message: msg });
         } else if (resp.status === 503 && code === 'NO_CHALLENGES') {
           setFetchState({ kind: 'no_challenges', message: msg });
         } else if (resp.status === 503 && code === 'SCHEMA_NOT_READY') {
@@ -353,14 +383,59 @@ export function ChallengeClient({ level }: { level: number }) {
           return;
         }
 
-        if (resp.status === 429 || code === 'RATE_LIMITED') {
-          const retryAfterHeader = resp.headers.get('retry-after');
-          const retryAfter = retryAfterHeader ? Number.parseInt(retryAfterHeader, 10) : NaN;
-          setSubmitStatus({
-            kind: 'rate_limited',
-            message,
-            retryAfterSeconds: Number.isFinite(retryAfter) ? retryAfter : undefined,
-          });
+        // Layered rate-limit / freeze surface. The submit route now emits four
+        // distinct 429 codes + a 403 ACCOUNT_FROZEN, each with its own body
+        // shape (see docs/SUBMISSION_API.md §Error Codes). The UI renders
+        // distinct states per code so that the player sees the correct
+        // counter context (per-minute vs per-hour vs per-day vs retry-cap)
+        // and a full-screen lockout for identity-scoped freezes.
+        const retryAfterHeader = resp.headers.get('retry-after');
+        const headerRetry = retryAfterHeader ? Number.parseInt(retryAfterHeader, 10) : NaN;
+        const bodyRetry =
+          typeof (payload as { retryAfter?: unknown })?.retryAfter === 'number'
+            ? (payload as { retryAfter: number }).retryAfter
+            : NaN;
+        const retryAfterSeconds = Number.isFinite(headerRetry)
+          ? headerRetry
+          : (Number.isFinite(bodyRetry) ? bodyRetry : undefined);
+        const bodyLimits =
+          payload && typeof (payload as { limits?: unknown }).limits === 'object'
+            ? ((payload as { limits: SubmitLimits }).limits)
+            : undefined;
+
+        if (resp.status === 403 && code === 'ACCOUNT_FROZEN') {
+          const frozenUntil =
+            typeof (payload as { frozenUntil?: unknown })?.frozenUntil === 'string'
+              ? (payload as { frozenUntil: string }).frozenUntil
+              : undefined;
+          const reason =
+            typeof (payload as { reason?: unknown })?.reason === 'string'
+              ? (payload as { reason: string }).reason
+              : undefined;
+          setSubmitStatus({ kind: 'account_frozen', message, frozenUntil, reason, retryAfterSeconds, limits: bodyLimits });
+          return;
+        }
+
+        if (resp.status === 429) {
+          if (code === 'RATE_LIMIT_MINUTE') {
+            setSubmitStatus({ kind: 'rate_limit_minute', message, retryAfterSeconds, limits: bodyLimits });
+            return;
+          }
+          if (code === 'RATE_LIMIT_HOUR') {
+            setSubmitStatus({ kind: 'rate_limit_hour', message, retryAfterSeconds, limits: bodyLimits });
+            return;
+          }
+          if (code === 'RATE_LIMIT_DAY') {
+            setSubmitStatus({ kind: 'rate_limit_day', message, retryAfterSeconds, limits: bodyLimits });
+            return;
+          }
+          if (code === 'RETRY_LIMIT_EXCEEDED') {
+            setSubmitStatus({ kind: 'retry_limit_exceeded', message, limits: bodyLimits });
+            return;
+          }
+          // Legacy RATE_LIMITED or any unrecognized 429 — fall back to the
+          // per-minute cooldown UI so the player still sees a countdown.
+          setSubmitStatus({ kind: 'rate_limit_minute', message, retryAfterSeconds, limits: bodyLimits });
           return;
         }
 
@@ -435,10 +510,21 @@ export function ChallengeClient({ level }: { level: number }) {
     );
   }
 
-  if (fetchState.kind === 'feature_not_public') {
+  if (fetchState.kind === 'level_already_passed') {
     return (
       <ErrorShell
-        title="Not in the public beta"
+        title="Level already passed"
+        accent="amber"
+        message={fetchState.message}
+        primary={{ href: '/play', label: 'Back to Play' }}
+      />
+    );
+  }
+
+  if (fetchState.kind === 'level_not_available') {
+    return (
+      <ErrorShell
+        title="Level not available"
         accent="slate"
         message={fetchState.message}
         primary={{ href: '/play', label: 'See public beta levels (L0-L8)' }}
@@ -727,6 +813,15 @@ function ErrorShell({
   );
 }
 
+function LimitCounter({ label, used, max }: { label: string; used?: number; max?: number }) {
+  if (typeof used !== 'number' || typeof max !== 'number') return null;
+  return (
+    <span className="inline-flex items-center rounded-full border border-current/30 bg-white/60 px-2 py-0.5 text-[11px] font-mono font-semibold">
+      {label} {used}/{max}
+    </span>
+  );
+}
+
 function SubmitErrorBanner({
   status,
   level,
@@ -738,19 +833,32 @@ function SubmitErrorBanner({
 }) {
   if (status.kind === 'idle' || status.kind === 'submitting' || status.kind === 'success') return null;
 
+  // ACCOUNT_FROZEN is a full-screen lockout per FRONTEND_BETA_STATES, not an inline banner.
+  if (status.kind === 'account_frozen') {
+    return <AccountFrozenScreen status={status} />;
+  }
+
   const isL5Json = status.kind === 'validation_error' && status.isL5JsonError === true;
   const requiresRefetch =
     status.kind === 'session_expired'
     || status.kind === 'session_already_submitted'
     || status.kind === 'identity_mismatch'
     || status.kind === 'scoring_unavailable'
-    || status.kind === 'auth_required';
+    || status.kind === 'auth_required'
+    || status.kind === 'retry_limit_exceeded';
+
+  const isCooldown =
+    status.kind === 'rate_limit_minute'
+    || status.kind === 'rate_limit_hour'
+    || status.kind === 'rate_limit_day';
 
   const tone =
     status.kind === 'validation_error'
       ? 'border-amber-200 bg-amber-50 text-amber-900'
-      : status.kind === 'rate_limited'
+      : isCooldown
       ? 'border-orange-200 bg-orange-50 text-orange-900'
+      : status.kind === 'retry_limit_exceeded'
+      ? 'border-rose-200 bg-rose-50 text-rose-900'
       : 'border-rose-200 bg-rose-50 text-rose-900';
 
   const title =
@@ -766,16 +874,24 @@ function SubmitErrorBanner({
       ? 'Session expired (24h ceiling hit)'
       : status.kind === 'session_already_submitted'
       ? 'This session was already submitted'
-      : status.kind === 'rate_limited'
-      ? 'Rate limited — please slow down'
+      : status.kind === 'rate_limit_minute'
+      ? 'Too fast — 2 per minute per attemptToken'
+      : status.kind === 'rate_limit_hour'
+      ? 'Hourly cap — 20 per hour per attemptToken'
+      : status.kind === 'rate_limit_day'
+      ? 'Daily cap — 99 per day per account (resets at PT midnight)'
+      : status.kind === 'retry_limit_exceeded'
+      ? 'This attemptToken reached the 10-submit cap — fetch a new one'
       : status.kind === 'scoring_unavailable'
       ? 'Scoring temporarily unavailable (fail-closed)'
       : 'Submission failed';
 
+  const limits = isCooldown || status.kind === 'retry_limit_exceeded' ? status.limits : undefined;
+
   return (
     <div role="alert" className={`rounded-2xl border px-5 py-4 ${tone}`}>
       <p className="text-sm font-semibold">{title}</p>
-      <p className="mt-1 text-sm leading-6">{status.kind === 'error' ? status.message : status.message}</p>
+      <p className="mt-1 text-sm leading-6">{status.message}</p>
 
       {isL5Json ? (
         <div className="mt-2 rounded-xl bg-white/60 px-3 py-2 text-xs text-amber-900">
@@ -791,8 +907,20 @@ function SubmitErrorBanner({
         </div>
       ) : null}
 
-      {status.kind === 'rate_limited' && status.retryAfterSeconds != null ? (
-        <p className="mt-2 text-xs">Retry after ~{status.retryAfterSeconds}s.</p>
+      {limits ? (
+        <div className="mt-2 flex flex-wrap gap-2">
+          <LimitCounter label="minute" used={limits.minute?.used} max={limits.minute?.max} />
+          <LimitCounter label="hour" used={limits.hour?.used} max={limits.hour?.max} />
+          <LimitCounter label="day" used={limits.day?.used} max={limits.day?.max} />
+          <LimitCounter label="retry" used={limits.retry?.used} max={limits.retry?.max} />
+        </div>
+      ) : null}
+
+      {isCooldown && status.retryAfterSeconds != null ? (
+        <p className="mt-2 text-xs">
+          Retry after ~{status.retryAfterSeconds}s.
+          {status.kind === 'rate_limit_hour' ? ' Continued rapid attempts may result in a 5-hour account freeze.' : ''}
+        </p>
       ) : null}
 
       {requiresRefetch ? (
@@ -818,6 +946,65 @@ function SubmitErrorBanner({
   );
 }
 
+/**
+ * Full-screen lockout for `403 ACCOUNT_FROZEN`. The freeze is identity-scoped
+ * (per `docs/SUBMISSION_API.md` §Rate Limiting), so the lockout must apply at
+ * the page level, not as an inline banner. A live countdown ticks down to
+ * `frozenUntil`; there is deliberately no retry control until the freeze
+ * window closes.
+ */
+function AccountFrozenScreen({
+  status,
+}: {
+  status: Extract<SubmitStatus, { kind: 'account_frozen' }>;
+}) {
+  const [remaining, setRemaining] = useState<number | null>(() => {
+    if (!status.frozenUntil) return null;
+    const diff = new Date(status.frozenUntil).getTime() - Date.now();
+    return Number.isFinite(diff) ? Math.max(0, Math.floor(diff / 1000)) : null;
+  });
+
+  useEffect(() => {
+    if (!status.frozenUntil) return;
+    const tick = () => {
+      const diff = new Date(status.frozenUntil!).getTime() - Date.now();
+      setRemaining(Number.isFinite(diff) ? Math.max(0, Math.floor(diff / 1000)) : null);
+    };
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [status.frozenUntil]);
+
+  const localTime = status.frozenUntil ? new Date(status.frozenUntil).toLocaleTimeString() : null;
+
+  return (
+    <div role="alert" className="rounded-3xl border border-rose-300 bg-rose-50 px-6 py-8 text-rose-900">
+      <p className="text-xl font-black tracking-tight">Account paused</p>
+      <p className="mt-2 text-sm leading-6">
+        You sent too many submissions too quickly. This pause applies to your whole account, not just this tab — fetching a new challenge will not unblock you.
+      </p>
+      {localTime ? (
+        <p className="mt-3 text-sm">
+          Submissions unpause at <strong>{localTime}</strong> (local time).
+        </p>
+      ) : null}
+      {remaining != null ? (
+        <p className="mt-2 font-mono text-2xl font-bold">{formatSeconds(remaining)}</p>
+      ) : null}
+      {status.reason ? (
+        <p className="mt-3 text-xs italic text-rose-800">Reason: {status.reason}</p>
+      ) : null}
+      {status.limits ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          <LimitCounter label="day" used={status.limits.day?.used} max={status.limits.day?.max} />
+          <LimitCounter label="1-min burst" used={status.limits.minute?.used} max={status.limits.minute?.max} />
+          <LimitCounter label="5-min burst" used={status.limits.fiveMinute?.used} max={status.limits.fiveMinute?.max} />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function ResultCard({
   result,
   levelName,
@@ -837,6 +1024,12 @@ function ResultCard({
   const hasFieldFeedback = Array.isArray(result.fieldScores) && result.fieldScores.length > 0;
   const hasPercentile = typeof result.percentile === 'number' && Number.isFinite(result.percentile);
   const isOnboarding = result.level === 0 || result.aiJudged === false;
+  const failReasonLabel =
+    result.failReason === 'STRUCTURE_GATE'
+      ? 'Structure gate not cleared'
+      : result.failReason === 'QUALITY_FLOOR'
+      ? 'Coverage + quality floor not cleared'
+      : null;
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
@@ -892,6 +1085,12 @@ function ResultCard({
           {hasPercentile && !isOnboarding ? (
             <div className="mt-4 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-xs font-medium text-sky-900">
               Percentile on L{result.level}: {Math.round(result.percentile!)}%
+            </div>
+          ) : null}
+
+          {!unlocked && failReasonLabel ? (
+            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-900">
+              Unlock blocked: {failReasonLabel}.
             </div>
           ) : null}
 
@@ -960,6 +1159,32 @@ function ResultCard({
             </Link>
           </div>
         </div>
+
+        {result.replayUnlocked && result.nextSteps ? (
+          <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-[0_10px_40px_rgba(16,185,129,0.12)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Beta complete</p>
+            <h2 className="mt-2 text-xl font-black tracking-tight text-emerald-950">Replay mode unlocked</h2>
+            <p className="mt-2 text-sm leading-6 text-emerald-900">{result.nextSteps.replay}</p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <a
+                href={result.nextSteps.discord}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+              >
+                Join Discord
+              </a>
+              <a
+                href={result.nextSteps.share}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Share result
+              </a>
+            </div>
+          </div>
+        ) : null}
 
         {registerPromptOpen ? (
           <div role="dialog" aria-modal="true" className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-[0_10px_40px_rgba(16,185,129,0.12)]">

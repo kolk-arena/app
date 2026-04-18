@@ -46,10 +46,10 @@ let schemaReadyCache: boolean | null = null;
 export async function assertRuntimeSchemaReady(): Promise<void> {
   if (schemaReadyCache) return;
 
-  const [sessionCheck, submissionCheck, leaderboardCheck, l0Check] = await Promise.all([
+  const [sessionCheck, submissionCheck, leaderboardCheck, l0Check, userCheck, identityGuardCheck] = await Promise.all([
     supabaseAdmin
       .from('ka_challenge_sessions')
-      .select('attempt_token, consumed_at', { head: true, count: 'exact' })
+      .select('attempt_token, consumed_at, retry_count, submit_attempt_timestamps_ms', { head: true, count: 'exact' })
       .limit(1),
     supabaseAdmin
       .from('ka_submissions')
@@ -64,13 +64,31 @@ export async function assertRuntimeSchemaReady(): Promise<void> {
       .select('id', { head: true, count: 'exact' })
       .eq('level', 0)
       .limit(1),
+    supabaseAdmin
+      .from('ka_users')
+      .select('pioneer', { head: true, count: 'exact' })
+      .limit(1),
+    supabaseAdmin
+      .from('ka_identity_submit_guard')
+      .select('identity_key, day_bucket_pt, frozen_until', { head: true, count: 'exact' })
+      .limit(1),
   ]);
 
-  if (sessionCheck.error || submissionCheck.error || leaderboardCheck.error || l0Check.error || (l0Check.count ?? 0) < 1) {
+  if (
+    sessionCheck.error
+    || submissionCheck.error
+    || leaderboardCheck.error
+    || l0Check.error
+    || userCheck.error
+    || identityGuardCheck.error
+    || (l0Check.count ?? 0) < 1
+  ) {
     const details = [
       sessionCheck.error?.message,
       submissionCheck.error?.message,
       leaderboardCheck.error?.message,
+      userCheck.error?.message,
+      identityGuardCheck.error?.message,
       (l0Check.count ?? 0) < 1 ? 'L0 onboarding seed is missing from ka_challenges.' : null,
     ].filter(Boolean).join(' | ');
 

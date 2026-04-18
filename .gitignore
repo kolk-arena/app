@@ -61,6 +61,8 @@ docs/OPS_RUNBOOK.md
 docs/ENV_MATRIX.md
 docs/CLOUDFLARE_BASELINE.md
 docs/ROLLBACK_PLAN.md
+docs/LAUNCH_PLAN_IMPLEMENTATION_TRACKER.md
+docs/Kolk_Arena_Launch_Plan_Optimization.md
 supabase/migrations/
 
 # frozen public-doc snapshots (do not publish until later ladder rollout)

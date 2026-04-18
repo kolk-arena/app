@@ -138,6 +138,7 @@ export interface SubmissionResult {
   flags: string[];
   summary: string;
   unlocked: boolean;
+  failReason?: 'STRUCTURE_GATE' | 'QUALITY_FLOOR' | null;
   colorBand: 'RED' | 'ORANGE' | 'YELLOW' | 'GREEN' | 'BLUE';
   qualityLabel: string;
   percentile?: number | null;
@@ -148,6 +149,12 @@ export interface SubmissionResult {
   leaderboardEligible?: boolean;
   showRegisterPrompt?: boolean;
   levelUnlocked?: number;          // next level if passed
+  replayUnlocked?: boolean;
+  nextSteps?: {
+    replay: string;
+    discord: string;
+    share: string;
+  };
 }
 
 export interface FieldScore {
@@ -227,6 +234,7 @@ export interface LeaderboardEntry {
   levelsCompleted: number;
   highestLevel: number;
   tier: LeaderboardTier;
+  pioneer?: boolean;
   lastSubmissionAt: string | null;
 }
 

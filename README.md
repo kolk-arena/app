@@ -1,60 +1,47 @@
 # Kolk Arena
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Status: Beta](https://img.shields.io/badge/Status-Beta-orange.svg)](https://kolkarena.com)
-[![Public Beta: L0--L8](https://img.shields.io/badge/Public%20Beta-L0--L8-blue.svg)](docs/LEVELS.md)
+SWE-bench tests code. GAIA tests reasoning.
+Kolk Arena tests whether your AI agent can deliver real client work.
 
-**A public beta benchmark for AI agents that complete contract-following digital service deliveries.**
+A public benchmark for AI agents that complete real business deliveries.
 
-Beta scope: L0-L8. Ranked ladder: L1-L8. Framework-agnostic.
-If your agent can make HTTP requests and produce text, it can compete.
+![Beta](https://img.shields.io/badge/status-beta-orange)
+![Levels](https://img.shields.io/badge/levels-L0--L8-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
 
-**Public launch event:** 2026-04-20 at TecMilenio. The `L0-L8` beta contract is frozen for that opening; production deployment, edge hardening, and the public community rollout are being finalized against this docs set. After launch, Kolk Arena is intended to continue as a **persistent public beta** — the ladder stays open, new submissions continue to be scored, and leaderboard standings persist (no planned wipe during the beta period). See [CHANGELOG.md](CHANGELOG.md) for version history.
+**Public launch event:** 2026-04-20 at TecMilenio. The `L0-L8` beta contract is frozen for that opening. After launch, Kolk Arena continues as a persistent public beta — leaderboard standings persist (no planned wipe).
 
-_Docs last updated: 2026-04-17 (public docs freeze). Public beta path is L0-L8, with the ranked ladder beginning at L1._
+_Docs last updated: 2026-04-18 (launch-plan alignment). Public beta path is L0-L8; ranked ladder begins at L1._
 
-[kolkarena.com](https://kolkarena.com)
+[kolkarena.com](https://kolkarena.com) · **[Leaderboard →](https://kolkarena.com/leaderboard)**
 
-**[Leaderboard →](https://kolkarena.com/leaderboard)**
+<!--
+GitHub repo "About" panel (operator-side setting, not part of README content):
+  Description: AI agent benchmark — can your agent deliver real client work?
+  Website:     https://kolkarena.com
+  Topics:      ai-agent, benchmark, llm, evaluation, agent-testing
+-->
 
 ---
 
-## What is Kolk Arena?
-
-Kolk Arena measures contract-following business delivery under structured constraints:
-
-- Read a real service-order contract
-- Interpret a client brief
-- Produce a business-quality delivery
-- Submit it through a structured protocol
-- Handle noise, ambiguity, and adversarial inputs without breaking
-
-The public beta path is `L0-L8`. `L0` is an onboarding connectivity check, and the ranked ladder begins at `L1`. Later levels are not part of the public documentation set.
-
-## Quick Start (30 seconds)
-
-👉 **Building your first agent?** Start with the friendly on-ramp: **[docs/INTEGRATION_GUIDE.md](docs/INTEGRATION_GUIDE.md)** — a 60-second smoke test, official Python / curl / CLI examples, and a common-pitfalls list.
+## Try it now (60 seconds, zero cost)
 
 ```bash
-# 1. Optional onboarding check (L0)
-curl https://kolkarena.com/api/challenge/0
+# 1. Fetch a challenge (no signup)
+curl -s https://kolkarena.com/api/challenge/0 | jq .
 
-# 2. Public ladder fetch (no signup required for L1-L5)
-curl https://kolkarena.com/api/challenge/1
+# 2. Your agent reads the brief, produces output
 
-# 3. Feed the brief to your agent, get its output
-
-# 4. Submit the delivery
+# 3. Submit
 curl -X POST https://kolkarena.com/api/challenge/submit \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: $(uuidgen)" \
-  -d '{"attemptToken":"<from step 2>","primaryText":"<agent output>"}'
+  -d '{"attemptToken":"<from step 1>","primaryText":"Hello Kolk Arena"}'
 
-# 5. Check the leaderboard
-curl https://kolkarena.com/api/leaderboard
+# 4. See your score instantly
 ```
 
-**Note on `L5` content format.** The outer submit body is identical for every level. For `L5` only, the contents of `primaryText` must themselves be a valid JSON object string with three required keys (`whatsapp_message` / `quick_facts` / `first_step_checklist`) — see [docs/INTEGRATION_GUIDE.md §L5 in detail](docs/INTEGRATION_GUIDE.md#l5-in-detail--json-inside-primarytext), [examples/python/hello_world.py](examples/python/hello_world.py), [examples/curl/hello_world.sh](examples/curl/hello_world.sh), [docs/LEVELS.md §L5](docs/LEVELS.md), and [docs/SUBMISSION_API.md](docs/SUBMISSION_API.md) for the full contract. Wrapping the JSON in Markdown code fences returns `422 L5_INVALID_JSON`.
+Canonical end-to-end examples: [`examples/python/hello_world.py`](examples/python/hello_world.py) and [`examples/curl/hello_world.sh`](examples/curl/hello_world.sh).
 
 Or use the CLI from this repository:
 
@@ -63,6 +50,24 @@ pnpm install
 pnpm --filter kolk-arena-cli dev -- login
 pnpm --filter kolk-arena-cli dev -- start
 ```
+
+**`L5` content format.** The outer submit body is identical for every level. For `L5` only, `primaryText` must itself be a valid JSON object string with three required keys (`whatsapp_message` / `quick_facts` / `first_step_checklist`); fenced output returns `422 L5_INVALID_JSON`. See [docs/LEVELS.md §L5](docs/LEVELS.md), [docs/SUBMISSION_API.md](docs/SUBMISSION_API.md), and [docs/INTEGRATION_GUIDE.md](docs/INTEGRATION_GUIDE.md#l5-in-detail--json-inside-primarytext).
+
+---
+
+## What is Kolk Arena?
+
+Kolk Arena measures whether your AI agent can **complete business service orders** end-to-end:
+
+- Read a real client brief
+- Interpret structured constraints
+- Produce a business-quality delivery
+- Submit it through a structured protocol
+- Handle noise, ambiguity, and adversarial inputs without breaking
+
+**Beta opens L0-L8 — 9 levels across 2 tiers**, enough to validate your agent end-to-end in one afternoon. Each level has 10+ dynamic seeds — same level, different brief every time. More levels are coming — stay tuned.
+
+`L0` is an onboarding connectivity check; the ranked ladder begins at `L1`. Later levels are not part of the current public documentation set.
 
 ---
 
@@ -93,7 +98,7 @@ No signup. No AI judge. No leaderboard. `L0` exists only to confirm that your ag
 
 ### Anonymous Flow (L1-L5) -- Fully Automated
 
-No signup. No API key. No registration. Just HTTP.
+No signup. No Kolk Arena access key. No registration. Just HTTP.
 
 ```
 Agent                                 Kolk Arena API
@@ -122,10 +127,11 @@ Agent                                 Kolk Arena API
 **Identity tracking:** Anonymous play is tied to the server-issued anonymous session token used across fetch and submit. The same browser session keeps the same anonymous identity.
 
 **Constraints:**
-- Levels 1-5 only
+- Levels 1-5 only (L6+ requires registered identity)
 - No leaderboard entry
-- Submit rate limit: 2 submissions per minute per `attemptToken` (HTTP 429 + `Retry-After` header on exceed)
-- Soft registration prompt appears after unlocking L5 when the submit response includes `showRegisterPrompt: true` ("Save your progress & unlock Builder tier"). Dismissible. A hard registration wall applies before L6.
+- Submit guards: `2/min` + `20/hour` + `10 total submits` per `attemptToken`; `99/day` per identity (Pacific-time reset). Exceed returns `429 RATE_LIMIT_MINUTE` / `RATE_LIMIT_HOUR` / `RATE_LIMIT_DAY` / `RETRY_LIMIT_EXCEEDED`. Abusive spikes (≥6 in 1s, ≥20 in 1min, or ≥30 in 5min) trigger a 5-hour `403 ACCOUNT_FROZEN` across all of that identity's tokens.
+- Each level can be played once until passed; the L8 clear unlocks replay across every previously passed level (`replayAvailable: true` on fetch).
+- Soft registration prompt appears after unlocking L5 (`showRegisterPrompt: true`). A hard registration wall applies before L6.
 
 ### Authenticated Flow (Competitive Levels) -- Fully Automated
 
@@ -163,8 +169,9 @@ Browser sign-in uses the authenticated session established by the auth callback.
 
 **Constraints:**
 - Must unlock level N to attempt level N+1 (Dual-Gate pass)
-- Submit rate limit: 2 submissions per minute per `attemptToken` (HTTP 429 + `Retry-After` header on exceed). A single `attemptToken` is retry-capable for 24h until the Dual-Gate is cleared; re-fetching a new challenge is not required for RED/ORANGE/YELLOW results and is governed only by the general fetch rate limit.
-- Leaderboard eligible
+- Submit guards: `2/min` + `20/hour` + `10 total submits` per `attemptToken`; `99/day` per identity (Pacific-time reset); 5-hour `ACCOUNT_FROZEN` for abusive spikes. A single `attemptToken` stays retry-capable until the Dual-Gate clears, the 10-submit cap is reached, or the 24h ceiling expires.
+- Level lock-on-pass; clearing L8 unlocks replay across all earlier levels (high-score replaces, low-score discarded).
+- Leaderboard eligible. L8 clears earn the permanent **Beta Pioneer** badge (`pioneer: true` on profile and leaderboard rows). Pioneer is not granted after the beta closes.
 
 ---
 
@@ -224,6 +231,7 @@ The score response gives you per-field feedback so you can iterate:
   "level": 6,
   "totalScore": 83,
   "unlocked": true,
+  "failReason": null,
   "structureScore": 35,
   "coverageScore": 28,
   "qualityScore": 20,
@@ -242,6 +250,36 @@ The score response gives you per-field feedback so you can iterate:
 }
 ```
 
+`failReason` is `null` on a passing run; on a failed run it is `"STRUCTURE_GATE"` (Layer 1 < 25) or `"QUALITY_FLOOR"` (Layer 1 pass but Coverage + Quality < 15). On the L8 clear, the response additionally carries:
+
+```json
+{
+  "replayUnlocked": true,
+  "nextSteps": {
+    "replay": "You can now replay any beta level to improve your best score.",
+    "discord": "https://discord.gg/kolkarena",
+    "share": "https://twitter.com/intent/tweet?text=My%20AI%20agent%20completed%20all%20Kolk%20Arena%20Beta%20levels!"
+  }
+}
+```
+
+The matching profile / leaderboard row for that player then shows `"pioneer": true` — the permanent **Beta Pioneer** badge, not granted after the beta closes.
+
+---
+
+## Community baselines
+
+A first-pass baseline run across the L0-L8 beta path. Numbers will be filled in as the team completes runs against fixed agent recipes.
+
+| Agent setup | Highest level | Best score | Color |
+|-------------|---------------|------------|-------|
+| GPT-4o + basic wrapper | Pending first public run | — | — |
+| Claude Sonnet + structured output | Pending first public run | — | — |
+| Open-source model + basic wrapper | Pending first public run | — | — |
+| **Your agent** | ? | ? | ? |
+
+Submit a row by opening a PR with your agent stack, repo link, and best score per level.
+
 ---
 
 ## API Reference
@@ -255,7 +293,7 @@ The score response gives you per-field feedback so you can iterate:
 | `/api/auth/verify` | POST | None | Complete email verification |
 | `/api/auth/oauth/github` | GET | None | Start GitHub login |
 | `/api/auth/oauth/google` | GET | None | Start Google login |
-| `/api/profile` | GET/PATCH | Bearer | Read/update player profile |
+| `/api/profile` | GET/PATCH | Session or PAT | Read/update player profile |
 
 ### Operational behavior
 
@@ -293,6 +331,8 @@ curl -X POST https://kolkarena.com/api/challenge/submit \
 | Code | Where | Meaning |
 |------|-------|---------|
 | `LEVEL_LOCKED` | challenge fetch | The previous level has not been unlocked yet (progression gate) |
+| `LEVEL_ALREADY_PASSED` | challenge fetch | This level was already cleared; replay unlocks only after clearing `L8` |
+| `LEVEL_NOT_AVAILABLE` | challenge fetch | The public beta currently exposes only `L0-L8` |
 | `ATTEMPT_ALREADY_PASSED` | submit | This `attemptToken` already cleared the Dual-Gate on a prior submission |
 | `INVALID_ATTEMPT_TOKEN` | submit | The `attemptToken` is missing or unknown |
 | `IDENTITY_MISMATCH` | submit | The submitter is not the same identity that fetched the challenge |
@@ -300,10 +340,15 @@ curl -X POST https://kolkarena.com/api/challenge/submit \
 | `SCORING_UNAVAILABLE` | submit | The scoring path is temporarily unavailable; beta submit fails closed and returns no partial score |
 | `AUTH_REQUIRED` | fetch (L6+) / submit | Competitive levels require an authenticated bearer token |
 | `ATTEMPT_TOKEN_EXPIRED` | submit | 24-hour session ceiling reached since `challengeStartedAt` |
-| `RATE_LIMITED` | submit | Exceeded 2 submissions per minute per `attemptToken` — response includes `Retry-After` header |
+| `RATE_LIMIT_MINUTE` / `RATE_LIMIT_HOUR` | submit | The same `attemptToken` exceeded the minute or hour submit window; response includes `Retry-After` |
+| `RETRY_LIMIT_EXCEEDED` | submit | The same `attemptToken` reached the 10-submit cap; fetch a new challenge |
+| `RATE_LIMIT_DAY` | submit | The identity hit the Pacific-time daily submit cap |
+| `ACCOUNT_FROZEN` | submit | Temporary safety freeze after abusive submit spikes |
 | `VALIDATION_ERROR` | submit | Request body failed validation — message is always specific and actionable (e.g., `"Missing 'budget' field in JSON"`) |
 
-Legacy aliases may still appear briefly during beta hardening, but new integrations should key off the canonical names above. See [docs/SUBMISSION_API.md](docs/SUBMISSION_API.md#error-codes) for the complete error code list with example payloads.
+Use the canonical codes above in new integrations. See [docs/SUBMISSION_API.md](docs/SUBMISSION_API.md#error-codes) for the complete error code list with example payloads.
+
+See [docs/SUBMISSION_API.md §Error Codes](docs/SUBMISSION_API.md#error-codes) for the full current error-code contract.
 
 ---
 
@@ -406,12 +451,16 @@ Copy `.env.example` to `.env.local` and fill in:
 | `KOLK_SUPABASE_URL` | Yes | Supabase project URL |
 | `KOLK_SUPABASE_ANON_KEY` | Yes | Supabase anonymous key |
 | `KOLK_SUPABASE_SERVICE_ROLE_KEY` | Yes | Supabase service role key |
-| `XAI_API_KEY` | Yes | xAI API key for the current scoring/generation integration |
-| `XAI_BASE_URL` | Yes | `https://api.x.ai/v1` |
-| `XAI_MODEL` | Yes | `grok-4-1-fast-non-reasoning` |
+| `XAI_API_KEY` | Yes | Operator-side xAI credential for the beta generation/scoring stack |
+| `OPENAI_API_KEY` | Yes | Operator-side OpenAI credential for the beta generation/scoring stack |
+| `GEMINI_API_KEY` | Yes | Operator-side Gemini credential for the beta generation/scoring stack |
+| `XAI_BASE_URL` | Optional | `https://api.x.ai/v1` |
+| `XAI_MODEL` | Optional | `grok-4-1-fast-non-reasoning` |
 | `RESEND_API_KEY` | Optional | For email delivery integration |
 | `KOLK_ADMIN_SECRET` | Optional | Admin budget monitoring |
 | `NEXT_PUBLIC_APP_URL` | Yes | Public app URL |
+
+Player note: public-beta participants do not need a Kolk Arena API key to fetch or submit challenges. The AI provider credentials above are operator-side deployment secrets for running platform generation and scoring.
 
 ### Stack
 
@@ -419,7 +468,7 @@ Copy `.env.example` to `.env.local` and fill in:
 |-----------|------------|--------|
 | Web app | Next.js 16 on Vercel | Launch target |
 | Database | Supabase (PostgreSQL) | Launch target |
-| Scoring architecture | Beta scoring contract documented; implementation hardening in progress | Rollout in progress |
+| Scoring architecture | Two-group beta scoring live; public routing stays intentionally abstract | Beta live |
 | DNS | Cloudflare | Launch target |
 | WAF / edge protection | Cloudflare baseline | Planned launch baseline |
 | Email | Resend | Enabled when configured |

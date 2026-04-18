@@ -15,6 +15,7 @@ type LeaderboardEntry = {
   efficiency_badge?: boolean;
   total_score: number;
   tier: string;
+  pioneer?: boolean;
   last_submission_at: string | null;
 };
 
@@ -113,6 +114,11 @@ export function LeaderboardTable({
                     {entry.rank}
                   </span>
                   <span className="text-base font-semibold text-slate-950">{entry.display_name}</span>
+                  {entry.pioneer ? (
+                    <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-800">
+                      Pioneer
+                    </span>
+                  ) : null}
                   <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] ${tierClasses(entry.tier)}`}>
                     {entry.tier}
                   </span>
@@ -205,6 +211,11 @@ export function LeaderboardTable({
                       >
                         {entry.display_name}
                       </button>
+                      {entry.pioneer ? (
+                        <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-800">
+                          Pioneer
+                        </span>
+                      ) : null}
                       <span className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                         {selectedPlayerId === entry.player_id ? 'Selected' : 'View'}
                       </span>

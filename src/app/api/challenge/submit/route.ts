@@ -19,7 +19,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { assertRuntimeSchemaReady, supabaseAdmin } from '@/lib/kolk/db';
 import { SubmissionInputSchema, type SubmissionResult } from '@/lib/kolk/types';
-import { getAnonToken, hashCode } from '@/lib/kolk/auth';
+import { hashCode, readAnonTokenCookie } from '@/lib/kolk/auth';
 import { resolveArenaAuthContext } from '@/lib/kolk/auth/server';
 import { missingScopes, SCOPES, type Scope } from '@/lib/kolk/tokens';
 import { getLevel } from '@/lib/kolk/levels';
@@ -27,6 +27,7 @@ import { runLayer1, type Layer1Config } from '@/lib/kolk/evaluator/layer1';
 import { runJudge, type JudgeResult } from '@/lib/kolk/evaluator/judge';
 import { MAX_PRIMARY_TEXT_CHARS, STRUCTURE_MAX } from '@/lib/kolk/constants';
 import type { VariantRubric } from '@/lib/kolk/types';
+import { getAiReadinessSummary } from '@/lib/kolk/ai';
 import {
   ANONYMOUS_BETA_MAX_LEVEL,
   colorBandToQualityLabel,
@@ -37,53 +38,12 @@ import {
   isLeaderboardEligible,
   isRankedBetaLevel,
   scoreToColorBand,
-  SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN,
-  SUBMIT_RATE_LIMIT_WINDOW_MS,
 } from '@/lib/kolk/beta-contract';
-
-/**
- * Cross-process submit rate limiter, backed by Postgres (`ka_submit_rate_limit`
- * + `ka_claim_submit_slot()` per migration 00011). The previous in-memory
- * implementation was per-serverless-instance and silently bypassed by any
- * multi-instance deploy. See docs/SUBMISSION_API.md §Rate Limiting.
- *
- * The function acquires FOR UPDATE row lock on the attempt_token's row, so
- * two concurrent requests serialize correctly.
- *
- * Fail-open policy: if the RPC itself fails (DB outage, etc.) we let the
- * submit through rather than black-hole the user. Rate limit is a guardrail,
- * not a security boundary.
- */
-async function checkRateLimit(attemptToken: string): Promise<
-  | { allowed: true; retryAfterSeconds: 0 }
-  | { allowed: false; retryAfterSeconds: number }
-> {
-  try {
-    const { data, error } = await supabaseAdmin.rpc('ka_claim_submit_slot', {
-      p_attempt_token: attemptToken,
-      p_window_ms: SUBMIT_RATE_LIMIT_WINDOW_MS,
-      p_limit: SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN,
-    });
-
-    if (error) {
-      console.error('[submit] rate-limit RPC error, failing open:', error);
-      return { allowed: true, retryAfterSeconds: 0 };
-    }
-
-    const row = Array.isArray(data) ? data[0] : data;
-    if (row && row.allowed === false) {
-      const retry = Number(row.retry_after_seconds);
-      return {
-        allowed: false,
-        retryAfterSeconds: Number.isFinite(retry) && retry > 0 ? retry : 60,
-      };
-    }
-    return { allowed: true, retryAfterSeconds: 0 };
-  } catch (err) {
-    console.error('[submit] rate-limit RPC threw, failing open:', err);
-    return { allowed: true, retryAfterSeconds: 0 };
-  }
-}
+import {
+  buildSubmissionIdentity,
+  claimAttemptSubmitSlot,
+  claimIdentitySubmitAttempt,
+} from '@/lib/kolk/submission-guards';
 
 function parseL5Json(text: string): { ok: true } | { ok: false; message: string; parserPosition?: string } {
   const trimmed = text.trim();
@@ -144,6 +104,7 @@ type ErrorResponseInit = {
   code: string;
   message: string;
   headers?: HeadersInit;
+  bodyExtras?: Record<string, unknown>;
 };
 
 async function errorResponse({
@@ -152,8 +113,9 @@ async function errorResponse({
   code,
   message,
   headers,
+  bodyExtras,
 }: ErrorResponseInit): Promise<NextResponse> {
-  const body = { error: message, code };
+  const body = { error: message, code, ...(bodyExtras ?? {}) };
 
   if (status < 500) {
     // Extend TTL from the 5-minute pending claim to the documented 24h
@@ -174,6 +136,12 @@ async function errorResponse({
     status,
     headers,
   });
+}
+
+function buildFailReason(structureScore: number, coverageScore: number, qualityScore: number) {
+  if (structureScore < 25) return 'STRUCTURE_GATE' as const;
+  if (coverageScore + qualityScore < 15) return 'QUALITY_FLOOR' as const;
+  return null;
 }
 
 async function computePercentile(level: number, totalScore: number): Promise<number | null> {
@@ -269,6 +237,7 @@ async function updateLeaderboard(input: {
     handle: user?.handle ?? null,
     framework: user?.framework ?? null,
     school: user?.school ?? null,
+    pioneer: highestLevel >= 8,
     last_submission_at: bestRun?.submitted_at ?? new Date().toISOString(),
   };
 
@@ -288,14 +257,17 @@ async function updateLeaderboard(input: {
 async function updateMaxLevel(participantId: string, level: number) {
   const { data: user } = await supabaseAdmin
     .from('ka_users')
-    .select('max_level')
+    .select('max_level, pioneer')
     .eq('id', participantId)
     .single();
 
-  if (user && level > (user.max_level ?? 0)) {
+  if (user && (level > (user.max_level ?? 0) || (level >= 8 && user.pioneer !== true))) {
     await supabaseAdmin
       .from('ka_users')
-      .update({ max_level: level })
+      .update({
+        max_level: Math.max(level, user.max_level ?? 0),
+        pioneer: level >= 8 ? true : user.pioneer === true,
+      })
       .eq('id', participantId);
   }
 }
@@ -431,17 +403,22 @@ export async function POST(request: NextRequest) {
     const challengeId = session.challenge_id as string;
     const sessionParticipantId = session.participant_id as string | null;
     const sessionAnonToken = session.anon_token as string | null;
+    const sessionRetryCount = typeof session.retry_count === 'number'
+      ? session.retry_count
+      : Number(session.retry_count ?? 0);
 
     let callerParticipantId: string | null = null;
     let callerAnonToken: string | null = null;
     let callerScopes: Scope[] | null = null;
+    let callerEmail: string | null = null;
 
     const arenaAuth = await resolveArenaAuthContext(request);
     if (arenaAuth?.user.is_verified) {
       callerParticipantId = arenaAuth.user.id;
       callerScopes = arenaAuth.scopes; // null for session, array for PAT
+      callerEmail = arenaAuth.user.email;
     } else {
-      callerAnonToken = getAnonToken(request);
+      callerAnonToken = readAnonTokenCookie(request);
     }
 
     if (sessionParticipantId) {
@@ -466,6 +443,11 @@ export async function POST(request: NextRequest) {
 
     const participantId = sessionParticipantId;
     const anonToken = sessionAnonToken;
+    const submissionIdentity = buildSubmissionIdentity({
+      email: callerEmail,
+      userId: participantId,
+      anonSessionToken: anonToken,
+    });
 
     const now = new Date();
     const deadlineUtc = new Date(session.deadline_utc as string);
@@ -520,19 +502,102 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Rate limit is scoped to the attemptToken (not the account). See
-    // docs/SUBMISSION_API.md §Rate Limiting + §Anti-farming.
-    // Rate limit is keyed on the raw attemptToken (per migration 00011); no
-    // prefix needed since the token is already opaque and unique.
-    const rateLimit = await checkRateLimit(attemptToken);
-    if (!rateLimit.allowed) {
+    if (!submissionIdentity) {
+      return errorResponse({
+        keyHash,
+        status: 403,
+        code: 'IDENTITY_MISMATCH',
+        message: 'A valid signed-in identity or anonymous session cookie is required to submit this attemptToken.',
+      });
+    }
+
+    const identityGuard = await claimIdentitySubmitAttempt(submissionIdentity);
+    if (!identityGuard.allowed) {
+      if (identityGuard.code === 'ACCOUNT_FROZEN') {
+        return errorResponse({
+          keyHash,
+          status: 403,
+          code: 'ACCOUNT_FROZEN',
+          message: identityGuard.frozenUntil
+            ? `Your account has been temporarily frozen due to excessive submission attempts. Unfreezes at ${identityGuard.frozenUntil}.`
+            : 'Your account has been temporarily frozen due to excessive submission attempts.',
+          headers: {
+            'Retry-After': String(identityGuard.retryAfterSeconds),
+          },
+          bodyExtras: {
+            retryAfter: identityGuard.retryAfterSeconds,
+            frozenUntil: identityGuard.frozenUntil,
+            reason: identityGuard.reason,
+            limits: {
+              day: identityGuard.day,
+              minute: identityGuard.windows
+                ? { used: identityGuard.windows.minuteUsed, max: identityGuard.windows.minuteThreshold }
+                : undefined,
+              fiveMinute: identityGuard.windows
+                ? { used: identityGuard.windows.fiveMinUsed, max: identityGuard.windows.fiveMinThreshold }
+                : undefined,
+            },
+          },
+        });
+      }
+
       return errorResponse({
         keyHash,
         status: 429,
-        code: 'RATE_LIMITED',
-        message: `Submit rate limit exceeded. Maximum ${SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN} submissions per minute per attemptToken. Retry after ${rateLimit.retryAfterSeconds}s.`,
+        code: 'RATE_LIMIT_DAY',
+        message: 'Daily submit limit reached for this identity. Try again after the Pacific-time reset.',
         headers: {
-          'Retry-After': String(rateLimit.retryAfterSeconds),
+          'Retry-After': String(identityGuard.retryAfterSeconds),
+        },
+        bodyExtras: {
+          retryAfter: identityGuard.retryAfterSeconds,
+          limits: {
+            day: identityGuard.day,
+          },
+        },
+      });
+    }
+
+    const attemptGuard = await claimAttemptSubmitSlot(attemptToken);
+    if (!attemptGuard.allowed) {
+      if (attemptGuard.code === 'RETRY_LIMIT_EXCEEDED') {
+        return errorResponse({
+          keyHash,
+          status: 429,
+          code: 'RETRY_LIMIT_EXCEEDED',
+          message: 'This token has reached the 10-submit cap. Fetch a new challenge to continue.',
+          bodyExtras: {
+            limits: {
+              minute: attemptGuard.minute,
+              hour: attemptGuard.hour,
+              day: identityGuard.day,
+              retry: attemptGuard.retry,
+            },
+          },
+        });
+      }
+
+      const code = attemptGuard.code;
+      const message = code === 'RATE_LIMIT_HOUR'
+        ? `20 submissions per hour for this challenge. Try again in ${attemptGuard.retryAfterSeconds} seconds. Warning: continued rapid attempts may result in a 5-hour account freeze.`
+        : `Submit rate limit exceeded. Maximum ${attemptGuard.minute.max} submissions per minute per attemptToken. Retry after ${attemptGuard.retryAfterSeconds}s.`;
+
+      return errorResponse({
+        keyHash,
+        status: 429,
+        code,
+        message,
+        headers: {
+          'Retry-After': String(attemptGuard.retryAfterSeconds),
+        },
+        bodyExtras: {
+          retryAfter: attemptGuard.retryAfterSeconds,
+          limits: {
+            minute: attemptGuard.minute,
+            hour: attemptGuard.hour,
+            day: identityGuard.day,
+            retry: attemptGuard.retry,
+          },
         },
       });
     }
@@ -548,6 +613,11 @@ export async function POST(request: NextRequest) {
           headers: l5Json.parserPosition
             ? {
                 'X-Parser-Position': l5Json.parserPosition,
+              }
+            : undefined,
+          bodyExtras: l5Json.parserPosition
+            ? {
+                parser_position: l5Json.parserPosition,
               }
             : undefined,
         });
@@ -566,7 +636,7 @@ export async function POST(request: NextRequest) {
     let qualitySubscores = zeroQualitySubscores();
     let flags: string[] = [];
     let summary = '';
-    let judgeModel = aiJudged ? 'judge-unavailable' : 'deterministic-l0';
+    let judgeModel = aiJudged ? 'judge-runtime-unavailable' : 'deterministic-l0';
     let judgeResult: JudgeResult | null = null;
 
     if (challenge.level === 0) {
@@ -591,32 +661,45 @@ export async function POST(request: NextRequest) {
 
       const layer1Config: Layer1Config = {};
 
-      const targetLang = structuredBrief.target_lang as string | undefined;
-      const sellerLocale = taskJson.seller_locale as string | undefined;
-      const expectedLang = targetLang ?? sellerLocale;
-      if (expectedLang) layer1Config.expectedLang = expectedLang;
-
-      const budgetTotal = structuredBrief.budget_total as number | undefined;
-      if (budgetTotal != null) layer1Config.mathTotal = budgetTotal;
-
-      const expectedCount = (structuredBrief.item_count ?? structuredBrief.prompt_count ?? structuredBrief.days) as number | undefined;
-      if (expectedCount != null) {
-        layer1Config.itemExpected = {
-          count: expectedCount,
-          patterns: [/^#{1,3}\s+/gm, /^\d+\.\s+/gm, /^[-*]\s+/gm, /"(?:id|name|title)":/g],
-          label: 'items',
+      if (challenge.level === 5) {
+        layer1Config.jsonStringFields = {
+          requiredKeys: ['whatsapp_message', 'quick_facts', 'first_step_checklist'],
+          minLengths: {
+            whatsapp_message: 51,
+            quick_facts: 101,
+            first_step_checklist: 51,
+          },
         };
-      }
+      } else if (challenge.level === 8) {
+        layer1Config.requiredHeaderKeywords = ['copy', 'prompt', 'whatsapp'];
+      } else {
+        const targetLang = structuredBrief.target_lang as string | undefined;
+        const sellerLocale = taskJson.seller_locale as string | undefined;
+        const expectedLang = targetLang ?? sellerLocale;
+        if (expectedLang) layer1Config.expectedLang = expectedLang;
 
-      const keyFacts = (structuredBrief.key_facts ?? structuredBrief.facts ?? []) as string[];
-      if (keyFacts.length > 0) layer1Config.facts = keyFacts;
+        const budgetTotal = structuredBrief.budget_total as number | undefined;
+        if (budgetTotal != null) layer1Config.mathTotal = budgetTotal;
 
-      const prohibitedTerms = (structuredBrief.prohibited_terms ?? []) as string[];
-      if (prohibitedTerms.length > 0) {
-        layer1Config.prohibitedTerms = {
-          terms: prohibitedTerms,
-          lang: (sellerLocale?.startsWith('es') ? 'es' : 'en') as 'es' | 'en',
-        };
+        const expectedCount = (structuredBrief.item_count ?? structuredBrief.prompt_count ?? structuredBrief.days) as number | undefined;
+        if (expectedCount != null) {
+          layer1Config.itemExpected = {
+            count: expectedCount,
+            patterns: [/^#{1,3}\s+/gm, /^\d+\.\s+/gm, /^[-*]\s+/gm, /"(?:id|name|title)":/g],
+            label: 'items',
+          };
+        }
+
+        const keyFacts = (structuredBrief.key_facts ?? structuredBrief.facts ?? []) as string[];
+        if (keyFacts.length > 0) layer1Config.facts = keyFacts;
+
+        const prohibitedTerms = (structuredBrief.prohibited_terms ?? []) as string[];
+        if (prohibitedTerms.length > 0) {
+          layer1Config.prohibitedTerms = {
+            terms: prohibitedTerms,
+            lang: (sellerLocale?.startsWith('es') ? 'es' : 'en') as 'es' | 'en',
+          };
+        }
       }
 
       const layer1 = runLayer1(primaryText, layer1Config);
@@ -628,12 +711,15 @@ export async function POST(request: NextRequest) {
       }));
 
       if (structureScore >= 25) {
-        if (!process.env.XAI_API_KEY) {
+        const aiReadiness = getAiReadinessSummary();
+        if (!aiReadiness.scoringReady) {
           return errorResponse({
             keyHash,
             status: 503,
             code: 'SCORING_UNAVAILABLE',
-            message: 'Scoring is temporarily unavailable. Please try again shortly.',
+            message: aiReadiness.scoringMissingEnvKeys.length > 0
+              ? `Scoring is temporarily unavailable. Missing scoring-provider credentials: ${aiReadiness.scoringMissingEnvKeys.join(', ')}.`
+              : 'Scoring is temporarily unavailable. Please try again shortly.',
           });
         }
 
@@ -666,7 +752,14 @@ export async function POST(request: NextRequest) {
         };
         const briefSummary = (taskJson.brief_summary ?? taskJson.title ?? `Level ${challenge.level} challenge`) as string;
 
-        judgeResult = await runJudge(primaryText, rubric, briefSummary, levelDef.name, challenge.level);
+        judgeResult = await runJudge(
+          primaryText,
+          rubric,
+          briefSummary,
+          levelDef.name,
+          challenge.level,
+          attemptToken,
+        );
         if (judgeResult.error) {
           return errorResponse({
             keyHash,
@@ -697,6 +790,15 @@ export async function POST(request: NextRequest) {
     const leaderboardEligible = isLeaderboardEligible(challenge.level, participantId, unlocked);
     const levelUnlocked = unlocked && challenge.level < 8 ? challenge.level + 1 : undefined;
     const showRegisterPrompt = !participantId && challenge.level === 5 && unlocked ? true : undefined;
+    const failReason = unlocked ? null : buildFailReason(structureScore, coverageScore, qualityScore);
+    const replayUnlocked = challenge.level === 8 && unlocked ? true : undefined;
+    const nextSteps = replayUnlocked
+      ? {
+          replay: 'You can now replay any beta level to improve your best score.',
+          discord: 'https://discord.gg/kolkarena',
+          share: 'https://twitter.com/intent/tweet?text=My%20AI%20agent%20completed%20all%20Kolk%20Arena%20Beta%20levels!',
+        }
+      : undefined;
 
     const { data: submission, error: insertError } = await supabaseAdmin
       .from('ka_submissions')
@@ -782,6 +884,7 @@ export async function POST(request: NextRequest) {
       flags,
       summary,
       unlocked,
+      failReason,
       colorBand,
       qualityLabel,
       percentile,
@@ -792,6 +895,8 @@ export async function POST(request: NextRequest) {
       leaderboardEligible,
       showRegisterPrompt,
       levelUnlocked,
+      replayUnlocked,
+      nextSteps,
       ...(challenge.level === 0
         ? {}
         : {

@@ -10,29 +10,38 @@
  * not just the generator prompt template.
  *
  * Usage:
- *   XAI_API_KEY=xai-... npx tsx scripts/kolk/generate-challenges.ts
- *   XAI_API_KEY=xai-... npx tsx scripts/kolk/generate-challenges.ts --level 10 --count 5
+ *   XAI_API_KEY=xai-... OPENAI_API_KEY=sk-... GEMINI_API_KEY=gemini-... npx tsx scripts/kolk/generate-challenges.ts
+ *   KOLK_OPERATOR_PROVIDER=xai XAI_API_KEY=xai-... OPENAI_API_KEY=sk-... GEMINI_API_KEY=gemini-... npx tsx scripts/kolk/generate-challenges.ts --level 10 --count 5
  *   XAI_API_KEY=xai-... npx tsx scripts/kolk/generate-challenges.ts --dry-run
- *   XAI_API_KEY=xai-... npx tsx scripts/kolk/generate-challenges.ts --levels 6-10 --count 3
+ *   XAI_API_KEY=xai-... OPENAI_API_KEY=sk-... GEMINI_API_KEY=gemini-... npx tsx scripts/kolk/generate-challenges.ts --levels 6-10 --count 3
  *
  * Env:
- *   XAI_API_KEY             — required
+ *   KOLK_OPERATOR_PROVIDER  — optional; current executable script path is `xai` only
+ *   XAI_API_KEY             — required for script execution
+ *   OPENAI_API_KEY          — validated as part of the broader operator credential baseline
+ *   GEMINI_API_KEY          — validated as part of the broader operator credential baseline
+ *   KOLK_OPERATOR_MODEL     — optional model override for the current xAI execution path
+ *   XAI_MODEL               — optional provider-specific model override
+ *   KOLK_OPERATOR_BASE_URL  — optional shared base URL override
+ *   XAI_BASE_URL            — optional provider-specific base URL override
  *   KOLK_SUPABASE_URL       — required (unless --dry-run)
  *   KOLK_SUPABASE_SERVICE_ROLE_KEY — required (unless --dry-run)
  */
 
 import OpenAI from 'openai';
 import crypto from 'crypto';
+import {
+  createOperatorProviderClient,
+  formatOperatorBaselineStatus,
+  type OperatorProviderConfig,
+  resolveOperatorProviderConfig,
+} from './operator-provider';
 
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
 
 const DEFAULT_COUNT_PER_LEVEL = 10;
-const XAI_MODEL = process.env.XAI_MODEL ?? 'grok-4-1-fast-non-reasoning';
-const BASE_URL = process.env.XAI_BASE_URL ?? 'https://api.x.ai/v1';
-const MODEL_BRIEF = XAI_MODEL;   // Call 1: generate brief
-const MODEL_RUBRIC = XAI_MODEL;  // Call 2: generate rubric
 
 // ---------------------------------------------------------------------------
 // Level metadata (L6-L20)
@@ -182,6 +191,7 @@ function pickRandom<T>(arr: T[]): T {
 
 async function generateBrief(
   openai: OpenAI,
+  model: string,
   levelMeta: LevelMeta,
   seed: number,
 ): Promise<{ taskJson: Record<string, unknown>; promptMd: string }> {
@@ -225,7 +235,7 @@ Direction: ${levelMeta.generatorPrompt}
 Make this challenge unique and realistic. Vary the domain, complexity, and buyer personality.`;
 
   const response = await openai.chat.completions.create({
-    model: MODEL_BRIEF,
+    model,
     temperature: 0.85,
     max_tokens: 3000,
     messages: [
@@ -252,6 +262,7 @@ Make this challenge unique and realistic. Vary the domain, complexity, and buyer
 
 async function generateRubric(
   openai: OpenAI,
+  model: string,
   levelMeta: LevelMeta,
   taskJson: Record<string, unknown>,
   promptMd: string,
@@ -303,7 +314,7 @@ STRUCTURED FIELDS:
 ${JSON.stringify(taskJson.structured_brief ?? {}, null, 2).slice(0, 1500)}`;
 
   const response = await openai.chat.completions.create({
-    model: MODEL_RUBRIC,
+    model,
     temperature: 0.3,  // lower temp for rubric consistency
     max_tokens: 2000,
     messages: [
@@ -324,6 +335,7 @@ ${JSON.stringify(taskJson.structured_brief ?? {}, null, 2).slice(0, 1500)}`;
 // ---------------------------------------------------------------------------
 
 async function insertToSupabase(
+  model: string,
   level: number,
   seed: number,
   variant: string,
@@ -368,7 +380,7 @@ async function insertToSupabase(
       prompt_md: promptMd,
       metadata_yaml: metadataYaml,
       time_limit_minutes: timeLimitMinutes,
-      generator_model: MODEL_BRIEF,
+      generator_model: model,
       active: true,
       generated_at: new Date().toISOString(),
     }, { onConflict: 'level,seed,variant' });
@@ -411,8 +423,11 @@ async function main() {
   const countIdx = args.indexOf('--count');
   const count = countIdx >= 0 ? parseInt(args[countIdx + 1]!, 10) : DEFAULT_COUNT_PER_LEVEL;
 
-  if (!process.env.XAI_API_KEY) {
-    console.error('XAI_API_KEY is required');
+  let providerConfig: OperatorProviderConfig;
+  try {
+    providerConfig = resolveOperatorProviderConfig({ enforceBaseline: !dryRun });
+  } catch (error) {
+    console.error((error as Error).message);
     process.exit(1);
   }
 
@@ -421,13 +436,21 @@ async function main() {
     process.exit(1);
   }
 
-  const openai = new OpenAI({ apiKey: process.env.XAI_API_KEY, baseURL: BASE_URL });
+  const openai = createOperatorProviderClient(providerConfig);
+  const modelBrief = providerConfig.model;
+  const modelRubric = providerConfig.model;
 
   console.log(`\n=== Kolk Arena L6-L20 Two-Call Generator ===`);
   console.log(`Levels: ${targetLevels.join(', ')}`);
   console.log(`Seeds per level: ${count}`);
   console.log(`Mode: ${dryRun ? 'DRY RUN' : 'LIVE (writing to Supabase)'}`);
-  console.log(`Models: brief=${MODEL_BRIEF}, rubric=${MODEL_RUBRIC}\n`);
+  console.log(`Execution provider: ${providerConfig.executionProvider} (${providerConfig.apiKeyEnv})`);
+  console.log(`Operator baseline: ${formatOperatorBaselineStatus(providerConfig)}`);
+  console.log(`Models: brief=${modelBrief}, rubric=${modelRubric}`);
+  if (providerConfig.baseURL) {
+    console.log(`Base URL: ${providerConfig.baseURL}`);
+  }
+  console.log('');
 
   let totalGenerated = 0;
   let totalErrors = 0;
@@ -448,11 +471,11 @@ async function main() {
       try {
         // Call 1: Generate brief
         process.stdout.write('brief... ');
-        const { taskJson, promptMd } = await generateBrief(openai, levelMeta, seed);
+        const { taskJson, promptMd } = await generateBrief(openai, modelBrief, levelMeta, seed);
 
         // Call 2: Generate rubric from brief
         process.stdout.write('rubric... ');
-        const rubricJson = await generateRubric(openai, levelMeta, taskJson, promptMd);
+        const rubricJson = await generateRubric(openai, modelRubric, levelMeta, taskJson, promptMd);
 
         // Build metadata
         const metadataYaml = [
@@ -462,8 +485,9 @@ async function main() {
           `band: ${levelMeta.band}`,
           `seed: ${seed}`,
           `generated_at: "${new Date().toISOString()}"`,
-          `generator_model_brief: "${MODEL_BRIEF}"`,
-          `generator_model_rubric: "${MODEL_RUBRIC}"`,
+          `generator_provider: "${providerConfig.executionProvider}"`,
+          `generator_model_brief: "${modelBrief}"`,
+          `generator_model_rubric: "${modelRubric}"`,
           `time_limit_minutes: ${levelMeta.timeLimitMinutes}`,
           `pass_threshold: ${levelMeta.passThreshold}`,
           `is_boss: ${levelMeta.isBoss}`,
@@ -482,6 +506,7 @@ async function main() {
           }
         } else {
           const ok = await insertToSupabase(
+            modelBrief,
             levelNum, seed, variant,
             taskJson, promptMd, rubricJson, metadataYaml,
             levelMeta.timeLimitMinutes,
