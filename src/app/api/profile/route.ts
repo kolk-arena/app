@@ -5,17 +5,41 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { ProfileInputSchema } from '@/lib/kolk/types';
-import { resolveArenaUserFromRequest } from '@/lib/kolk/auth/server';
+import { resolveArenaAuthContext } from '@/lib/kolk/auth/server';
 import { supabaseAdmin } from '@/lib/kolk/db';
+import { missingScopes, SCOPES, type Scope } from '@/lib/kolk/tokens';
 
-export async function GET(request: NextRequest) {
-  const user = await resolveArenaUserFromRequest(request);
-  if (!user) {
+function checkScopeOr401(
+  ctx: Awaited<ReturnType<typeof resolveArenaAuthContext>>,
+  required: Scope,
+): NextResponse | null {
+  if (!ctx) {
     return NextResponse.json(
       { error: 'Authentication required', code: 'UNAUTHORIZED' },
       { status: 401 },
     );
   }
+  // Session caller: no scope check (human surface).
+  if (ctx.scopes === null) return null;
+  const missing = missingScopes(ctx.scopes, [required]);
+  if (missing.length > 0) {
+    return NextResponse.json(
+      {
+        error: `This Personal Access Token is missing the ${missing.join(', ')} scope.`,
+        code: 'INSUFFICIENT_SCOPE',
+        missing_scopes: missing,
+      },
+      { status: 403 },
+    );
+  }
+  return null;
+}
+
+export async function GET(request: NextRequest) {
+  const ctx = await resolveArenaAuthContext(request);
+  const scopeDenied = checkScopeOr401(ctx, SCOPES.READ_PROFILE);
+  if (scopeDenied) return scopeDenied;
+  const user = ctx!.user;
 
   return NextResponse.json({
     profile: {
@@ -34,13 +58,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const user = await resolveArenaUserFromRequest(request);
-  if (!user) {
-    return NextResponse.json(
-      { error: 'Authentication required', code: 'UNAUTHORIZED' },
-      { status: 401 },
-    );
-  }
+  const ctx = await resolveArenaAuthContext(request);
+  const scopeDenied = checkScopeOr401(ctx, SCOPES.WRITE_PROFILE);
+  if (scopeDenied) return scopeDenied;
+  const user = ctx!.user;
 
   let body: unknown;
   try {

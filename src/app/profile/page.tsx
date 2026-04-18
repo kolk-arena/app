@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { AuthSignInPanel } from '@/app/auth-sign-in-panel';
+import { ApiTokensPanel } from './api-tokens-panel';
 
 type Profile = {
   id: string;
@@ -339,6 +340,8 @@ export default function ProfilePage() {
                 {saving ? 'Saving...' : saveSuccess ? 'Saved' : 'Save profile'}
               </button>
             </form>
+
+            <ApiTokensPanel />
           </>
         ) : null}
       </section>

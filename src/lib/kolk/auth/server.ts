@@ -9,6 +9,11 @@ import {
   inferAuthMethodFromUser,
   normalizeEmail,
 } from '@/lib/kolk/auth';
+import {
+  hashToken,
+  looksLikeKatToken,
+  type Scope,
+} from '@/lib/kolk/tokens';
 
 type ArenaAuthMethod = 'email' | 'github' | 'google';
 
@@ -199,9 +204,39 @@ export async function syncArenaIdentityFromSupabaseUser(
   });
 }
 
-export async function resolveArenaUserFromRequest(request: NextRequest): Promise<ArenaUserRecord | null> {
+/**
+ * Result of an auth resolution. Carries the arena user plus (when the
+ * credential was a PAT) the scopes the token was issued with. The session
+ * path returns `scopes === null` to mark "human surface" — PAT creation
+ * / revocation endpoints should refuse these cases.
+ */
+export interface ArenaAuthContext {
+  user: ArenaUserRecord;
+  /** PAT id when resolved from a kat_* token; null when resolved from a session. */
+  apiTokenId: string | null;
+  /**
+   * null = session cookie (human surface); array = PAT scopes (machine surface).
+   */
+  scopes: Scope[] | null;
+}
+
+export async function resolveArenaAuthContext(request: NextRequest): Promise<ArenaAuthContext | null> {
   const token = extractToken(request.headers);
+
   if (token) {
+    // Machine surface: Personal Access Token (kat_*)
+    if (looksLikeKatToken(token)) {
+      const apiToken = await resolveApiToken(token);
+      if (apiToken) {
+        return {
+          user: apiToken.user,
+          apiTokenId: apiToken.id,
+          scopes: apiToken.scopes,
+        };
+      }
+    }
+
+    // Legacy: ka_users.token_hash (pre-PAT era). Kept for one minor release.
     const tokenHash = hashCode(token);
     const { data: tokenUserRaw } = await supabaseAdmin
       .from('ka_users')
@@ -210,12 +245,12 @@ export async function resolveArenaUserFromRequest(request: NextRequest): Promise
       .eq('is_verified', true)
       .maybeSingle();
     const tokenUser = (tokenUserRaw ?? null) as ArenaUserRecord | null;
-
     if (tokenUser) {
-      return tokenUser;
+      return { user: tokenUser, apiTokenId: null, scopes: null };
     }
   }
 
+  // Human surface: Supabase session cookie
   const { supabase } = createRouteHandlerSupabaseClient(request);
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user?.email) {
@@ -223,5 +258,66 @@ export async function resolveArenaUserFromRequest(request: NextRequest): Promise
   }
 
   const synced = await syncArenaIdentityFromSupabaseUser(data.user, { issueApiToken: false });
-  return synced.user;
+  return { user: synced.user, apiTokenId: null, scopes: null };
+}
+
+/**
+ * Backwards-compat wrapper — returns just the user. New code should use
+ * `resolveArenaAuthContext` when it needs the scopes or the PAT id.
+ */
+export async function resolveArenaUserFromRequest(request: NextRequest): Promise<ArenaUserRecord | null> {
+  const ctx = await resolveArenaAuthContext(request);
+  return ctx?.user ?? null;
+}
+
+/**
+ * Look up a PAT by hash. Returns null if unknown, revoked, or expired.
+ * Updates last_used_at on success (best-effort; not awaited).
+ */
+async function resolveApiToken(raw: string): Promise<{
+  id: string;
+  user: ArenaUserRecord;
+  scopes: Scope[];
+} | null> {
+  const tokenHash = hashToken(raw);
+
+  const { data: tokenRowRaw } = await supabaseAdmin
+    .from('ka_api_tokens')
+    .select('id, user_id, scopes, expires_at, revoked_at')
+    .eq('token_hash', tokenHash)
+    .maybeSingle();
+
+  const tokenRow = tokenRowRaw as {
+    id: string;
+    user_id: string;
+    scopes: string[] | null;
+    expires_at: string | null;
+    revoked_at: string | null;
+  } | null;
+
+  if (!tokenRow) return null;
+  if (tokenRow.revoked_at) return null;
+  if (tokenRow.expires_at && new Date(tokenRow.expires_at).getTime() <= Date.now()) return null;
+
+  const { data: userRaw } = await supabaseAdmin
+    .from('ka_users')
+    .select(ARENA_USER_SELECT)
+    .eq('id', tokenRow.user_id)
+    .eq('is_verified', true)
+    .maybeSingle();
+
+  const user = (userRaw ?? null) as ArenaUserRecord | null;
+  if (!user) return null;
+
+  // Best-effort last_used_at update (not awaited, not blocking)
+  void supabaseAdmin
+    .from('ka_api_tokens')
+    .update({ last_used_at: new Date().toISOString() })
+    .eq('id', tokenRow.id);
+
+  return {
+    id: tokenRow.id,
+    user,
+    scopes: (tokenRow.scopes ?? []) as Scope[],
+  };
 }

@@ -20,7 +20,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { assertRuntimeSchemaReady, supabaseAdmin } from '@/lib/kolk/db';
 import { SubmissionInputSchema, type SubmissionResult } from '@/lib/kolk/types';
 import { getAnonToken, hashCode } from '@/lib/kolk/auth';
-import { resolveArenaUserFromRequest } from '@/lib/kolk/auth/server';
+import { resolveArenaAuthContext } from '@/lib/kolk/auth/server';
+import { missingScopes, SCOPES, type Scope } from '@/lib/kolk/tokens';
 import { getLevel } from '@/lib/kolk/levels';
 import { runLayer1, type Layer1Config } from '@/lib/kolk/evaluator/layer1';
 import { runJudge, type JudgeResult } from '@/lib/kolk/evaluator/judge';
@@ -384,10 +385,12 @@ export async function POST(request: NextRequest) {
 
     let callerParticipantId: string | null = null;
     let callerAnonToken: string | null = null;
+    let callerScopes: Scope[] | null = null;
 
-    const arenaUser = await resolveArenaUserFromRequest(request);
-    if (arenaUser?.is_verified) {
-      callerParticipantId = arenaUser.id;
+    const arenaAuth = await resolveArenaAuthContext(request);
+    if (arenaAuth?.user.is_verified) {
+      callerParticipantId = arenaAuth.user.id;
+      callerScopes = arenaAuth.scopes; // null for session, array for PAT
     } else {
       callerAnonToken = getAnonToken(request);
     }
@@ -451,6 +454,21 @@ export async function POST(request: NextRequest) {
         code: 'AUTH_REQUIRED',
         message: `Authentication required for level ${challenge.level}`,
       });
+    }
+
+    // Scope enforcement (PAT-authenticated callers only; session callers unrestricted).
+    // See docs/API_TOKENS.md §Scopes.
+    if (callerScopes !== null) {
+      const requiredScope: Scope = challenge.level === 0 ? SCOPES.SUBMIT_ONBOARDING : SCOPES.SUBMIT_RANKED;
+      const missing = missingScopes(callerScopes, [requiredScope]);
+      if (missing.length > 0) {
+        return errorResponse({
+          keyHash,
+          status: 403,
+          code: 'INSUFFICIENT_SCOPE',
+          message: `This Personal Access Token is missing the ${missing.join(', ')} scope required to submit for level ${challenge.level}.`,
+        });
+      }
     }
 
     // Rate limit is scoped to the attemptToken (not the account). See

@@ -14,7 +14,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { assertRuntimeSchemaReady, supabaseAdmin } from '@/lib/kolk/db';
 import { getLevel, isBossLevel } from '@/lib/kolk/levels';
 import { applyAnonTokenCookie, resolveAnonToken } from '@/lib/kolk/auth';
-import { resolveArenaUserFromRequest } from '@/lib/kolk/auth/server';
+import { resolveArenaAuthContext } from '@/lib/kolk/auth/server';
+import { missingScopes, SCOPES } from '@/lib/kolk/tokens';
 import type { ChallengePackage } from '@/lib/kolk/types';
 import {
   ANONYMOUS_BETA_MAX_LEVEL,
@@ -79,7 +80,24 @@ export async function GET(
   let shouldSetAnonCookie = false;
   let maxLevelPassed = 0;
 
-  const arenaUser = await resolveArenaUserFromRequest(request);
+  const arenaAuth = await resolveArenaAuthContext(request);
+  const arenaUser = arenaAuth?.user;
+
+  // Scope enforcement (PAT-authenticated callers only).
+  // See docs/API_TOKENS.md §Scopes.
+  if (arenaAuth?.scopes !== null && arenaAuth?.scopes !== undefined) {
+    const missing = missingScopes(arenaAuth.scopes, [SCOPES.FETCH_CHALLENGE]);
+    if (missing.length > 0) {
+      return NextResponse.json(
+        {
+          error: `This Personal Access Token is missing the ${missing.join(', ')} scope required to fetch a challenge.`,
+          code: 'INSUFFICIENT_SCOPE',
+          missing_scopes: missing,
+        },
+        { status: 403 },
+      );
+    }
+  }
 
   if (arenaUser?.is_verified) {
     participantId = arenaUser.id;
