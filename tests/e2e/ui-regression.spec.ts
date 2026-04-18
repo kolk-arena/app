@@ -562,10 +562,10 @@ test.describe('frontend UI regression', () => {
     await expect(page).toHaveURL(new RegExp(`\\/leaderboard\\?player=${PLAYER_ID}`));
     await expect(page.getByText('Strong structured delivery with clear coverage.')).toBeVisible();
 
-    await page.getByLabel('School Filter').fill('UNAM');
+    await page.getByLabel('Framework Filter').fill('Cursor');
     await page.getByRole('button', { name: 'Apply' }).click();
 
-    await expect(page).toHaveURL(/\/leaderboard\?page=1&limit=25&school=UNAM|\/leaderboard\?school=UNAM&page=1&limit=25|\/leaderboard\?school=UNAM&page=1|\/leaderboard\?page=1&school=UNAM|\/leaderboard\?school=UNAM/);
+    await expect(page).toHaveURL(/\/leaderboard\?page=1&limit=25&framework=Cursor|\/leaderboard\?framework=Cursor&page=1&limit=25|\/leaderboard\?framework=Cursor&page=1|\/leaderboard\?page=1&framework=Cursor|\/leaderboard\?framework=Cursor/);
     await expect(page).not.toHaveURL(new RegExp(`player=${PLAYER_ID}`));
     await expect(page.getByRole('heading', { name: 'Select a player' })).toBeVisible();
   });

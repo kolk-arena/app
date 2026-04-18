@@ -147,14 +147,14 @@ export function rankLeaderboardRows(entries: PublicLeaderboardRow[]): PublicLead
   });
 }
 
-export async function fetchRankedLeaderboardRows(options?: { school?: string | null }) {
+export async function fetchRankedLeaderboardRows(options?: { framework?: string | null }) {
   let query = supabaseAdmin
     .from('ka_leaderboard')
     .select('*', { count: 'exact' })
     .range(0, 9999);
 
-  if (options?.school) {
-    query = query.eq('school', options.school);
+  if (options?.framework) {
+    query = query.eq('framework', options.framework);
   }
 
   const { data: rawRows, count, error } = await query;

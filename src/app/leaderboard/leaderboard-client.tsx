@@ -31,7 +31,7 @@ type LeaderboardResponse = {
 };
 
 const DEFAULT_LIMIT = 25;
-const QUICK_SCHOOLS = ['TecMilenio', 'UNAM', 'IPN'];
+const QUICK_FRAMEWORKS = ['Claude Code', 'Cursor', 'Windsurf', 'OpenHands', 'LangGraph', 'Custom'];
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -93,7 +93,7 @@ export function LeaderboardClient() {
   const searchParams = useSearchParams();
 
   const page = readPositiveInt(searchParams.get('page'), 1);
-  const school = searchParams.get('school') ?? '';
+  const framework = searchParams.get('framework') ?? '';
   const limit = readPositiveInt(searchParams.get('limit'), DEFAULT_LIMIT);
   const selectedPlayerId = asValidPlayerId(searchParams.get('player'));
 
@@ -102,13 +102,13 @@ export function LeaderboardClient() {
   const [error, setError] = useState<string | null>(null);
   const [selectionMessage, setSelectionMessage] = useState<string | null>(null);
   const [detailRetryNonce, setDetailRetryNonce] = useState(0);
-  const [schoolInput, setSchoolInput] = useState(school);
+  const [frameworkInput, setFrameworkInput] = useState(framework);
   const [isPending, startTransition] = useTransition();
   const detailRegionId = useId();
 
   useEffect(() => {
-    setSchoolInput(school);
-  }, [school]);
+    setFrameworkInput(framework);
+  }, [framework]);
 
   useEffect(() => {
     const rawPlayerId = searchParams.get('player');
@@ -130,7 +130,7 @@ export function LeaderboardClient() {
     const apiQuery = buildQueryString(new URLSearchParams(), {
       page: String(page),
       limit: String(limit),
-      school: school || null,
+      framework: framework || null,
     });
 
     void fetch(`/api/leaderboard${apiQuery}`, {
@@ -159,7 +159,7 @@ export function LeaderboardClient() {
       active = false;
       controller.abort();
     };
-  }, [page, school, limit]);
+  }, [page, framework, limit]);
 
   const entries = data?.leaderboard ?? [];
   const total = data?.total ?? 0;
@@ -181,17 +181,17 @@ export function LeaderboardClient() {
     event.preventDefault();
     setSelectionMessage(null);
     navigate({
-      school: schoolInput.trim() || null,
+      framework: frameworkInput.trim() || null,
       page: '1',
       player: null,
     });
   }
 
   function clearFilters() {
-    setSchoolInput('');
+    setFrameworkInput('');
     setSelectionMessage(null);
     navigate({
-      school: null,
+      framework: null,
       page: '1',
       player: null,
     });
@@ -271,11 +271,11 @@ export function LeaderboardClient() {
             <div className="space-y-3">
               <form onSubmit={handleFilterSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-end">
                 <label className="flex min-w-0 flex-1 flex-col gap-1.5">
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">School Filter</span>
+                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Framework Filter</span>
                   <input
-                    value={schoolInput}
-                    onChange={(event) => setSchoolInput(event.target.value)}
-                    placeholder="TecMilenio"
+                    value={frameworkInput}
+                    onChange={(event) => setFrameworkInput(event.target.value)}
+                    placeholder="Claude Code"
                     className="min-h-12 rounded-lg border border-slate-300 bg-white px-4 text-base text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200 sm:text-sm"
                   />
                 </label>
@@ -301,22 +301,22 @@ export function LeaderboardClient() {
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  onClick={() => navigate({ school: null, page: '1', player: null })}
+                  onClick={() => navigate({ framework: null, page: '1', player: null })}
                     className={`min-h-10 rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] transition ${
-                      school
+                      framework
                         ? 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
                         : 'border-slate-900 bg-slate-900 text-white'
                   }`}
                 >
-                  All schools
+                  All frameworks
                 </button>
-                {QUICK_SCHOOLS.map((candidate) => (
+                {QUICK_FRAMEWORKS.map((candidate) => (
                   <button
                     key={candidate}
                     type="button"
-                    onClick={() => navigate({ school: candidate, page: '1', player: null })}
+                    onClick={() => navigate({ framework: candidate, page: '1', player: null })}
                     className={`min-h-10 rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] transition ${
-                      school === candidate
+                      framework === candidate
                         ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
                         : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
                     }`}
@@ -326,13 +326,13 @@ export function LeaderboardClient() {
                 ))}
               </div>
 
-              {school ? (
+              {framework ? (
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
                     Active filter
                   </span>
                   <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800">
-                    <span>{school}</span>
+                    <span>{framework}</span>
                     <button type="button" onClick={clearFilters} className="min-h-7 text-emerald-700 hover:text-emerald-900">
                       Clear
                     </button>
@@ -412,7 +412,7 @@ export function LeaderboardClient() {
               <div className="px-5 py-10 sm:px-6">
                 <p className="text-sm font-semibold text-slate-900">No entries found.</p>
                 <p className="mt-1 text-sm text-slate-500">
-                  {school ? 'Try clearing the school filter or check back after more submissions land.' : 'Official competitive entries will appear here once players start posting passing runs.'}
+                  {framework ? 'Try clearing the framework filter or check back after more submissions land.' : 'Official competitive entries will appear here once players start posting passing runs.'}
                 </p>
               </div>
             ) : null}

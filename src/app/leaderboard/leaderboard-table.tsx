@@ -126,9 +126,6 @@ export function LeaderboardTable({
                 <p className="text-sm text-slate-500">
                   {entry.handle ? `@${entry.handle}` : 'No public handle'}
                 </p>
-                <p className="text-xs text-slate-400">
-                  {entry.framework ?? 'Framework not set'}
-                </p>
               </div>
               <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
                 View
@@ -137,8 +134,8 @@ export function LeaderboardTable({
 
             <dl className="grid grid-cols-2 gap-3 text-sm">
               <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
-                <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">School</dt>
-                <dd className="mt-1 break-words font-medium text-slate-900">{entry.school ?? 'Independent'}</dd>
+                <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Framework</dt>
+                <dd className="mt-1 break-words font-medium text-slate-900">{entry.framework ?? 'Not set'}</dd>
               </div>
               <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
                 <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Highest</dt>
@@ -176,7 +173,7 @@ export function LeaderboardTable({
             <tr>
               <th className="border-b border-slate-200 px-4 py-3 font-semibold">Rank</th>
               <th className="border-b border-slate-200 px-4 py-3 font-semibold">Player</th>
-              <th className="border-b border-slate-200 px-4 py-3 font-semibold">School</th>
+              <th className="border-b border-slate-200 px-4 py-3 font-semibold">Framework</th>
               <th className="border-b border-slate-200 px-4 py-3 font-semibold">Highest</th>
               <th className="border-b border-slate-200 px-4 py-3 font-semibold">Frontier Score</th>
               <th className="border-b border-slate-200 px-4 py-3 font-semibold">Solve Time</th>
@@ -225,11 +222,10 @@ export function LeaderboardTable({
                     ) : (
                       <span className="text-xs text-slate-400">No public handle</span>
                     )}
-                    <span className="text-xs text-slate-400">{entry.framework ?? 'Framework not set'}</span>
                   </div>
                 </td>
                 <td className="border-b border-slate-200 px-4 py-3 text-slate-600">
-                  {entry.school ?? 'Independent'}
+                  {entry.framework ?? 'Not set'}
                 </td>
                 <td className="border-b border-slate-200 px-4 py-3">
                   <span className="inline-flex min-w-14 items-center justify-center rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 font-medium text-slate-800">

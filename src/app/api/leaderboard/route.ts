@@ -8,7 +8,7 @@
  *
  * Query params:
  *   ?page=1&limit=50
- *   ?school=TecMilenio
+ *   ?framework=Claude%20Code
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -31,10 +31,10 @@ export async function GET(request: NextRequest) {
 
   const page = readPositiveInt(searchParams.get('page'), 1, 10_000);
   const limit = readPositiveInt(searchParams.get('limit'), 50, 100);
-  const school = asOptionalString(searchParams.get('school'));
+  const framework = asOptionalString(searchParams.get('framework'));
 
   try {
-    const { rows, total } = await fetchRankedLeaderboardRows({ school });
+    const { rows, total } = await fetchRankedLeaderboardRows({ framework });
     const offset = (page - 1) * limit;
 
     return NextResponse.json({
