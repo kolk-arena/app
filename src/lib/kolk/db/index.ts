@@ -6,6 +6,7 @@
 
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { cookies } from 'next/headers';
 import type { NextRequest, NextResponse } from 'next/server';
 
 // ---------------------------------------------------------------------------
@@ -46,7 +47,10 @@ export async function assertRuntimeSchemaReady(): Promise<void> {
   if (schemaReadyCache) return;
 
   const [sessionCheck, submissionCheck, leaderboardCheck, l0Check] = await Promise.all([
-    supabaseAdmin.from('ka_challenge_sessions').select('id', { head: true, count: 'exact' }).limit(1),
+    supabaseAdmin
+      .from('ka_challenge_sessions')
+      .select('attempt_token, consumed_at', { head: true, count: 'exact' })
+      .limit(1),
     supabaseAdmin
       .from('ka_submissions')
       .select('challenge_session_id, unlocked, solve_time_seconds', { head: true, count: 'exact' })
@@ -119,4 +123,30 @@ export function createRouteHandlerSupabaseClient(request: NextRequest) {
       return response;
     },
   };
+}
+
+export async function createServerComponentSupabaseClient() {
+  const url = process.env.KOLK_SUPABASE_URL;
+  const key = process.env.KOLK_SUPABASE_ANON_KEY;
+  if (!url || !key) {
+    throw new Error(
+      'Missing KOLK_SUPABASE_URL or KOLK_SUPABASE_ANON_KEY environment variables'
+    );
+  }
+
+  const cookieStore = await cookies();
+
+  const supabase = createServerClient(url, key, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
+      },
+      setAll() {
+        // Server Components are read-only for cookies. Auth-mutating flows
+        // must use Route Handlers or Server Actions.
+      },
+    },
+  });
+
+  return { supabase };
 }

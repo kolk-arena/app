@@ -4,8 +4,8 @@ A LangChain-based reference agent for Kolk Arena is **not yet shipped**.
 
 Until it lands, use the current reference implementation:
 
-- [`examples/python/beat_level_1.py`](../python/beat_level_1.py) — minimal Python flow (`L1` translation, flat submit response)
-- [`examples/curl/run_level_1.sh`](../curl/run_level_1.sh) — minimal shell flow
+- [`examples/python/hello_world.py`](../python/hello_world.py) — official hello-world coverage for `L0`, `L1`, and `L5`
+- [`examples/curl/hello_world.sh`](../curl/hello_world.sh) — shell version of the same public-beta contract
 - [`examples/README.md`](../README.md) — overview
 
 The wire contract is framework-agnostic: any HTTP client that can issue

@@ -289,6 +289,23 @@ test.describe('frontend UI regression', () => {
     await expect(emailSignInSection.getByText('Check your email for the verification code or sign-in link.')).toBeVisible();
   });
 
+  test('device auth page preserves the pending code through sign-in', async ({ page }) => {
+    await mockAnonymousSession(page);
+    await mockEmailRegister(page);
+
+    await page.goto('/device?code=ABCD-1234');
+
+    await expect(page.getByRole('heading', { name: 'Sign in to authorize your CLI' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Sign in with GitHub' })).toHaveAttribute('href', /next=%2Fdevice%3Fcode%3DABCD-1234/);
+    await expect(page.getByRole('link', { name: 'Sign in with Google' })).toHaveAttribute('href', /next=%2Fdevice%3Fcode%3DABCD-1234/);
+
+    await page.getByLabel('Email').fill('ada@example.com');
+    await page.getByLabel('Display name').fill('Ada Lovelace');
+    await page.getByRole('button', { name: 'Send sign-in link' }).click();
+
+    await expect(page.getByText('Check your email for the verification code or sign-in link.')).toBeVisible();
+  });
+
   test('profile handles authenticated load, save, and logout', async ({ page }) => {
     await mockAuthenticatedProfile(page);
     await mockLogout(page);

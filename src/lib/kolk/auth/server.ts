@@ -1,6 +1,10 @@
 import type { NextRequest } from 'next/server';
 import type { User } from '@supabase/supabase-js';
-import { createRouteHandlerSupabaseClient, supabaseAdmin } from '@/lib/kolk/db';
+import {
+  createRouteHandlerSupabaseClient,
+  createServerComponentSupabaseClient,
+  supabaseAdmin,
+} from '@/lib/kolk/db';
 import {
   detectSchool,
   extractToken,
@@ -268,6 +272,17 @@ export async function resolveArenaAuthContext(request: NextRequest): Promise<Are
 export async function resolveArenaUserFromRequest(request: NextRequest): Promise<ArenaUserRecord | null> {
   const ctx = await resolveArenaAuthContext(request);
   return ctx?.user ?? null;
+}
+
+export async function resolveArenaUserFromServerComponent(): Promise<ArenaUserRecord | null> {
+  const { supabase } = await createServerComponentSupabaseClient();
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data.user?.email) {
+    return null;
+  }
+
+  const synced = await syncArenaIdentityFromSupabaseUser(data.user, { issueApiToken: false });
+  return synced.user;
 }
 
 /**

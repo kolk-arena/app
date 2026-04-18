@@ -41,22 +41,48 @@ import {
   SUBMIT_RATE_LIMIT_WINDOW_MS,
 } from '@/lib/kolk/beta-contract';
 
-const rateLimitMap = new Map<string, number[]>();
+/**
+ * Cross-process submit rate limiter, backed by Postgres (`ka_submit_rate_limit`
+ * + `ka_claim_submit_slot()` per migration 00011). The previous in-memory
+ * implementation was per-serverless-instance and silently bypassed by any
+ * multi-instance deploy. See docs/SUBMISSION_API.md §Rate Limiting.
+ *
+ * The function acquires FOR UPDATE row lock on the attempt_token's row, so
+ * two concurrent requests serialize correctly.
+ *
+ * Fail-open policy: if the RPC itself fails (DB outage, etc.) we let the
+ * submit through rather than black-hole the user. Rate limit is a guardrail,
+ * not a security boundary.
+ */
+async function checkRateLimit(attemptToken: string): Promise<
+  | { allowed: true; retryAfterSeconds: 0 }
+  | { allowed: false; retryAfterSeconds: number }
+> {
+  try {
+    const { data, error } = await supabaseAdmin.rpc('ka_claim_submit_slot', {
+      p_attempt_token: attemptToken,
+      p_window_ms: SUBMIT_RATE_LIMIT_WINDOW_MS,
+      p_limit: SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN,
+    });
 
-function checkRateLimit(key: string) {
-  const now = Date.now();
-  const timestamps = (rateLimitMap.get(key) ?? []).filter((timestamp) => now - timestamp < SUBMIT_RATE_LIMIT_WINDOW_MS);
+    if (error) {
+      console.error('[submit] rate-limit RPC error, failing open:', error);
+      return { allowed: true, retryAfterSeconds: 0 };
+    }
 
-  if (timestamps.length >= SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN) {
-    const oldestTs = timestamps[0] ?? now;
-    const retryAfterSeconds = Math.max(1, Math.ceil((SUBMIT_RATE_LIMIT_WINDOW_MS - (now - oldestTs)) / 1000));
-    rateLimitMap.set(key, timestamps);
-    return { allowed: false as const, retryAfterSeconds };
+    const row = Array.isArray(data) ? data[0] : data;
+    if (row && row.allowed === false) {
+      const retry = Number(row.retry_after_seconds);
+      return {
+        allowed: false,
+        retryAfterSeconds: Number.isFinite(retry) && retry > 0 ? retry : 60,
+      };
+    }
+    return { allowed: true, retryAfterSeconds: 0 };
+  } catch (err) {
+    console.error('[submit] rate-limit RPC threw, failing open:', err);
+    return { allowed: true, retryAfterSeconds: 0 };
   }
-
-  timestamps.push(now);
-  rateLimitMap.set(key, timestamps);
-  return { allowed: true as const, retryAfterSeconds: 0 };
 }
 
 function parseL5Json(text: string): { ok: true } | { ok: false; message: string; parserPosition?: string } {
@@ -130,9 +156,15 @@ async function errorResponse({
   const body = { error: message, code };
 
   if (status < 500) {
+    // Extend TTL from the 5-minute pending claim to the documented 24h
+    // idempotency cache window so a retry with the same key is a cache hit.
     void supabaseAdmin
       .from('ka_idempotency_keys')
-      .update({ response: body, status_code: status })
+      .update({
+        response: body,
+        status_code: status,
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      })
       .eq('key_hash', keyHash);
   } else {
     void supabaseAdmin.from('ka_idempotency_keys').delete().eq('key_hash', keyHash);
@@ -309,9 +341,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(cached.response, { status: cached.status_code });
     }
 
+    // Claim the idempotency key with a SHORT expiry. If this request crashes
+    // (e.g. Vercel OOM / timeout) the pending row self-expires in 5 minutes
+    // instead of locking the key for the full 24h idempotency window.
+    // On success or recoverable error, we extend expires_at to 24h below.
+    // First, evict any stuck pending claim from a previous crashed request
+    // that shares the same key hash.
+    await supabaseAdmin
+      .from('ka_idempotency_keys')
+      .delete()
+      .eq('key_hash', keyHash)
+      .lt('expires_at', new Date().toISOString());
+
     const { error: claimError } = await supabaseAdmin
       .from('ka_idempotency_keys')
-      .insert({ key_hash: keyHash, response: { status: 'pending' }, status_code: 202 });
+      .insert({
+        key_hash: keyHash,
+        response: { status: 'pending' },
+        status_code: 202,
+        expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+      });
 
     if (claimError) {
       return NextResponse.json(
@@ -473,8 +522,9 @@ export async function POST(request: NextRequest) {
 
     // Rate limit is scoped to the attemptToken (not the account). See
     // docs/SUBMISSION_API.md §Rate Limiting + §Anti-farming.
-    const rateLimitKey = `attempt:${attemptToken}`;
-    const rateLimit = checkRateLimit(rateLimitKey);
+    // Rate limit is keyed on the raw attemptToken (per migration 00011); no
+    // prefix needed since the token is already opaque and unique.
+    const rateLimit = await checkRateLimit(attemptToken);
     if (!rateLimit.allowed) {
       return errorResponse({
         keyHash,
@@ -754,9 +804,15 @@ export async function POST(request: NextRequest) {
     };
 
     const responseBody = result as unknown as Record<string, unknown>;
+    // Extend the 5-minute pending claim to the documented 24h idempotency cache
+    // window so a retry with the same Idempotency-Key returns the cached body.
     void supabaseAdmin
       .from('ka_idempotency_keys')
-      .update({ response: responseBody, status_code: 200 })
+      .update({
+        response: responseBody,
+        status_code: 200,
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      })
       .eq('key_hash', keyHash);
 
     return NextResponse.json(responseBody);

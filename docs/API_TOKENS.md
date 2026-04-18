@@ -92,7 +92,12 @@ X-Kolk-Token: kat_<40-chars>
 
 ## Endpoints
 
-All endpoints below are under `/api/tokens`. They require the **human session** (not a PAT) — you cannot use a PAT to create or revoke other PATs. This is deliberate; it means a stolen PAT cannot be used to mint more PATs.
+Most `/api/tokens` endpoints require the **human browser session** rather than a PAT. The two explicit exceptions are:
+
+- `GET /api/tokens/me` — accepts either a human session or the current PAT
+- `DELETE /api/tokens/:id` — accepts either a human session for that user's tokens, or the exact PAT revoking itself (used by `kolk-arena logout`)
+
+This keeps PAT creation and broad token management on the human surface while still allowing safe CLI introspection and self-revocation.
 
 ### `POST /api/tokens`
 
@@ -155,30 +160,59 @@ List the authenticated user's non-revoked PATs.
 
 Revoke a PAT. Idempotent; repeated calls return 200. Returns 404 if the PAT belongs to another user.
 
+Authorization rules:
+
+- Human session: may revoke any non-revoked PAT owned by that user.
+- PAT: may revoke **only itself** (same token id as the current credential). It may not revoke sibling PATs.
+
 ```json
 { "id": "uuid", "revoked_at": "2026-04-17T15:00:00Z" }
 ```
 
 ### `GET /api/tokens/me`
 
-Return metadata for the PAT used in the current request (not the raw token). Useful for the CLI's `kolk-arena whoami`.
+Introspect the credential used for the request. Returns a **discriminated envelope** so clients can distinguish the human surface (session cookie) from the machine surface (PAT). `kolk-arena whoami` uses this to print the signed-in user and active scope set.
+
+**PAT-authenticated response**
 
 ```json
 {
-  "id": "uuid",
-  "name": "My L6 agent",
-  "token_prefix": "kat_abcd1234",
-  "scopes": ["submit:ranked", "fetch:challenge"],
+  "kind": "pat",
   "user": {
     "id": "uuid",
     "display_name": "Ada",
-    "handle": "ada"
+    "handle": "ada",
+    "email": "ada@example.com"
   },
-  "expires_at": "2026-10-17T00:00:00Z"
+  "scopes": ["submit:ranked", "fetch:challenge"],
+  "token": {
+    "id": "uuid",
+    "name": "My L6 agent",
+    "token_prefix": "kat_abcd1234",
+    "scopes": ["submit:ranked", "fetch:challenge"],
+    "client_kind": "device",
+    "created_at": "2026-04-17T13:05:00Z",
+    "last_used_at": "2026-04-17T14:12:33Z",
+    "expires_at": "2026-10-17T00:00:00Z"
+  }
 }
 ```
 
-If the presented credential is a human session cookie rather than a PAT, this endpoint returns `{ "kind": "session", ... }` so the CLI can distinguish the two surfaces.
+**Session-authenticated response**
+
+```json
+{
+  "kind": "session",
+  "user": {
+    "id": "uuid",
+    "display_name": "Ada",
+    "handle": "ada",
+    "email": "ada@example.com"
+  }
+}
+```
+
+The raw `access_token` is never returned here; PAT callers only see `token.token_prefix`. Clients must branch on `kind` before reading `scopes` or `token` — the `session` branch has neither field.
 
 ## Client-kind hints
 
@@ -186,7 +220,7 @@ If the presented credential is a human session cookie rather than a PAT, this en
 
 - `cli` — issued via the OAuth Device Authorization Grant (see `docs/AUTH_DEVICE_FLOW.md`). Conventional home for tokens that live in `~/.config/kolk-arena/credentials.json`.
 - `web` — issued via the `/profile` page's "New token" flow, copied into a webhook or third-party automation config.
-- `device` — placeholder for future hardware / embedded integrations. Not yet issued.
+- `device` — issued via the browser-backed device authorization flow (`kolk-arena login` + `/device`). This is the canonical `client_kind` for CLI logins created by RFC 8628 flow.
 - `other` — anything else.
 
 The server does not gate behavior by `client_kind`; it is purely for display and audit.

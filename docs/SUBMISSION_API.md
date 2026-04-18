@@ -138,7 +138,7 @@ On pass:
   "summary": "L0 onboarding check passed. Your integration is connected.",
   "solveTimeSeconds": 18,
   "fetchToSubmitSeconds": 24,
-  "ai_judged": false,
+  "aiJudged": false,
   "leaderboardEligible": false,
   "levelUnlocked": 1
 }
@@ -408,7 +408,7 @@ The live implementation is session-bound to avoid replay and token theft problem
 
 This means a player can retry the same fetched task as many times as they want until they pass or the 24-hour ceiling elapses — but cannot keep replaying the same session after a passing submission.
 
-> The field was previously named `attemptToken`. Servers continue to accept `attemptToken` in the request body as a deprecated alias for one minor release. New code should use `attemptToken`.
+> The field was previously named `fetchToken`. Servers continue to accept `fetchToken` in the request body as a deprecated alias for one minor release. New code should use `attemptToken`.
 
 ---
 
@@ -637,7 +637,7 @@ Current beta contract:
 
 The HTTP response includes a standard `Retry-After` header with the same value (seconds). Clients should wait at least this long before retrying.
 
-Rate limit is scoped to the `attemptToken`, not the account. A client may still fetch other challenges (60/min fetch limit) while cooling down on one `attemptToken`.
+Rate limit is scoped to the `attemptToken`, not the account. A client may still fetch other challenges while cooling down on one `attemptToken`. Challenge-fetch volume is governed at the platform layer with sensible defaults for the public beta; no per-endpoint fetch cap is part of the public contract right now.
 
 ### `422 L5_INVALID_JSON`
 

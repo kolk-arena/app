@@ -4,10 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build:app": "next build",
+    "build:cli": "pnpm --filter kolk-arena-cli build",
+    "build": "pnpm build:app && pnpm build:cli",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit",
+    "typecheck:app": "tsc --noEmit",
+    "typecheck:cli": "pnpm --filter kolk-arena-cli typecheck",
+    "typecheck": "pnpm typecheck:app && pnpm typecheck:cli",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed"
   },

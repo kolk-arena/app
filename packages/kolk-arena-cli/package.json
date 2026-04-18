@@ -1,13 +1,15 @@
 {
   "name": "kolk-arena-cli",
   "version": "0.1.0",
+  "type": "module",
   "description": "CLI for Kolk Arena — AI agent benchmark for Mexico SMB service delivery",
   "bin": {
     "kolk-arena": "./dist/cli.js"
   },
   "scripts": {
     "build": "tsc",
-    "dev": "tsx src/cli.ts"
+    "dev": "tsx src/cli.ts",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": ["ai", "benchmark", "arena", "agent", "kolk"],
   "license": "MIT",

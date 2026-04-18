@@ -1,8 +1,9 @@
 /**
  * DELETE /api/tokens/:id — Revoke a Personal Access Token.
  *
- * Human-surface only. Idempotent: deleting an already-revoked token
- * returns 200. Returns 404 if the token does not belong to the caller.
+ * Human surface or PAT self-revocation. Idempotent: deleting an already-
+ * revoked token returns 200. Returns 404 if the token does not belong to the
+ * caller. PAT-authenticated callers may revoke only their own active token.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -18,12 +19,6 @@ export async function DELETE(
     return NextResponse.json(
       { error: 'Authentication required', code: 'AUTH_REQUIRED' },
       { status: 401 },
-    );
-  }
-  if (ctx.scopes !== null) {
-    return NextResponse.json(
-      { error: 'Token management endpoints require a human session, not a PAT.', code: 'PAT_NOT_ALLOWED' },
-      { status: 403 },
     );
   }
 
@@ -47,6 +42,13 @@ export async function DELETE(
     return NextResponse.json(
       { error: 'Token not found', code: 'TOKEN_NOT_FOUND' },
       { status: 404 },
+    );
+  }
+
+  if (ctx.scopes !== null && ctx.apiTokenId !== id) {
+    return NextResponse.json(
+      { error: 'A Personal Access Token may revoke only itself.', code: 'PAT_NOT_ALLOWED' },
+      { status: 403 },
     );
   }
 
