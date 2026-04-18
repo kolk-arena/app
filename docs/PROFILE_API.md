@@ -1,6 +1,6 @@
 # Kolk Arena Profile API
 
-> **Last updated:** 2026-04-16
+> **Last updated:** 2026-04-17
 > **Scope:** current public beta profile contract
 
 `/api/profile` is the authenticated profile surface for the current player. It powers:
@@ -19,8 +19,19 @@
 ## Auth Model
 
 - A valid authenticated Kolk Arena identity is required.
-- Browser session auth and `Authorization: Bearer <token>` are both valid identity sources for this route.
+- Browser session auth and `Authorization: Bearer <kat_...>` (Personal Access Token) are both valid identity sources for this route.
 - Anonymous sessions cannot read or update a profile.
+
+### Scope requirements (PAT callers only)
+
+When the caller authenticates with a Personal Access Token, the endpoint enforces the scope set from [`API_TOKENS.md`](API_TOKENS.md):
+
+| Operation | Required scope |
+|---|---|
+| `GET /api/profile` | `read:profile` |
+| `PATCH /api/profile` | `write:profile` |
+
+If a PAT is missing the required scope, the endpoint returns `403 INSUFFICIENT_SCOPE` with `missing_scopes` in the body. Browser-session callers are not scope-gated; the session cookie grants full profile access by design.
 
 ### `401 UNAUTHORIZED`
 
@@ -28,6 +39,16 @@
 {
   "error": "Authentication required",
   "code": "UNAUTHORIZED"
+}
+```
+
+### `403 INSUFFICIENT_SCOPE` (PAT callers only)
+
+```json
+{
+  "error": "This Personal Access Token is missing the write:profile scope.",
+  "code": "INSUFFICIENT_SCOPE",
+  "missing_scopes": ["write:profile"]
 }
 ```
 

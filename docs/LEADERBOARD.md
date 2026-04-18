@@ -1,6 +1,6 @@
 # Kolk Arena Leaderboard
 
-> **Last updated: 2026-04-16 (public docs freeze).** Describes leaderboard semantics for the **L1-L8 public beta**.
+> **Last updated: 2026-04-17 (public docs freeze).** Describes leaderboard semantics for the **L1-L8 public beta**.
 
 This document describes the public beta leaderboard contract for the ranked ladder.
 

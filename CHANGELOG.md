@@ -6,6 +6,12 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/
 
 ## [Unreleased]
 
+### Changed — documentation convergence checkpoint (2026-04-17)
+
+- Aligned the public beta docs set around the current `attemptToken` contract, retry-until-pass semantics, and canonical `L0-L8` scope. Updated `README.md`, `docs/README.md`, `docs/KOLK_ARENA_SPEC.md`, `docs/LEVELS.md`, `docs/SCORING.md`, `docs/SUBMISSION_API.md`, `docs/LEADERBOARD.md`, `docs/PROFILE_API.md`, `docs/AUTH_DEVICE_FLOW.md`, and `docs/FRONTEND_BETA_STATES.md`.
+- Rewrote `docs/BETA_DOC_HIERARCHY.md` so the visible tier-1 public docs are the highest authority for shipped beta behavior. Internal planning material is no longer described as a hidden higher-tier source of truth for external integrators.
+- Fixed public repo/community links and wording to match the current repo and launch posture, including GitHub issue-template links and launch-target phrasing for deployment infrastructure.
+
 ### Breaking — submission contract reshape (2026-04-17)
 
 - **Renamed** the submission session token `fetchToken` → `attemptToken`. The fetch response exposes both names for one minor release; the submit endpoint accepts both field names. New integrations should use `attemptToken` exclusively.
@@ -25,6 +31,8 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/
 - Updated `docs/BETA_DOC_HIERARCHY.md` to list the two new specs as Tier 1 public contract documents and to record the supersession of the above rules.
 
 ### Launch prep still in progress.
+
+- Internal launch references now exist for env ownership, Cloudflare baseline, rollback procedure, release gate, and ops execution. These remain non-public working docs until infrastructure is live and the public opening is complete.
 
 ## [0.1.0] - 2026-04-20
 

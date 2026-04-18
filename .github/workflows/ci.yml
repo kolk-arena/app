@@ -37,3 +37,57 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+  e2e:
+    name: Playwright UI regression
+    runs-on: ubuntu-latest
+    needs: lint-and-build
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Cache the Playwright browser binaries keyed on lockfile so we do not
+      # re-download chromium on every CI run. The cache key includes a
+      # suffix that should be bumped when Playwright is upgraded.
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-v1-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run Playwright regression suite
+        run: pnpm test:e2e
+        env:
+          # The regression spec mocks every network call via page.route and
+          # never reaches real Supabase / xAI. The Next.js app only needs
+          # non-empty env values to reach schema-ready state.
+          KOLK_SUPABASE_URL: https://ci.example.invalid
+          KOLK_SUPABASE_ANON_KEY: ci-anon-placeholder
+          KOLK_SUPABASE_SERVICE_ROLE_KEY: ci-service-placeholder
+          NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14

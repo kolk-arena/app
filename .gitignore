@@ -58,6 +58,9 @@ docs/BETA_FRONTEND_BLUEPRINT.md
 docs/BETA_ENGINEERING_BLUEPRINT.md
 docs/GITHUB_COMMUNITY_OPENING_QUESTIONS.md
 docs/OPS_RUNBOOK.md
+docs/ENV_MATRIX.md
+docs/CLOUDFLARE_BASELINE.md
+docs/ROLLBACK_PLAN.md
 supabase/migrations/
 
 # frozen public-doc snapshots (do not publish until later ladder rollout)

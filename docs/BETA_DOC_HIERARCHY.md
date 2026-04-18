@@ -1,67 +1,61 @@
 # Kolk Arena Beta Documentation Hierarchy
 
-> **Last updated:** 2026-04-17 (added `API_TOKENS.md` + `AUTH_DEVICE_FLOW.md`; renamed `fetchToken` → `attemptToken` with retry-until-pass semantics)
-> **Purpose:** freeze the documentation authority order for the `L0-L8` public beta and the `L1-L8` ranked ladder.
+> **Last updated:** 2026-04-17
+> **Purpose:** freeze the authority order for the `L0-L8` public beta docs set without requiring any hidden internal material.
 
-## 2026-04-17 contract updates (supersedes earlier rules)
+## 2026-04-17 contract updates
 
-The following rules from earlier documents are **superseded** by the current public beta contract:
+The following earlier rules are superseded by the current public beta contract:
 
-| Old rule | Superseded by | Where |
+| Old rule | Current rule | Canonical public source |
 |---|---|---|
-| Submission token was named `fetchToken` | Renamed to `attemptToken`; legacy name accepted as alias in request body for one minor release | `SUBMISSION_API.md` §Why attemptToken exists |
-| Any scored submission (RED / ORANGE / YELLOW / GREEN / BLUE) consumed the session — player had to re-fetch to retry | Only a passing submission (Dual-Gate cleared) consumes the `attemptToken`; failed scored runs allow retry with the same token | `SUBMISSION_API.md` §Retry After a Failed Submission |
-| Error code `SESSION_ALREADY_SUBMITTED` (409) | Renamed to `ATTEMPT_ALREADY_PASSED`; old code emitted as alias for one minor release | `SUBMISSION_API.md` §409 |
-| Error code `SESSION_EXPIRED` (408) | Renamed to `ATTEMPT_TOKEN_EXPIRED`; old code emitted as alias for one minor release | `SUBMISSION_API.md` §408 |
-| Error code `INVALID_FETCH_TOKEN` (404) | Renamed to `INVALID_ATTEMPT_TOKEN` | `SUBMISSION_API.md` §Error Codes |
-| Submit rate limit: 3 per minute per account | Submit rate limit: **2 per minute per `attemptToken`** | `SUBMISSION_API.md` §Rate Limiting |
-| One-challenge-one-attempt anti-farming gate | Dropped. Anti-farming lives in the per-`attemptToken` rate limit, not in session consumption | `SUBMISSION_API.md` §Anti-farming |
-| No public machine-surface auth spec | Added `API_TOKENS.md` (PATs + scopes) and `AUTH_DEVICE_FLOW.md` (RFC 8628 device grant for CLI) | Tier 1 additions above |
+| Submission token was named `fetchToken` | Canonical name is `attemptToken`; `fetchToken` is legacy-only | `SUBMISSION_API.md` |
+| Any scored submission consumed the session | Only a passing submission or the 24h ceiling ends the retry window | `SUBMISSION_API.md` |
+| `SESSION_ALREADY_SUBMITTED` was the main 409 code | Canonical code is `ATTEMPT_ALREADY_PASSED` | `SUBMISSION_API.md`, `FRONTEND_BETA_STATES.md` |
+| `SESSION_EXPIRED` was the main 408 code | Canonical code is `ATTEMPT_TOKEN_EXPIRED` | `SUBMISSION_API.md`, `FRONTEND_BETA_STATES.md` |
+| Submit rate limit was account-scoped | Submit rate limit is **2/min per `attemptToken`** | `SUBMISSION_API.md` |
+| Public docs could rely on hidden internal overrides | Public beta behavior must be fully understandable from tier 1 alone | this file |
 
-Implementation work **must** match the updated contract. Route code that still emits the old codes / fields is temporarily permitted as an alias but is tracked for removal.
+Implementation work **must** match the updated public contract. Route code that still emits legacy aliases is temporarily permitted, but the public docs remain the authority for canonical names and behavior.
 
 ## Authority Order
 
 Use documents in this order when implementing or reviewing beta behavior.
 
-0. **Authorized engineering overrides** (internal; gitignored)
-   - `docs/L0L8_ENGINEERING_CHANGELIST.md` — **Highest** authority on L0-L8 level-definition items within its stated scope (2026-04-16 22:15 America/Mexico_City). Internal-only; never linked from public surfaces. Must be folded down into the public beta contract files as the canonical public expression of its rules.
-
 1. **Public beta contract**
    - [README.md (repo root)](../README.md) — public pitch and top-level integration overview
    - [docs/README.md (docs index)](README.md) — reading guide and challenge flow summary
-   - [INTEGRATION_GUIDE.md](INTEGRATION_GUIDE.md) — friendly on-ramp: 60-second smoke test, code examples, common pitfalls (does **not** override the specs below; defers to them on conflict)
+   - [INTEGRATION_GUIDE.md](INTEGRATION_GUIDE.md) — friendly on-ramp; defers to the specs below on conflict
    - [KOLK_ARENA_SPEC.md](KOLK_ARENA_SPEC.md) — product boundary, access modes, session model
    - [LEVELS.md](LEVELS.md) — L0-L8 level specs, families, Dual-Gate unlock
    - [SCORING.md](SCORING.md) — 3-layer scoring, color bands, result-page presentation
-   - [SUBMISSION_API.md](SUBMISSION_API.md) — request/response schemas, errors, rate limiting, pre-processing, `attemptToken` retry-until-pass model
+   - [SUBMISSION_API.md](SUBMISSION_API.md) — request/response schemas, errors, rate limiting, `attemptToken` retry-until-pass model
    - [LEADERBOARD.md](LEADERBOARD.md) — ranking logic, row shape, player-detail linkage
-   - [PROFILE_API.md](PROFILE_API.md) — authenticated profile (human surface)
-   - [API_TOKENS.md](API_TOKENS.md) — Personal Access Tokens and scopes (machine surface)
-   - [AUTH_DEVICE_FLOW.md](AUTH_DEVICE_FLOW.md) — OAuth 2.0 Device Authorization Grant used by `kolk-arena login`
+   - [PROFILE_API.md](PROFILE_API.md) — authenticated profile surface
+   - [API_TOKENS.md](API_TOKENS.md) — Personal Access Tokens and scopes
+   - [AUTH_DEVICE_FLOW.md](AUTH_DEVICE_FLOW.md) — device authorization grant used by `kolk-arena login`
    - [FRONTEND_BETA_STATES.md](FRONTEND_BETA_STATES.md) — page-level UX states
 
-2. **Internal implementation blueprints** (gitignored)
-   - `docs/BETA_ENGINEERING_BLUEPRINT.md`
-   - `docs/BETA_FRONTEND_BLUEPRINT.md`
+2. **Internal implementation docs** (non-public)
+   - internal engineering blueprints, changelists, and launch runbooks may add implementation detail
+   - they may not override any player-visible behavior, public API shape, error code, or beta-scope rule without first updating tier 1
 
-3. **Internal alignment / planning trackers** (gitignored)
-   - `docs/SPEC_V5_ALIGNMENT_TRACKER.md`
+3. **Internal planning / alignment trackers** (non-public)
+   - trackers may describe gaps, future work, and migration plans
+   - they are not contract documents
 
-4. **Archived or reference-only inputs** (gitignored)
-   - `docs/LEVELS_BETA_DESIGN.md`
-   - `docs/kolk_model_routing_spec_v5.md`
-   - `docs/kolk_arena_consolidated_report.md`
-   - deprecated predecessors
+4. **Archive / reference inputs** (non-public)
+   - design studies, routing specs, consolidated reports, and deprecated predecessors
+   - these may inform future work but are not active beta authority
 
 ## Binding Rules
 
-- **Authorized engineering overrides (tier 0)** win against any other tier on the items they explicitly touch. An override's scope is whatever its own "Scope" / "Effective date" section states. Outside that scope, tier 1 is authoritative.
-- Public implementation work must match the **Public beta contract** (tier 1), even if current route code temporarily differs. If tier 0 has folded-pending changes, public contract must be updated to reflect them before engineering lands code.
-- Internal blueprints (tier 2) may add implementation detail, but they may not override public API shape, error codes, level rules, or beta scope.
-- Internal trackers (tier 3) may describe gaps and future work, but they are not contract documents.
-- Reference-only inputs (tier 4) may inform design direction, but they are not active authority for beta behavior.
-- **Nothing in tiers 0, 2, 3, or 4 should be linked from public-facing surfaces** (public README, PR descriptions on public PRs, GitHub issue replies to external integrators). External developers must always be pointed to tier 1 files only.
+- For shipped beta behavior, **tier 1 is the highest authority**.
+- Internal docs must fold their decisions down into tier 1 before code ships or public wording changes.
+- Internal docs may add implementation detail, deploy procedure, or task breakdown, but they may not override public API shape, error codes, level rules, or beta scope.
+- Route code is not a substitute source of truth when public docs are being intentionally frozen ahead of implementation.
+- Nothing outside tier 1 should be required reading for an external integrator.
+- Non-public docs should not be linked from public-facing surfaces.
 
 ## Scope Decisions Frozen Here
 
@@ -69,18 +63,18 @@ Use documents in this order when implementing or reviewing beta behavior.
 - The public beta path is `L0-L8`.
 - The public ranked ladder is `L1-L8`.
 - Public docs describe player-observable behavior only.
-- Internal routing architecture beyond the shipped beta contract remains internal.
+- Exact internal scoring routing and later-level design remain intentionally out of scope for the public beta contract.
 
 ## Conflict Resolution
 
 When two files disagree:
 
 1. update the lower-authority file to match the higher-authority file
-2. if the higher-authority file is incomplete, update it first
-3. do not silently treat route code as the source of truth during this pre-development freeze
+2. if the public contract is incomplete, update the tier 1 file first
+3. do not silently treat route code or a private planning note as the source of truth during this freeze
 
 ## Audience Split
 
-- Files listed in the **Public beta contract** section are safe to treat as external-facing product and API documentation.
-- Internal blueprints and trackers are for engineering/design coordination.
-- Reference-only inputs should not be cited as shipped beta authority in new docs, code comments, PR descriptions, or QA notes.
+- The files listed in tier 1 are safe to share with external developers.
+- Internal implementation docs are for maintainers only.
+- Internal trackers and archive inputs should not be cited as shipped beta authority in README copy, issue replies, examples, or public QA notes.

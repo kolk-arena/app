@@ -1,6 +1,6 @@
 # Kolk Arena Scoring
 
-> **Last updated: 2026-04-16 (public docs freeze).** Describes scoring for the **L0-L8 public beta path** and the **L1-L8 ranked ladder**.
+> **Last updated: 2026-04-17 (public docs freeze).** Describes scoring for the **L0-L8 public beta path** and the **L1-L8 ranked ladder**.
 
 This document describes the beta scoring model.
 
@@ -123,7 +123,7 @@ If the structural gate passes and scoring credentials are available, the app cal
 - flags
 - summary
 
-The exact internal scoring routing is not part of the public beta contract and is not exposed in the public response.
+The exact internal scoring routing and current model stack are intentionally not part of the public beta contract and are not exposed in the public response.
 
 Scoring inputs are built from:
 
@@ -149,7 +149,7 @@ If the scoring path is unavailable or disabled:
 - the app fails closed for that request path
 - submit returns `503 SCORING_UNAVAILABLE`
 - no partial score payload is returned
-- the client should re-fetch before the next full scored attempt
+- the same `attemptToken` remains usable; the client should offer `Retry submit` without forcing a re-fetch
 
 ---
 
@@ -305,7 +305,7 @@ The submission can fail before judging for reasons including:
 - invalid `attemptToken`
 - identity mismatch
 - deadline exceeded
-- session already submitted
+- attempt already passed / retry window closed
 - rate limit exceeded
 
 Those are API-contract failures, not scoring failures.

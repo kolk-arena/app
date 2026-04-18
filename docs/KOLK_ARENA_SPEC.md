@@ -1,6 +1,6 @@
 # Kolk Arena Spec
 
-> **Last updated: 2026-04-16 (public docs freeze).** Describes the **L0-L8 public beta path** and the **L1-L8 ranked ladder**.
+> **Last updated: 2026-04-17 (public docs freeze).** Describes the **L0-L8 public beta path** and the **L1-L8 ranked ladder**.
 
 ## Elevator Pitch
 
@@ -11,7 +11,7 @@ Current public beta scope:
 - `L0-L8` public beta path
 - `L1-L8` ranked ladder
 - text-first / structured-text deliverables
-- one-shot execution
+- session-bound retry-until-pass execution
 - server-side scoring
 - public leaderboard for registered players
 
@@ -150,7 +150,7 @@ This is the current logic implemented in the app.
 5. server creates a challenge session with:
    - challenge reference
    - participant identity
-   - fetch token (nonce)
+   - attempt token (nonce)
    - start timestamp
    - computed deadline
 6. server returns the challenge package with `attemptToken`
@@ -159,11 +159,11 @@ This is the current logic implemented in the app.
 9. server verifies the submitter is the same identity that fetched
 10. server enforces deadline using the stored session
 11. server scores and stores the submission
-12. server marks the session as submitted
+12. server marks the session as consumed only if a submission unlocks the level
 
 Replay semantics:
 
-- a player cannot submit the same fetched session twice
+- a player may resubmit the same fetched session until one run passes or the 24-hour ceiling expires
 - a player can fetch a new session later, even for a replayed underlying challenge
 - uniqueness is now per `challenge_session_id`, not per global `challenge_id`
 
@@ -171,27 +171,60 @@ Replay semantics:
 
 ## Public API Surface
 
+### Challenge + scoring
+
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
-| `/api/challenge/:level` | GET | Fetch a challenge and create a challenge session |
-| `/api/challenge/submit` | POST | Submit a solution using `attemptToken` |
-| `/api/leaderboard` | GET | Read leaderboard rows |
-| `/api/leaderboard/:playerId` | GET | Read a public player-detail snapshot |
-| `/api/profile` | GET / PATCH | Read or update current profile |
-| `/api/auth/register` | POST | Start email verification |
-| `/api/auth/verify` | POST | Complete email verification |
-| `/api/auth/oauth/github` | GET | Start GitHub OAuth |
-| `/api/auth/oauth/google` | GET | Start Google OAuth |
-| `/api/auth/logout` | POST | End session |
+| `/api/challenge/:level` | GET | Fetch a challenge for `L0-L8` and create a challenge session with an `attemptToken`. `L0` is anonymous-friendly; `L1-L5` permit anonymous play via the browser-session cookie; `L6-L8` require a bearer token. |
+| `/api/challenge/submit` | POST | Submit a solution using `attemptToken`. Retry-until-pass until the Dual-Gate is cleared or the 24h session ceiling expires. |
+| `/api/leaderboard` | GET | Read leaderboard rows (public). |
+| `/api/leaderboard/:playerId` | GET | Public player-detail snapshot (public). |
+| `/api/play-state` | GET | Browser-session progression read used by `/play`. |
 
-Current contract notes:
+### Human-surface auth (browser session)
 
-- submit requires `Idempotency-Key`
-- `attemptToken` is required in submit body
-- `challenge_id`, `job_id`, and `run_log` are not part of the current public submit contract
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/profile` | GET / PATCH | Read or update the authenticated profile (see `docs/PROFILE_API.md`). |
+| `/api/auth/register` | POST | Start email verification. |
+| `/api/auth/verify` | POST | Complete email verification. |
+| `/api/auth/oauth/:provider` | GET | Start GitHub or Google OAuth. |
+| `/api/auth/callback` | GET | OAuth callback landing. |
+| `/api/auth/logout` | POST | End the browser session. |
+
+### Machine-surface auth (Personal Access Tokens — `docs/API_TOKENS.md`)
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/tokens` | POST / GET | Create a PAT (plaintext returned exactly once) / list the caller's active PATs. Human session only. |
+| `/api/tokens/:id` | DELETE | Revoke a PAT. Human session revokes any of the user's PATs; a PAT may only revoke itself (`kolk-arena logout`). |
+| `/api/tokens/me` | GET | Introspect the credential the request presented. Returns a discriminated `{ kind: 'pat' \| 'session', ... }` envelope. |
+
+### CLI device authorization (RFC 8628 profile — `docs/AUTH_DEVICE_FLOW.md`)
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/auth/device/code` | POST | CLI requests a `device_code` + human-readable `user_code`. |
+| `/api/auth/device/token` | POST | CLI polls for the issued PAT. Returns `authorization_pending` / `slow_down` / `expired_token` / `access_denied` / success. |
+| `/api/auth/device/verify` | POST | Called by `/device` browser page after the signed-in user approves the CLI. Same-origin only; requires `user_code` + `device_code` as proof-of-knowledge. |
+| `/api/auth/device/deny` | POST | Called by `/device` if the user cancels. Same requirements as verify. |
+
+### Operations
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/admin/budget` | GET | AI-judge budget monitoring. Gated by the `KOLK_ADMIN_SECRET` header; not part of the external integrator contract. |
+
+### Current contract notes
+
+- submit requires `Idempotency-Key`; `attemptToken` is the sole session reference in the body (legacy `fetchToken` accepted as alias for one minor release)
+- the outer submit body is identical for every level; only `primaryText` contents differ
+- `L5` requires `primaryText` to be a JSON object string with `whatsapp_message`, `quick_facts`, and `first_step_checklist`
+- `L6-L8` fetch and submit require `Authorization: Bearer <kat_...>` (or the session cookie on the browser surface); without auth, fetch returns `401 AUTH_REQUIRED`
 - leaderboard tie-break uses `solve_time_seconds`; `last_submission_at` is audit-only
-- `/api/profile` is the canonical authenticated profile contract; see `docs/PROFILE_API.md`
-- judge/scoring outages fail closed at submit with `503 SCORING_UNAVAILABLE`; no partial score is returned
+- judge / scoring outages fail closed at submit with `503 SCORING_UNAVAILABLE`; no partial score is returned and the `attemptToken` remains usable for retry
+- rate limit is `2/min per attemptToken` (not per account); exceeding returns `429 RATE_LIMITED` with `Retry-After`
+- Personal Access Token endpoints are not reachable with a PAT (human-session-only boundary) — a PAT may only revoke itself
 
 ---
 

@@ -1,78 +1,45 @@
-# Kolk Arena Device Authorization Grant (CLI sign-in)
+# Kolk Arena Device Authorization Grant
 
-> **Status:** public beta contract · **Version:** 2026-04-17 first draft · **Authority:** Tier 1 (see `docs/BETA_DOC_HIERARCHY.md`)
->
-> This document specifies how a CLI or headless tool obtains a Kolk Arena Personal Access Token (PAT) without asking the user to copy-paste anything sensitive into a terminal. It is a Kolk-Arena-flavored profile of **OAuth 2.0 Device Authorization Grant** ([RFC 8628](https://datatracker.ietf.org/doc/html/rfc8628)), the same flow GitHub CLI (`gh auth login`) uses.
+> **Status:** public beta contract
+> **Version:** 2026-04-17
+> **Authority:** Tier 1 (see `docs/BETA_DOC_HIERARCHY.md`)
+
+This document specifies how a CLI or other headless tool obtains a Kolk Arena Personal Access Token (PAT) without asking the user to paste a raw token into a terminal. It is a Kolk-Arena-flavored profile of **OAuth 2.0 Device Authorization Grant** ([RFC 8628](https://datatracker.ietf.org/doc/html/rfc8628)).
 
 ## Why this exists
 
-The machine surface (PATs, see `docs/API_TOKENS.md`) needs a way to reach a CLI without the user having to:
+The machine surface needs a login flow that:
 
-1. Open a browser on a separate flow,
-2. Manually generate a PAT from `/profile`,
-3. Copy the long `kat_…` string,
-4. Paste it into the CLI.
+1. works for CLIs and headless tools
+2. avoids copy-pasting long bearer tokens
+3. lets the human review and narrow scopes in the browser
+4. keeps PAT issuance aligned with the same account system used by the web app
 
-That sequence is error-prone, trains the user to handle credentials in terminals (a bad habit), and actively discourages sensible scope restrictions. The device flow turns it into:
+The user journey is:
 
-1. `kolk-arena login`
-2. CLI prints a short code and a URL.
-3. User opens the URL in their browser (already signed in or signs in once), enters the code, approves the scopes, clicks "Authorize".
-4. CLI receives the token automatically.
-
-No raw token is ever shown on the terminal or copied by the human.
-
-## High-level flow
-
-```
-CLI                                   Kolk Arena server                    Browser (user)
-────                                  ─────────────────                    ──────────────
-
-kolk-arena login
-  │
-  ├── POST /api/auth/device/code ───►  generate device_code + user_code
-  │                                    store with expires_at = now() + 15 min
-  │◄─────────────── device_code + user_code + verification_uri + interval
-  │
-  ├── prints:
-  │   "Open https://kolkarena.com/device and enter ABCD-1234"
-  │                                                                        User visits /device
-  │                                                                        (signs in if needed)
-  │                                                                        enters ABCD-1234
-  │                                                                        reviews scopes
-  │                                                                        clicks Authorize
-  │                                                         /device POSTs:
-  │                                                         POST /api/auth/device/verify
-  │                                                         with { user_code, granted_scopes }
-  │                                   link device_code to user_id
-  │                                   mint ka_api_tokens row
-  │                                   mark device_code verified
-  │
-  ├── POST /api/auth/device/token  (poll every `interval` sec)
-  │◄─────────────── { error: "authorization_pending" } ... until verified
-  │◄─────────────── { access_token: "kat_...", scopes: [...], expires_at }
-  │
-  └── save ~/.config/kolk-arena/credentials.json (0600)
-```
+1. run `kolk-arena login`
+2. the CLI prints a short code and a browser URL
+3. the user opens `/device`, signs in if needed, reviews scopes, and approves
+4. the CLI receives the PAT automatically from the polling endpoint
 
 ## Constants
 
-- `USER_CODE_FORMAT` = four-char-hyphen-four-char, uppercase alphanumeric avoiding confusable characters. Regex: `^[A-Z0-9]{4}-[A-Z0-9]{4}$`. Example: `K6H2-4PQX`.
-- `DEVICE_CODE_FORMAT` = 40-char base62, server-opaque.
-- `DEVICE_CODE_TTL` = 900 seconds (15 minutes).
-- `DEFAULT_POLL_INTERVAL` = 5 seconds.
-- `MIN_POLL_INTERVAL` = 5 seconds. Server may tell the client to slow down; never speed up.
+- `USER_CODE_FORMAT` = `^[A-Z0-9]{4}-[A-Z0-9]{4}$`
+- `DEVICE_CODE_FORMAT` = opaque 40-character base62 string
+- `DEVICE_CODE_TTL` = 900 seconds
+- `DEFAULT_POLL_INTERVAL` = 5 seconds
+- `MIN_POLL_INTERVAL` = 5 seconds
 
 ## Data model
 
 ```sql
 CREATE TABLE public.ka_device_codes (
-  device_code         text PRIMARY KEY,             -- opaque 40-char base62
-  user_code           text NOT NULL UNIQUE,         -- ABCD-1234 shown to human
+  device_code         text PRIMARY KEY,
+  user_code           text NOT NULL UNIQUE,
   requested_scopes    text[] NOT NULL DEFAULT '{}',
   granted_scopes      text[] NOT NULL DEFAULT '{}',
   client_kind         text NOT NULL DEFAULT 'cli',
-  user_id             uuid REFERENCES ka_users(id), -- NULL until the user verifies
+  user_id             uuid REFERENCES ka_users(id),
   issued_token_id     uuid REFERENCES ka_api_tokens(id),
   verified_at         timestamptz,
   denied_at           timestamptz,
@@ -80,18 +47,38 @@ CREATE TABLE public.ka_device_codes (
   expires_at          timestamptz NOT NULL,
   last_polled_at      timestamptz
 );
-
-CREATE INDEX idx_ka_device_codes_user_code ON ka_device_codes(user_code);
-CREATE INDEX idx_ka_device_codes_expires   ON ka_device_codes(expires_at);
 ```
 
-Expired rows are retained for 24h for audit visibility, then purged by a scheduled cleanup job.
+Beta launch does **not** assume a scheduled cleanup job for expired rows. Operators may purge expired rows manually until automation is added later.
+
+## High-level flow
+
+```text
+CLI                         Kolk Arena server                       Browser
+---                         -----------------                       -------
+kolk-arena login
+  -> POST /api/auth/device/code
+  <- { device_code, user_code, verification_uri, verification_uri_complete, interval }
+
+open /device?code=ABCD-1234
+sign in if needed
+review scopes
+  -> POST /api/auth/device/verify { user_code, device_code, granted_scopes }
+  <- { success: true, issued_token_id, granted_scopes }
+
+CLI polls:
+  -> POST /api/auth/device/token
+  <- { error: "authorization_pending" } until verified
+  <- { access_token, token_type, scope, expires_at, token_id } on success
+```
+
+`device_code` is the high-entropy proof-of-knowledge value. It is never placed in URLs. The browser page reads it server-side from the pending row and includes it in the verify/deny POST body.
 
 ## HTTP contract
 
 ### `POST /api/auth/device/code`
 
-Called by the CLI to initiate a new device flow.
+Called by the CLI to start a new device flow.
 
 **Request**
 
@@ -102,8 +89,11 @@ Called by the CLI to initiate a new device flow.
 }
 ```
 
-- `client_id` required. For public CLI use, value is `"kolk-arena-cli"`. (Validation is informational, not a security boundary.)
-- `scopes` required, non-empty. All scopes must be in the published list (see `docs/API_TOKENS.md`); unknown scopes return `400 UNKNOWN_SCOPE`.
+Rules:
+
+- `client_id` is required. Public CLI value is `kolk-arena-cli`.
+- `scopes` is required and non-empty.
+- Unknown scopes return `400 UNKNOWN_SCOPE`.
 
 **Response**
 
@@ -120,7 +110,7 @@ Called by the CLI to initiate a new device flow.
 
 ### `POST /api/auth/device/token`
 
-Called by the CLI periodically until the user finishes the browser flow.
+Called by the CLI until the user finishes the browser flow.
 
 **Request**
 
@@ -132,39 +122,31 @@ Called by the CLI periodically until the user finishes the browser flow.
 }
 ```
 
-**Response — pending (status 400)**
-
-Returned while `verified_at` is still NULL.
+**Pending**
 
 ```json
 { "error": "authorization_pending" }
 ```
 
-**Response — slow_down (status 400)**
-
-Returned if the client polls faster than `interval`. The CLI must increase its polling interval by at least 5 seconds.
+**Slow down**
 
 ```json
 { "error": "slow_down" }
 ```
 
-**Response — denied (status 400)**
-
-Returned if the user explicitly clicked "Cancel" on the `/device` page.
+**Denied**
 
 ```json
 { "error": "access_denied" }
 ```
 
-**Response — expired (status 400)**
-
-Returned if `now > expires_at` and the flow was never completed.
+**Expired**
 
 ```json
 { "error": "expired_token" }
 ```
 
-**Response — success (status 200)**
+**Success**
 
 ```json
 {
@@ -176,17 +158,18 @@ Returned if `now > expires_at` and the flow was never completed.
 }
 ```
 
-The raw `access_token` is shown **exactly once** in this response. The CLI must write it to its local credential store immediately and never log it in plaintext.
+The raw `access_token` is shown **exactly once** in this response. The CLI must write it to local credential storage immediately and never log it in plaintext.
 
 ### `POST /api/auth/device/verify`
 
-Called by the `/device` page (not by the CLI) after the user confirms.
+Called by the `/device` page after the signed-in user approves the CLI request.
 
-**Request** (authenticated as the signed-in user via session cookie)
+**Request**
 
 ```json
 {
   "user_code": "K6H2-4PQX",
+  "device_code": "opaque-40-char-base62",
   "granted_scopes": ["submit:ranked", "fetch:challenge"]
 }
 ```
@@ -203,24 +186,29 @@ Called by the `/device` page (not by the CLI) after the user confirms.
 
 Authorization rules:
 
-- The session user must be verified (`is_verified = true`).
-- `granted_scopes` must be a subset of `requested_scopes` stored on the device_code row. The UI must let the user deselect scopes, but must not let them grant scopes that were not originally requested.
-- `user_code` must match, must not be expired, and must not already be `verified_at` / `denied_at`.
+- the user must be signed in through a browser session cookie
+- the user must already be verified
+- `granted_scopes` must be a subset of `requested_scopes`
+- `user_code` and `device_code` must both match the same pending row
+- the row must not be expired, verified, or denied already
 
-On success, the server:
+On success the server:
 
-1. Inserts a new `ka_api_tokens` row with `client_kind = 'device'`.
-2. Sets `issued_token_id`, `granted_scopes`, `verified_at`, `user_id` on the `ka_device_codes` row.
-3. Persists nothing else.
+1. creates a `ka_api_tokens` row with `client_kind = 'device'`
+2. stores `issued_token_id`, `granted_scopes`, `verified_at`, and `user_id` on the device-code row
+3. leaves token delivery to the next successful CLI poll
 
 ### `POST /api/auth/device/deny`
 
-Called by the `/device` page if the user clicks "Cancel".
+Called by the `/device` page if the user clicks `Cancel`.
 
 **Request**
 
 ```json
-{ "user_code": "K6H2-4PQX" }
+{
+  "user_code": "K6H2-4PQX",
+  "device_code": "opaque-40-char-base62"
+}
 ```
 
 **Response**
@@ -229,94 +217,56 @@ Called by the `/device` page if the user clicks "Cancel".
 { "success": true }
 ```
 
-Sets `denied_at` on the row.
+The server sets `denied_at` on the row.
 
 ## `/device` browser page
 
-A server-rendered page at `https://kolkarena.com/device` handles the human side.
+The human-side route is `https://kolkarena.com/device`.
 
-**Behaviour contract**
+Behavior contract:
 
-- **Unauthenticated state:** prompt the user to sign in, preserving `?code=ABCD-1234` through the OAuth callback.
-- **Authenticated state:**
-  - If no `code` query param, show an input field for `user_code`.
-  - If a `code` is present, look it up and render:
-    - The CLI's requested scopes, **with checkboxes** the user can uncheck before authorizing.
-    - A human-readable description of each scope.
-    - The `client_kind` (e.g. "kolk-arena-cli") and the time the request was made.
-    - Two buttons: `Authorize` (→ `/api/auth/device/verify`) and `Cancel` (→ `/api/auth/device/deny`).
-  - On success, show "You can close this window; your CLI is now signed in."
-  - On denial, show "Request cancelled. Return to your CLI and run `kolk-arena login` again if you want to restart."
-  - On expired, show "This code has expired. Return to your CLI and run `kolk-arena login` again."
-- The `/device` page is **server-rendered** — not a client-only SPA — so it degrades gracefully when JS is disabled.
+- **Unauthenticated state:** render the shared sign-in panel and preserve `?code=ABCD-1234` through the auth return path.
+- **Authenticated state without `code`:** show a code-entry form for the `user_code`.
+- **Authenticated state with `code`:**
+  - look up the pending row server-side
+  - show requested scopes with checkboxes so the user may narrow scope
+  - show `client_kind`, created time, and expiry
+  - provide `Authorize` and `Cancel` actions
+- **Success state:** show "You can close this window; your CLI is now signed in."
+- **Denied state:** show "Request cancelled. Return to your CLI and run `kolk-arena login` again."
+- **Expired state:** show "This code has expired. Return to your CLI and run `kolk-arena login` again."
+- **Invalid state:** show "This code is not recognized."
+
+Rendering note:
+
+- the page uses a server-rendered auth gate and server-side request lookup
+- the code-entry form plus authorize/cancel actions are implemented in a client component
+- in the current beta, JS must be enabled for those interactions
 
 ## CLI commands
 
 ### `kolk-arena login [--scopes ...]`
 
-1. Call `POST /api/auth/device/code` with the requested scopes (default: `submit:onboarding`, `submit:ranked`, `fetch:challenge`, `read:profile`).
-2. Print `verification_uri` and `user_code` in bold.
-3. Poll `POST /api/auth/device/token` every `interval` seconds, respecting `slow_down`.
-4. On success, write the token to `~/.config/kolk-arena/credentials.json` with mode `0600`:
-
-   ```json
-   {
-     "access_token": "kat_abcd...xyz",
-     "token_id": "uuid",
-     "scopes": ["submit:ranked", "fetch:challenge"],
-     "expires_at": "2026-10-17T00:00:00Z",
-     "base_url": "https://kolkarena.com",
-     "signed_in_at": "2026-04-17T13:05:00Z"
-   }
-   ```
-
-5. Print the user's display name (from a single `GET /api/tokens/me` call) and the granted scopes, then exit.
+1. call `POST /api/auth/device/code`
+2. print `verification_uri` and `user_code`
+3. poll `POST /api/auth/device/token` every `interval` seconds, respecting `slow_down`
+4. on success, write the token to local credentials storage
+5. print the user summary and granted scopes
 
 ### `kolk-arena logout`
 
-1. Read the token id from the local file.
-2. Call `DELETE /api/tokens/:id`.
-3. Remove `~/.config/kolk-arena/credentials.json`.
-4. Print a short confirmation.
+1. read the local token id
+2. call `DELETE /api/tokens/:id`
+3. remove the local credential file
+4. print a short confirmation
 
 ### `kolk-arena whoami`
 
-Call `GET /api/tokens/me` and print the user + scopes. If there is no local credential, print "not signed in" and exit 1.
+Uses the stored PAT to call `GET /api/tokens/me` and prints the current signed-in identity plus granted scopes.
 
-### Credential store
+## Security notes
 
-- Path: `~/.config/kolk-arena/credentials.json`, or `$KOLK_ARENA_CONFIG_DIR/credentials.json` if set.
-- Mode: `0600` on POSIX. The CLI must refuse to read a credential file with wider permissions (prints a warning and exits).
-- Windows: `%APPDATA%\kolk-arena\credentials.json`, ACL reset to current user only on write.
-- Env override: `KOLK_TOKEN=<raw>` is honored before the file is read, for CI use.
-
-## Error taxonomy
-
-| Error | Where emitted | Client behavior |
-|---|---|---|
-| `authorization_pending` | `device/token` | Continue polling at `interval` |
-| `slow_down` | `device/token` | Increase polling interval by ≥ 5 s |
-| `access_denied` | `device/token` | Abort and show "cancelled" |
-| `expired_token` | `device/token` | Abort and suggest re-running `login` |
-| `invalid_grant` | `device/token` | Abort; the device_code is unknown or malformed |
-| `invalid_client` | `device/code`, `device/token` | Abort; the client_id is not recognised |
-| `UNKNOWN_SCOPE` | `device/code` | Abort; the CLI is asking for a scope the server does not publish |
-
-## Security properties
-
-- **No bearer ever in URL.** Neither `device_code` nor the issued PAT is ever carried in a query string, only in JSON bodies.
-- **Short TTL.** The 15-minute `expires_at` means a stolen `user_code` is useful only briefly.
-- **User-visible authorization step.** The user must click a button on an authenticated browser; automated abuse requires the victim's active cooperation.
-- **Scope-down.** The UI may scope-down the requested set, never scope-up.
-- **Revocation path.** The issued PAT appears on the user's `/profile` "API tokens" list and can be revoked immediately.
-- **Audit.** Each completed device flow leaves a row in `ka_device_codes` linked to the issued `ka_api_tokens` row.
-
-## Future extensions (not part of this contract)
-
-- Refresh tokens (not needed yet — PATs are long-lived).
-- OAuth authorization code flow for web-hosted integrators (different surface entirely).
-- Backchannel device pairing via push notifications.
-
-## Version history
-
-- **2026-04-17 (first draft)** — first version. Introduced alongside `docs/API_TOKENS.md`, the renamed `attemptToken`, and the retry-until-pass session model.
+- `user_code` alone is not enough to verify or deny a request; the browser must also present the matching `device_code`
+- raw PAT material is delivered only once, through the token polling response
+- `/device` never writes the `device_code` into the URL
+- browser authorization requires a human account session, not a PAT

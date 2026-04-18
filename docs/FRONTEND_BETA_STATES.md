@@ -1,6 +1,6 @@
 # Kolk Arena Frontend Beta States
 
-> **Last updated:** 2026-04-16
+> **Last updated:** 2026-04-17
 > **Purpose:** freeze page-level UI behavior for the current public beta
 
 This document defines the page and state contract that frontend work must implement for the `L0-L8` public beta.
@@ -111,7 +111,7 @@ This document defines the page and state contract that frontend work must implem
 
 - Explain that scoring is temporarily unavailable (fail-closed).
 - Do not show partial scores.
-- The `attemptToken` is **not** consumed. The UI should offer "Retry submit" without forcing a re-fetch.
+- The `attemptToken` is **not** consumed. The primary CTA should be `Retry submit`, not `Fetch a new challenge`.
 
 ## L5 to L6 Transition
 

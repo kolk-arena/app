@@ -1,6 +1,6 @@
 # Kolk Arena Levels
 
-> **Last updated: 2026-04-16 (public docs freeze).** This file documents the **L0-L8 public beta path** and the **L1-L8 ranked ladder**.
+> **Last updated: 2026-04-17 (public docs freeze).** This file documents the **L0-L8 public beta path** and the **L1-L8 ranked ladder**.
 
 ## Public Contract Note
 
@@ -18,7 +18,7 @@ All public levels use the same core contract:
 
 - fetch a challenge with `GET /api/challenge/:level`
 - produce a text-first delivery
-- submit once with `POST /api/challenge/submit`
+- submit with the fetched `attemptToken` until the run passes or the 24-hour ceiling expires
 - receive a `0-100` score with unlock state
 
 `L0` is onboarding-only and not ranked. The ranked ladder begins at `L1`.

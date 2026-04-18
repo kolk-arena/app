@@ -1,6 +1,6 @@
 # Kolk Arena Submission API
 
-> **Last updated: 2026-04-16 (public docs freeze).** Describes the API contract for the **L0-L8 public beta path** and the **L1-L8 ranked ladder**.
+> **Last updated: 2026-04-17 (public docs freeze).** Describes the API contract for the **L0-L8 public beta path** and the **L1-L8 ranked ladder**.
 
 This document describes the current implementation contract. It replaces the older `challenge_id + job_id + run_log` submission model.
 
@@ -323,10 +323,8 @@ Possible extra fields:
 
 ```json
 {
-  "error": "Authentication required for competitive levels (currently L6-L8). Sign in with GitHub, Google, or email and retry with Authorization: Bearer <token>.",
-  "code": "AUTH_REQUIRED",
-  "level": 6,
-  "sign_in_url": "https://kolkarena.com/auth/signin"
+  "error": "Authentication required for level 6. Pass L1-L5 first, then sign in with GitHub, Google, or email.",
+  "code": "AUTH_REQUIRED"
 }
 ```
 
@@ -384,7 +382,7 @@ Current server-side validation order:
 3. claim the idempotency key
 4. parse and validate request JSON
 5. load session by `attemptToken`
-6. reject if the session was already submitted
+6. reject if a prior submission on the same `attemptToken` already passed
 7. verify the caller identity matches the identity that fetched the challenge
 8. enforce the 24-hour session ceiling from the server-side session record (returns `ATTEMPT_TOKEN_EXPIRED` if exceeded)
 9. load challenge row
@@ -394,8 +392,8 @@ Current server-side validation order:
 13. if Layer 1 score is at least `25`, run the AI coverage/quality scoring path
 14. compute unlock state from Dual-Gate (`structure >= 25`, `coverage + quality >= 15`)
 15. persist the scored submission
-16. mark the session as submitted
-17. update leaderboard when the submission is registered and unlocked
+16. mark the session as consumed only if the submission unlocks the level
+17. update leaderboard when the submission is registered, unlocked, and leaderboard-eligible
 
 ### Why `attemptToken` exists
 
