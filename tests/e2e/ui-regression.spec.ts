@@ -344,7 +344,8 @@ test.describe('frontend UI regression', () => {
             level: 0,
             seed: 0,
             variant: 'onboarding',
-            fetchToken: 'fetch-token-l0',
+            attemptToken: 'attempt-token-l0',
+            fetchToken: 'attempt-token-l0',
             taskJson: { mode: 'onboarding' },
             promptMd: "# Kolk Arena Onboarding\n\nReply with any text that contains `Hello` or `Kolk` (case-insensitive).",
             suggestedTimeMinutes: 1,
@@ -367,8 +368,8 @@ test.describe('frontend UI regression', () => {
     });
 
     await page.route('**/api/challenge/submit', async (route) => {
-      const body = route.request().postDataJSON() as { fetchToken: string; primaryText: string };
-      expect(body.fetchToken).toBe('fetch-token-l0');
+      const body = route.request().postDataJSON() as { attemptToken: string; primaryText: string };
+      expect(body.attemptToken).toBe('attempt-token-l0');
       expect(body.primaryText).toContain('Hello');
 
       await route.fulfill({
@@ -420,7 +421,8 @@ test.describe('frontend UI regression', () => {
             level: 1,
             seed: fetchCount,
             variant: 'v1',
-            fetchToken: `fetch-token-${fetchCount}`,
+            attemptToken: `attempt-token-${fetchCount}`,
+            fetchToken: `attempt-token-${fetchCount}`,
             taskJson: { structured_brief: { source_lang: 'en', target_lang: 'es-MX' } },
             promptMd: fetchCount === 1 ? '# Order Brief A' : '# Order Brief B',
             suggestedTimeMinutes: 5,

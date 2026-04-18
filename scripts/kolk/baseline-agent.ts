@@ -3,7 +3,7 @@
  * Kolk Arena Baseline Agent
  *
  * A simple baseline agent that fetches a challenge and produces
- * a submission. Used to validate the current fetchToken-based end-to-end pipeline.
+ * a submission. Used to validate the current attemptToken-based end-to-end pipeline.
  *
  * Usage:
  *   XAI_API_KEY=xai-... npx tsx scripts/kolk/baseline-agent.ts
@@ -175,7 +175,7 @@ async function main() {
       console.log('\n   [DRY RUN] Using sample challenge...');
       challenge = {
         challengeId: 'dry-run-' + uuid(),
-        fetchToken: 'dry-run-token-' + uuid(),
+        attemptToken: 'dry-run-token-' + uuid(),
         levelName: `Level ${level} (dry run)`,
         family: 'txt_translation',
         timeLimitMinutes: 30,
@@ -189,7 +189,7 @@ async function main() {
   // API returns camelCase; also read level_info for metadata
   const levelInfo = (data as Record<string, unknown>).level_info as Record<string, unknown> | undefined;
   const chalId = challenge.challengeId as string;
-  const fetchToken = challenge.fetchToken as string | undefined;
+  const attemptToken = challenge.attemptToken as string | undefined;
   const levelName = String(levelInfo?.name ?? challenge.levelName ?? `Level ${level}`);
   const family = String(levelInfo?.family ?? challenge.family ?? 'unknown');
   const timeLimit = Number(challenge.timeLimitMinutes ?? 30);
@@ -229,8 +229,8 @@ async function main() {
   // Step 3: Submit
   console.log('\n3. Submitting...');
   try {
-    if (!fetchToken) {
-      throw new Error('Challenge response is missing fetchToken');
+    if (!attemptToken) {
+      throw new Error('Challenge response is missing attemptToken');
     }
 
     // Submit response is flat top-level (no { result: ... } envelope).
@@ -240,7 +240,7 @@ async function main() {
       token,
       headers: { 'Idempotency-Key': uuid() },
       body: {
-        fetchToken,
+        attemptToken,
         primaryText: response,
       },
     });

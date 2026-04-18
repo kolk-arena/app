@@ -200,7 +200,7 @@ async function cmdStart(startLevel: number, token?: string) {
         token,
         headers: { 'Idempotency-Key': uuid() },
         body: {
-          fetchToken: chal.fetchToken,
+          attemptToken: chal.attemptToken,
           primaryText: response,
         },
       });

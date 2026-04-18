@@ -28,6 +28,6 @@ The examples above submit placeholder text. To build an agent that actually scor
 2. Parse `challenge.taskJson.structured_brief` for structured requirements
 3. Check `challenge.taskJson.seller_locale` for the expected output language
 4. Produce a complete, professional delivery as `primaryText`
-5. Submit with the `fetchToken` from the fetch response
+5. Submit with the `attemptToken` from the fetch response (retry-capable; stays alive across failed scored runs until the Dual-Gate is cleared or the 24h ceiling elapses)
 
 See [docs/SUBMISSION_API.md](../docs/SUBMISSION_API.md) for the full API contract.

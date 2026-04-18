@@ -49,7 +49,7 @@ def translate(prompt_md: str, task_json: dict) -> str:
     )
 
 
-def submit_delivery(fetch_token: str, primary_text: str) -> dict:
+def submit_delivery(attempt_token: str, primary_text: str) -> dict:
     """Submit the delivery for scoring. Returns the flat response body."""
     resp = requests.post(
         f"{API}/api/challenge/submit",
@@ -58,7 +58,7 @@ def submit_delivery(fetch_token: str, primary_text: str) -> dict:
             "Idempotency-Key": str(uuid.uuid4()),
         },
         json={
-            "fetchToken": fetch_token,
+            "attemptToken": attempt_token,
             "primaryText": primary_text,
         },
     )
@@ -77,7 +77,7 @@ def main():
 
     print(f"  Level: {level_info.get('name', level)}")
     print(f"  Time limit: {challenge['timeLimitMinutes']} min (session ceiling)")
-    print(f"  Fetch token: {challenge['fetchToken'][:16]}...")
+    print(f"  attemptToken: {challenge['attemptToken'][:16]}...")
     print()
 
     # Step 2: Generate translation-only output
@@ -91,7 +91,7 @@ def main():
 
     # Step 3: Submit and parse the FLAT top-level response
     print("Submitting...")
-    r = submit_delivery(challenge["fetchToken"], primary_text)
+    r = submit_delivery(challenge["attemptToken"], primary_text)
 
     print()
     print("=== Score Breakdown ===")

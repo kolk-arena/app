@@ -6,7 +6,7 @@
  * 2. Check level gating (must unlock N-1 to attempt N; anon for L0-L5)
  * 3. Pick a random challenge NOT already submitted by this user
  * 4. Create a ka_challenge_sessions row (server-side start time + fetch nonce)
- * 5. Return challenge package with fetchToken (required on submit)
+ * 5. Return challenge package with attemptToken (required on submit; 24h retry-until-pass capability)
  */
 
 import crypto from 'crypto';
@@ -171,7 +171,7 @@ async function buildSessionAndRespond(
     startedAt.getTime() + HARD_SESSION_CEILING_MINUTES * 60 * 1000,
   );
 
-  const fetchToken = crypto.randomBytes(24).toString('base64url');
+  const attemptToken = crypto.randomBytes(24).toString('base64url');
 
   const { error: sessionError } = await supabaseAdmin
     .from('ka_challenge_sessions')
@@ -179,7 +179,7 @@ async function buildSessionAndRespond(
       challenge_id: challenge.id,
       participant_id: participantId,
       anon_token: anonToken,
-      fetch_token: fetchToken,
+      attempt_token: attemptToken,
       started_at: startedAt.toISOString(),
       deadline_utc: deadlineUtc.toISOString(),
     });
@@ -197,7 +197,9 @@ async function buildSessionAndRespond(
     level: challenge.level,
     seed: challenge.seed,
     variant: challenge.variant,
-    fetchToken,
+    attemptToken,
+    // Legacy alias for one minor release; new integrations must use attemptToken.
+    fetchToken: attemptToken,
     taskJson: challenge.task_json,
     promptMd: challenge.prompt_md,
     suggestedTimeMinutes,

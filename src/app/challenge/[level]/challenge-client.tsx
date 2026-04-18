@@ -12,7 +12,9 @@ type ChallengePackage = {
   level: number;
   seed?: number;
   variant?: string;
-  fetchToken: string;
+  attemptToken: string;
+  /** Legacy alias for attemptToken; one minor release only. */
+  fetchToken?: string;
   taskJson: Record<string, unknown>;
   promptMd: string;
   suggestedTimeMinutes?: number;
@@ -280,7 +282,7 @@ export function ChallengeClient({ level }: { level: number }) {
             'Idempotency-Key': idempotencyKeyRef.current,
           },
           body: JSON.stringify({
-            fetchToken: fetchState.data.challenge.fetchToken,
+            attemptToken: fetchState.data.challenge.attemptToken,
             primaryText,
           }),
         });
@@ -331,12 +333,12 @@ export function ChallengeClient({ level }: { level: number }) {
           return;
         }
 
-        if (resp.status === 408 || code === 'SESSION_EXPIRED') {
+        if (resp.status === 408 || code === 'ATTEMPT_TOKEN_EXPIRED' || code === 'SESSION_EXPIRED') {
           setSubmitStatus({ kind: 'session_expired', message });
           return;
         }
 
-        if (resp.status === 409 && code === 'SESSION_ALREADY_SUBMITTED') {
+        if (resp.status === 409 && (code === 'ATTEMPT_ALREADY_PASSED' || code === 'SESSION_ALREADY_SUBMITTED')) {
           setSubmitStatus({ kind: 'session_already_submitted', message });
           return;
         }
@@ -626,7 +628,7 @@ export function ChallengeClient({ level }: { level: number }) {
             </Link>
           </div>
           <p className="text-xs leading-5 text-slate-500">
-            Fetch token fingerprint: <code className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px]">{challenge.fetchToken.slice(0, 12)}…</code>
+            attemptToken fingerprint: <code className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px]">{challenge.attemptToken.slice(0, 12)}…</code>
             {' '}· Challenge id: <code className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px]">{challenge.challengeId.slice(0, 8)}…</code>
           </p>
         </form>
@@ -754,8 +756,8 @@ function SubmitErrorBanner({
   const title =
     status.kind === 'validation_error'
       ? isL5Json
-        ? 'L5 JSON invalid — same fetchToken still usable'
-        : 'Validation error — fix input and resubmit (same fetchToken)'
+        ? 'L5 JSON invalid — same attemptToken still usable'
+        : 'Validation error — fix input and resubmit (same attemptToken)'
       : status.kind === 'auth_required'
       ? 'Sign-in required'
       : status.kind === 'identity_mismatch'

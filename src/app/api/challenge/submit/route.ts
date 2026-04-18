@@ -1,15 +1,19 @@
 /**
  * POST /api/challenge/submit — Submit a solution for scoring
  *
- * Session-bound flow:
+ * Retry-until-pass flow (see docs/SUBMISSION_API.md §Retry After a Failed Submission):
  * 1. Idempotency-Key header required
  * 2. Check idempotency cache
- * 3. Parse body (requires fetchToken from challenge fetch)
- * 4. Validate session: fetchToken -> ka_challenge_sessions row
- * 5. Enforce deadline from server-side session (not client-provided)
- * 6. Check not already submitted for this session
- * 7. Run scoring (L0 deterministic check or Layer 1 -> AI judge)
- * 8. Save submission, update leaderboard
+ * 3. Parse body (accepts attemptToken primary + fetchToken legacy alias)
+ * 4. Validate session by attemptToken -> ka_challenge_sessions row
+ * 5. Reject if already consumed by a prior passing submission (409 ATTEMPT_ALREADY_PASSED)
+ * 6. Enforce 24h deadline (408 ATTEMPT_TOKEN_EXPIRED)
+ * 7. Identity-bind: session owner must match caller
+ * 8. Rate-limit per attemptToken (2/min) — not per account
+ * 9. Run scoring (L0 deterministic check or Layer 1 -> AI judge)
+ * 10. Persist submission (multiple submissions per session allowed)
+ * 11. Mark consumed_at only if Dual-Gate cleared
+ * 12. Update leaderboard if passed
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -32,7 +36,7 @@ import {
   isLeaderboardEligible,
   isRankedBetaLevel,
   scoreToColorBand,
-  SUBMIT_RATE_LIMIT_MAX,
+  SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN,
   SUBMIT_RATE_LIMIT_WINDOW_MS,
 } from '@/lib/kolk/beta-contract';
 
@@ -42,7 +46,7 @@ function checkRateLimit(key: string) {
   const now = Date.now();
   const timestamps = (rateLimitMap.get(key) ?? []).filter((timestamp) => now - timestamp < SUBMIT_RATE_LIMIT_WINDOW_MS);
 
-  if (timestamps.length >= SUBMIT_RATE_LIMIT_MAX) {
+  if (timestamps.length >= SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN) {
     const oldestTs = timestamps[0] ?? now;
     const retryAfterSeconds = Math.max(1, Math.ceil((SUBMIT_RATE_LIMIT_WINDOW_MS - (now - oldestTs)) / 1000));
     rateLimitMap.set(key, timestamps);
@@ -337,7 +341,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const { fetchToken, primaryText, repoUrl, commitHash } = parsed.data;
+    const { attemptToken, primaryText, repoUrl, commitHash } = parsed.data;
 
     if (primaryText.length > MAX_PRIMARY_TEXT_CHARS) {
       return errorResponse({
@@ -351,24 +355,26 @@ export async function POST(request: NextRequest) {
     const { data: session, error: sessionErr } = await supabaseAdmin
       .from('ka_challenge_sessions')
       .select('*')
-      .eq('fetch_token', fetchToken)
+      .eq('attempt_token', attemptToken)
       .single();
 
     if (sessionErr || !session) {
       return errorResponse({
         keyHash,
         status: 404,
-        code: 'INVALID_FETCH_TOKEN',
-        message: 'fetchToken not found. You must call GET /api/challenge/:level first and use the returned fetchToken.',
+        code: 'INVALID_ATTEMPT_TOKEN',
+        message: 'attemptToken not found. You must call GET /api/challenge/:level first and use the returned attemptToken.',
       });
     }
 
-    if (session.submitted) {
+    // Retry-until-pass semantics: consumed_at is set only when a prior
+    // submission cleared the Dual-Gate. See docs/SUBMISSION_API.md.
+    if (session.consumed_at) {
       return errorResponse({
         keyHash,
         status: 409,
-        code: 'SESSION_ALREADY_SUBMITTED',
-        message: 'This challenge session has already been submitted. Fetch a new challenge to try again.',
+        code: 'ATTEMPT_ALREADY_PASSED',
+        message: 'This attemptToken has already been used for a passing submission. Fetch a new challenge to try again.',
       });
     }
 
@@ -392,7 +398,7 @@ export async function POST(request: NextRequest) {
           keyHash,
           status: 403,
           code: 'IDENTITY_MISMATCH',
-          message: 'This fetchToken belongs to a different user. You cannot submit on behalf of another account.',
+          message: 'This attemptToken belongs to a different user. You cannot submit on behalf of another account.',
         });
       }
     } else if (sessionAnonToken) {
@@ -401,7 +407,7 @@ export async function POST(request: NextRequest) {
           keyHash,
           status: 403,
           code: 'IDENTITY_MISMATCH',
-          message: 'This fetchToken belongs to a different anonymous session.',
+          message: 'This attemptToken belongs to a different anonymous session.',
         });
       }
     }
@@ -417,8 +423,8 @@ export async function POST(request: NextRequest) {
       return errorResponse({
         keyHash,
         status: 408,
-        code: 'SESSION_EXPIRED',
-        message: `The 24-hour session window has passed. Fetch a new challenge and retry.`,
+        code: 'ATTEMPT_TOKEN_EXPIRED',
+        message: `This attemptToken has expired (24-hour session ceiling reached). Fetch a new challenge and try again.`,
       });
     }
 
@@ -447,14 +453,16 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const rateLimitKey = participantId ?? anonToken ?? 'unknown';
+    // Rate limit is scoped to the attemptToken (not the account). See
+    // docs/SUBMISSION_API.md §Rate Limiting + §Anti-farming.
+    const rateLimitKey = `attempt:${attemptToken}`;
     const rateLimit = checkRateLimit(rateLimitKey);
     if (!rateLimit.allowed) {
       return errorResponse({
         keyHash,
         status: 429,
         code: 'RATE_LIMITED',
-        message: 'Rate limit exceeded',
+        message: `Submit rate limit exceeded. Maximum ${SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN} submissions per minute per attemptToken. Retry after ${rateLimit.retryAfterSeconds}s.`,
         headers: {
           'Retry-After': String(rateLimit.retryAfterSeconds),
         },
@@ -661,15 +669,10 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       console.error('Submission insert error:', insertError);
-      if (insertError.code === '23505') {
-        return errorResponse({
-          keyHash,
-          status: 409,
-          code: 'SESSION_ALREADY_SUBMITTED',
-          message: 'This challenge session has already been submitted. Fetch a new challenge to try again.',
-        });
-      }
-
+      // Per migration 00008 we no longer enforce one-submission-per-session;
+      // multiple retries are allowed until the Dual-Gate is cleared. A 23505
+      // here is therefore not expected and indicates a different unique index
+      // violation — treat as a generic failure.
       void supabaseAdmin.from('ka_idempotency_keys').delete().eq('key_hash', keyHash);
       return NextResponse.json(
         { error: 'Failed to save submission', code: 'SUBMISSION_FAILED' },
@@ -677,10 +680,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await supabaseAdmin
-      .from('ka_challenge_sessions')
-      .update({ submitted: true })
-      .eq('fetch_token', fetchToken);
+    // Consume the attemptToken only when the Dual-Gate is cleared.
+    // Failed scored runs leave the token alive for retry within the 24h ceiling.
+    if (unlocked) {
+      await supabaseAdmin
+        .from('ka_challenge_sessions')
+        .update({ consumed_at: submittedAt.toISOString() })
+        .eq('attempt_token', attemptToken)
+        .is('consumed_at', null);
+    }
 
     if (leaderboardEligible && participantId) {
       await updateLeaderboard({

@@ -8,8 +8,14 @@ export const ANONYMOUS_BETA_MAX_LEVEL = 5;
 export const STRUCTURE_GATE = 25;
 export const COVERAGE_QUALITY_GATE = 15;
 
+// Submit rate limit is scoped to the attemptToken (not the account).
+// See docs/SUBMISSION_API.md §Rate Limiting + §Anti-farming for rationale.
 export const SUBMIT_RATE_LIMIT_WINDOW_MS = 60_000;
-export const SUBMIT_RATE_LIMIT_MAX = 3;
+export const SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN = 2;
+// Legacy alias for one minor release — new code should reference
+// SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN directly.
+/** @deprecated use SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN */
+export const SUBMIT_RATE_LIMIT_MAX = SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN;
 
 export type ColorBand = 'RED' | 'ORANGE' | 'YELLOW' | 'GREEN' | 'BLUE';
 

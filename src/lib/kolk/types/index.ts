@@ -65,7 +65,14 @@ export interface ChallengePackage {
   level: number;
   seed: number;
   variant: string;                 // opaque token — never reveals rubric
-  fetchToken: string;              // opaque nonce — must be sent back on submit
+  /**
+   * Retry-capable capability for this fetched session. 24h TTL.
+   * Consumed only on a passing submission (Dual-Gate cleared) or when
+   * the 24h ceiling elapses. See docs/SUBMISSION_API.md §Why attemptToken exists.
+   */
+  attemptToken: string;
+  /** @deprecated Legacy alias for attemptToken. Remove after one minor release. */
+  fetchToken?: string;
   taskJson: Record<string, unknown>;
   promptMd: string;
   suggestedTimeMinutes?: number;
@@ -90,18 +97,33 @@ export interface VariantRubric {
 // ============================================================================
 
 export interface SubmissionInput {
-  fetchToken: string;
+  /** Primary token name per 2026-04-17 contract. */
+  attemptToken: string;
   primaryText: string;
   repoUrl?: string;
   commitHash?: string;
 }
 
-export const SubmissionInputSchema = z.object({
-  fetchToken: z.string().min(1, 'fetchToken is required (from challenge fetch response)'),
-  primaryText: z.string().min(1).max(50_000, 'primary_text exceeds 50,000 character limit'),
-  repoUrl: z.string().url().optional(),
-  commitHash: z.string().max(64).optional(),
-});
+// Accept both attemptToken (primary) and legacy fetchToken in the request body;
+// the server normalizes to attemptToken downstream. See docs/SUBMISSION_API.md.
+export const SubmissionInputSchema = z
+  .object({
+    attemptToken: z.string().min(1).optional(),
+    fetchToken: z.string().min(1).optional(),
+    primaryText: z.string().min(1).max(50_000, 'primary_text exceeds 50,000 character limit'),
+    repoUrl: z.string().url().optional(),
+    commitHash: z.string().max(64).optional(),
+  })
+  .refine((input) => Boolean(input.attemptToken ?? input.fetchToken), {
+    message: 'attemptToken is required (from challenge fetch response)',
+    path: ['attemptToken'],
+  })
+  .transform((input) => ({
+    attemptToken: (input.attemptToken ?? input.fetchToken) as string,
+    primaryText: input.primaryText,
+    repoUrl: input.repoUrl,
+    commitHash: input.commitHash,
+  }));
 
 export interface SubmissionResult {
   submissionId: string;

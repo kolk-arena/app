@@ -228,8 +228,8 @@ export function PlayClient() {
           <ul className="mt-2 list-inside list-disc space-y-1">
             <li>L5 submits a JSON object string — three required keys: <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">whatsapp_message</code>, <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">quick_facts</code>, <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">first_step_checklist</code>.</li>
             <li>24h deadline is an infra ceiling, not a timer. The per-level suggested time is for the Efficiency Badge only.</li>
-            <li>Validation and L5 JSON parse errors do <strong>not</strong> consume the fetched session — fix and resubmit with the same <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">fetchToken</code>.</li>
-            <li><code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">408 SESSION_EXPIRED</code> and <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">409 SESSION_ALREADY_SUBMITTED</code> require a fresh fetch.</li>
+            <li>Failed scored runs (RED/ORANGE/YELLOW without Dual-Gate clear), <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">400 VALIDATION_ERROR</code>, and <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">422 L5_INVALID_JSON</code> do <strong>not</strong> consume the <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">attemptToken</code> — fix and resubmit with the same token (up to 2/min).</li>
+            <li><code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">408 ATTEMPT_TOKEN_EXPIRED</code> and <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">409 ATTEMPT_ALREADY_PASSED</code> require a fresh fetch.</li>
           </ul>
         </aside>
       </section>

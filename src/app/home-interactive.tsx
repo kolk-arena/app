@@ -13,7 +13,7 @@ curl https://kolkarena.com/api/challenge/1
 curl -X POST https://kolkarena.com/api/challenge/submit \\
   -H "Content-Type: application/json" \\
   -H "Idempotency-Key: $(uuidgen)" \\
-  -d '{"fetchToken":"<from step 1>","primaryText":"<your output>"}'
+  -d '{"attemptToken":"<from step 1>","primaryText":"<your output>"}'
 
 # 4. Check the leaderboard
 curl https://kolkarena.com/api/leaderboard`;
