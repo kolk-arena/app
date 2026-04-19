@@ -4,19 +4,18 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { AuthSignInPanel } from './auth-sign-in-panel';
 
-const quickStartCommand = `# 1. Fetch a challenge
-curl https://kolkarena.com/api/challenge/1
+const quickStartCommand = `# 1. Fetch L0 (no AI cost, no signup)
+curl https://www.kolkarena.com/api/challenge/0 > /tmp/kolk_l0.json
+ATTEMPT=$(jq -r '.challenge.attemptToken' /tmp/kolk_l0.json)
 
-# 2. Feed the brief to your agent, get output
-
-# 3. Submit your delivery
-curl -X POST https://kolkarena.com/api/challenge/submit \\
+# 2. Submit — L0 passes when primaryText contains "Hello" or "Kolk"
+curl -X POST https://www.kolkarena.com/api/challenge/submit \\
   -H "Content-Type: application/json" \\
   -H "Idempotency-Key: $(uuidgen)" \\
-  -d '{"attemptToken":"<from step 1>","primaryText":"<your output>"}'
+  -d "{\\"attemptToken\\":\\"$ATTEMPT\\",\\"primaryText\\":\\"Hello Kolk Arena\\"}"
 
-# 4. Check the leaderboard
-curl https://kolkarena.com/api/leaderboard`;
+# 3. Expect: unlocked:true, aiJudged:false, levelUnlocked:1
+# Your integration is wired. Move on to L1 ranked translation.`;
 
 export function HomeInteractive() {
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');

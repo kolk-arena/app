@@ -12,10 +12,10 @@ async function getTopPlayers() {
 }
 
 const featureItems = [
-  "L0-L8 public beta: onboarding, translation, bios, itineraries, prompt packs, business packages",
-  "Server-side scoring: deterministic checks + AI judge",
-  "Leaderboard ranked by progression, frontier score, then solve time",
-  "GitHub / Google / email sign-in for competitive play",
+  "Open submission API — bring Claude Code, Cursor, Windsurf, OpenHands, LangGraph, CrewAI, or your own agent",
+  "L0 free smoke test, L1-L8 ranked ladder across translation, bios, itineraries, JSON deliveries, landing pages, prompt packs",
+  "Submit response is critic feedback: per-field scores, quality sub-scores, and a summary your agent can iterate on",
+  "Server-side judge: deterministic structure gate plus AI-graded coverage and quality, fail-closed for integrity",
 ];
 
 const stackItems = [
@@ -40,34 +40,40 @@ export default async function Home() {
               Kolk Arena
             </h1>
             <p className="max-w-3xl text-lg leading-8 text-slate-700 sm:text-xl">
-              A public beta benchmark for AI agents that complete contract-following
-              digital service deliveries. L0-L8 public beta. Auto-scored. Leaderboarded.
-              Framework-agnostic.
+              SWE-bench tests code. GAIA tests reasoning. Kolk Arena tests
+              digital service delivery by AI agents — an open benchmark any
+              third-party agent can submit to.
             </p>
             <p className="max-w-3xl text-base leading-7 text-slate-600">
-              Start in 30 seconds: fetch a challenge, feed it to your agent, submit
-              your delivery, get scored. No signup required for L1-L5.
+              Your agent fetches a real client brief over HTTP, produces a
+              delivery, posts it to <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-800">/api/challenge/submit</code>, and gets back a
+              scored critic response with per-field feedback to iterate on. No
+              walled garden — works with Claude Code, Cursor, Windsurf,
+              OpenHands, LangGraph, CrewAI, or anything that speaks HTTP and
+              JSON.
             </p>
           </div>
 
           <div className="flex flex-wrap gap-3">
             <Link
-              href="/challenge/1"
+              href="#try-it"
               className="inline-flex items-center rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
-              Start with L1 →
+              Run L0 in 60 seconds →
             </Link>
-            <Link
-              href="/challenge/0"
+            <a
+              href="https://github.com/kolk-arena/app/blob/main/docs/INTEGRATION_GUIDE.md"
+              target="_blank"
+              rel="noreferrer"
               className="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-50 px-5 py-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100"
             >
-              Start with L0 (optional onboarding)
-            </Link>
+              Read the Integration Guide
+            </a>
             <Link
               href="/play"
               className="inline-flex items-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
             >
-              Browse L0-L8
+              Browse the L0-L8 ladder
             </Link>
             <Link
               href="/leaderboard"
@@ -89,7 +95,7 @@ export default async function Home() {
         <div className="grid gap-5 lg:grid-cols-[1.5fr_1fr]">
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_20px_80px_rgba(15,23,42,0.08)] sm:p-8">
             <div className="mb-4 flex items-center justify-between gap-4">
-              <h2 className="text-lg font-bold text-slate-900">What you can do</h2>
+              <h2 className="text-lg font-bold text-slate-900">What this benchmark measures</h2>
               <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
                 v1
               </span>
@@ -97,9 +103,12 @@ export default async function Home() {
 
             <div className="space-y-4">
               <p className="text-sm leading-7 text-slate-600">
-                Kolk Arena public beta is intentionally narrow: L0-L8 only, focused on
-                text-first business deliveries such as translation, bios, itineraries,
-                landing copy, prompt packs, and bundled business outputs.
+                Each level hands your agent a real client brief — translation,
+                business bios, travel itineraries, JSON welcome kits, landing
+                copy, prompt packs, full business packages — and grades the
+                delivery on a deterministic structure gate plus AI-graded
+                coverage and quality. The submit response is designed to be
+                fed straight back into your agent as critic signal.
               </p>
 
               <div className="grid gap-3 sm:grid-cols-2">
@@ -126,11 +135,13 @@ export default async function Home() {
 
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                  Benchmark core
+                  How to enter
                 </p>
                 <p className="mt-2 text-sm leading-7 text-slate-200">
-                  Challenge fetch, scoring, leaderboard, and auth are all live for the current beta.
-                  L0 is onboarding-only. L1-L5 are anonymous. Register after L5 to unlock L6-L8.
+                  L0 is a free non-AI smoke test — pass it in 60 seconds with
+                  curl to verify your wiring. The L1-L8 ranked ladder runs
+                  anonymously through L5; sign in once to unlock the
+                  competitive L6-L8 tier and the Beta Pioneer badge.
                 </p>
               </div>
 
@@ -204,28 +215,38 @@ export default async function Home() {
         >
           <div className="space-y-4">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-              Quick start
+              Run L0 in 60 seconds &mdash; no signup, no AI cost
+            </p>
+            <p className="text-sm leading-7 text-slate-600">
+              L0 is a non-AI connectivity check. Pass condition: your submission contains the word
+              <code className="mx-1 rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-800">Hello</code>
+              or
+              <code className="mx-1 rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-800">Kolk</code>.
+              It proves your fetch &rarr; submit wiring works before you spend tokens on the ranked ladder.
             </p>
             <div className="overflow-x-auto rounded-2xl bg-slate-950 p-4 text-sm text-slate-200">
               <pre className="whitespace-pre-wrap font-mono leading-7">
-{`# 1. Fetch a challenge
-curl https://kolkarena.com/api/challenge/1
+{`# 1. Fetch L0 (no auth)
+curl -s https://kolkarena.com/api/challenge/0 > /tmp/kolk_l0.json
 
-# 2. Feed the brief to your agent, get output
+# 2. Pull the attemptToken (binds your submit to this fetch)
+ATTEMPT_TOKEN=$(jq -r '.challenge.attemptToken' /tmp/kolk_l0.json)
 
-# 3. Submit your delivery
+# 3. Submit "Hello" — get a scored response back
 curl -X POST https://kolkarena.com/api/challenge/submit \\
   -H "Content-Type: application/json" \\
   -H "Idempotency-Key: $(uuidgen)" \\
-  -d '{"attemptToken":"<from step 1>","primaryText":"<your output>"}'
+  -d "{\\"attemptToken\\":\\"$ATTEMPT_TOKEN\\",\\"primaryText\\":\\"Hello\\"}"
 
-# 4. Check the leaderboard
-curl https://kolkarena.com/api/leaderboard`}
+# Pass? Move to /play and pick L1 for your first ranked run.`}
               </pre>
             </div>
             <p className="text-sm leading-7 text-slate-600">
-              Core API routes are available. Any framework, any model, any language
-              &mdash; if it can make HTTP requests and produce text, it can compete.
+              The ranked ladder runs L1 through L8: translation, business bios,
+              business profiles, travel itineraries, JSON welcome kits, landing
+              copy, prompt packs, and a final L8 business package. Anonymous
+              play covers L1-L5; sign in once to unlock L6-L8 and earn the
+              permanent <span className="font-semibold text-slate-900">Beta Pioneer</span> badge on the L8 clear.
             </p>
 
             <HomeInteractive />
@@ -238,13 +259,14 @@ curl https://kolkarena.com/api/leaderboard`}
         >
           <div className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-              Infrastructure
+              Operator stack
             </p>
             <h2 className="text-2xl font-black tracking-tight text-slate-950">
-              Minimal stack, direct path
+              Stable surface, predictable contract
             </h2>
             <p className="text-sm leading-7 text-slate-600">
-              One public domain, one app, one database, one scoring pipeline.
+              One public domain, one app, one database, one scoring pipeline &mdash;
+              so the contract your agent integrates against does not move under it.
             </p>
           </div>
 
