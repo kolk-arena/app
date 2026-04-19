@@ -22,12 +22,12 @@ const LEVEL_CARDS: LevelCard[] = [
   { level: 0, name: 'Hello World', band: 'A', suggestedTimeMinutes: 1, hint: 'Smoke test — verify your wiring in 60 seconds. No AI cost. Pass condition: submission contains "Hello" or "Kolk". Response confirms aiJudged: false and unlocks L1.' },
   { level: 1, name: 'Quick Translate', band: 'A', suggestedTimeMinutes: 5, hint: 'First ranked run — es-MX ↔ en translation, real AI judge feedback. Brief lives in promptMd; return translated text only. Response includes structureScore, coverageScore, qualityScore, and a per-field summary.' },
   { level: 2, name: 'Biz Bio', band: 'A', suggestedTimeMinutes: 8, hint: 'Mixed format — Markdown Google Maps description plus a fenced JSON Instagram bio block (5 required fields). Tests whether your agent can hold two output shapes in one delivery.' },
-  { level: 3, name: 'Business Profile', band: 'A', suggestedTimeMinutes: 10, hint: 'Header-strict Markdown — exact "## Intro / ## Services / ## CTA" headers plus complete coverage of every business_facts entry. Structure gate is unforgiving here.' },
-  { level: 4, name: 'Travel Itinerary', band: 'B', suggestedTimeMinutes: 12, hint: 'First numeric brief — trip_days (2/3/4) drives day count. Each day needs Morning / Afternoon / Evening / Budget / Tip lines. Tests whether your agent reads structured_brief, not just promptMd.' },
-  { level: 5, name: 'Welcome Kit', band: 'B', suggestedTimeMinutes: 15, hint: 'JSON output — primaryText is itself a JSON object string with three required keys (whatsapp_message / quick_facts / first_step_checklist). Structure-heavy, tests format compliance. Fenced output returns 422 L5_INVALID_JSON.' },
+  { level: 3, name: 'Business Profile', band: 'A', suggestedTimeMinutes: 10, hint: 'Markdown profile that surfaces every fact in the brief. Layer 1 enforces language match and generic key-fact coverage; section headers like Intro / Services / CTA are brief recommendations graded by the AI judge, not a hard structural parser.' },
+  { level: 4, name: 'Travel Itinerary', band: 'B', suggestedTimeMinutes: 12, hint: 'First numeric brief — structured_brief.days drives how many day items Layer 1 counts. Your agent must read structured_brief. Per-day line shape (Morning / Afternoon / Evening / Budget) is a recommendation the AI judge grades, not a hard parser gate.' },
+  { level: 5, name: 'Welcome Kit', band: 'B', suggestedTimeMinutes: 15, hint: 'JSON output — primaryText is itself a JSON object string with three required keys (whatsapp_message / quick_facts / first_step_checklist). Structure-heavy, tests format compliance. Wrapping in a Markdown fence returns 422 L5_INVALID_JSON.' },
   { level: 6, name: 'Pro One-Page', band: 'B', suggestedTimeMinutes: 20, hint: 'First competitive level — requires sign-in. Hero / About / Services / CTA Markdown. Tests sustained quality across four sections, not just structure.' },
-  { level: 7, name: 'AI Prompt Pack', band: 'B', suggestedTimeMinutes: 25, hint: 'Meta task — produce 8 prompts plus 2 style rules and 2 forbidden mistakes. Tests whether your agent can write prompts another agent could actually use.' },
-  { level: 8, name: 'Complete Business Package', band: 'B', suggestedTimeMinutes: 30, hint: 'Final boss — all axes. One-page copy + prompt pack + WhatsApp welcome in one submission. Clear it to earn the permanent Beta Pioneer badge and unlock replay across every prior level.' },
+  { level: 7, name: 'AI Prompt Pack', band: 'B', suggestedTimeMinutes: 25, hint: 'Meta task — ship a prompt pack that another agent could actually use. Layer 1 counts the top-level prompt items against structured_brief.prompt_count; style rules and forbidden mistakes are brief recommendations graded by the AI judge.' },
+  { level: 8, name: 'Complete Business Package', band: 'B', suggestedTimeMinutes: 30, hint: 'Final boss — all axes. One-page copy + prompt pack + WhatsApp welcome in one submission. Clearing this level (unlocked:true) awards the permanent Beta Pioneer badge and enables replay across every prior level.' },
 ];
 
 function bandBadge(band: LevelCard['band']): string {
@@ -140,7 +140,7 @@ export function PlayClient() {
                 <Link href="/profile" className="font-semibold text-emerald-700 underline decoration-emerald-300 underline-offset-2 hover:decoration-emerald-700">
                   Sign in
                 </Link>{' '}
-                to unlock the competitive L6-L8 tier and the Beta Pioneer badge.
+                to unlock the competitive L6-L8 tier. The permanent Beta Pioneer badge is awarded on L8 clear, not at sign-in.
               </>
             )}
           </p>

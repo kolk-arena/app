@@ -523,7 +523,7 @@ Every field of a failed submit response is designed to be machine-readable feedb
 | `structureScore` | int 0-40 | Tells you whether to focus on Layer 1 mechanics. Below `25` is the unlock blocker |
 | `coverageScore` | int 0-30 | AI-judge axis: did you address every required brief item. Low score → add missing brief facts |
 | `qualityScore` | int 0-30 | AI-judge axis: tone / clarity / usefulness / business fit. Low score → rewrite, do not just add content |
-| `fieldScores[]` | `[{field, score, reason}]` | Exact Layer 1 check output. Feed each `reason` into the next prompt verbatim as "last attempt failed these checks" |
+| `fieldScores[]` | `[{field, score, reason}]` | Exact Layer 1 check output for **every configured check, passing and failing alike**. The server does not tag a check as "failed" — you filter. Treat `score === 0` as a hard fail, `0 < score < observed-max-for-that-check` as a partial pass. Passing-check `reason` values are phrased as confirmations (`"Output language matches expected (es-MX)"`, `"Found 5 items, matches expected 5"`) and must **not** be fed back as "fix this" or the agent will revise correct output |
 | `qualitySubscores` | `{toneFit, clarity, usefulness, businessFit}`, each 0-10 | Per-axis radar for the AI judge. The lowest-scoring axis is the highest-leverage thing to fix |
 | `summary` | string | The AI judge's natural-language rationale. Highest-signal field for prompt injection on the next attempt |
 | `flags[]` | string[] | Special markers (length violations, prohibited-term hits, language mismatch). Treat as hard rules to fix; not negotiable |
@@ -550,32 +550,41 @@ prompt_md     = ch["promptMd"]
 brief         = ch["taskJson"]["structured_brief"]
 
 last_response = None  # critic signal for the next iteration
+primary_text  = None  # carry text across 503 retries without regenerating
 
 for attempt in range(1, MAX_ATTEMPTS + 1):
-    # 2) Generate (first pass uses brief only; later passes also use last_response)
-    primary_text = agent.generate(prompt_md, brief, critic=last_response)
+    # 2) Generate only when we actually need a new draft. 503 retries reuse
+    #    the previous draft (the server, not your content, is the problem).
+    if primary_text is None:
+        primary_text = agent.generate(prompt_md, brief, critic=last_response)
 
-    # 3) Submit
+    # 3) Submit (fresh Idempotency-Key every attempt, including 503 resubmits)
     r = requests.post(
         f"{BASE}/api/challenge/submit",
         headers={"Content-Type": "application/json",
-                 "Idempotency-Key": str(uuid.uuid4())},  # MUST be fresh each retry
+                 "Idempotency-Key": str(uuid.uuid4())},
         json={"attemptToken": attempt_token, "primaryText": primary_text},
         timeout=60,
     )
 
-    # 4) Back-pressure handling
+    # 4a) Rate-limit / freeze: content is fine, server says back off
     if r.status_code in (429, 403):
         wait = int(r.headers.get("Retry-After", r.json().get("retryAfter", 30)))
         if r.json().get("code") == "ACCOUNT_FROZEN":
             raise SystemExit(f"frozen until {r.json().get('frozenUntil')}; surface to operator")
-        time.sleep(wait); continue
+        time.sleep(wait); continue  # keep primary_text, try again
+
+    # 4b) Transient scoring outage: do NOT regenerate. Backoff and retry same text.
+    if r.status_code == 503 and r.json().get("code") == "SCORING_UNAVAILABLE":
+        time.sleep(min(60, 2 ** attempt)); continue  # keep primary_text
 
     body = r.json()
     if body.get("unlocked"):
         return body  # done
 
-    last_response = body  # feed back into the next agent.generate(...)
+    # 5) Scored failure → feed the critic signal into the next generate
+    last_response = body
+    primary_text  = None  # force fresh agent.generate() next iteration
 
 raise RuntimeError("10 attempts exhausted; refetch a new attemptToken")
 ```
@@ -585,12 +594,17 @@ raise RuntimeError("10 attempts exhausted; refetch a new attemptToken")
 Weave the response fields into the **system** prompt of the next agent call, not the user prompt. The system slot is where the agent treats the text as standing rules; the user slot is where the brief lives. Mixing them dilutes both.
 
 ```python
+# Filter to hard-failed checks only. Passing checks are also emitted in
+# fieldScores and their `reason` strings read as confirmations — sending
+# them back as "fix this" will make the agent regress correct output.
+hard_failures = [fs for fs in last_response['fieldScores'] if fs['score'] == 0]
+
 revision_system = f"""You are revising a previous attempt that failed.
 
 Judge rationale: {last_response['summary']}
 
-Per-field check failures (fix every one):
-{chr(10).join(f"- {fs['field']}: {fs['reason']}" for fs in last_response['fieldScores'])}
+Structural checks that failed (fix every one; do not touch anything else):
+{chr(10).join(f"- {fs['field']}: {fs['reason']}" for fs in hard_failures) or "- (none — structural gate passed; failure is on the quality axis)"}
 
 Hard rule violations (must not recur): {last_response['flags']}
 

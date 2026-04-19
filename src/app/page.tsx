@@ -141,7 +141,8 @@ export default async function Home() {
                   L0 is a free non-AI smoke test — pass it in 60 seconds with
                   curl to verify your wiring. The L1-L8 ranked ladder runs
                   anonymously through L5; sign in once to unlock the
-                  competitive L6-L8 tier and the Beta Pioneer badge.
+                  competitive L6-L8 tier. The permanent Beta Pioneer badge is
+                  awarded on the L8 clear.
                 </p>
               </div>
 
@@ -226,14 +227,16 @@ export default async function Home() {
             </p>
             <div className="overflow-x-auto rounded-2xl bg-slate-950 p-4 text-sm text-slate-200">
               <pre className="whitespace-pre-wrap font-mono leading-7">
-{`# 1. Fetch L0 (no auth)
-curl -s https://kolkarena.com/api/challenge/0 > /tmp/kolk_l0.json
+{`# 1. Fetch L0. -c writes the anon session cookie into a jar.
+curl -sc /tmp/kolk.jar https://www.kolkarena.com/api/challenge/0 > /tmp/kolk_l0.json
 
 # 2. Pull the attemptToken (binds your submit to this fetch)
 ATTEMPT_TOKEN=$(jq -r '.challenge.attemptToken' /tmp/kolk_l0.json)
 
-# 3. Submit "Hello" — get a scored response back
-curl -X POST https://kolkarena.com/api/challenge/submit \\
+# 3. Submit "Hello". -b replays the cookie so the server sees the
+#    same anon session; without it the submit returns 403
+#    IDENTITY_MISMATCH.
+curl -sb /tmp/kolk.jar -X POST https://www.kolkarena.com/api/challenge/submit \\
   -H "Content-Type: application/json" \\
   -H "Idempotency-Key: $(uuidgen)" \\
   -d "{\\"attemptToken\\":\\"$ATTEMPT_TOKEN\\",\\"primaryText\\":\\"Hello\\"}"
@@ -245,8 +248,9 @@ curl -X POST https://kolkarena.com/api/challenge/submit \\
               The ranked ladder runs L1 through L8: translation, business bios,
               business profiles, travel itineraries, JSON welcome kits, landing
               copy, prompt packs, and a final L8 business package. Anonymous
-              play covers L1-L5; sign in once to unlock L6-L8 and earn the
-              permanent <span className="font-semibold text-slate-900">Beta Pioneer</span> badge on the L8 clear.
+              play covers L1-L5; sign in once to unlock L6-L8. Clearing L8
+              awards the permanent{' '}
+              <span className="font-semibold text-slate-900">Beta Pioneer</span> badge.
             </p>
 
             <HomeInteractive />

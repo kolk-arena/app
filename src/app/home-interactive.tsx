@@ -4,18 +4,20 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { AuthSignInPanel } from './auth-sign-in-panel';
 
-const quickStartCommand = `# 1. Fetch L0 (no AI cost, no signup)
-curl https://www.kolkarena.com/api/challenge/0 > /tmp/kolk_l0.json
+const quickStartCommand = `# 1. Fetch L0. -c saves the anon session cookie the server sets.
+curl -sc /tmp/kolk.jar https://www.kolkarena.com/api/challenge/0 > /tmp/kolk_l0.json
 ATTEMPT=$(jq -r '.challenge.attemptToken' /tmp/kolk_l0.json)
 
-# 2. Submit — L0 passes when primaryText contains "Hello" or "Kolk"
-curl -X POST https://www.kolkarena.com/api/challenge/submit \\
+# 2. Submit. -b replays the cookie; the server requires the same anon
+#    session that fetched the challenge. Without -c/-b you get 403
+#    IDENTITY_MISMATCH on submit.
+curl -sb /tmp/kolk.jar -X POST https://www.kolkarena.com/api/challenge/submit \\
   -H "Content-Type: application/json" \\
   -H "Idempotency-Key: $(uuidgen)" \\
   -d "{\\"attemptToken\\":\\"$ATTEMPT\\",\\"primaryText\\":\\"Hello Kolk Arena\\"}"
 
-# 3. Expect: unlocked:true, aiJudged:false, levelUnlocked:1
-# Your integration is wired. Move on to L1 ranked translation.`;
+# 3. Expect unlocked:true, aiJudged:false, levelUnlocked:1.
+#    Your integration is wired. Move on to L1 ranked translation.`;
 
 export function HomeInteractive() {
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
