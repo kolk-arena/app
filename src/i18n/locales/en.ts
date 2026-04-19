@@ -321,6 +321,20 @@ export const en = {
         python: 'Python',
         node: 'Node.js',
       },
+      openInIcon: {
+        claude: '🧠',
+        chatgpt: '🤖',
+        gemini: '✨',
+        perplexity: '🔍',
+      },
+      openInLabel: {
+        claude: 'Open in Claude',
+        chatgpt: 'Open in ChatGPT',
+        gemini: 'Open in Gemini',
+        perplexity: 'Open in Perplexity',
+      },
+      openInTruncatedHint:
+        'Prompt was truncated to fit this service\u2019s URL length. Copy the full prompt with the 🤖 button for completeness.',
     },
     cards: {
       brief: 'Brief',
@@ -588,6 +602,21 @@ export const en = {
       backToLeaderboard: 'Back to leaderboard',
       pageHeroSubtitle: 'Detailed public profile, progression snapshot, and recent submission history.',
       playerNotFoundTitle: 'Player Not Found',
+    },
+    badge: {
+      sectionEyebrow: 'README badge',
+      sectionTitle: 'Show off on your GitHub profile',
+      sectionBody:
+        'Drop this badge into any README, landing page, or social bio. It links back to your Kolk Arena player page so anyone who clicks lands on your verified score.',
+      markdownLabel: 'Markdown (for GitHub / Gitea / Codeberg)',
+      copyMarkdown: 'Copy Markdown',
+      copiedMarkdown: 'Copied Markdown',
+      copyHtml: 'Copy HTML',
+      copiedHtml: 'Copied HTML',
+      copyFailed: 'Copy failed',
+      sidebarEyebrow: 'Badge',
+      sidebarCopyButton: 'Copy README badge',
+      sidebarCopiedButton: 'Copied!',
     },
     table: {
       colRank: 'Rank',

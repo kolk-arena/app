@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { CopyButton } from '@/components/ui/copy-button';
 import { copy } from '@/i18n';
 import { formatDateTime, formatNumber } from '@/i18n/format';
+import { buildPlayerBadge } from '@/lib/frontend/badge';
 import { fetchLeaderboardPlayerDetail, type LeaderboardPlayerSubmission } from '@/lib/kolk/leaderboard/player-detail';
 
 type PlayerPageProps = {
@@ -77,12 +79,30 @@ export default async function PlayerDetailPage({ params }: PlayerPageProps) {
 
   const recentSubmissions = (Array.isArray(submissions) ? submissions : []) as LeaderboardPlayerSubmission[];
   const pd = copy.leaderboard.playerDetail;
+  const badgeCopy = copy.leaderboard.badge;
   const tier = String(leaderboardRow.tier ?? pd.tierFallback);
   const highestLevel = Number(leaderboardRow.highest_level ?? 0);
   const totalScore = Number(leaderboardRow.total_score ?? 0);
   const levelsCompleted = Number(leaderboardRow.levels_completed ?? 0);
   const lastSubmissionAt =
     typeof leaderboardRow.last_submission_at === 'string' ? leaderboardRow.last_submission_at : null;
+
+  // README badge: prefer userRow.max_level (canonical source on ka_users)
+  // and fall back to leaderboardRow.highest_level. If the player has no
+  // submissions yet (max_level null AND no recent submissions), `buildPlayerBadge`
+  // will return null below thanks to `-1`, and we render nothing.
+  const badgeHighestLevel =
+    typeof userRow.max_level === 'number' && Number.isFinite(userRow.max_level)
+      ? userRow.max_level
+      : recentSubmissions.length > 0
+      ? highestLevel
+      : -1;
+  const badge = buildPlayerBadge({
+    playerId,
+    highestLevel: badgeHighestLevel,
+    pioneer: userRow.pioneer === true,
+    displayName: userRow.display_name,
+  });
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
@@ -187,6 +207,56 @@ export default async function PlayerDetailPage({ params }: PlayerPageProps) {
           </aside>
 
           <section className="space-y-4">
+            {badge ? (
+              <section
+                aria-label={badgeCopy.sectionTitle}
+                className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_10px_40px_rgba(15,23,42,0.04)] sm:p-8"
+              >
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                  {badgeCopy.sectionEyebrow}
+                </p>
+                <h2 className="mt-2 text-xl font-bold tracking-tight text-slate-950">
+                  {badgeCopy.sectionTitle}
+                </h2>
+                <p className="mt-2 text-sm leading-7 text-slate-600">
+                  {badgeCopy.sectionBody}
+                </p>
+
+                <div className="mt-4">
+                  {/* Render shields.io's external SVG directly — next/image
+                      would force a remotePatterns config for img.shields.io
+                      and a tiny badge gains nothing from the optimizer. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={badge.shieldsUrl} alt={badge.displayLabel} className="h-6" />
+                </div>
+
+                <div className="mt-4 flex flex-col gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    {badgeCopy.markdownLabel}
+                  </p>
+                  <pre className="overflow-x-auto rounded-2xl bg-slate-950 p-4 text-xs text-slate-200 font-mono leading-6">
+                    {badge.markdown}
+                  </pre>
+                  <div className="flex flex-wrap gap-2">
+                    <CopyButton
+                      value={badge.markdown}
+                      idleLabel={badgeCopy.copyMarkdown}
+                      copiedLabel={badgeCopy.copiedMarkdown}
+                      failedLabel={badgeCopy.copyFailed}
+                      className="inline-flex items-center rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                    />
+                    <CopyButton
+                      value={badge.html}
+                      idleLabel={badgeCopy.copyHtml}
+                      copiedLabel={badgeCopy.copiedHtml}
+                      failedLabel={badgeCopy.copyFailed}
+                      className="inline-flex items-center rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+                    />
+                  </div>
+                </div>
+              </section>
+            ) : null}
+
             <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
               <div className="border-b border-slate-200 px-4 py-4 sm:px-5">
                 <h2 className="text-base font-semibold text-slate-950">{pd.recentSubmissionsHeading}</h2>

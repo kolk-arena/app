@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { CopyButton } from '@/components/ui/copy-button';
 import { copy } from '@/i18n';
 import {
+  buildAiDeepLink,
   getAgentStarterPrompt,
   getSubmitContractSnippet,
 } from '@/lib/frontend/agent-handoff';
@@ -163,6 +164,22 @@ export function PlayClient() {
                 copiedLabel={copy.play.agentPanel.copiedAgentPrompt}
                 className="inline-flex items-center rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
               />
+              {(['claude', 'chatgpt', 'gemini', 'perplexity'] as const).map((service) => {
+                const link = buildAiDeepLink(service, agentStarterPrompt);
+                if (!link) return null;
+                return (
+                  <a
+                    key={service}
+                    href={link.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+                    title={link.truncated ? copy.challenge.agentPanel.openInTruncatedHint : undefined}
+                  >
+                    {copy.challenge.agentPanel.openInIcon[service]} {copy.challenge.agentPanel.openInLabel[service]}
+                  </a>
+                );
+              })}
               <CopyButton
                 value={submitContractSnippet}
                 idleLabel={copy.play.agentPanel.copySubmitContract}

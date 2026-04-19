@@ -13,6 +13,7 @@ import {
 } from '@/i18n/format';
 import type { BetaPublicLevel, ErrorCode, ScriptLang } from '@/i18n/types';
 import {
+  buildAiDeepLink,
   buildChallengeAgentBrief,
   extractStructuredBrief,
   getLevelDeliveryInstruction,
@@ -764,6 +765,22 @@ export function ChallengeClient({ level }: { level: number }) {
               failedLabel={copy.challenge.agentPanel.copyFailed}
               className="inline-flex items-center rounded-full bg-slate-950 px-6 py-3 text-sm font-bold text-white transition hover:bg-slate-800 shadow-md ring-2 ring-slate-950/20"
             />
+            {(['claude', 'chatgpt', 'gemini', 'perplexity'] as const).map((service) => {
+              const link = buildAiDeepLink(service, agentBrief);
+              if (!link) return null;
+              return (
+                <a
+                  key={service}
+                  href={link.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+                  title={link.truncated ? copy.challenge.agentPanel.openInTruncatedHint : undefined}
+                >
+                  {copy.challenge.agentPanel.openInIcon[service]} {copy.challenge.agentPanel.openInLabel[service]}
+                </a>
+              );
+            })}
             <CopyButton
               value={submitContractSnippet}
               idleLabel={copy.challenge.agentPanel.copySubmitContract}

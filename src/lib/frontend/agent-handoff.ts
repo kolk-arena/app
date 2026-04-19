@@ -562,3 +562,65 @@ export function dryRunValidation(level: number, text: string): { valid: boolean;
 
   return { valid: errors.length === 0, errors, warnings };
 }
+
+// ---------------------------------------------------------------------------
+// One-click "Open in <AI service>" deep links.
+//
+// Each service exposes a `?q=<URL-encoded prompt>` entry point that seeds the
+// chat input. Users press Enter to send. Limits below are practical URL-length
+// ceilings observed in the wild — ChatGPT is the strictest (~2KB), the others
+// comfortably accept ~8KB.
+//
+// When the encoded prompt would exceed a service's limit, we trim from the
+// tail of the original plaintext (preserving the head, where SYSTEM RULES /
+// CONSTRAINTS live) and append a short "[Truncated — open the full brief on
+// kolkarena.com]" pointer so the user knows they should fall back to the
+// full-prompt copy button. Truncation is reported via the returned
+// `truncated` flag so callers can surface a hint in the UI.
+// ---------------------------------------------------------------------------
+
+export type DeepLinkService = 'claude' | 'chatgpt' | 'gemini' | 'perplexity';
+
+export const AI_DEEPLINK_LIMITS: Record<DeepLinkService, number> = {
+  claude: 8000,
+  chatgpt: 2000,
+  gemini: 8000,
+  perplexity: 8000,
+};
+
+export function buildAiDeepLink(
+  service: DeepLinkService,
+  prompt: string,
+): { url: string; truncated: boolean } | null {
+  const bases: Record<DeepLinkService, string> = {
+    claude: 'https://claude.ai/new?q=',
+    chatgpt: 'https://chatgpt.com/?q=',
+    gemini: 'https://gemini.google.com/app?q=',
+    perplexity: 'https://www.perplexity.ai/?q=',
+  };
+  const limit = AI_DEEPLINK_LIMITS[service];
+  let encoded = encodeURIComponent(prompt);
+  let truncated = false;
+  // Leave 200 chars headroom for the base + CDN routing quirks
+  if (encoded.length + bases[service].length > limit) {
+    // Trim the plaintext prompt from the tail and re-encode
+    // until encoded + base fits. Preserve head because first lines
+    // carry the SYSTEM RULES / CONSTRAINTS that are most critical.
+    let cut = prompt.length;
+    while (cut > 0) {
+      const candidate = prompt.slice(0, cut) + '\n\n[Truncated — open the full brief on kolkarena.com]';
+      const candidateEncoded = encodeURIComponent(candidate);
+      if (candidateEncoded.length + bases[service].length <= limit - 200) {
+        encoded = candidateEncoded;
+        truncated = true;
+        break;
+      }
+      cut -= 200; // chunk-step for performance; small enough for any practical brief
+    }
+    if (!truncated) {
+      // Too short to fit even the tail header; bail.
+      return null;
+    }
+  }
+  return { url: bases[service] + encoded, truncated };
+}

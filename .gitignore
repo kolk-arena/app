@@ -74,3 +74,4 @@ docs-archive/
 *.tsbuildinfo
 next-env.d.ts
 supabase/.temp/
+backup_files/

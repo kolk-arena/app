@@ -2,8 +2,10 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { CopyButton } from '@/components/ui/copy-button';
 import { copy } from '@/i18n';
 import { formatDateTime, formatNumber } from '@/i18n/format';
+import { buildPlayerBadge } from '@/lib/frontend/badge';
 import type { LeaderboardPlayerDetail } from '@/lib/kolk/leaderboard/player-detail';
 
 function formatScore(value: number | null) {
@@ -178,6 +180,24 @@ export function PlayerDetailPanel({
       ? detail.leaderboardRow.last_submission_at
       : null;
 
+  // Compact README badge for the sidebar. Uses the same canonical source
+  // (userRow.max_level) as the dedicated player page, falling back to the
+  // leaderboard row's `highest_level`. No badge if the player has no
+  // submissions yet.
+  const badgeCopy = copy.leaderboard.badge;
+  const sidebarHighestLevel =
+    typeof detail.userRow.max_level === 'number' && Number.isFinite(detail.userRow.max_level)
+      ? detail.userRow.max_level
+      : recentSubmissions.length > 0
+      ? highestLevel
+      : -1;
+  const sidebarBadge = buildPlayerBadge({
+    playerId,
+    highestLevel: sidebarHighestLevel,
+    pioneer: detail.userRow.pioneer === true,
+    displayName: detail.userRow.display_name,
+  });
+
   return (
     <aside id={panelId} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" aria-live="polite">
       <div className="border-b border-slate-200 px-4 py-4 sm:px-5">
@@ -282,6 +302,25 @@ export function PlayerDetailPanel({
             )}
           </div>
         </div>
+
+        {sidebarBadge ? (
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+              {badgeCopy.sidebarEyebrow}
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={sidebarBadge.shieldsUrl} alt={sidebarBadge.displayLabel} className="h-6" />
+              <CopyButton
+                value={sidebarBadge.markdown}
+                idleLabel={badgeCopy.sidebarCopyButton}
+                copiedLabel={badgeCopy.sidebarCopiedButton}
+                failedLabel={badgeCopy.copyFailed}
+                className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-700 transition hover:bg-slate-50"
+              />
+            </div>
+          </div>
+        ) : null}
 
         <div className="rounded-xl border border-slate-200">
           <div className="border-b border-slate-200 px-4 py-3">

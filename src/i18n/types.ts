@@ -232,6 +232,22 @@ export interface FrontendCatalog {
         python: string;
         node: string;
       };
+      // Pre-launch additions: one-click "Open in <AI service>" deep links
+      // alongside the manual-paste 🤖 Copy System Prompt button. See
+      // src/lib/frontend/agent-handoff.ts::buildAiDeepLink.
+      openInIcon: {
+        claude: string;
+        chatgpt: string;
+        gemini: string;
+        perplexity: string;
+      };
+      openInLabel: {
+        claude: string;
+        chatgpt: string;
+        gemini: string;
+        perplexity: string;
+      };
+      openInTruncatedHint: string;
     };
     cards: {
       brief: string;
@@ -482,6 +498,24 @@ export interface FrontendCatalog {
       backToLeaderboard: string;
       pageHeroSubtitle: string;
       playerNotFoundTitle: string;
+    };
+    // Wave-3 viral-loop addition: README badge UI shown on the dedicated
+    // player page (full section) and inside the leaderboard sidebar panel
+    // (compact). Powered by `src/lib/frontend/badge.ts`. See I18N_GUIDE §9
+    // for naming conventions.
+    badge: {
+      sectionEyebrow: string;
+      sectionTitle: string;
+      sectionBody: string;
+      markdownLabel: string;
+      copyMarkdown: string;
+      copiedMarkdown: string;
+      copyHtml: string;
+      copiedHtml: string;
+      copyFailed: string;
+      sidebarEyebrow: string;
+      sidebarCopyButton: string;
+      sidebarCopiedButton: string;
     };
     table: {
       colRank: string;
