@@ -713,17 +713,22 @@ export async function POST(request: NextRequest) {
       if (structureScore >= 25) {
         const aiReadiness = getAiReadinessSummary();
         if (!aiReadiness.scoringReady) {
+          console.error('[submit] SCORING_UNAVAILABLE path=A (AI readiness false)', {
+            scoringReady: aiReadiness.scoringReady,
+            missingEnvKeys: aiReadiness.missingEnvKeys,
+            scoringMissingEnvKeys: aiReadiness.scoringMissingEnvKeys,
+          });
           return errorResponse({
             keyHash,
             status: 503,
             code: 'SCORING_UNAVAILABLE',
             message: aiReadiness.scoringMissingEnvKeys.length > 0
-              ? `Scoring is temporarily unavailable. Missing scoring-provider credentials: ${aiReadiness.scoringMissingEnvKeys.join(', ')}.`
-              : 'Scoring is temporarily unavailable. Please try again shortly.',
+              ? `[debug:A] Scoring is temporarily unavailable. Missing scoring-provider credentials: ${aiReadiness.scoringMissingEnvKeys.join(', ')}.`
+              : '[debug:A] Scoring is temporarily unavailable. scoringReady=false despite no reported missing env keys.',
           });
         }
 
-        const { data: rubricRow } = await supabaseAdmin
+        const { data: rubricRow, error: rubricErr } = await supabaseAdmin
           .from('ka_variant_rubrics')
           .select('rubric_json')
           .eq('level', challenge.level)
@@ -731,11 +736,18 @@ export async function POST(request: NextRequest) {
           .single();
 
         if (!rubricRow?.rubric_json) {
+          console.error('[submit] SCORING_UNAVAILABLE path=B (rubric missing)', {
+            level: challenge.level,
+            variant: challenge.variant,
+            rubricErr: rubricErr?.message ?? null,
+            rubricRowNull: rubricRow == null,
+            rubricJsonNull: rubricRow != null && rubricRow.rubric_json == null,
+          });
           return errorResponse({
             keyHash,
             status: 503,
             code: 'SCORING_UNAVAILABLE',
-            message: 'Scoring is temporarily unavailable. Please try again shortly.',
+            message: `[debug:B] Scoring is temporarily unavailable. Rubric not resolved for level=${challenge.level} variant=${challenge.variant ?? 'default'}.`,
           });
         }
 
@@ -761,11 +773,16 @@ export async function POST(request: NextRequest) {
           attemptToken,
         );
         if (judgeResult.error) {
+          console.error('[submit] SCORING_UNAVAILABLE path=C (judge error)', {
+            level: challenge.level,
+            variant: challenge.variant,
+            judgeModel: judgeResult.model,
+          });
           return errorResponse({
             keyHash,
             status: 503,
             code: 'SCORING_UNAVAILABLE',
-            message: 'Scoring is temporarily unavailable. Please try again shortly.',
+            message: `[debug:C] Scoring is temporarily unavailable. Judge returned error (model=${judgeResult.model ?? 'unknown'}).`,
           });
         }
 
