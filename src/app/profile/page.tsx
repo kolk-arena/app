@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { formatDateTime } from '@/i18n/format';
 import { AuthSignInPanel } from '@/app/auth-sign-in-panel';
 import { ApiTokensPanel } from './api-tokens-panel';
 
@@ -255,7 +256,7 @@ export default function ProfilePage() {
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Verified at</p>
-                <p className="mt-2 text-sm font-medium text-slate-900">{profile.verified_at ? new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(profile.verified_at)) : 'Not set'}</p>
+                <p className="mt-2 text-sm font-medium text-slate-900">{profile.verified_at ? formatDateTime(profile.verified_at, profile.verified_at) : 'Not set'}</p>
               </div>
             </div>
 

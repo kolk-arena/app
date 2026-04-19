@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { copy } from '@/i18n';
 
 type AuthSignInPanelProps = {
   nextPath?: string;
@@ -11,8 +12,8 @@ type AuthSignInPanelProps = {
 
 export function AuthSignInPanel({
   nextPath = '/',
-  title = 'Sign in to continue',
-  description = 'Use GitHub, Google, or email to access competitive play and your saved profile.',
+  title = copy.auth.defaultTitle,
+  description = copy.auth.defaultDescription,
 }: AuthSignInPanelProps) {
   const [email, setEmail] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -40,40 +41,23 @@ export function AuthSignInPanel({
     if (authSuccess === 'success') {
       return {
         tone: 'success' as const,
-        title: 'Sign-in complete',
-        body: 'Your session cookie is set. If this page still looks anonymous, wait a moment and refresh once.',
+        title: copy.auth.statusMessages.success.title,
+        body: copy.auth.statusMessages.success.body,
       };
     }
 
     if (!authError) return null;
 
     const messages: Record<string, { title: string; body: string }> = {
-      missing_code: {
-        title: 'Sign-in could not be completed',
-        body: 'The callback URL was missing its verification code. Start the sign-in flow again.',
-      },
-      exchange_failed: {
-        title: 'Session exchange failed',
-        body: 'The provider login completed, but Kolk Arena could not finish establishing the session.',
-      },
-      github_email_required: {
-        title: 'GitHub email required',
-        body: 'GitHub did not return a verified primary email for this account. Use email sign-in below or retry GitHub after granting email access.',
-      },
-      unexpected: {
-        title: 'Unexpected auth error',
-        body: 'A server-side auth error interrupted sign-in. Try again in a new tab if this keeps happening.',
-      },
-    };
-
-    const fallback = {
-      title: 'Sign-in failed',
-      body: 'The auth flow did not complete successfully. Try again.',
+      missing_code: copy.auth.statusMessages.missing_code,
+      exchange_failed: copy.auth.statusMessages.exchange_failed,
+      github_email_required: copy.auth.statusMessages.github_email_required,
+      unexpected: copy.auth.statusMessages.unexpected,
     };
 
     return {
       tone: 'error' as const,
-      ...(messages[authError] ?? fallback),
+      ...(messages[authError] ?? copy.auth.statusMessages.fallback),
     };
   }, [authError, authSuccess]);
 
@@ -127,7 +111,7 @@ export function AuthSignInPanel({
 
     if (!trimmedEmail) {
       setEmailState('error');
-      setEmailMessage('Email is required.');
+      setEmailMessage(copy.auth.emailRequired);
       return;
     }
 
@@ -149,14 +133,14 @@ export function AuthSignInPanel({
 
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload.error ?? 'Failed to start email sign-in');
+        throw new Error(payload.error ?? copy.auth.startEmailSignInFailed);
       }
 
       setEmailState('success');
-      setEmailMessage(payload.message ?? 'Check your email for the verification link or code.');
+      setEmailMessage(payload.message ?? copy.auth.checkEmail);
     } catch (error) {
       setEmailState('error');
-      setEmailMessage(error instanceof Error ? error.message : 'Failed to start email sign-in');
+      setEmailMessage(error instanceof Error ? error.message : copy.auth.startEmailSignInFailed);
     }
   }
 
@@ -167,7 +151,7 @@ export function AuthSignInPanel({
       <div className="space-y-6">
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
-            Sign in required
+            {copy.auth.signInRequiredEyebrow}
           </p>
           <h2 className="text-2xl font-black tracking-tight text-slate-950">
             {title}
@@ -192,28 +176,28 @@ export function AuthSignInPanel({
 
         {sessionState === 'checking' ? (
           <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-            Checking existing session...
+            {copy.auth.checkingSession}
           </div>
         ) : null}
 
         {sessionState === 'authenticated' ? (
           <div className="rounded-2xl border border-emerald-200 bg-white px-5 py-4 text-sm text-slate-700">
-            <p className="font-semibold text-slate-950">You are already signed in.</p>
+            <p className="font-semibold text-slate-950">{copy.auth.alreadySignedInTitle}</p>
             <p className="mt-1">
-              Your browser still has a valid session cookie. Continue where you left off.
+              {copy.auth.alreadySignedInBody}
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
               <Link
                 href={nextPath}
                 className="inline-flex items-center rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
-                Continue
+                {copy.auth.continue}
               </Link>
               <Link
                 href="/profile"
                 className="inline-flex items-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
               >
-                Open profile
+                {copy.auth.openProfile}
               </Link>
             </div>
           </div>

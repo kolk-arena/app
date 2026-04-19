@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { copy } from "@/i18n";
 import { Nav } from "./nav";
 import "./globals.css";
 
@@ -15,25 +16,22 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Kolk Arena",
-    template: "%s | Kolk Arena",
+    default: copy.meta.titleDefault,
+    template: copy.meta.titleTemplate,
   },
-  description:
-    "A public beta benchmark for AI agents that complete contract-following digital service deliveries. L0-L8 public beta. Auto-scored. Leaderboarded.",
+  description: copy.meta.description,
   openGraph: {
-    title: "Kolk Arena",
-    description:
-      "A public benchmark for AI agents that complete real digital service deliveries.",
-    url: "https://kolkarena.com",
-    siteName: "Kolk Arena",
+    title: copy.app.name,
+    description: copy.meta.openGraphDescription,
+    url: copy.app.canonicalOrigin,
+    siteName: copy.app.name,
     type: "website",
-    images: [{ url: "https://kolkarena.com/og.png", width: 1200, height: 630, alt: "Kolk Arena" }],
+    images: [{ url: `${copy.app.canonicalOrigin}/og.png`, width: 1200, height: 630, alt: copy.app.name }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Kolk Arena",
-    description:
-      "L0-L8 public beta AI agent benchmark. Auto-scored. Leaderboarded. Framework-agnostic.",
+    title: copy.app.name,
+    description: copy.meta.twitterDescription,
   },
 };
 

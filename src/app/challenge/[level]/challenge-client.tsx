@@ -2,6 +2,23 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { CopyButton } from '@/components/ui/copy-button';
+import { copy } from '@/i18n';
+import {
+  formatClockSeconds,
+  formatDateTime,
+  formatNumber,
+  formatTimeOnly,
+} from '@/i18n/format';
+import type { BetaPublicLevel } from '@/i18n/types';
+import {
+  buildChallengeAgentBrief,
+  extractStructuredBrief,
+  getLevelDeliveryInstruction,
+  getLevelOutputTemplate,
+  getStructuredBriefCopy,
+  getSubmitContractSnippet,
+} from '@/lib/frontend/agent-handoff';
 
 // ============================================================================
 // Types
@@ -131,10 +148,7 @@ function randomIdempotencyKey(): string {
 }
 
 function formatSeconds(total: number): string {
-  if (!Number.isFinite(total) || total < 0) return '0:00';
-  const m = Math.floor(total / 60);
-  const s = total % 60;
-  return `${m}:${s.toString().padStart(2, '0')}`;
+  return formatClockSeconds(total);
 }
 
 function bandColor(band: SubmitResponse['colorBand']): string {
@@ -570,6 +584,26 @@ export function ChallengeClient({ level }: { level: number }) {
 
   // fetchState.kind === 'ready'
   const { challenge, level_info, replay_warning, boss_hint } = fetchState.data;
+  const handoffLevel = level as BetaPublicLevel;
+  const structuredBrief = extractStructuredBrief(challenge.taskJson);
+  const agentBrief = buildChallengeAgentBrief({
+    level: handoffLevel,
+    levelName: level_info.name,
+    promptMd: challenge.promptMd,
+    taskJson: challenge.taskJson,
+  });
+  const outputTemplate = getLevelOutputTemplate(handoffLevel, challenge.taskJson);
+  const structuredBriefCopy = getStructuredBriefCopy(challenge.taskJson);
+  const submitContractSnippet = getSubmitContractSnippet(challenge.attemptToken);
+
+  const deliveryRule = getLevelDeliveryInstruction(handoffLevel);
+
+  const deliveryPlaceholder =
+    level === 0
+      ? copy.challenge.deliveryRules.placeholderLevel0
+      : level === 5
+      ? copy.challenge.deliveryRules.placeholderLevel5
+      : copy.challenge.deliveryRules.placeholderDefault;
 
   // Success overlay — render result card instead of the form
   if (submitStatus.kind === 'success') {
@@ -616,30 +650,111 @@ export function ChallengeClient({ level }: { level: number }) {
         {/* Timer card */}
         <div className="grid gap-3 sm:grid-cols-2">
           <div className={`rounded-2xl border p-4 ${suggestedRemaining && suggestedRemaining.isOver ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-white'}`}>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Suggested time</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{copy.challenge.cards.suggestedTime}</p>
             <p className="mt-2 font-mono text-2xl font-semibold text-slate-950">
               {suggestedRemaining ? formatSeconds(suggestedRemaining.remainingSeconds) : '—'}
             </p>
             <p className="mt-1 text-xs text-slate-500">
               {suggestedRemaining?.isOver
-                ? 'Past suggested time — still accepted, no score change.'
-                : `~${challenge.suggestedTimeMinutes ?? level_info.suggested_time_minutes} min for the Efficiency Badge`}
+                ? copy.challenge.time.suggestedPastDue
+                : copy.challenge.time.suggestedBadge(challenge.suggestedTimeMinutes ?? level_info.suggested_time_minutes)}
             </p>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Session deadline (24h hard ceiling)</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{copy.challenge.cards.sessionDeadline}</p>
             <p className="mt-2 font-mono text-2xl font-semibold text-slate-950">
               {deadlineRemaining != null ? formatSeconds(deadlineRemaining) : '—'}
             </p>
             <p className="mt-1 text-xs text-slate-500">
-              {challenge.deadlineUtc ? `Expires ${new Date(challenge.deadlineUtc).toLocaleString()}` : ''}
+              {challenge.deadlineUtc ? copy.challenge.time.expiresAt(formatDateTime(challenge.deadlineUtc)) : ''}
             </p>
           </div>
         </div>
 
+        <section className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+          <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_10px_40px_rgba(15,23,42,0.04)] sm:p-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+              {copy.challenge.agentPanel.eyebrow}
+            </p>
+            <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">
+              {copy.challenge.agentPanel.title}
+            </h2>
+            <p className="mt-2 text-sm leading-7 text-slate-600">
+              {copy.challenge.agentPanel.body}
+            </p>
+            <ol className="mt-4 space-y-2 text-sm leading-6 text-slate-700">
+              {copy.challenge.agentPanel.steps.map((step, index) => (
+                <li key={step} className="flex gap-3">
+                  <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-950 text-xs font-semibold text-white">
+                    {index + 1}
+                  </span>
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ol>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <CopyButton
+                value={agentBrief}
+                idleLabel={copy.challenge.agentPanel.copyAgentBrief}
+                copiedLabel={copy.challenge.agentPanel.copiedAgentBrief}
+                failedLabel={copy.challenge.agentPanel.copyFailed}
+                className="inline-flex items-center rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+              />
+              <CopyButton
+                value={outputTemplate}
+                idleLabel={copy.challenge.agentPanel.copyOutputTemplate}
+                copiedLabel={copy.challenge.agentPanel.copiedOutputTemplate}
+                failedLabel={copy.challenge.agentPanel.copyFailed}
+                className="inline-flex items-center rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+              />
+              <CopyButton
+                value={structuredBriefCopy}
+                idleLabel={structuredBrief ? copy.challenge.agentPanel.copyStructuredBrief : copy.challenge.agentPanel.copyTaskJson}
+                copiedLabel={structuredBrief ? copy.challenge.agentPanel.copiedStructuredBrief : copy.challenge.agentPanel.copiedTaskJson}
+                failedLabel={copy.challenge.agentPanel.copyFailed}
+                className="inline-flex items-center rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+              />
+              <CopyButton
+                value={submitContractSnippet}
+                idleLabel={copy.challenge.agentPanel.copySubmitContract}
+                copiedLabel={copy.challenge.agentPanel.copiedSubmitContract}
+                failedLabel={copy.challenge.agentPanel.copyFailed}
+                className="inline-flex items-center rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+              />
+            </div>
+          </article>
+
+          <aside className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-[0_10px_40px_rgba(16,185,129,0.10)] sm:p-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+              {copy.challenge.agentPanel.challengeBriefEyebrow}
+            </p>
+            <p className="mt-2 text-sm leading-7 text-emerald-900">
+              {copy.challenge.agentPanel.challengeBriefBody}
+            </p>
+
+            <details className="mt-4 rounded-2xl border border-emerald-200 bg-white/80 px-4 py-3" open={Boolean(structuredBrief)}>
+              <summary className="cursor-pointer text-sm font-semibold text-emerald-950">
+                {structuredBrief ? copy.challenge.agentPanel.structuredBriefTitle : copy.challenge.agentPanel.taskJsonTitle}
+              </summary>
+              <pre className="mt-3 whitespace-pre-wrap break-words rounded-2xl bg-slate-950 px-4 py-4 font-mono text-xs leading-6 text-slate-100">
+                {structuredBriefCopy}
+              </pre>
+            </details>
+          </aside>
+        </section>
+
         {/* Brief */}
         <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_10px_40px_rgba(15,23,42,0.04)] sm:p-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Brief</p>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{copy.challenge.cards.brief}</p>
+            <CopyButton
+              value={challenge.promptMd}
+              idleLabel={copy.challenge.agentPanel.copyBriefText}
+              copiedLabel={copy.challenge.agentPanel.copiedBriefText}
+              failedLabel={copy.challenge.agentPanel.copyFailed}
+              className="inline-flex items-center rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+            />
+          </div>
           <pre className="mt-3 whitespace-pre-wrap break-words font-mono text-sm leading-7 text-slate-800">{challenge.promptMd}</pre>
         </article>
 
@@ -649,18 +764,12 @@ export function ChallengeClient({ level }: { level: number }) {
 
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Your delivery</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{copy.challenge.cards.yourDelivery}</p>
               <p className="mt-1 text-sm font-medium text-slate-800">
-                {level === 0
-                  ? "Submit any text containing 'Hello' or 'Kolk'. L0 is a connectivity check only — no AI judge, no leaderboard."
-                  : level === 5
-                  ? 'L5 requires a JSON object string with three keys: whatsapp_message, quick_facts, first_step_checklist.'
-                  : level === 1
-                  ? 'Return translated text only. No headings, no translator notes.'
-                  : 'Produce the level-specific delivery described in the brief above.'}
+                {deliveryRule}
               </p>
             </div>
-            <span className="text-xs font-medium text-slate-500">{primaryText.length.toLocaleString()} / 50,000 chars</span>
+            <span className="text-xs font-medium text-slate-500">{copy.challenge.deliveryRules.chars(formatNumber(primaryText.length))}</span>
           </div>
 
           <textarea
@@ -672,22 +781,18 @@ export function ChallengeClient({ level }: { level: number }) {
               level === 5 ? 'border-slate-300 bg-slate-50 font-mono' : 'border-slate-300 bg-white'
             }`}
             placeholder={
-              level === 0
-                ? 'Hello, Kolk Arena!'
-                : level === 5
-                ? '{\n  "whatsapp_message": "...",\n  "quick_facts": "...",\n  "first_step_checklist": "..."\n}'
-                : 'Your delivery text here...'
+              deliveryPlaceholder
             }
           />
 
           {level === 5 && l5LocalValidation && !l5LocalValidation.ok ? (
             <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800">
-              Local JSON check: {l5LocalValidation.message}
+              {copy.challenge.deliveryRules.localJsonInvalid(l5LocalValidation.message)}
             </p>
           ) : null}
           {level === 5 && l5LocalValidation && l5LocalValidation.ok ? (
             <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800">
-              Local JSON check: structure and required keys look valid. Server will still run the canonical check.
+              {copy.challenge.deliveryRules.localJsonValid}
             </p>
           ) : null}
 
@@ -697,25 +802,25 @@ export function ChallengeClient({ level }: { level: number }) {
               disabled={submitStatus.kind === 'submitting' || primaryText.trim().length === 0}
               className="inline-flex items-center rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
             >
-              {submitStatus.kind === 'submitting' ? 'Scoring…' : 'Submit delivery'}
+              {submitStatus.kind === 'submitting' ? copy.challenge.deliveryRules.scoring : copy.challenge.deliveryRules.submit}
             </button>
             <button
               type="button"
               onClick={requestFreshChallenge}
               className="inline-flex items-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             >
-              Re-fetch a fresh brief
+              {copy.challenge.deliveryRules.refetch}
             </button>
             <Link
               href="/play"
               className="inline-flex items-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             >
-              Back to Play
+              {copy.challenge.deliveryRules.backToPlay}
             </Link>
           </div>
           <p className="text-xs leading-5 text-slate-500">
-            attemptToken fingerprint: <code className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px]">{challenge.attemptToken.slice(0, 12)}…</code>
-            {' '}· Challenge id: <code className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px]">{challenge.challengeId.slice(0, 8)}…</code>
+            {copy.challenge.cards.attemptTokenFingerprint}: <code className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px]">{challenge.attemptToken.slice(0, 12)}…</code>
+            {' '}· {copy.challenge.cards.challengeId}: <code className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px]">{challenge.challengeId.slice(0, 8)}…</code>
           </p>
         </form>
       </section>
@@ -975,7 +1080,7 @@ function AccountFrozenScreen({
     return () => window.clearInterval(id);
   }, [status.frozenUntil]);
 
-  const localTime = status.frozenUntil ? new Date(status.frozenUntil).toLocaleTimeString() : null;
+  const localTime = status.frozenUntil ? formatTimeOnly(status.frozenUntil) : null;
 
   return (
     <div role="alert" className="rounded-3xl border border-rose-300 bg-rose-50 px-6 py-8 text-rose-900">

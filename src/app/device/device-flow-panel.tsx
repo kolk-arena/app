@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { formatDateTime, formatTimeOnly } from '@/i18n/format';
 
 type ScopeView = {
   scope: string;
@@ -245,7 +246,7 @@ export function DeviceFlowPanel({
             <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Client</p>
               <p className="mt-2 text-sm font-semibold text-slate-950">{deviceRequest.clientKind}</p>
-              <p className="mt-1 text-xs text-slate-500">Requested at {new Date(deviceRequest.createdAt).toLocaleString('en-US')}</p>
+              <p className="mt-1 text-xs text-slate-500">Requested at {formatDateTime(deviceRequest.createdAt, deviceRequest.createdAt)}</p>
             </div>
           </div>
 
@@ -256,7 +257,7 @@ export function DeviceFlowPanel({
                 <p className="mt-1 text-sm text-slate-600">You may uncheck scopes to issue a narrower token than the CLI requested.</p>
               </div>
               <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
-                Expires {new Date(deviceRequest.expiresAt).toLocaleTimeString('en-US')}
+                Expires {formatTimeOnly(deviceRequest.expiresAt, deviceRequest.expiresAt)}
               </span>
             </div>
 

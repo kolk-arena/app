@@ -2,6 +2,8 @@
 
 import { useEffect, useId, useState, useTransition } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { copy } from '@/i18n';
+import { formatClockSeconds, formatDateTime, formatNumber } from '@/i18n/format';
 import { LeaderboardTable } from './leaderboard-table';
 import { PlayerDetailPanel } from './player-detail-panel';
 
@@ -62,29 +64,20 @@ function buildQueryString(params: URLSearchParams, updates: Record<string, strin
 }
 
 function formatScore(value: number) {
-  return new Intl.NumberFormat('en-US', {
+  return formatNumber(value, {
     minimumFractionDigits: value % 1 === 0 ? 0 : 1,
     maximumFractionDigits: 1,
-  }).format(value);
+  });
 }
 
 function formatUpdatedLabel(value: string | null) {
   if (!value) return 'No recent submission data';
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  return new Intl.DateTimeFormat('en-US', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date);
+  return formatDateTime(value, value);
 }
 
 function formatSolveTime(value: number | null | undefined) {
   if (typeof value !== 'number' || !Number.isFinite(value)) return 'Time pending';
-  const minutes = Math.floor(value / 60);
-  const seconds = value % 60;
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  return formatClockSeconds(value);
 }
 
 export function LeaderboardClient() {
@@ -237,6 +230,9 @@ export function LeaderboardClient() {
                   <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">
                     Public standings for Kolk Arena. Progression comes first, frontier performance breaks ties, and solve time decides equal-score races.
                   </p>
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
+                    {copy.home.liveRankings.publicRule}
+                  </p>
                 </div>
               </div>
 
@@ -248,7 +244,7 @@ export function LeaderboardClient() {
                 <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Current Leader</p>
                   <p className="mt-2 truncate text-sm font-semibold text-slate-950">
-                    {topEntry ? topEntry.display_name : 'No entries yet'}
+                    {topEntry ? topEntry.display_name : copy.home.liveRankings.empty}
                   </p>
                   <p className="mt-1 text-xs text-slate-500">
                     {topEntry ? `L${topEntry.highest_level} · ${formatScore(topEntry.best_score_on_highest)} · ${formatSolveTime(topEntry.solve_time_seconds)}` : 'Waiting for first official result'}

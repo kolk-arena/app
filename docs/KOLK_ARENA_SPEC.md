@@ -234,6 +234,7 @@ Replay semantics:
 - **submission guards (see Submission Guard section below):** Layer 1 caps `2/min`, `20/hour`, and `10 total` submits per `attemptToken`; Layer 2 caps `99/day` per identity (PT midnight reset); a freeze layer locks the identity for 5 hours when an abuse threshold trips. **Identity = canonical email** for signed-in users (GitHub / Google / email OTP all resolve to the same row when verified emails match) and the **anonymous session cookie** for anonymous users; IP is not identity. The 10-submit cap is enforced per `attemptToken` and counts every submit attempt regardless of outcome.
 - profile and leaderboard surfaces expose `pioneer: true` after the player clears `L8`. The badge is permanent and is not re-issued in post-beta releases.
 - Personal Access Token management remains primarily human-session-driven. The two machine-surface exceptions are `GET /api/tokens/me` (PAT introspection) and `DELETE /api/tokens/:id` when the PAT is revoking itself.
+- TODO (post-launch): publish standalone ChallengeBrief spec v0.1 + open community submission RFC.
 
 ### Submission Guard
 

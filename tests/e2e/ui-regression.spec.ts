@@ -2,6 +2,30 @@ import { expect, test, type Page } from '@playwright/test';
 
 const PLAYER_ID = '11111111-1111-4111-8111-111111111111';
 
+async function mockClipboard(page: Page) {
+  await page.addInitScript(() => {
+    let clipboardValue = '';
+    Object.defineProperty(window, '__mockClipboard', {
+      configurable: true,
+      writable: true,
+      value: '',
+    });
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: async (value: string) => {
+          clipboardValue = value;
+          (window as { __mockClipboard?: string }).__mockClipboard = clipboardValue;
+        },
+      },
+    });
+  });
+}
+
+async function readClipboard(page: Page) {
+  return page.evaluate(() => (window as { __mockClipboard?: string }).__mockClipboard ?? '');
+}
+
 function mockAnonymousSession(page: Page) {
   return page.route('**/api/profile', async (route) => {
     if (route.request().method() === 'GET') {
@@ -289,6 +313,24 @@ test.describe('frontend UI regression', () => {
     await expect(emailSignInSection.getByText('Check your email for the verification code or sign-in link.')).toBeVisible();
   });
 
+  test('home exposes copyable quick-start and agent-starter buttons', async ({ page }) => {
+    await mockAnonymousSession(page);
+    await mockEmailRegister(page);
+    await mockClipboard(page);
+
+    await page.goto('/');
+
+    await expect(page.getByText(/Pass condition: your submission contains the word Hello or Kolk\./)).toBeVisible();
+    await expect(page.getByText(/Clearing L8 awards the permanent Beta Pioneer badge\./)).toBeVisible();
+
+    await page.getByRole('button', { name: 'Copy L0 smoke test' }).first().click();
+    await expect(page.getByRole('button', { name: 'Copied L0 smoke test' }).first()).toBeVisible();
+    await expect.poll(() => readClipboard(page)).toContain('https://kolkarena.com/api/challenge/0');
+
+    await page.getByRole('button', { name: 'Copy agent starter' }).first().click();
+    await expect.poll(() => readClipboard(page)).toContain('Produce only the final primaryText I should submit.');
+  });
+
   test('device auth page preserves the pending code through sign-in', async ({ page }) => {
     await mockAnonymousSession(page);
     await mockEmailRegister(page);
@@ -471,6 +513,56 @@ test.describe('frontend UI regression', () => {
     await secondFetch;
     await expect(page.getByText('# Order Brief B')).toBeVisible();
     await expect.poll(() => fetchCount).toBe(2);
+  });
+
+  test('challenge page exposes agent handoff copy tools', async ({ page }) => {
+    await mockClipboard(page);
+
+    await page.route('**/api/challenge/1*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          challenge: {
+            challengeId: 'challenge-copy-tools',
+            level: 1,
+            seed: 1,
+            variant: 'v1',
+            attemptToken: 'attempt-token-copy-tools',
+            fetchToken: 'attempt-token-copy-tools',
+            taskJson: { structured_brief: { source_lang: 'en', target_lang: 'es-MX' } },
+            promptMd: '# Translate this text\n\nMake it natural in es-MX.',
+            suggestedTimeMinutes: 5,
+            timeLimitMinutes: 1440,
+            deadlineUtc: '2026-04-18T00:00:00.000Z',
+            challengeStartedAt: '2026-04-17T00:00:00.000Z',
+          },
+          level_info: {
+            name: 'Quick Translate',
+            family: 'txt_translation',
+            band: 'A',
+            unlock_rule: 'dual_gate',
+            suggested_time_minutes: 5,
+            is_boss: false,
+            ai_judged: true,
+            leaderboard_eligible: false,
+          },
+        }),
+      });
+    });
+
+    await page.goto('/challenge/1', { waitUntil: 'domcontentloaded' });
+
+    await expect(page.getByText('Use your own AI agent')).toBeVisible();
+    await expect(page.getByText('ChallengeBrief', { exact: true })).toBeVisible();
+    await expect(page.getByText('View structured brief JSON')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Copy Agent Brief' }).click();
+    await expect.poll(() => readClipboard(page)).toContain('Level: L1 — Quick Translate');
+    await expect.poll(() => readClipboard(page)).toContain('structured_brief JSON');
+
+    await page.getByRole('button', { name: 'Copy submit contract' }).click();
+    await expect.poll(() => readClipboard(page)).toContain('"attemptToken": "attempt-token-copy-tools"');
   });
 
   test('leaderboard preserves detail selection across refresh', async ({ page }) => {

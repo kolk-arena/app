@@ -1,5 +1,7 @@
 'use client';
 
+import { formatClockSeconds, formatDateTime, formatNumber } from '@/i18n/format';
+
 type LeaderboardEntry = {
   player_id: string;
   rank: number;
@@ -21,29 +23,20 @@ type LeaderboardEntry = {
 
 function formatScore(value: number) {
   if (!Number.isFinite(value)) return '—';
-  return new Intl.NumberFormat('en-US', {
+  return formatNumber(value, {
     minimumFractionDigits: value % 1 === 0 ? 0 : 1,
     maximumFractionDigits: 1,
-  }).format(value);
+  });
 }
 
 function formatDate(value: string | null) {
   if (!value) return 'No submissions yet';
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  return new Intl.DateTimeFormat('en-US', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date);
+  return formatDateTime(value, value);
 }
 
 function formatSolveTime(value: number | null | undefined) {
   if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
-  const minutes = Math.floor(value / 60);
-  const seconds = value % 60;
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  return formatClockSeconds(value);
 }
 
 function bandDotClasses(band: LeaderboardEntry['best_color_band']) {

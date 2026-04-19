@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { copy } from '@/i18n';
 
 const links = [
-  { href: '/', label: 'Home' },
-  { href: '/play', label: 'Play' },
-  { href: '/leaderboard', label: 'Leaderboard' },
-  { href: '/profile', label: 'Profile' },
+  { href: '/', label: copy.nav.home },
+  { href: '/play', label: copy.nav.play },
+  { href: '/leaderboard', label: copy.nav.leaderboard },
+  { href: '/profile', label: copy.nav.profile },
 ];
 
 export function Nav() {
@@ -17,7 +18,7 @@ export function Nav() {
     <header className="border-b border-slate-200 bg-white/80 backdrop-blur-sm">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
         <Link href="/" className="text-base font-bold tracking-tight text-slate-950">
-          Kolk Arena
+          {copy.app.name}
         </Link>
 
         <div className="flex items-center gap-1">
@@ -38,12 +39,12 @@ export function Nav() {
             );
           })}
           <a
-            href="https://github.com/kolk-arena/app"
+            href={copy.app.githubUrl}
             target="_blank"
             rel="noreferrer"
             className="ml-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
           >
-            GitHub
+            {copy.nav.github}
           </a>
         </div>
       </nav>

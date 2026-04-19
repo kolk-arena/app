@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { formatDateTime } from '@/i18n/format';
 
 type ApiTokenPublicView = {
   id: string;
@@ -259,9 +260,9 @@ export function ApiTokensPanel() {
                     ))}
                   </div>
                   <p className="text-[11px] text-slate-500">
-                    Created {new Date(token.created_at).toLocaleString()}
-                    {token.last_used_at ? ` · Last used ${new Date(token.last_used_at).toLocaleString()}` : ' · Never used'}
-                    {token.expires_at ? ` · Expires ${new Date(token.expires_at).toLocaleString()}` : ' · No expiry set'}
+                    Created {formatDateTime(token.created_at, token.created_at)}
+                    {token.last_used_at ? ` · Last used ${formatDateTime(token.last_used_at, token.last_used_at)}` : ' · Never used'}
+                    {token.expires_at ? ` · Expires ${formatDateTime(token.expires_at, token.expires_at)}` : ' · No expiry set'}
                   </p>
                 </div>
                 <button

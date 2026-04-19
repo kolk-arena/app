@@ -978,6 +978,8 @@ That means:
 
 If a rule in this guide disagrees with one of the specs above, **the specs win**. This guide is a friendlier on-ramp, not a new source of truth. Conflict resolution follows [`docs/BETA_DOC_HIERARCHY.md`](BETA_DOC_HIERARCHY.md).
 
+The `taskJson.structured_brief` + variant rubric together form a reusable spec we call a **ChallengeBrief**. A future release will let the community author and submit new ChallengeBriefs; the format is intentionally stable so early integrations port forward.
+
 Happy shipping.
 
 ---
