@@ -777,12 +777,14 @@ export async function POST(request: NextRequest) {
             level: challenge.level,
             variant: challenge.variant,
             judgeModel: judgeResult.model,
+            judgeFlags: judgeResult.flags,
+            judgeSummary: judgeResult.summary,
           });
           return errorResponse({
             keyHash,
             status: 503,
             code: 'SCORING_UNAVAILABLE',
-            message: `[debug:C] Scoring is temporarily unavailable. Judge returned error (model=${judgeResult.model ?? 'unknown'}).`,
+            message: `[debug:C] model=${judgeResult.model ?? 'unknown'} flags=${(judgeResult.flags ?? []).join(',')} summary="${judgeResult.summary ?? ''}"`,
           });
         }
 
