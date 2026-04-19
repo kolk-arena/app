@@ -7,6 +7,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import { getAiReadinessSummary } from '@/lib/kolk/ai/runtime';
 
 const TRACKED_KEYS = [
   'KOLK_SUPABASE_URL',
@@ -37,8 +38,19 @@ export async function GET() {
     };
   }
 
+  const ai = getAiReadinessSummary();
+
   return NextResponse.json({
     presence,
+    ai: {
+      scoringReady: ai.scoringReady,
+      availableScoringGroups: ai.availableScoringGroups,
+      availableScoringCombos: ai.availableScoringCombos,
+      missingEnvKeys: ai.missingEnvKeys,
+      scoringMissingEnvKeys: ai.scoringMissingEnvKeys,
+      activeJudgeProvider: ai.activeJudgeProvider,
+      activeJudgeReady: ai.activeJudgeReady,
+    },
     meta: {
       node_env: process.env.NODE_ENV ?? null,
       vercel_env: process.env.VERCEL_ENV ?? null,
