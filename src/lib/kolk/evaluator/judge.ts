@@ -677,6 +677,7 @@ export async function runJudge(
     console.error('[judge] Combo scoring failed:', error);
 
     const isBudgetError = error instanceof Error && error.message === 'judge_budget_exceeded';
+    const errorMessage = error instanceof Error ? error.message : String(error);
 
     return {
       coverageScore: 0,
@@ -686,7 +687,7 @@ export async function runJudge(
       flags: [isBudgetError ? 'judge_budget_exceeded' : 'judge_error'],
       summary: isBudgetError
         ? 'Judge budget exceeded. Submission cannot be scored right now.'
-        : 'AI judge failed. Coverage and quality scored as 0 for this attempt.',
+        : `[debug] AI judge failed: ${errorMessage}`,
       combo,
       groups: [...getComboGroups(combo)],
       model,
