@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Group, Panel, Separator, useDefaultLayout } from 'react-resizable-panels';
 import { CopyButton } from '@/components/ui/copy-button';
 import { copy } from '@/i18n';
 import {
@@ -18,6 +19,7 @@ import {
   getLevelOutputTemplate,
   getStructuredBriefCopy,
   getSubmitContractSnippet,
+  getCurlSolveSnippet,
   getPythonSubmitSnippet,
   getNodeSubmitSnippet,
   getCursorRules,
@@ -33,6 +35,14 @@ function resolveServerError(message: string, code: string | undefined): string {
   if (!code) return message;
   const localized = copy.errors[code as ErrorCode];
   return typeof localized === 'string' ? localized : message;
+}
+
+function resolveServerMessage(payload: { error?: unknown; code?: unknown; fix_hint?: unknown }, fallback: string): string {
+  const rawMessage = typeof payload.error === 'string' ? payload.error : fallback;
+  const code = typeof payload.code === 'string' ? payload.code : undefined;
+  const localized = resolveServerError(rawMessage, code);
+  const fixHint = typeof payload.fix_hint === 'string' && payload.fix_hint.trim().length > 0 ? payload.fix_hint.trim() : null;
+  return fixHint ? `${localized} ${fixHint}` : localized;
 }
 
 // ============================================================================
@@ -149,6 +159,17 @@ type SubmitStatus =
   | { kind: 'scoring_unavailable'; message: string }
   | { kind: 'error'; message: string; code?: string };
 
+const panelLayoutStorage = {
+  getItem(key: string) {
+    if (typeof window === 'undefined') return null;
+    return window.localStorage.getItem(key);
+  },
+  setItem(key: string, value: string) {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(key, value);
+  },
+};
+
 const L5_REQUIRED_KEYS = ['whatsapp_message', 'quick_facts', 'first_step_checklist'] as const;
 
 // ============================================================================
@@ -218,12 +239,19 @@ export function ChallengeClient({ level }: { level: number }) {
   const [registerPromptOpen, setRegisterPromptOpen] = useState(false);
   const [refreshNonce, setRefreshNonce] = useState(0);
   const [scriptTab, setScriptTab] = useState<'curl'|'python'|'node'>('curl');
-  const [dryRunResult, setDryRunResult] = useState<{valid: boolean; errors: string[]} | null>(null);
+  const [dryRunResult, setDryRunResult] = useState<{valid: boolean; errors: string[]; warnings: string[]} | null>(null);
   const idempotencyKeyRef = useRef<string>('');
+  const { defaultLayout, onLayoutChanged } = useDefaultLayout({
+    id: `challenge-layout-l${level}`,
+    panelIds: ['challenge-brief-pane', 'challenge-console-pane'],
+    storage: panelLayoutStorage,
+  });
 
-  const handleDryRun = () => {
-    setDryRunResult(dryRunValidation(level, primaryText));
-  };
+  const handleDryRun = useCallback(() => {
+    const result = dryRunValidation(level, primaryText);
+    setDryRunResult(result);
+    return result;
+  }, [level, primaryText]);
 
   const downloadFile = (filename: string, content: string) => {
     const blob = new Blob([content], { type: 'text/plain' });
@@ -231,8 +259,10 @@ export function ChallengeClient({ level }: { level: number }) {
     const a = document.createElement('a');
     a.href = url;
     a.download = filename;
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    a.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
   };
 
   const requestFreshChallenge = useCallback(() => {
@@ -334,6 +364,15 @@ export function ChallengeClient({ level }: { level: number }) {
         return;
       }
 
+      const preflight = handleDryRun();
+      if (preflight.errors.length > 0) {
+        setSubmitStatus({
+          kind: 'validation_error',
+          message: preflight.errors[0],
+        });
+        return;
+      }
+
       if (level === 5) {
         const check = validateL5Json(primaryText);
         if (!check.ok) {
@@ -369,13 +408,10 @@ export function ChallengeClient({ level }: { level: number }) {
 
         const payload = await resp.json().catch(() => ({}));
         const code: string | undefined = typeof payload?.code === 'string' ? payload.code : undefined;
-        const rawMessage: string =
-          typeof payload?.error === 'string'
-            ? payload.error
-            : copy.challenge.submitBanner.submitFailed;
-        // Localize wire error code → UI string, keeping the server message
-        // as a fallback so unknown codes still render something useful.
-        const message: string = resolveServerError(rawMessage, code);
+        const message = resolveServerMessage(
+          payload as { error?: unknown; code?: unknown; fix_hint?: unknown },
+          copy.challenge.submitBanner.submitFailed,
+        );
 
         if (resp.ok) {
           const result = payload as SubmitResponse;
@@ -511,7 +547,7 @@ export function ChallengeClient({ level }: { level: number }) {
         });
       }
     },
-    [fetchState, level, primaryText],
+    [fetchState, handleDryRun, level, primaryText],
   );
 
   // ── Derived timer values ──
@@ -640,6 +676,12 @@ export function ChallengeClient({ level }: { level: number }) {
   const outputTemplate = getLevelOutputTemplate(handoffLevel, challenge.taskJson);
   const structuredBriefCopy = getStructuredBriefCopy(challenge.taskJson);
   const submitContractSnippet = getSubmitContractSnippet(challenge.attemptToken);
+  const scriptSnippet =
+    scriptTab === 'curl'
+      ? getCurlSolveSnippet(handoffLevel)
+      : scriptTab === 'python'
+      ? getPythonSubmitSnippet(handoffLevel)
+      : getNodeSubmitSnippet(handoffLevel);
 
   const deliveryRule = getLevelDeliveryInstruction(handoffLevel);
 
@@ -649,6 +691,282 @@ export function ChallengeClient({ level }: { level: number }) {
       : level === 5
       ? copy.challenge.deliveryRules.placeholderLevel5
       : copy.challenge.deliveryRules.placeholderDefault;
+
+  const timerCards = (
+    <div className="grid gap-3 sm:grid-cols-2">
+      <div className={`rounded-2xl border p-4 ${suggestedRemaining && suggestedRemaining.isOver ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-white'}`}>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{copy.challenge.cards.suggestedTime}</p>
+        <p className="mt-2 font-mono text-2xl font-semibold text-slate-950">
+          {suggestedRemaining ? formatSeconds(suggestedRemaining.remainingSeconds) : '—'}
+        </p>
+        <p className="mt-1 text-xs text-slate-500">
+          {suggestedRemaining?.isOver
+            ? copy.challenge.time.suggestedPastDue
+            : copy.challenge.time.suggestedBadge(challenge.suggestedTimeMinutes ?? level_info.suggested_time_minutes)}
+        </p>
+      </div>
+      <div className="rounded-2xl border border-slate-200 bg-white p-4">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{copy.challenge.cards.sessionDeadline}</p>
+        <p className="mt-2 font-mono text-2xl font-semibold text-slate-950">
+          {deadlineRemaining != null ? formatSeconds(deadlineRemaining) : '—'}
+        </p>
+        <p className="mt-1 text-xs text-slate-500">
+          {challenge.deadlineUtc ? copy.challenge.time.expiresAt(formatDateTime(challenge.deadlineUtc)) : ''}
+        </p>
+      </div>
+    </div>
+  );
+
+  const briefCard = (
+    <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_10px_40px_rgba(15,23,42,0.04)] sm:p-8">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{copy.challenge.cards.brief}</p>
+        <CopyButton
+          value={challenge.promptMd}
+          idleLabel={copy.challenge.agentPanel.copyBriefText}
+          copiedLabel={copy.challenge.agentPanel.copiedBriefText}
+          failedLabel={copy.challenge.agentPanel.copyFailed}
+          className="inline-flex items-center rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+        />
+      </div>
+      <pre className="mt-3 whitespace-pre-wrap break-words font-mono text-sm leading-7 text-slate-800">{challenge.promptMd}</pre>
+    </article>
+  );
+
+  const agentConsole = (
+    <>
+      <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+        <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_10px_40px_rgba(15,23,42,0.04)] sm:p-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+            {copy.challenge.agentPanel.eyebrow}
+          </p>
+          <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">
+            {copy.challenge.agentPanel.title}
+          </h2>
+          <p className="mt-2 text-sm leading-7 text-slate-600">
+            {copy.challenge.agentPanel.body}
+          </p>
+          <ol className="mt-4 space-y-2 text-sm leading-6 text-slate-700">
+            {copy.challenge.agentPanel.steps.map((step, index) => (
+              <li key={step} className="flex gap-3">
+                <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-950 text-xs font-semibold text-white">
+                  {index + 1}
+                </span>
+                <span>{step}</span>
+              </li>
+            ))}
+          </ol>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <CopyButton
+              value={agentBrief}
+              idleLabel={copy.challenge.agentPanel.copyAgentBrief}
+              copiedLabel={copy.challenge.agentPanel.copiedAgentBrief}
+              failedLabel={copy.challenge.agentPanel.copyFailed}
+              className="inline-flex items-center rounded-full bg-slate-950 px-6 py-3 text-sm font-bold text-white transition hover:bg-slate-800 shadow-md ring-2 ring-slate-950/20"
+            />
+            <CopyButton
+              value={submitContractSnippet}
+              idleLabel={copy.challenge.agentPanel.copySubmitContract}
+              copiedLabel={copy.challenge.agentPanel.copiedSubmitContract}
+              failedLabel={copy.challenge.agentPanel.copyFailed}
+              className="inline-flex items-center rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+            />
+            <button
+              type="button"
+              onClick={() => downloadFile(copy.challenge.agentPanel.cursorRulesFilename, getCursorRules())}
+              className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-5 py-3 text-sm font-semibold text-indigo-800 transition hover:bg-indigo-100"
+            >
+              {copy.challenge.agentPanel.downloadCursorRules}
+            </button>
+            <CopyButton
+              value={outputTemplate}
+              idleLabel={copy.challenge.agentPanel.copyOutputTemplate}
+              copiedLabel={copy.challenge.agentPanel.copiedOutputTemplate}
+              failedLabel={copy.challenge.agentPanel.copyFailed}
+              className="inline-flex items-center rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+            />
+            <CopyButton
+              value={structuredBriefCopy}
+              idleLabel={structuredBrief ? copy.challenge.agentPanel.copyStructuredBrief : copy.challenge.agentPanel.copyTaskJson}
+              copiedLabel={structuredBrief ? copy.challenge.agentPanel.copiedStructuredBrief : copy.challenge.agentPanel.copiedTaskJson}
+              failedLabel={copy.challenge.agentPanel.copyFailed}
+              className="inline-flex items-center rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+            />
+          </div>
+
+            <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden">
+              <div role="tablist" aria-label="Script languages" className="flex border-b border-slate-200 bg-slate-100/50">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={scriptTab === 'curl'}
+                  onClick={() => setScriptTab('curl')}
+                  className={`px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] transition ${scriptTab === 'curl' ? 'bg-white text-slate-900 border-b-2 border-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  {copy.challenge.agentPanel.scriptTabs.curl}
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={scriptTab === 'python'}
+                  onClick={() => setScriptTab('python')}
+                  className={`px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] transition ${scriptTab === 'python' ? 'bg-white text-slate-900 border-b-2 border-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  {copy.challenge.agentPanel.scriptTabs.python}
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={scriptTab === 'node'}
+                  onClick={() => setScriptTab('node')}
+                  className={`px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] transition ${scriptTab === 'node' ? 'bg-white text-slate-900 border-b-2 border-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  {copy.challenge.agentPanel.scriptTabs.node}
+                </button>
+              </div>
+            <div className="p-4 flex flex-col gap-3">
+              <div className="flex flex-wrap gap-2">
+                <CopyButton
+                  value={scriptSnippet}
+                  idleLabel={copy.challenge.agentPanel.copyScriptButton(scriptTab as ScriptLang)}
+                  copiedLabel={copy.challenge.agentPanel.copiedScriptButton}
+                  failedLabel={copy.challenge.agentPanel.copyScriptFailed}
+                  className="inline-flex items-center rounded-full bg-white border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    downloadFile(
+                      copy.challenge.agentPanel.downloadScriptFilename(scriptTab as ScriptLang),
+                      scriptSnippet,
+                    )
+                  }
+                  className="inline-flex items-center rounded-full bg-white border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  {copy.challenge.agentPanel.downloadScriptButton}
+                </button>
+              </div>
+              <pre className="text-[11px] leading-relaxed font-mono text-slate-700 overflow-x-auto bg-slate-100 p-3 rounded-xl border border-slate-200">
+                {scriptSnippet}
+              </pre>
+            </div>
+          </div>
+        </article>
+
+        <aside className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-[0_10px_40px_rgba(16,185,129,0.10)] sm:p-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+            {copy.challenge.agentPanel.challengeBriefEyebrow}
+          </p>
+          <p className="mt-2 text-sm leading-7 text-emerald-900">
+            {copy.challenge.agentPanel.challengeBriefBody}
+          </p>
+
+          <details className="mt-4 rounded-2xl border border-emerald-200 bg-white/80 px-4 py-3" open={Boolean(structuredBrief)}>
+            <summary className="cursor-pointer text-sm font-semibold text-emerald-950">
+              {structuredBrief ? copy.challenge.agentPanel.structuredBriefTitle : copy.challenge.agentPanel.taskJsonTitle}
+            </summary>
+            <pre className="mt-3 whitespace-pre-wrap break-words rounded-2xl bg-slate-950 px-4 py-4 font-mono text-xs leading-6 text-slate-100">
+              {structuredBriefCopy}
+            </pre>
+          </details>
+        </aside>
+      </section>
+    </>
+  );
+
+  const submitCard = (
+    <form onSubmit={handleSubmit} className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_10px_40px_rgba(15,23,42,0.04)] sm:p-8">
+      <SubmitErrorBanner status={submitStatus} level={level} onRefetch={requestFreshChallenge} />
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{copy.challenge.cards.yourDelivery}</p>
+          <p className="mt-1 text-sm font-medium text-slate-800">
+            {deliveryRule}
+          </p>
+        </div>
+        <span className="text-xs font-medium text-slate-500">{copy.challenge.deliveryRules.chars(formatNumber(primaryText.length))}</span>
+      </div>
+
+      <textarea
+        value={primaryText}
+        onChange={(e) => setPrimaryText(e.target.value)}
+        rows={level === 5 ? 14 : 18}
+        spellCheck={level !== 5}
+        className={`w-full rounded-2xl border px-4 py-3 text-sm leading-6 text-slate-900 shadow-inner outline-none transition focus:border-slate-500 focus:ring-1 focus:ring-slate-400 ${
+          level === 5 ? 'border-slate-300 bg-slate-50 font-mono' : 'border-slate-300 bg-white'
+        }`}
+        placeholder={deliveryPlaceholder}
+      />
+
+      {level === 5 && l5LocalValidation && !l5LocalValidation.ok ? (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800">
+          {copy.challenge.deliveryRules.localJsonInvalid(l5LocalValidation.message)}
+        </p>
+      ) : null}
+      {level === 5 && l5LocalValidation && l5LocalValidation.ok ? (
+        <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800">
+          {copy.challenge.deliveryRules.localJsonValid}
+        </p>
+      ) : null}
+
+      {dryRunResult && !dryRunResult.valid && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800">
+          <p className="font-semibold">{copy.challenge.dryRun.failedHeading}</p>
+          <ul className="mt-1 list-inside list-disc space-y-0.5">
+            {dryRunResult.errors.map(err => <li key={err}>{err}</li>)}
+          </ul>
+        </div>
+      )}
+      {dryRunResult?.warnings.length ? (
+        <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-xs font-medium text-sky-900">
+          <p className="font-semibold">{copy.challenge.dryRun.warningHeading}</p>
+          <ul className="mt-1 list-inside list-disc space-y-0.5">
+            {dryRunResult.warnings.map((warning) => <li key={warning}>{warning}</li>)}
+          </ul>
+        </div>
+      ) : null}
+      {dryRunResult && dryRunResult.valid && dryRunResult.warnings.length === 0 && (
+        <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800">
+          {copy.challenge.dryRun.passedMessage}
+        </p>
+      )}
+
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={handleDryRun}
+          className="inline-flex items-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+        >
+          {copy.challenge.dryRun.validateButton}
+        </button>
+        <button
+          type="submit"
+          disabled={submitStatus.kind === 'submitting' || primaryText.trim().length === 0}
+          className="inline-flex items-center rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+        >
+          {submitStatus.kind === 'submitting' ? copy.challenge.deliveryRules.scoring : copy.challenge.deliveryRules.submit}
+        </button>
+        <button
+          type="button"
+          onClick={requestFreshChallenge}
+          className="inline-flex items-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+        >
+          {copy.challenge.deliveryRules.refetch}
+        </button>
+        <Link
+          href="/play"
+          className="inline-flex items-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+        >
+          {copy.challenge.deliveryRules.backToPlay}
+        </Link>
+      </div>
+      <p className="text-xs leading-5 text-slate-500">
+        {copy.challenge.cards.attemptTokenFingerprint}: <code className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px]">{challenge.attemptToken.slice(0, 12)}…</code>
+        {' '}· {copy.challenge.cards.challengeId}: <code className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px]">{challenge.challengeId.slice(0, 8)}…</code>
+      </p>
+    </form>
+  );
 
   // Success overlay — render result card instead of the form
   if (submitStatus.kind === 'success') {
@@ -692,257 +1010,38 @@ export function ChallengeClient({ level }: { level: number }) {
           ) : null}
         </header>
 
-        {/* Timer card */}
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className={`rounded-2xl border p-4 ${suggestedRemaining && suggestedRemaining.isOver ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-white'}`}>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{copy.challenge.cards.suggestedTime}</p>
-            <p className="mt-2 font-mono text-2xl font-semibold text-slate-950">
-              {suggestedRemaining ? formatSeconds(suggestedRemaining.remainingSeconds) : '—'}
-            </p>
-            <p className="mt-1 text-xs text-slate-500">
-              {suggestedRemaining?.isOver
-                ? copy.challenge.time.suggestedPastDue
-                : copy.challenge.time.suggestedBadge(challenge.suggestedTimeMinutes ?? level_info.suggested_time_minutes)}
-            </p>
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{copy.challenge.cards.sessionDeadline}</p>
-            <p className="mt-2 font-mono text-2xl font-semibold text-slate-950">
-              {deadlineRemaining != null ? formatSeconds(deadlineRemaining) : '—'}
-            </p>
-            <p className="mt-1 text-xs text-slate-500">
-              {challenge.deadlineUtc ? copy.challenge.time.expiresAt(formatDateTime(challenge.deadlineUtc)) : ''}
-            </p>
-          </div>
+        <div className="lg:hidden space-y-6">
+          {timerCards}
+          {agentConsole}
+          {briefCard}
+          {submitCard}
         </div>
 
-        <section className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
-          <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_10px_40px_rgba(15,23,42,0.04)] sm:p-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-              {copy.challenge.agentPanel.eyebrow}
-            </p>
-            <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">
-              {copy.challenge.agentPanel.title}
-            </h2>
-            <p className="mt-2 text-sm leading-7 text-slate-600">
-              {copy.challenge.agentPanel.body}
-            </p>
-            <ol className="mt-4 space-y-2 text-sm leading-6 text-slate-700">
-              {copy.challenge.agentPanel.steps.map((step, index) => (
-                <li key={step} className="flex gap-3">
-                  <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-950 text-xs font-semibold text-white">
-                    {index + 1}
-                  </span>
-                  <span>{step}</span>
-                </li>
-              ))}
-            </ol>
-            <div className="mt-5 flex flex-wrap gap-3">
-              <CopyButton
-                value={agentBrief}
-                idleLabel={copy.challenge.agentPanel.copyAgentBrief}
-                copiedLabel={copy.challenge.agentPanel.copiedAgentBrief}
-                failedLabel={copy.challenge.agentPanel.copyFailed}
-                className="inline-flex items-center rounded-full bg-slate-950 px-6 py-3 text-sm font-bold text-white transition hover:bg-slate-800 shadow-md ring-2 ring-slate-950/20"
-              />
-              <button
-                type="button"
-                onClick={() => downloadFile(copy.challenge.agentPanel.cursorRulesFilename, getCursorRules())}
-                className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-5 py-3 text-sm font-semibold text-indigo-800 transition hover:bg-indigo-100"
-              >
-                {copy.challenge.agentPanel.downloadCursorRules}
-              </button>
-              <CopyButton
-                value={outputTemplate}
-                idleLabel={copy.challenge.agentPanel.copyOutputTemplate}
-                copiedLabel={copy.challenge.agentPanel.copiedOutputTemplate}
-                failedLabel={copy.challenge.agentPanel.copyFailed}
-                className="inline-flex items-center rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
-              />
-              <CopyButton
-                value={structuredBriefCopy}
-                idleLabel={structuredBrief ? copy.challenge.agentPanel.copyStructuredBrief : copy.challenge.agentPanel.copyTaskJson}
-                copiedLabel={structuredBrief ? copy.challenge.agentPanel.copiedStructuredBrief : copy.challenge.agentPanel.copiedTaskJson}
-                failedLabel={copy.challenge.agentPanel.copyFailed}
-                className="inline-flex items-center rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
-              />
-            </div>
-            
-            <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden">
-              <div className="flex border-b border-slate-200 bg-slate-100/50">
-                <button
-                  type="button"
-                  onClick={() => setScriptTab('curl')}
-                  className={`px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] transition ${scriptTab === 'curl' ? 'bg-white text-slate-900 border-b-2 border-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
-                >
-                  {copy.challenge.agentPanel.scriptTabs.curl}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setScriptTab('python')}
-                  className={`px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] transition ${scriptTab === 'python' ? 'bg-white text-slate-900 border-b-2 border-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
-                >
-                  {copy.challenge.agentPanel.scriptTabs.python}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setScriptTab('node')}
-                  className={`px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] transition ${scriptTab === 'node' ? 'bg-white text-slate-900 border-b-2 border-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
-                >
-                  {copy.challenge.agentPanel.scriptTabs.node}
-                </button>
+        <div className="hidden lg:block">
+          <Group
+            id={`challenge-layout-l${level}`}
+            orientation="horizontal"
+            defaultLayout={defaultLayout}
+            onLayoutChanged={onLayoutChanged}
+            className="min-h-[860px] rounded-3xl border border-slate-200 bg-white shadow-[0_10px_40px_rgba(15,23,42,0.06)]"
+          >
+            <Panel id="challenge-brief-pane" defaultSize="45%" minSize="35%">
+              <div className="h-full overflow-y-auto bg-slate-50/60 p-6 xl:p-8 space-y-6">
+                {timerCards}
+                {briefCard}
               </div>
-              <div className="p-4 flex flex-col gap-3">
-                <div className="flex flex-wrap gap-2">
-                  <CopyButton
-                    value={scriptTab === 'curl' ? submitContractSnippet : scriptTab === 'python' ? getPythonSubmitSnippet(handoffLevel) : getNodeSubmitSnippet(handoffLevel)}
-                    idleLabel={copy.challenge.agentPanel.copyScriptButton(scriptTab as ScriptLang)}
-                    copiedLabel={copy.challenge.agentPanel.copiedScriptButton}
-                    failedLabel={copy.challenge.agentPanel.copyScriptFailed}
-                    className="inline-flex items-center rounded-full bg-white border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
-                  />
-                  {scriptTab !== 'curl' && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        downloadFile(
-                          copy.challenge.agentPanel.downloadScriptFilename(scriptTab),
-                          scriptTab === 'python' ? getPythonSubmitSnippet(handoffLevel) : getNodeSubmitSnippet(handoffLevel),
-                        )
-                      }
-                      className="inline-flex items-center rounded-full bg-white border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
-                    >
-                      {copy.challenge.agentPanel.downloadScriptButton}
-                    </button>
-                  )}
-                </div>
-                <pre className="text-[11px] leading-relaxed font-mono text-slate-700 overflow-x-auto bg-slate-100 p-3 rounded-xl border border-slate-200">
-                  {scriptTab === 'curl' ? submitContractSnippet : scriptTab === 'python' ? getPythonSubmitSnippet(handoffLevel) : getNodeSubmitSnippet(handoffLevel)}
-                </pre>
+            </Panel>
+            <Separator className="group relative flex w-3 items-stretch justify-center bg-slate-100 transition-colors hover:bg-slate-200">
+              <div className="w-px bg-slate-300 transition-colors group-hover:bg-slate-500" />
+            </Separator>
+            <Panel id="challenge-console-pane" defaultSize="55%" minSize="40%">
+              <div className="h-full overflow-y-auto bg-white p-6 xl:p-8 space-y-6">
+                {agentConsole}
+                {submitCard}
               </div>
-            </div>
-          </article>
-
-          <aside className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-[0_10px_40px_rgba(16,185,129,0.10)] sm:p-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
-              {copy.challenge.agentPanel.challengeBriefEyebrow}
-            </p>
-            <p className="mt-2 text-sm leading-7 text-emerald-900">
-              {copy.challenge.agentPanel.challengeBriefBody}
-            </p>
-
-            <details className="mt-4 rounded-2xl border border-emerald-200 bg-white/80 px-4 py-3" open={Boolean(structuredBrief)}>
-              <summary className="cursor-pointer text-sm font-semibold text-emerald-950">
-                {structuredBrief ? copy.challenge.agentPanel.structuredBriefTitle : copy.challenge.agentPanel.taskJsonTitle}
-              </summary>
-              <pre className="mt-3 whitespace-pre-wrap break-words rounded-2xl bg-slate-950 px-4 py-4 font-mono text-xs leading-6 text-slate-100">
-                {structuredBriefCopy}
-              </pre>
-            </details>
-          </aside>
-        </section>
-
-        {/* Brief */}
-        <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_10px_40px_rgba(15,23,42,0.04)] sm:p-8">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{copy.challenge.cards.brief}</p>
-            <CopyButton
-              value={challenge.promptMd}
-              idleLabel={copy.challenge.agentPanel.copyBriefText}
-              copiedLabel={copy.challenge.agentPanel.copiedBriefText}
-              failedLabel={copy.challenge.agentPanel.copyFailed}
-              className="inline-flex items-center rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
-            />
-          </div>
-          <pre className="mt-3 whitespace-pre-wrap break-words font-mono text-sm leading-7 text-slate-800">{challenge.promptMd}</pre>
-        </article>
-
-        {/* Submit form */}
-        <form onSubmit={handleSubmit} className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_10px_40px_rgba(15,23,42,0.04)] sm:p-8">
-          <SubmitErrorBanner status={submitStatus} level={level} onRefetch={requestFreshChallenge} />
-
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{copy.challenge.cards.yourDelivery}</p>
-              <p className="mt-1 text-sm font-medium text-slate-800">
-                {deliveryRule}
-              </p>
-            </div>
-            <span className="text-xs font-medium text-slate-500">{copy.challenge.deliveryRules.chars(formatNumber(primaryText.length))}</span>
-          </div>
-
-          <textarea
-            value={primaryText}
-            onChange={(e) => setPrimaryText(e.target.value)}
-            rows={level === 5 ? 14 : 18}
-            spellCheck={level !== 5}
-            className={`w-full rounded-2xl border px-4 py-3 text-sm leading-6 text-slate-900 shadow-inner outline-none transition focus:border-slate-500 focus:ring-1 focus:ring-slate-400 ${
-              level === 5 ? 'border-slate-300 bg-slate-50 font-mono' : 'border-slate-300 bg-white'
-            }`}
-            placeholder={
-              deliveryPlaceholder
-            }
-          />
-
-          {level === 5 && l5LocalValidation && !l5LocalValidation.ok ? (
-            <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800">
-              {copy.challenge.deliveryRules.localJsonInvalid(l5LocalValidation.message)}
-            </p>
-          ) : null}
-          {level === 5 && l5LocalValidation && l5LocalValidation.ok ? (
-            <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800">
-              {copy.challenge.deliveryRules.localJsonValid}
-            </p>
-          ) : null}
-
-          {dryRunResult && !dryRunResult.valid && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800">
-              <p className="font-semibold">{copy.challenge.dryRun.failedHeading}</p>
-              <ul className="mt-1 list-inside list-disc space-y-0.5">
-                {dryRunResult.errors.map(err => <li key={err}>{err}</li>)}
-              </ul>
-            </div>
-          )}
-          {dryRunResult && dryRunResult.valid && (
-            <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800">
-              {copy.challenge.dryRun.passedMessage}
-            </p>
-          )}
-
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={handleDryRun}
-              className="inline-flex items-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              {copy.challenge.dryRun.validateButton}
-            </button>
-            <button
-              type="submit"
-              disabled={submitStatus.kind === 'submitting' || primaryText.trim().length === 0}
-              className="inline-flex items-center rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
-            >
-              {submitStatus.kind === 'submitting' ? copy.challenge.deliveryRules.scoring : copy.challenge.deliveryRules.submit}
-            </button>
-            <button
-              type="button"
-              onClick={requestFreshChallenge}
-              className="inline-flex items-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              {copy.challenge.deliveryRules.refetch}
-            </button>
-            <Link
-              href="/play"
-              className="inline-flex items-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              {copy.challenge.deliveryRules.backToPlay}
-            </Link>
-          </div>
-          <p className="text-xs leading-5 text-slate-500">
-            {copy.challenge.cards.attemptTokenFingerprint}: <code className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px]">{challenge.attemptToken.slice(0, 12)}…</code>
-            {' '}· {copy.challenge.cards.challengeId}: <code className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px]">{challenge.challengeId.slice(0, 8)}…</code>
-          </p>
-        </form>
+            </Panel>
+          </Group>
+        </div>
       </section>
     </main>
   );

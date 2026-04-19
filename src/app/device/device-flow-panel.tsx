@@ -171,7 +171,7 @@ export function DeviceFlowPanel({
       : 'border-slate-200 bg-slate-50 text-slate-700';
 
   return (
-    <section className="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_20px_80px_rgba(15,23,42,0.08)] sm:p-8">
+    <section className="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_10px_40px_rgba(15,23,42,0.04)] sm:p-8">
       <div className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">CLI sign-in</p>
         <h1 className="text-3xl font-black tracking-tight text-slate-950">Device authorization</h1>

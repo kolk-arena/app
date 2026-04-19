@@ -92,6 +92,39 @@ Body:
 }`;
 }
 
+export function getCurlSolveSnippet(level: BetaPublicLevel) {
+  return `#!/usr/bin/env bash
+set -euo pipefail
+
+BASE="${CANONICAL_ORIGIN}"
+LEVEL=${level}
+COOKIE_JAR="$(mktemp)"
+CHALLENGE_JSON="$(mktemp)"
+
+# 1) Fetch the challenge and keep the anon session cookie.
+curl -sc "$COOKIE_JAR" "$BASE/api/challenge/$LEVEL" > "$CHALLENGE_JSON"
+
+# 2) Inspect the brief your agent should read.
+jq '.challenge | { attemptToken, promptMd, taskJson }' "$CHALLENGE_JSON"
+
+# 3) Extract the attempt token for submit.
+ATTEMPT_TOKEN="$(jq -r '.challenge.attemptToken' "$CHALLENGE_JSON")"
+
+# 4) Replace YOUR_AI_GENERATED_TEXT_HERE with the final delivery from your agent.
+cat > payload.json <<JSON
+{
+  "attemptToken": "$ATTEMPT_TOKEN",
+  "primaryText": "YOUR_AI_GENERATED_TEXT_HERE"
+}
+JSON
+
+# 5) Submit with the same cookie jar and a fresh Idempotency-Key.
+curl -sb "$COOKIE_JAR" -X POST "$BASE/api/challenge/submit" \\
+  -H "Content-Type: application/json" \\
+  -H "Idempotency-Key: $(uuidgen)" \\
+  -d @payload.json`
+}
+
 function levelRuleLines(level: BetaPublicLevel) {
   switch (level) {
     case 0:
@@ -302,7 +335,9 @@ export function buildChallengeAgentBrief({
 
 ### SYSTEM RULES
 - Return ONLY the final output payload.
-- No pleasantries, no explanations, no markdown formatting unless explicitly requested.
+- No pleasantries, no explanations, no commentary, no analysis.
+- Do not ask clarifying questions. Solve from the provided brief in one pass.
+- No markdown formatting unless explicitly requested.
 ${level === 5 ? '- For L5, return raw JSON object text only. Do not wrap it in Markdown fences.' : '- Do not wrap the answer in Markdown fences unless the brief explicitly requires fenced content.'}
 
 ### CHALLENGE INFO
@@ -321,7 +356,12 @@ ${stringifyJson(structuredBrief ?? taskJson)}
 
 ### EXPECTED OUTPUT TEMPLATE
 Please ensure your output structurally matches the following template:
-${outputTemplate}`;
+${outputTemplate}
+
+### SELF-CHECK BEFORE RETURNING
+- Make sure every required section, key, or header is present exactly as requested.
+- Make sure the output is complete and directly usable as primaryText.
+- Remove any draft notes, rationale, or extra wrapper text before returning the final answer.`;
 }
 
 export function getStructuredBriefCopy(taskJson: JsonRecord) {
@@ -402,17 +442,22 @@ When writing scripts to fetch or submit:
 - Always preserve session cookies if using cURL (use -c and -b).
 - Send requests to ${CANONICAL_ORIGIN}
 - Always include an 'Idempotency-Key: <uuid>' header in POST /api/challenge/submit.
+- attemptToken stays reusable for up to 24 hours until either the run passes or the 24-hour ceiling expires.
+- Submission rate limits: 2 per minute per attemptToken, 20 per hour per attemptToken, 10 total retries per attemptToken.
+- If the API returns 400/422 with fix_hint, revise the payload and resubmit.
+- L5 primaryText must be raw JSON with string keys whatsapp_message, quick_facts, and first_step_checklist.
 - Only return final outputs as requested by the challenge brief, no extra markdown unless required.`;
 }
 
 /**
  * Local pre-flight check that mirrors the server's enforceable rules in
  * `src/app/api/challenge/submit/route.ts` and
- * `src/lib/kolk/evaluator/layer1.ts`. We deliberately do NOT re-assert
- * literal section titles that the server does not parse (Google Maps
- * Description, Instagram Bio, Intro/Services/CTA, Hero/About, etc.) — those
- * would flag valid submissions as failing locally while the server accepts
- * them.
+ * `src/lib/kolk/evaluator/layer1.ts`.
+ *
+ * This local validator has two jobs:
+ * 1. hard errors for server-enforced constraints we can safely mirror
+ * 2. advisory warnings for brief-shape expectations that are not parsed
+ *    server-side but are still useful guardrails for agent output
  *
  * L5 minimum lengths are code-point-correct (`[...str].length`) to match
  * the server JSON field check in `submit/route.ts` L674-L681.
@@ -420,31 +465,39 @@ When writing scripts to fetch or submit:
  * L8 mirrors the server's `requiredHeaderKeywords` substring scan in
  * `layer1.ts :: headerKeywordCheck`.
  */
-export function dryRunValidation(level: number, text: string): { valid: boolean; errors: string[] } {
+export function dryRunValidation(level: number, text: string): { valid: boolean; errors: string[]; warnings: string[] } {
   const errors: string[] = [];
+  const warnings: string[] = [];
   const trimmed = text.trim();
   const dr = copy.challenge.dryRun;
 
+  const h2Headers = Array.from(trimmed.matchAll(/^##\s+(.+)$/gm)).map((match) => (match[1] ?? '').trim().toLowerCase());
+  const h3Headers = Array.from(trimmed.matchAll(/^###\s+(.+)$/gm)).map((match) => (match[1] ?? '').trim().toLowerCase());
+
+  const hasHeader = (headers: string[], keyword: string) => headers.some((header) => header === keyword.toLowerCase());
+  const hasKeywordHeader = (headers: string[], keyword: string) =>
+    headers.some((header) => header.includes(keyword.toLowerCase()));
+
   if (trimmed.length === 0) {
     errors.push(dr.primaryTextEmpty);
-    return { valid: false, errors };
+    return { valid: false, errors, warnings };
   }
 
   if (level === 5) {
     if (/^```/.test(trimmed)) {
       errors.push(dr.l5RemoveFences);
-      return { valid: false, errors };
+      return { valid: false, errors, warnings };
     }
     let parsed: unknown;
     try {
       parsed = JSON.parse(trimmed);
     } catch {
       errors.push(dr.l5InvalidJson);
-      return { valid: false, errors };
+      return { valid: false, errors, warnings };
     }
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
       errors.push(dr.l5MustBeObject);
-      return { valid: false, errors };
+      return { valid: false, errors, warnings };
     }
     const obj = parsed as Record<string, unknown>;
     // Mirror server thresholds in submit/route.ts L674-L681:
@@ -470,27 +523,42 @@ export function dryRunValidation(level: number, text: string): { valid: boolean;
       }
     }
   } else if (level === 2) {
-    // Server does NOT require literal "## Google Maps Description" / "## Instagram Bio"
-    // headers. Keep a baseline check so the user gets a nudge if they forgot
-    // the JSON fence the brief asks for.
     if (!/```[\s\S]*```/.test(trimmed)) {
       errors.push(dr.l2MissingFence);
     }
+    if (!hasHeader(h2Headers, 'google maps description')) {
+      warnings.push(dr.l2MissingHeader('Google Maps Description'));
+    }
+    if (!hasHeader(h2Headers, 'instagram bio')) {
+      warnings.push(dr.l2MissingHeader('Instagram Bio'));
+    }
+  } else if (level === 3) {
+    for (const section of ['Intro', 'Services', 'CTA']) {
+      if (!hasHeader(h2Headers, section)) {
+        warnings.push(dr.sectionRecommended(section));
+      }
+    }
+  } else if (level === 6) {
+    for (const section of ['Hero', 'About', 'Services', 'CTA']) {
+      if (!hasHeader(h2Headers, section)) {
+        warnings.push(dr.sectionRecommended(section));
+      }
+    }
   } else if (level === 8) {
-    // Server rule (see layer1.ts headerKeywordCheck + submit route L683):
-    //   scan Markdown ## headers for case-insensitive substrings
-    //   `copy`, `prompt`, `whatsapp` — one header per keyword.
-    const headers = Array.from(trimmed.matchAll(/^##\s+(.+)$/gm))
-      .map((m) => (m[1] ?? '').trim().toLowerCase());
     for (const keyword of ['copy', 'prompt', 'whatsapp']) {
-      if (!headers.some((h) => h.includes(keyword))) {
+      if (!hasKeywordHeader(h2Headers, keyword)) {
         errors.push(dr.l8MissingHeader(keyword));
       }
     }
+    for (const section of ['Hero', 'About', 'Services', 'CTA']) {
+      if (!hasHeader(h3Headers, section)) {
+        warnings.push(dr.l8MissingSubHeader(section));
+      }
+    }
   }
-  // L0, L1, L3, L4, L6, L7 — server is baseline / deterministic-only; a
+  // L0, L1, L4, L7 — server is baseline / deterministic-only; a
   // non-empty primaryText is all we can assert locally without drifting
   // from the server.
 
-  return { valid: errors.length === 0, errors };
+  return { valid: errors.length === 0, errors, warnings };
 }

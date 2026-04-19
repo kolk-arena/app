@@ -21,8 +21,11 @@ type LeaderboardEntry = {
   solve_time_seconds?: number | null;
   efficiency_badge?: boolean;
   total_score: number;
+  levels_completed: number;
   tier: string;
+  pioneer: boolean;
   last_submission_at: string | null;
+  country_code: string | null;
 };
 
 type FrameworkStat = { framework: string; count: number; percentage: number };
@@ -37,6 +40,7 @@ type LeaderboardResponse = {
 
 const DEFAULT_LIMIT = 25;
 const QUICK_FRAMEWORKS = ['Claude Code', 'Cursor', 'Windsurf', 'OpenHands', 'LangGraph', 'Custom'];
+const LIVE_POLL_MS = 15_000;
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -156,14 +160,14 @@ export function LeaderboardClient() {
 
     fetchLeaderboard();
 
-    // Poll every 30s, skipping hidden tabs so background tabs do not drive
+    // Poll every 15s, skipping hidden tabs so background tabs do not drive
     // Vercel + Supabase quota. See `docs/FRONTEND_BETA_STATES` for rationale.
     const interval = setInterval(() => {
       if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
         return;
       }
       fetchLeaderboard();
-    }, 30000);
+    }, LIVE_POLL_MS);
 
     return () => {
       active = false;
@@ -187,7 +191,7 @@ export function LeaderboardClient() {
       }
     };
     fetchFeed();
-    // 30s polling + skip hidden tabs. Server also has an in-memory IP rate
+    // 15s polling + skip hidden tabs. Server also has an in-memory IP rate
     // limit (src/app/api/activity-feed/route.ts) as a belt-and-suspenders
     // defence against abuse.
     const interval = setInterval(() => {
@@ -195,7 +199,7 @@ export function LeaderboardClient() {
         return;
       }
       fetchFeed();
-    }, 30000);
+    }, LIVE_POLL_MS);
     return () => {
       active = false;
       clearInterval(interval);

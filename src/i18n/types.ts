@@ -226,7 +226,7 @@ export interface FrontendCatalog {
       copyScriptFailed: string;
       copyScriptButton: (lang: ScriptLang) => string;
       downloadScriptButton: string;
-      downloadScriptFilename: (lang: Exclude<ScriptLang, 'curl'>) => string;
+      downloadScriptFilename: (lang: ScriptLang) => string;
       scriptTabs: {
         curl: string;
         python: string;
@@ -280,7 +280,11 @@ export interface FrontendCatalog {
       l5MissingKey: (key: string) => string;
       l5KeyTooShort: (key: string, min: number, got: number) => string;
       l2MissingFence: string;
+      l2MissingHeader: (section: string) => string;
+      sectionRecommended: (section: string) => string;
       l8MissingHeader: (keyword: string) => string;
+      l8MissingSubHeader: (section: string) => string;
+      warningHeading: string;
     };
     // Wave-2 additions: ErrorShell `title` prop strings + shared shell
     // primary/secondary CTA labels.

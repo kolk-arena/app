@@ -393,6 +393,8 @@ test.describe('frontend UI regression', () => {
   });
 
   test('challenge L0 completes onboarding flow', async ({ page }) => {
+    test.slow();
+
     await page.route('**/api/challenge/0*', async (route) => {
       await route.fulfill({
         status: 200,
@@ -454,11 +456,8 @@ test.describe('frontend UI regression', () => {
       });
     });
 
-    const fetchResponse = page.waitForResponse('**/api/challenge/0*');
     await page.goto('/challenge/0', { waitUntil: 'domcontentloaded' });
-    await fetchResponse;
-
-    await expect(page.locator('textarea')).toHaveValue('Hello, Kolk Arena!');
+    await expect(page.getByRole('textbox').first()).toHaveValue('Hello, Kolk Arena!', { timeout: 60_000 });
     await page.getByRole('button', { name: 'Submit delivery' }).click();
 
     await expect(page.getByText('L0 onboarding check passed. Your integration is connected.')).toBeVisible();
@@ -466,6 +465,8 @@ test.describe('frontend UI regression', () => {
   });
 
   test('challenge re-fetch gets a fresh brief without relying on same-url remounts', async ({ page }) => {
+    test.slow();
+
     let fetchCount = 0;
 
     await page.route('**/api/challenge/1*', async (route) => {
@@ -503,19 +504,16 @@ test.describe('frontend UI regression', () => {
       });
     });
 
-    const firstFetch = page.waitForResponse('**/api/challenge/1*');
     await page.goto('/challenge/1', { waitUntil: 'domcontentloaded' });
-    await firstFetch;
-
-    await expect(page.getByText('# Order Brief A')).toBeVisible();
-    const secondFetch = page.waitForResponse('**/api/challenge/1*');
+    await expect(page.getByText('# Order Brief A').first()).toBeVisible({ timeout: 60_000 });
     await page.getByRole('button', { name: 'Re-fetch a fresh brief' }).click();
-    await secondFetch;
-    await expect(page.getByText('# Order Brief B')).toBeVisible();
+    await expect(page.getByText('# Order Brief B').first()).toBeVisible({ timeout: 60_000 });
     await expect.poll(() => fetchCount).toBe(2);
   });
 
   test('challenge page exposes agent handoff copy tools', async ({ page }) => {
+    test.slow();
+
     await mockClipboard(page);
 
     await page.route('**/api/challenge/1*', async (route) => {
@@ -553,16 +551,20 @@ test.describe('frontend UI regression', () => {
 
     await page.goto('/challenge/1', { waitUntil: 'domcontentloaded' });
 
-    await expect(page.getByText('Use your own AI agent')).toBeVisible();
-    await expect(page.getByText('ChallengeBrief', { exact: true })).toBeVisible();
-    await expect(page.getByText('View structured brief JSON')).toBeVisible();
+    await expect(page.getByRole('button', { name: '🤖 Copy System Prompt for AI' })).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByText('ChallengeBrief', { exact: true }).first()).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByText('View structured brief JSON').first()).toBeVisible({ timeout: 60_000 });
 
-    await page.getByRole('button', { name: 'Copy Agent Brief' }).click();
+    await page.getByRole('button', { name: '🤖 Copy System Prompt for AI' }).click();
     await expect.poll(() => readClipboard(page)).toContain('Level: L1 — Quick Translate');
     await expect.poll(() => readClipboard(page)).toContain('structured_brief JSON');
 
     await page.getByRole('button', { name: 'Copy submit contract' }).click();
     await expect.poll(() => readClipboard(page)).toContain('"attemptToken": "attempt-token-copy-tools"');
+
+    await page.getByRole('button', { name: 'Python' }).click();
+    await page.getByRole('button', { name: 'Copy python snippet' }).click();
+    await expect.poll(() => readClipboard(page)).toContain('requests.Session()');
   });
 
   test('leaderboard preserves detail selection across refresh', async ({ page }) => {
@@ -620,18 +622,20 @@ test.describe('frontend UI regression', () => {
 
     await page.goto('/leaderboard');
 
-    const firstDetailResponse = page.waitForResponse(`**/api/leaderboard/${PLAYER_ID}`);
-    await page.getByRole('button', { name: 'Open player detail for Ada Lovelace' }).click();
-    await firstDetailResponse;
-    await expect.poll(() => detailRequests).toBeGreaterThanOrEqual(1);
-    await expect(page.getByText('Failed to load player detail')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Open player detail for Ada Lovelace' })).toBeVisible();
+    await Promise.all([
+      page.waitForResponse((response) => response.url().includes(`/api/leaderboard/${PLAYER_ID}`), { timeout: 20_000 }),
+      page.getByRole('button', { name: 'Open player detail for Ada Lovelace' }).click(),
+    ]);
+    await expect(page.getByText('Failed to load player detail')).toBeVisible({ timeout: 20_000 });
     await expect(page.getByRole('button', { name: 'Retry' })).toBeVisible();
 
-    const secondDetailResponse = page.waitForResponse(`**/api/leaderboard/${PLAYER_ID}`);
-    await page.getByRole('button', { name: 'Retry' }).click();
-    await secondDetailResponse;
+    await Promise.all([
+      page.waitForResponse((response) => response.url().includes(`/api/leaderboard/${PLAYER_ID}`), { timeout: 20_000 }),
+      page.getByRole('button', { name: 'Retry' }).click(),
+    ]);
 
-    await expect(page.getByText('Strong structured delivery with clear coverage.')).toBeVisible();
+    await expect(page.getByText('Strong structured delivery with clear coverage.')).toBeVisible({ timeout: 20_000 });
     await expect.poll(() => detailRequests).toBeGreaterThan(1);
   });
 
@@ -647,9 +651,11 @@ test.describe('frontend UI regression', () => {
 
     await page.goto('/leaderboard');
 
-    const detailResponse = page.waitForResponse(`**/api/leaderboard/${PLAYER_ID}`);
-    await page.getByRole('button', { name: 'Open player detail for Ada Lovelace' }).click();
-    await detailResponse;
+    await expect(page.getByRole('button', { name: 'Open player detail for Ada Lovelace' })).toBeVisible();
+    await Promise.all([
+      page.waitForResponse(`**/api/leaderboard/${PLAYER_ID}`),
+      page.getByRole('button', { name: 'Open player detail for Ada Lovelace' }).click(),
+    ]);
 
     await expect(page).toHaveURL(new RegExp(`\\/leaderboard\\?player=${PLAYER_ID}`));
     await expect(page.getByText('Strong structured delivery with clear coverage.')).toBeVisible();

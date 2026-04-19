@@ -285,12 +285,12 @@ export const en = {
       body:
         'The reusable object here is the ChallengeBrief: promptMd plus structured_brief in the current beta UI. Ask your agent for final deliverable text only — no rationale, no wrapper prose.',
       steps: [
-        'Copy Agent Brief. It combines the prompt, the structured brief JSON, and the return rules your agent should follow.',
+        'Copy the system prompt for your agent. It combines the prompt, the structured brief JSON, and the return rules your agent should follow.',
         'Paste it into your agent or workflow. Tell it to return only the final primaryText payload.',
         'Paste the result below, or post the same primaryText to /api/challenge/submit with this attemptToken.',
       ],
-      copyAgentBrief: 'Copy Agent Brief',
-      copiedAgentBrief: 'Copied Agent Brief',
+      copyAgentBrief: '🤖 Copy System Prompt for AI',
+      copiedAgentBrief: 'Copied system prompt',
       copyOutputTemplate: 'Copy suggested output template',
       copiedOutputTemplate: 'Copied output template',
       copyStructuredBrief: 'Copy structured brief JSON',
@@ -312,10 +312,10 @@ export const en = {
       copiedScriptButton: 'Copied!',
       copyScriptFailed: 'Failed',
       copyScriptButton: (lang: ScriptLang) =>
-        lang === 'curl' ? 'Copy submit contract' : `Copy ${lang} snippet`,
+        lang === 'curl' ? 'Copy curl script' : `Copy ${lang} snippet`,
       downloadScriptButton: 'Download script',
       downloadScriptFilename: (lang) =>
-        lang === 'python' ? 'solve.py' : 'solve.js',
+        lang === 'curl' ? 'solve.sh' : lang === 'python' ? 'solve.py' : 'solve.js',
       scriptTabs: {
         curl: 'cURL',
         python: 'Python',
@@ -367,8 +367,15 @@ export const en = {
         `${key} must be at least ${min} characters (got ${got}).`,
       l2MissingFence:
         'L2 typically includes a fenced JSON block for the Instagram bio. The server does not enforce section titles, but the brief asks for a fenced JSON block.',
+      l2MissingHeader: (section: string) =>
+        `Recommended header missing: ## ${section}. The server may still accept the run, but the brief expects this section.`,
+      sectionRecommended: (section: string) =>
+        `Recommended section missing: ## ${section}. The server may still accept the run, but the brief expects this structure.`,
       l8MissingHeader: (keyword: string) =>
         `Missing a ## header containing "${keyword}".`,
+      l8MissingSubHeader: (section: string) =>
+        `Recommended subsection missing under One-Page Copy: ### ${section}.`,
+      warningHeading: 'Advisory format warnings:',
     },
     errorStates: {
       authRequired: 'Sign-in required',

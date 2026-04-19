@@ -111,6 +111,7 @@ test('L3 passes for any non-empty markdown without literal Intro/Services/CTA he
   const input = 'Free-form markdown description of the business.\n\nNo section titles required.';
   const result = dryRunValidation(3, input);
   assert.equal(result.valid, true, `Expected valid=true, got errors: ${result.errors.join('; ')}`);
+  assert.ok(result.warnings.some((e) => e.includes('## Intro')));
 });
 
 // ---------------------------------------------------------------------------
@@ -181,6 +182,7 @@ test('L6 passes for any non-empty text without literal Hero/About/Services/CTA h
   const input = 'A one-page copy deliverable without explicit section titles.';
   const result = dryRunValidation(6, input);
   assert.equal(result.valid, true, `Expected valid=true, got errors: ${result.errors.join('; ')}`);
+  assert.ok(result.warnings.some((e) => e.includes('## Hero')));
 });
 
 // ---------------------------------------------------------------------------
@@ -201,6 +203,7 @@ test('L8 passes when ## headers contain copy, prompt, whatsapp substrings', () =
   ].join('\n');
   const result = dryRunValidation(8, input);
   assert.equal(result.valid, true, `Expected valid=true, got errors: ${result.errors.join('; ')}`);
+  assert.ok(result.warnings.some((e) => e.includes('### Hero')));
 });
 
 test('L8 passes with case-insensitive keyword matches', () => {

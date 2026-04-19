@@ -1,6 +1,8 @@
 -- Paste this whole block into Supabase SQL Editor → Run.
--- Returns 12 rows, one per migration, with "present" (landmark object exists)
--- or "MISSING" (you still need to run this migration).
+-- The first SELECT returns 12 rows (00001-00012), one per migration, with
+-- "present" (landmark object exists) or "MISSING" (you still need to run it).
+-- The two DO blocks below probe 00013 and 00014 — watch the NOTICE/WARNING
+-- output panel for their status.
 --
 -- This is a landmark probe, not the supabase_migrations.schema_migrations
 -- table, because migrations may have been pasted manually rather than
@@ -49,3 +51,36 @@ SELECT
   CASE WHEN applied THEN '✓ present' ELSE '✗ MISSING — run this one' END AS status
 FROM probes
 ORDER BY migration;
+
+-- 00013: ka_claim_attempt_submit_slot does not raise 42702 "ambiguous column reference"
+DO $$
+DECLARE
+  probe record;
+BEGIN
+  SELECT * INTO probe FROM public.ka_claim_attempt_submit_slot(
+    p_attempt_token := 'probe-nonexistent-00013',
+    p_minute_limit := 2,
+    p_hour_limit := 20,
+    p_retry_cap := 10
+  );
+  RAISE NOTICE '00013 probe OK: code=%', probe.code;
+EXCEPTION
+  WHEN undefined_function THEN
+    RAISE WARNING '00013 MISSING: ka_claim_attempt_submit_slot does not exist';
+  WHEN others THEN
+    IF SQLSTATE = '42702' THEN
+      RAISE WARNING '00013 NOT APPLIED: column ambiguity still present (SQLSTATE 42702)';
+    ELSE
+      RAISE WARNING '00013 unexpected SQLSTATE=%: %', SQLSTATE, SQLERRM;
+    END IF;
+END $$;
+
+-- 00014: ka_leaderboard has country_code
+DO $$
+BEGIN
+  PERFORM country_code FROM public.ka_leaderboard LIMIT 0;
+  RAISE NOTICE '00014 probe OK';
+EXCEPTION
+  WHEN undefined_column THEN
+    RAISE WARNING '00014 MISSING: ka_leaderboard.country_code does not exist';
+END $$;

@@ -261,6 +261,12 @@ async function updateLeaderboard(input: {
   }
 }
 
+function normalizeCountryCode(value: string | null | undefined) {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim().toUpperCase();
+  return /^[A-Z]{2}$/.test(trimmed) ? trimmed : null;
+}
+
 async function updateMaxLevel(participantId: string, level: number) {
   const { data: user } = await supabaseAdmin
     .from('ka_users')
@@ -286,7 +292,7 @@ function computeTier(highestLevel: number, levelsCompleted: number): string {
 }
 
 export async function POST(request: NextRequest) {
-  let keyHash: string | undefined;
+  let keyHash: string = '';
 
   try {
     try {
@@ -419,9 +425,6 @@ export async function POST(request: NextRequest) {
     const challengeId = session.challenge_id as string;
     const sessionParticipantId = session.participant_id as string | null;
     const sessionAnonToken = session.anon_token as string | null;
-    const sessionRetryCount = typeof session.retry_count === 'number'
-      ? session.retry_count
-      : Number(session.retry_count ?? 0);
 
     let callerParticipantId: string | null = null;
     let callerAnonToken: string | null = null;
@@ -463,6 +466,7 @@ export async function POST(request: NextRequest) {
 
     const participantId = sessionParticipantId;
     const anonToken = sessionAnonToken;
+    const requesterCountryCode = normalizeCountryCode(request.headers.get('x-vercel-ip-country'));
     const submissionIdentity = buildSubmissionIdentity({
       email: callerEmail,
       userId: participantId,
@@ -496,6 +500,7 @@ export async function POST(request: NextRequest) {
         status: 404,
         code: 'CHALLENGE_NOT_FOUND',
         message: 'Challenge not found or inactive',
+        fixHint: 'Verify the challengeId and ensure it is active. Use GET /api/challenge to fetch a valid active challenge.'
       });
     }
 
@@ -533,6 +538,7 @@ export async function POST(request: NextRequest) {
         status: 403,
         code: 'IDENTITY_MISMATCH',
         message: 'A valid signed-in identity or anonymous session cookie is required to submit this attemptToken.',
+        fixHint: 'Provide your valid session cookie or an authenticated PAT to submit against this attemptToken.'
       });
     }
 
@@ -546,6 +552,7 @@ export async function POST(request: NextRequest) {
           message: identityGuard.frozenUntil
             ? `Your account has been temporarily frozen due to excessive submission attempts. Unfreezes at ${identityGuard.frozenUntil}.`
             : 'Your account has been temporarily frozen due to excessive submission attempts.',
+          fixHint: 'Check the Retry-After header and pause automated submissions until the freeze period expires.',
           headers: {
             'Retry-After': String(identityGuard.retryAfterSeconds),
           },
@@ -571,6 +578,7 @@ export async function POST(request: NextRequest) {
         status: 429,
         code: 'RATE_LIMIT_DAY',
         message: 'Daily submit limit reached for this identity. Try again after the Pacific-time reset.',
+        fixHint: 'Daily rate limit exhausted. Sleep your agent until the Pacific-time reset.',
         headers: {
           'Retry-After': String(identityGuard.retryAfterSeconds),
         },
@@ -591,6 +599,7 @@ export async function POST(request: NextRequest) {
           status: 429,
           code: 'RETRY_LIMIT_EXCEEDED',
           message: 'This token has reached the 10-submit cap. Fetch a new challenge to continue.',
+          fixHint: 'Maximum retries for this attemptToken reached. Call GET /api/challenge again to fetch a new token.',
           bodyExtras: {
             limits: {
               minute: attemptGuard.minute,
@@ -612,6 +621,7 @@ export async function POST(request: NextRequest) {
         status: 429,
         code,
         message,
+        fixHint: 'Honor the Retry-After header before making the next submission attempt.',
         headers: {
           'Retry-After': String(attemptGuard.retryAfterSeconds),
         },
@@ -889,12 +899,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (leaderboardEligible && participantId) {
-      const countryCode = request.headers.get('x-vercel-ip-country');
       await updateLeaderboard({
         participantId,
         level: challenge.level,
         score: totalScore,
-        countryCode,
+        countryCode: requesterCountryCode,
       });
     }
 

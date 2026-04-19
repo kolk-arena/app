@@ -236,6 +236,7 @@ export interface LeaderboardEntry {
   tier: LeaderboardTier;
   pioneer?: boolean;
   lastSubmissionAt: string | null;
+  countryCode?: string | null;
 }
 
 export const LeaderboardQuerySchema = z.object({

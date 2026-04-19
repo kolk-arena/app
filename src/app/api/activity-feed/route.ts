@@ -49,15 +49,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Filter to unlocked passes at level >= 1. L0 is a non-leaderboard
-    // connectivity check and `unlocked=false` rows are low-signal noise.
+    // Show recent level attempts and passes at L1+.
+    // L0 is intentionally excluded because it is a high-volume connectivity
+    // check and would drown out real activity.
     const { data: rows, error } = await supabaseAdmin
       .from('ka_submissions')
       .select('id, participant_id, anon_token, level, total_score, color_band, solve_time_seconds, submitted_at, unlocked')
-      .eq('unlocked', true)
       .gte('level', 1)
       .order('submitted_at', { ascending: false })
-      .limit(10);
+      .limit(12);
 
     if (error) {
       throw error;

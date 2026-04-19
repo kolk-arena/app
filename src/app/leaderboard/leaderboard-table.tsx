@@ -18,14 +18,16 @@ type LeaderboardEntry = {
   solve_time_seconds?: number | null;
   efficiency_badge?: boolean;
   total_score: number;
+  levels_completed: number;
   tier: string;
-  pioneer?: boolean;
+  pioneer: boolean;
   last_submission_at: string | null;
-  country_code?: string | null;
+  country_code: string | null;
 };
 
 function getFlagEmoji(countryCode: string | null | undefined) {
   if (!countryCode || countryCode === 'XX') return '🌍';
+  if (!/^[A-Za-z]{2}$/.test(countryCode)) return '🌍';
   const codePoints = countryCode
     .toUpperCase()
     .split('')
