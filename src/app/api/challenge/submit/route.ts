@@ -103,6 +103,7 @@ type ErrorResponseInit = {
   status: number;
   code: string;
   message: string;
+  fixHint?: string;
   headers?: HeadersInit;
   bodyExtras?: Record<string, unknown>;
 };
@@ -112,10 +113,11 @@ async function errorResponse({
   status,
   code,
   message,
+  fixHint,
   headers,
   bodyExtras,
 }: ErrorResponseInit): Promise<NextResponse> {
-  const body = { error: message, code, ...(bodyExtras ?? {}) };
+  const body = { error: message, code, ...(fixHint ? { fix_hint: fixHint } : {}), ...(bodyExtras ?? {}) };
 
   if (status < 500) {
     // Extend TTL from the 5-minute pending claim to the documented 24h
@@ -192,8 +194,9 @@ async function updateLeaderboard(input: {
   participantId: string;
   level: number;
   score: number;
+  countryCode?: string | null;
 }) {
-  const { participantId, level, score } = input;
+  const { participantId, level, score, countryCode } = input;
 
   const [{ data: existing }, { data: user }] = await Promise.all([
     supabaseAdmin.from('ka_leaderboard').select('*').eq('participant_id', participantId).single(),
@@ -217,7 +220,7 @@ async function updateLeaderboard(input: {
   const highestLevel = Math.max(0, ...Object.keys(bestScores).map(Number));
   const bestRun = highestLevel > 0 ? await loadBestLeaderboardRun(participantId, highestLevel) : null;
 
-  const payload = {
+  const payload: Record<string, unknown> = {
     total_score: totalScore,
     levels_completed: levelsCompleted,
     highest_level: highestLevel,
@@ -240,6 +243,10 @@ async function updateLeaderboard(input: {
     pioneer: highestLevel >= 8,
     last_submission_at: bestRun?.submitted_at ?? new Date().toISOString(),
   };
+
+  if (countryCode) {
+    payload.country_code = countryCode;
+  }
 
   if (existing) {
     await supabaseAdmin
@@ -350,6 +357,8 @@ export async function POST(request: NextRequest) {
         status: 400,
         code: 'INVALID_JSON',
         message: 'Invalid JSON body',
+        fixHint:
+          'Ensure your request body is valid JSON and Content-Type is application/json. Check for trailing commas or unescaped quotes.',
       });
     }
 
@@ -360,6 +369,8 @@ export async function POST(request: NextRequest) {
         status: 400,
         code: 'VALIDATION_ERROR',
         message: parsed.error.issues[0]?.message ?? 'Validation failed',
+        fixHint:
+          'Body schema validation failed. Ensure attemptToken and primaryText are present and strings. See docs/SUBMISSION_API.md.',
       });
     }
 
@@ -371,6 +382,8 @@ export async function POST(request: NextRequest) {
         status: 422,
         code: 'TEXT_TOO_LONG',
         message: `primaryText exceeds ${MAX_PRIMARY_TEXT_CHARS} character limit`,
+        fixHint:
+          'primaryText exceeds 50000 character limit. Trim your delivery before resubmitting.',
       });
     }
 
@@ -386,6 +399,7 @@ export async function POST(request: NextRequest) {
         status: 404,
         code: 'INVALID_ATTEMPT_TOKEN',
         message: 'attemptToken not found. You must call GET /api/challenge/:level first and use the returned attemptToken.',
+        fixHint: 'Call GET /api/challenge/:level to fetch a valid attemptToken before submitting.',
       });
     }
 
@@ -397,6 +411,8 @@ export async function POST(request: NextRequest) {
         status: 409,
         code: 'ATTEMPT_ALREADY_PASSED',
         message: 'This attemptToken has already been used for a passing submission. Fetch a new challenge to try again.',
+        fixHint:
+          'This attemptToken has already cleared the Dual-Gate. Fetch a new challenge with GET /api/challenge/:level to try again.',
       });
     }
 
@@ -428,6 +444,8 @@ export async function POST(request: NextRequest) {
           status: 403,
           code: 'IDENTITY_MISMATCH',
           message: 'This attemptToken belongs to a different user. You cannot submit on behalf of another account.',
+          fixHint:
+            'Preserve cookies between GET /api/challenge/:level and POST /api/challenge/submit. curl: use -c/-b. Python: requests.Session(). Node.js: read Set-Cookie from GET and replay on POST.',
         });
       }
     } else if (sessionAnonToken) {
@@ -437,6 +455,8 @@ export async function POST(request: NextRequest) {
           status: 403,
           code: 'IDENTITY_MISMATCH',
           message: 'This attemptToken belongs to a different anonymous session.',
+          fixHint:
+            'Preserve cookies between GET /api/challenge/:level and POST /api/challenge/submit. curl: use -c/-b. Python: requests.Session(). Node.js: read Set-Cookie from GET and replay on POST.',
         });
       }
     }
@@ -459,6 +479,7 @@ export async function POST(request: NextRequest) {
         status: 408,
         code: 'ATTEMPT_TOKEN_EXPIRED',
         message: `This attemptToken has expired (24-hour session ceiling reached). Fetch a new challenge and try again.`,
+        fixHint: 'Fetch a new challenge; the 24-hour session ceiling has elapsed.',
       });
     }
 
@@ -484,6 +505,8 @@ export async function POST(request: NextRequest) {
         status: 401,
         code: 'AUTH_REQUIRED',
         message: `Authentication required for level ${challenge.level}`,
+        fixHint:
+          'Levels 6-8 require sign-in or a Personal Access Token with submit_ranked scope. See /profile and docs/API_TOKENS.md.',
       });
     }
 
@@ -498,6 +521,8 @@ export async function POST(request: NextRequest) {
           status: 403,
           code: 'INSUFFICIENT_SCOPE',
           message: `This Personal Access Token is missing the ${missing.join(', ')} scope required to submit for level ${challenge.level}.`,
+          fixHint:
+            'Your PAT is missing a required scope. Create a new token at /profile/api-tokens with the needed scope.',
         });
       }
     }
@@ -610,6 +635,7 @@ export async function POST(request: NextRequest) {
           status: 422,
           code: 'L5_INVALID_JSON',
           message: l5Json.message,
+          fixHint: 'Ensure your payload is ONLY raw JSON. Remove markdown formatting (like ```json). Verify all required string keys are present.',
           headers: l5Json.parserPosition
             ? {
                 'X-Parser-Position': l5Json.parserPosition,
@@ -647,6 +673,8 @@ export async function POST(request: NextRequest) {
           status: 400,
           code: 'VALIDATION_ERROR',
           message: "L0 submission must contain 'Hello' or 'Kolk' (case-insensitive).",
+          fixHint:
+            "L0 submission must contain 'Hello' or 'Kolk' (case-insensitive). See docs/LEVELS.md §L0.",
         });
       }
 
@@ -861,10 +889,12 @@ export async function POST(request: NextRequest) {
     }
 
     if (leaderboardEligible && participantId) {
+      const countryCode = request.headers.get('x-vercel-ip-country');
       await updateLeaderboard({
         participantId,
         level: challenge.level,
         score: totalScore,
+        countryCode,
       });
     }
 

@@ -43,6 +43,7 @@ yarn-error.log*
 
 # editor workspace
 .claude/
+.idea/
 
 # internal docs (not for public repo)
 INTERNAL.md

@@ -45,3 +45,29 @@ export function formatClockSeconds(total: number) {
   const seconds = Math.floor(total % 60);
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
+
+export function formatCurrency(
+  value: number,
+  currency: string,
+  localeCode: FrontendLocaleCode | string = copy.localeCode,
+) {
+  return new Intl.NumberFormat(localeCode, { style: 'currency', currency }).format(value);
+}
+
+export function formatRelativeTime(
+  value: DateInput,
+  now: Date = new Date(),
+  localeCode: FrontendLocaleCode | string = copy.localeCode,
+) {
+  const date = toDate(value);
+  if (!date) return '';
+  const diffMs = date.getTime() - now.getTime();
+  const diffSec = Math.round(diffMs / 1000);
+  const rtf = new Intl.RelativeTimeFormat(localeCode, { numeric: 'auto' });
+  const abs = Math.abs(diffSec);
+  if (abs < 60) return rtf.format(diffSec, 'second');
+  if (abs < 3600) return rtf.format(Math.round(diffSec / 60), 'minute');
+  if (abs < 86400) return rtf.format(Math.round(diffSec / 3600), 'hour');
+  if (abs < 604800) return rtf.format(Math.round(diffSec / 86400), 'day');
+  return rtf.format(Math.round(diffSec / 604800), 'week');
+}

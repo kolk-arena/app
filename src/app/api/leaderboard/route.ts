@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
   const framework = asOptionalString(searchParams.get('framework'));
 
   try {
-    const { rows, total } = await fetchRankedLeaderboardRows({ framework });
+    const { rows, total, frameworkStats } = await fetchRankedLeaderboardRows({ framework });
     const offset = (page - 1) * limit;
 
     return NextResponse.json({
@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
       total,
       page,
       limit,
+      framework_stats: frameworkStats,
     });
   } catch (error) {
     console.error('Leaderboard fetch error:', error);

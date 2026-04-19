@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { copy } from '@/i18n';
 import { formatDateTime, formatNumber } from '@/i18n/format';
 import { fetchLeaderboardPlayerDetail, type LeaderboardPlayerSubmission } from '@/lib/kolk/leaderboard/player-detail';
 
@@ -10,18 +11,18 @@ type PlayerPageProps = {
 
 export async function generateMetadata({ params }: PlayerPageProps): Promise<Metadata> {
   const { playerId } = await params;
-  if (!UUID_RE.test(playerId)) return { title: 'Player Not Found' };
+  if (!UUID_RE.test(playerId)) return { title: copy.leaderboard.playerDetail.playerNotFoundTitle };
   const detail = await fetchLeaderboardPlayerDetail(playerId);
-  if (!detail) return { title: 'Player Not Found' };
-  return { title: detail.userRow.display_name ?? 'Player' };
+  if (!detail) return { title: copy.leaderboard.playerDetail.playerNotFoundTitle };
+  return { title: detail.userRow.display_name ?? copy.leaderboard.playerDetail.profilePlayerFallback };
 }
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function formatScore(value: number | null) {
-  if (value == null) return '—';
-  if (!Number.isFinite(value)) return '—';
+  if (value == null) return copy.leaderboard.table.noSubmissionFallback;
+  if (!Number.isFinite(value)) return copy.leaderboard.table.noSubmissionFallback;
   return formatNumber(value, {
     minimumFractionDigits: value % 1 === 0 ? 0 : 1,
     maximumFractionDigits: 1,
@@ -29,7 +30,7 @@ function formatScore(value: number | null) {
 }
 
 function formatDate(value: string | null) {
-  if (!value) return 'No submissions yet';
+  if (!value) return copy.leaderboard.playerDetail.lastSubmissionFallback;
   return formatDateTime(value, value);
 }
 
@@ -75,7 +76,8 @@ export default async function PlayerDetailPage({ params }: PlayerPageProps) {
     .sort((a, b) => b.level - a.level);
 
   const recentSubmissions = (Array.isArray(submissions) ? submissions : []) as LeaderboardPlayerSubmission[];
-  const tier = String(leaderboardRow.tier ?? 'starter');
+  const pd = copy.leaderboard.playerDetail;
+  const tier = String(leaderboardRow.tier ?? pd.tierFallback);
   const highestLevel = Number(leaderboardRow.highest_level ?? 0);
   const totalScore = Number(leaderboardRow.total_score ?? 0);
   const levelsCompleted = Number(leaderboardRow.levels_completed ?? 0);
@@ -88,13 +90,13 @@ export default async function PlayerDetailPage({ params }: PlayerPageProps) {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-2">
             <div className="inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600">
-              Player Detail
+              {pd.eyebrow}
             </div>
             <h1 className="text-3xl font-black tracking-tight text-slate-950">
-              {userRow.display_name ?? 'Player'}
+              {userRow.display_name ?? pd.profilePlayerFallback}
             </h1>
             <p className="text-sm text-slate-500">
-              Detailed public profile, progression snapshot, and recent submission history.
+              {pd.pageHeroSubtitle}
             </p>
           </div>
 
@@ -102,7 +104,7 @@ export default async function PlayerDetailPage({ params }: PlayerPageProps) {
             href="/leaderboard"
             className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >
-            Back to leaderboard
+            {pd.backToLeaderboard}
           </Link>
         </div>
 
@@ -112,10 +114,10 @@ export default async function PlayerDetailPage({ params }: PlayerPageProps) {
               <div className="border-b border-slate-200 px-4 py-4 sm:px-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Profile</p>
-                    <p className="mt-2 text-xl font-semibold text-slate-950">{userRow.display_name ?? 'Player'}</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.eyebrow}</p>
+                    <p className="mt-2 text-xl font-semibold text-slate-950">{userRow.display_name ?? pd.profilePlayerFallback}</p>
                     <p className="mt-1 text-sm text-slate-500">
-                      {userRow.handle ? `@${userRow.handle}` : 'No public handle'}
+                      {userRow.handle ? `@${userRow.handle}` : pd.noPublicHandle}
                     </p>
                   </div>
                   <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] ${tierClasses(tier)}`}>
@@ -127,34 +129,34 @@ export default async function PlayerDetailPage({ params }: PlayerPageProps) {
               <div className="grid gap-4 px-4 py-4 sm:px-5">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Highest Level</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.highestLevel}</p>
                     <p className="mt-2 text-2xl font-semibold text-slate-950">L{highestLevel}</p>
                   </div>
                   <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Total Score</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.totalScore}</p>
                     <p className="mt-2 text-2xl font-semibold text-slate-950">{formatScore(totalScore)}</p>
                   </div>
                 </div>
 
                 <dl className="space-y-3 text-sm">
                   <div className="flex items-start justify-between gap-3">
-                    <dt className="text-slate-500">School</dt>
-                    <dd className="max-w-[55%] break-words text-right font-medium text-slate-900">{userRow.school ?? 'Independent'}</dd>
+                    <dt className="text-slate-500">{pd.schoolLabel}</dt>
+                    <dd className="max-w-[55%] break-words text-right font-medium text-slate-900">{userRow.school ?? pd.schoolFallback}</dd>
                   </div>
                   <div className="flex items-start justify-between gap-3">
-                    <dt className="text-slate-500">Framework</dt>
-                    <dd className="max-w-[55%] break-words text-right font-medium text-slate-900">{userRow.framework ?? 'Not listed'}</dd>
+                    <dt className="text-slate-500">{pd.frameworkLabel}</dt>
+                    <dd className="max-w-[55%] break-words text-right font-medium text-slate-900">{userRow.framework ?? pd.frameworkFallback}</dd>
                   </div>
                   <div className="flex items-start justify-between gap-3">
-                    <dt className="text-slate-500">Country</dt>
-                    <dd className="max-w-[55%] break-words text-right font-medium text-slate-900">{userRow.country ?? 'Not listed'}</dd>
+                    <dt className="text-slate-500">{pd.countryLabel}</dt>
+                    <dd className="max-w-[55%] break-words text-right font-medium text-slate-900">{userRow.country ?? pd.countryFallback}</dd>
                   </div>
                   <div className="flex items-center justify-between gap-3">
-                    <dt className="text-slate-500">Levels Completed</dt>
+                    <dt className="text-slate-500">{pd.levelsCompleted}</dt>
                     <dd className="font-medium text-slate-900">{levelsCompleted}</dd>
                   </div>
                   <div className="flex items-center justify-between gap-3">
-                    <dt className="text-slate-500">Last Submission</dt>
+                    <dt className="text-slate-500">{pd.lastSubmissionLabel}</dt>
                     <dd className="text-right font-medium text-slate-900">{formatDate(lastSubmissionAt)}</dd>
                   </div>
                 </dl>
@@ -163,7 +165,7 @@ export default async function PlayerDetailPage({ params }: PlayerPageProps) {
 
             <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
               <div className="border-b border-slate-200 px-4 py-4 sm:px-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Best Scores by Level</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.bestScoresHeading}</p>
               </div>
               <div className="flex flex-wrap gap-2 px-4 py-4 sm:px-5">
                 {levelCards.length > 0 ? (
@@ -178,7 +180,7 @@ export default async function PlayerDetailPage({ params }: PlayerPageProps) {
                     </span>
                   ))
                 ) : (
-                  <p className="text-sm text-slate-500">No level score history yet.</p>
+                  <p className="text-sm text-slate-500">{pd.noLevelHistory}</p>
                 )}
               </div>
             </div>
@@ -187,9 +189,9 @@ export default async function PlayerDetailPage({ params }: PlayerPageProps) {
           <section className="space-y-4">
             <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
               <div className="border-b border-slate-200 px-4 py-4 sm:px-5">
-                <h2 className="text-base font-semibold text-slate-950">Recent Submissions</h2>
+                <h2 className="text-base font-semibold text-slate-950">{pd.recentSubmissionsHeading}</h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Latest scored runs for this player, shown in reverse chronological order.
+                  {pd.recentSubmissionsSubtitleAlt}
                 </p>
               </div>
 
@@ -201,15 +203,15 @@ export default async function PlayerDetailPage({ params }: PlayerPageProps) {
                         <div className="min-w-0 flex-1 space-y-2">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="inline-flex rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-700">
-                              Level {submission.level}
+                              {pd.levelLabel(submission.level)}
                             </span>
                             <span className="text-sm font-semibold text-slate-950">
                               {formatScore(submission.total_score)}
                             </span>
-                            <span className="text-sm text-slate-400">total</span>
+                            <span className="text-sm text-slate-400">{pd.totalSuffix}</span>
                           </div>
                           <p className="max-w-3xl break-words text-sm leading-6 text-slate-600">
-                            {submission.judge_summary ?? 'No summary available.'}
+                            {submission.judge_summary ?? pd.noSummary}
                           </p>
                         </div>
                         <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-400">
@@ -219,15 +221,15 @@ export default async function PlayerDetailPage({ params }: PlayerPageProps) {
 
                       <div className="mt-4 grid gap-3 sm:grid-cols-3">
                         <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Structure</p>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.structureLabel}</p>
                           <p className="mt-2 text-lg font-semibold text-slate-950">{formatScore(submission.structure_score)}</p>
                         </div>
                         <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Coverage</p>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.coverageLabel}</p>
                           <p className="mt-2 text-lg font-semibold text-slate-950">{formatScore(submission.coverage_score)}</p>
                         </div>
                         <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Quality</p>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.qualityLabel}</p>
                           <p className="mt-2 text-lg font-semibold text-slate-950">{formatScore(submission.quality_score)}</p>
                         </div>
                       </div>
@@ -240,7 +242,7 @@ export default async function PlayerDetailPage({ params }: PlayerPageProps) {
                             rel="noreferrer"
                             className="inline-flex items-center rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
                           >
-                            View repo
+                            {pd.viewRepo}
                           </a>
                         ) : null}
                         {submission.commit_hash ? (
@@ -261,7 +263,7 @@ export default async function PlayerDetailPage({ params }: PlayerPageProps) {
                   ))
                 ) : (
                   <div className="px-5 py-10 text-sm text-slate-500">
-                    No public submission history yet.
+                    {pd.noPublicHistory}
                   </div>
                 )}
               </div>

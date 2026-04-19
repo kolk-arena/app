@@ -10,7 +10,7 @@ import {
   formatNumber,
   formatTimeOnly,
 } from '@/i18n/format';
-import type { BetaPublicLevel } from '@/i18n/types';
+import type { BetaPublicLevel, ErrorCode, ScriptLang } from '@/i18n/types';
 import {
   buildChallengeAgentBrief,
   extractStructuredBrief,
@@ -18,7 +18,22 @@ import {
   getLevelOutputTemplate,
   getStructuredBriefCopy,
   getSubmitContractSnippet,
+  getPythonSubmitSnippet,
+  getNodeSubmitSnippet,
+  getCursorRules,
+  dryRunValidation,
 } from '@/lib/frontend/agent-handoff';
+
+/**
+ * Map a server-emitted error code → localized UI message. The wire-side
+ * English `body.error` is preserved as a graceful fallback when the code is
+ * missing or unrecognized.
+ */
+function resolveServerError(message: string, code: string | undefined): string {
+  if (!code) return message;
+  const localized = copy.errors[code as ErrorCode];
+  return typeof localized === 'string' ? localized : message;
+}
 
 // ============================================================================
 // Types
@@ -202,12 +217,29 @@ export function ChallengeClient({ level }: { level: number }) {
   const [now, setNow] = useState<number>(() => Date.now());
   const [registerPromptOpen, setRegisterPromptOpen] = useState(false);
   const [refreshNonce, setRefreshNonce] = useState(0);
+  const [scriptTab, setScriptTab] = useState<'curl'|'python'|'node'>('curl');
+  const [dryRunResult, setDryRunResult] = useState<{valid: boolean; errors: string[]} | null>(null);
   const idempotencyKeyRef = useRef<string>('');
+
+  const handleDryRun = () => {
+    setDryRunResult(dryRunValidation(level, primaryText));
+  };
+
+  const downloadFile = (filename: string, content: string) => {
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const requestFreshChallenge = useCallback(() => {
     setSubmitStatus({ kind: 'idle' });
     setRegisterPromptOpen(false);
     setPrimaryText(level === 0 ? 'Hello, Kolk Arena!' : '');
+    setDryRunResult(null);
     idempotencyKeyRef.current = randomIdempotencyKey();
     setRefreshNonce((current) => current + 1);
   }, [level]);
@@ -239,7 +271,8 @@ export function ChallengeClient({ level }: { level: number }) {
         }
 
         const code: string | undefined = typeof payload?.code === 'string' ? payload.code : undefined;
-        const msg: string = typeof payload?.error === 'string' ? payload.error : `Request failed (${resp.status})`;
+        const rawMsg: string = typeof payload?.error === 'string' ? payload.error : `Request failed (${resp.status})`;
+        const msg: string = resolveServerError(rawMsg, code);
 
         if (resp.status === 401 || code === 'AUTH_REQUIRED') {
           setFetchState({ kind: 'auth_required', message: msg });
@@ -265,7 +298,10 @@ export function ChallengeClient({ level }: { level: number }) {
         if (!active || controller.signal.aborted) return;
         setFetchState({
           kind: 'error',
-          message: err instanceof Error ? err.message : 'Failed to fetch challenge',
+          message:
+            err instanceof Error
+              ? err.message
+              : copy.challenge.errorStates.couldNotLoad,
         });
       }
     }
@@ -293,7 +329,7 @@ export function ChallengeClient({ level }: { level: number }) {
       if (primaryText.trim().length === 0) {
         setSubmitStatus({
           kind: 'validation_error',
-          message: 'primaryText cannot be empty. Produce a delivery and resubmit.',
+          message: copy.challenge.dryRun.primaryTextEmpty,
         });
         return;
       }
@@ -333,7 +369,13 @@ export function ChallengeClient({ level }: { level: number }) {
 
         const payload = await resp.json().catch(() => ({}));
         const code: string | undefined = typeof payload?.code === 'string' ? payload.code : undefined;
-        const message: string = typeof payload?.error === 'string' ? payload.error : 'Submit failed';
+        const rawMessage: string =
+          typeof payload?.error === 'string'
+            ? payload.error
+            : copy.challenge.submitBanner.submitFailed;
+        // Localize wire error code → UI string, keeping the server message
+        // as a fallback so unknown codes still render something useful.
+        const message: string = resolveServerError(rawMessage, code);
 
         if (resp.ok) {
           const result = payload as SubmitResponse;
@@ -391,7 +433,7 @@ export function ChallengeClient({ level }: { level: number }) {
           idempotencyKeyRef.current = randomIdempotencyKey();
           setSubmitStatus({
             kind: 'error',
-            message: 'Duplicate request detected. Regenerate and try again.',
+            message: copy.challenge.submitBanner.duplicateRequest,
             code,
           });
           return;
@@ -462,7 +504,10 @@ export function ChallengeClient({ level }: { level: number }) {
       } catch (err) {
         setSubmitStatus({
           kind: 'error',
-          message: err instanceof Error ? err.message : 'Submit failed',
+          message:
+            err instanceof Error
+              ? err.message
+              : copy.challenge.submitBanner.submitFailed,
         });
       }
     },
@@ -502,11 +547,11 @@ export function ChallengeClient({ level }: { level: number }) {
   if (fetchState.kind === 'auth_required') {
     return (
       <ErrorShell
-        title="Sign-in required"
+        title={copy.challenge.errorStates.authRequired}
         accent="rose"
         message={fetchState.message}
-        primary={{ href: '/profile', label: 'Sign in' }}
-        secondary={{ href: '/play', label: 'Back to Play' }}
+        primary={{ href: '/profile', label: copy.challenge.errorStates.signInLabel }}
+        secondary={{ href: '/play', label: copy.challenge.errorStates.backToPlayLabel }}
       />
     );
   }
@@ -515,11 +560,11 @@ export function ChallengeClient({ level }: { level: number }) {
     const nextL = fetchState.nextLevel ?? (fetchState.highestPassed ?? 0) + 1;
     return (
       <ErrorShell
-        title={`Level ${level} is locked`}
+        title={copy.challenge.errorStates.levelLockedTitle(level)}
         accent="amber"
         message={fetchState.message}
-        primary={{ href: `/challenge/${nextL}`, label: `Try L${nextL} first` }}
-        secondary={{ href: '/play', label: 'Back to Play' }}
+        primary={{ href: `/challenge/${nextL}`, label: copy.challenge.errorStates.tryNextLevel(nextL) }}
+        secondary={{ href: '/play', label: copy.challenge.errorStates.backToPlayLabel }}
       />
     );
   }
@@ -527,10 +572,10 @@ export function ChallengeClient({ level }: { level: number }) {
   if (fetchState.kind === 'level_already_passed') {
     return (
       <ErrorShell
-        title="Level already passed"
+        title={copy.challenge.errorStates.levelAlreadyPassed}
         accent="amber"
         message={fetchState.message}
-        primary={{ href: '/play', label: 'Back to Play' }}
+        primary={{ href: '/play', label: copy.challenge.errorStates.backToPlayLabel }}
       />
     );
   }
@@ -538,10 +583,10 @@ export function ChallengeClient({ level }: { level: number }) {
   if (fetchState.kind === 'level_not_available') {
     return (
       <ErrorShell
-        title="Level not available"
+        title={copy.challenge.errorStates.levelNotAvailable}
         accent="slate"
         message={fetchState.message}
-        primary={{ href: '/play', label: 'See public beta levels (L0-L8)' }}
+        primary={{ href: '/play', label: copy.challenge.errorStates.levelsCta }}
       />
     );
   }
@@ -549,11 +594,11 @@ export function ChallengeClient({ level }: { level: number }) {
   if (fetchState.kind === 'no_challenges') {
     return (
       <ErrorShell
-        title="No challenges available right now"
+        title={copy.challenge.errorStates.noChallenges}
         accent="amber"
         message={fetchState.message}
-        primary={{ label: 'Retry', onClick: requestFreshChallenge }}
-        secondary={{ href: '/play', label: 'Back to Play' }}
+        primary={{ label: copy.challenge.errorStates.retryLabel, onClick: requestFreshChallenge }}
+        secondary={{ href: '/play', label: copy.challenge.errorStates.backToPlayLabel }}
       />
     );
   }
@@ -561,11 +606,11 @@ export function ChallengeClient({ level }: { level: number }) {
   if (fetchState.kind === 'schema_not_ready') {
     return (
       <ErrorShell
-        title="Service temporarily unavailable"
+        title={copy.challenge.errorStates.schemaNotReady}
         accent="rose"
         message={fetchState.message}
-        primary={{ label: 'Retry', onClick: requestFreshChallenge }}
-        secondary={{ href: '/play', label: 'Back to Play' }}
+        primary={{ label: copy.challenge.errorStates.retryLabel, onClick: requestFreshChallenge }}
+        secondary={{ href: '/play', label: copy.challenge.errorStates.backToPlayLabel }}
       />
     );
   }
@@ -573,11 +618,11 @@ export function ChallengeClient({ level }: { level: number }) {
   if (fetchState.kind === 'error') {
     return (
       <ErrorShell
-        title="Could not load challenge"
+        title={copy.challenge.errorStates.couldNotLoad}
         accent="rose"
         message={fetchState.message}
-        primary={{ label: 'Retry', onClick: requestFreshChallenge }}
-        secondary={{ href: '/play', label: 'Back to Play' }}
+        primary={{ label: copy.challenge.errorStates.retryLabel, onClick: requestFreshChallenge }}
+        secondary={{ href: '/play', label: copy.challenge.errorStates.backToPlayLabel }}
       />
     );
   }
@@ -698,8 +743,15 @@ export function ChallengeClient({ level }: { level: number }) {
                 idleLabel={copy.challenge.agentPanel.copyAgentBrief}
                 copiedLabel={copy.challenge.agentPanel.copiedAgentBrief}
                 failedLabel={copy.challenge.agentPanel.copyFailed}
-                className="inline-flex items-center rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                className="inline-flex items-center rounded-full bg-slate-950 px-6 py-3 text-sm font-bold text-white transition hover:bg-slate-800 shadow-md ring-2 ring-slate-950/20"
               />
+              <button
+                type="button"
+                onClick={() => downloadFile(copy.challenge.agentPanel.cursorRulesFilename, getCursorRules())}
+                className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-5 py-3 text-sm font-semibold text-indigo-800 transition hover:bg-indigo-100"
+              >
+                {copy.challenge.agentPanel.downloadCursorRules}
+              </button>
               <CopyButton
                 value={outputTemplate}
                 idleLabel={copy.challenge.agentPanel.copyOutputTemplate}
@@ -714,13 +766,60 @@ export function ChallengeClient({ level }: { level: number }) {
                 failedLabel={copy.challenge.agentPanel.copyFailed}
                 className="inline-flex items-center rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
               />
-              <CopyButton
-                value={submitContractSnippet}
-                idleLabel={copy.challenge.agentPanel.copySubmitContract}
-                copiedLabel={copy.challenge.agentPanel.copiedSubmitContract}
-                failedLabel={copy.challenge.agentPanel.copyFailed}
-                className="inline-flex items-center rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
-              />
+            </div>
+            
+            <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden">
+              <div className="flex border-b border-slate-200 bg-slate-100/50">
+                <button
+                  type="button"
+                  onClick={() => setScriptTab('curl')}
+                  className={`px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] transition ${scriptTab === 'curl' ? 'bg-white text-slate-900 border-b-2 border-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  {copy.challenge.agentPanel.scriptTabs.curl}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setScriptTab('python')}
+                  className={`px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] transition ${scriptTab === 'python' ? 'bg-white text-slate-900 border-b-2 border-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  {copy.challenge.agentPanel.scriptTabs.python}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setScriptTab('node')}
+                  className={`px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] transition ${scriptTab === 'node' ? 'bg-white text-slate-900 border-b-2 border-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  {copy.challenge.agentPanel.scriptTabs.node}
+                </button>
+              </div>
+              <div className="p-4 flex flex-col gap-3">
+                <div className="flex flex-wrap gap-2">
+                  <CopyButton
+                    value={scriptTab === 'curl' ? submitContractSnippet : scriptTab === 'python' ? getPythonSubmitSnippet(handoffLevel) : getNodeSubmitSnippet(handoffLevel)}
+                    idleLabel={copy.challenge.agentPanel.copyScriptButton(scriptTab as ScriptLang)}
+                    copiedLabel={copy.challenge.agentPanel.copiedScriptButton}
+                    failedLabel={copy.challenge.agentPanel.copyScriptFailed}
+                    className="inline-flex items-center rounded-full bg-white border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                  />
+                  {scriptTab !== 'curl' && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        downloadFile(
+                          copy.challenge.agentPanel.downloadScriptFilename(scriptTab),
+                          scriptTab === 'python' ? getPythonSubmitSnippet(handoffLevel) : getNodeSubmitSnippet(handoffLevel),
+                        )
+                      }
+                      className="inline-flex items-center rounded-full bg-white border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                    >
+                      {copy.challenge.agentPanel.downloadScriptButton}
+                    </button>
+                  )}
+                </div>
+                <pre className="text-[11px] leading-relaxed font-mono text-slate-700 overflow-x-auto bg-slate-100 p-3 rounded-xl border border-slate-200">
+                  {scriptTab === 'curl' ? submitContractSnippet : scriptTab === 'python' ? getPythonSubmitSnippet(handoffLevel) : getNodeSubmitSnippet(handoffLevel)}
+                </pre>
+              </div>
             </div>
           </article>
 
@@ -796,7 +895,28 @@ export function ChallengeClient({ level }: { level: number }) {
             </p>
           ) : null}
 
+          {dryRunResult && !dryRunResult.valid && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800">
+              <p className="font-semibold">{copy.challenge.dryRun.failedHeading}</p>
+              <ul className="mt-1 list-inside list-disc space-y-0.5">
+                {dryRunResult.errors.map(err => <li key={err}>{err}</li>)}
+              </ul>
+            </div>
+          )}
+          {dryRunResult && dryRunResult.valid && (
+            <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800">
+              {copy.challenge.dryRun.passedMessage}
+            </p>
+          )}
+
           <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={handleDryRun}
+              className="inline-flex items-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              {copy.challenge.dryRun.validateButton}
+            </button>
             <button
               type="submit"
               disabled={submitStatus.kind === 'submitting' || primaryText.trim().length === 0}
@@ -844,7 +964,7 @@ function LoadingShell({ level }: { level: number }) {
         </div>
         <div className="h-56 animate-pulse rounded-3xl bg-slate-200" />
         <div className="h-40 animate-pulse rounded-3xl bg-slate-200" />
-        <p className="text-xs text-slate-500">Fetching L{level} challenge…</p>
+        <p className="text-xs text-slate-500">{copy.challenge.errorStates.fetchingChallenge(level)}</p>
       </section>
     </main>
   );
@@ -966,30 +1086,31 @@ function SubmitErrorBanner({
       ? 'border-rose-200 bg-rose-50 text-rose-900'
       : 'border-rose-200 bg-rose-50 text-rose-900';
 
+  const sb = copy.challenge.submitBanner;
   const title =
     status.kind === 'validation_error'
       ? isL5Json
-        ? 'L5 JSON invalid — same attemptToken still usable'
-        : 'Validation error — fix input and resubmit (same attemptToken)'
+        ? sb.validationTitleL5Json
+        : sb.validationTitleStandard
       : status.kind === 'auth_required'
-      ? 'Sign-in required'
+      ? sb.authRequiredTitle
       : status.kind === 'identity_mismatch'
-      ? 'Identity mismatch — re-fetch under the correct account'
+      ? sb.identityMismatchTitle
       : status.kind === 'session_expired'
-      ? 'Session expired (24h ceiling hit)'
+      ? sb.sessionExpiredTitle
       : status.kind === 'session_already_submitted'
-      ? 'This session was already submitted'
+      ? sb.sessionAlreadySubmittedTitle
       : status.kind === 'rate_limit_minute'
-      ? 'Too fast — 2 per minute per attemptToken'
+      ? sb.rateLimitMinuteTitle
       : status.kind === 'rate_limit_hour'
-      ? 'Hourly cap — 20 per hour per attemptToken'
+      ? sb.rateLimitHourTitle
       : status.kind === 'rate_limit_day'
-      ? 'Daily cap — 99 per day per account (resets at PT midnight)'
+      ? sb.rateLimitDayTitle
       : status.kind === 'retry_limit_exceeded'
-      ? 'This attemptToken reached the 10-submit cap — fetch a new one'
+      ? sb.retryLimitExceededTitle
       : status.kind === 'scoring_unavailable'
-      ? 'Scoring temporarily unavailable (fail-closed)'
-      : 'Submission failed';
+      ? sb.scoringUnavailableTitle
+      : sb.submissionFailedTitle;
 
   const limits = isCooldown || status.kind === 'retry_limit_exceeded' ? status.limits : undefined;
 
@@ -1000,13 +1121,13 @@ function SubmitErrorBanner({
 
       {isL5Json ? (
         <div className="mt-2 rounded-xl bg-white/60 px-3 py-2 text-xs text-amber-900">
-          <p className="font-semibold">L5 reminder</p>
+          <p className="font-semibold">{sb.l5ReminderHeading}</p>
           <ul className="mt-1 list-inside list-disc space-y-0.5">
-            <li>Do <strong>not</strong> wrap the JSON in Markdown code fences (```).</li>
-            <li>Required keys: <code>whatsapp_message</code>, <code>quick_facts</code>, <code>first_step_checklist</code> (all strings).</li>
-            <li>No prose before or after the JSON object.</li>
+            <li>{sb.l5ReminderNoFences}</li>
+            <li>{sb.l5ReminderRequiredKeys}</li>
+            <li>{sb.l5ReminderNoProse}</li>
             {level === 5 && status.kind === 'validation_error' && status.parserPosition ? (
-              <li>Parser position hint: <code>{status.parserPosition}</code></li>
+              <li>{sb.l5ReminderParserHint(status.parserPosition)}</li>
             ) : null}
           </ul>
         </div>
@@ -1014,17 +1135,17 @@ function SubmitErrorBanner({
 
       {limits ? (
         <div className="mt-2 flex flex-wrap gap-2">
-          <LimitCounter label="minute" used={limits.minute?.used} max={limits.minute?.max} />
-          <LimitCounter label="hour" used={limits.hour?.used} max={limits.hour?.max} />
-          <LimitCounter label="day" used={limits.day?.used} max={limits.day?.max} />
-          <LimitCounter label="retry" used={limits.retry?.used} max={limits.retry?.max} />
+          <LimitCounter label={sb.counterMinute} used={limits.minute?.used} max={limits.minute?.max} />
+          <LimitCounter label={sb.counterHour} used={limits.hour?.used} max={limits.hour?.max} />
+          <LimitCounter label={sb.counterDay} used={limits.day?.used} max={limits.day?.max} />
+          <LimitCounter label={sb.counterRetry} used={limits.retry?.used} max={limits.retry?.max} />
         </div>
       ) : null}
 
       {isCooldown && status.retryAfterSeconds != null ? (
         <p className="mt-2 text-xs">
-          Retry after ~{status.retryAfterSeconds}s.
-          {status.kind === 'rate_limit_hour' ? ' Continued rapid attempts may result in a 5-hour account freeze.' : ''}
+          {sb.retryAfter(status.retryAfterSeconds)}
+          {status.kind === 'rate_limit_hour' ? sb.hourFreezeWarning : ''}
         </p>
       ) : null}
 
@@ -1035,14 +1156,14 @@ function SubmitErrorBanner({
             onClick={onRefetch}
             className="inline-flex items-center rounded-full bg-slate-950 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800"
           >
-            Fetch a new challenge
+            {sb.fetchNewChallenge}
           </button>
           {status.kind === 'auth_required' || status.kind === 'identity_mismatch' ? (
             <Link
               href="/profile"
               className="inline-flex items-center rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
             >
-              Sign in
+              {sb.signIn}
             </Link>
           ) : null}
         </div>
@@ -1082,28 +1203,26 @@ function AccountFrozenScreen({
 
   const localTime = status.frozenUntil ? formatTimeOnly(status.frozenUntil) : null;
 
+  const af = copy.challenge.accountFrozen;
+  const sb = copy.challenge.submitBanner;
   return (
     <div role="alert" className="rounded-3xl border border-rose-300 bg-rose-50 px-6 py-8 text-rose-900">
-      <p className="text-xl font-black tracking-tight">Account paused</p>
-      <p className="mt-2 text-sm leading-6">
-        You sent too many submissions too quickly. This pause applies to your whole account, not just this tab — fetching a new challenge will not unblock you.
-      </p>
+      <p className="text-xl font-black tracking-tight">{af.title}</p>
+      <p className="mt-2 text-sm leading-6">{af.body}</p>
       {localTime ? (
-        <p className="mt-3 text-sm">
-          Submissions unpause at <strong>{localTime}</strong> (local time).
-        </p>
+        <p className="mt-3 text-sm">{af.unpauseAt(localTime)}</p>
       ) : null}
       {remaining != null ? (
         <p className="mt-2 font-mono text-2xl font-bold">{formatSeconds(remaining)}</p>
       ) : null}
       {status.reason ? (
-        <p className="mt-3 text-xs italic text-rose-800">Reason: {status.reason}</p>
+        <p className="mt-3 text-xs italic text-rose-800">{af.reasonPrefix}{status.reason}</p>
       ) : null}
       {status.limits ? (
         <div className="mt-3 flex flex-wrap gap-2">
-          <LimitCounter label="day" used={status.limits.day?.used} max={status.limits.day?.max} />
-          <LimitCounter label="1-min burst" used={status.limits.minute?.used} max={status.limits.minute?.max} />
-          <LimitCounter label="5-min burst" used={status.limits.fiveMinute?.used} max={status.limits.fiveMinute?.max} />
+          <LimitCounter label={sb.counterDay} used={status.limits.day?.used} max={status.limits.day?.max} />
+          <LimitCounter label={sb.counterMinuteBurst} used={status.limits.minute?.used} max={status.limits.minute?.max} />
+          <LimitCounter label={sb.counterFiveMinuteBurst} used={status.limits.fiveMinute?.used} max={status.limits.fiveMinute?.max} />
         </div>
       ) : null}
     </div>
@@ -1129,11 +1248,12 @@ function ResultCard({
   const hasFieldFeedback = Array.isArray(result.fieldScores) && result.fieldScores.length > 0;
   const hasPercentile = typeof result.percentile === 'number' && Number.isFinite(result.percentile);
   const isOnboarding = result.level === 0 || result.aiJudged === false;
+  const r = copy.challenge.result;
   const failReasonLabel =
     result.failReason === 'STRUCTURE_GATE'
-      ? 'Structure gate not cleared'
+      ? r.structureGateFailed
       : result.failReason === 'QUALITY_FLOOR'
-      ? 'Coverage + quality floor not cleared'
+      ? r.qualityFloorFailed
       : null;
 
   return (
@@ -1154,8 +1274,8 @@ function ResultCard({
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_10px_40px_rgba(15,23,42,0.04)] sm:p-10">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Result</p>
-              <p className="mt-1 text-5xl font-black tracking-tight text-slate-950">{Math.round(result.totalScore)}<span className="text-lg font-semibold text-slate-500"> / 100</span></p>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{r.eyebrow}</p>
+              <p className="mt-1 text-5xl font-black tracking-tight text-slate-950">{Math.round(result.totalScore)}<span className="text-lg font-semibold text-slate-500">{r.scoreOutOf(100)}</span></p>
               <p className="mt-2 text-sm font-medium text-slate-700">{result.summary}</p>
             </div>
             <div className="flex flex-col items-end gap-2">
@@ -1165,7 +1285,7 @@ function ResultCard({
                 </span>
               ) : null}
               <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${unlocked ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-rose-200 bg-rose-50 text-rose-800'}`}>
-                {unlocked ? 'Unlocked ✓' : 'Locked ×'}
+                {unlocked ? r.unlocked : r.locked}
               </span>
             </div>
           </div>
@@ -1173,42 +1293,40 @@ function ResultCard({
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
             {!isOnboarding ? (
               <>
-                <ScoreTile label="Structure" value={result.structureScore ?? 0} max={40} />
-                <ScoreTile label="Coverage" value={result.coverageScore ?? 0} max={30} />
-                <ScoreTile label="Quality" value={result.qualityScore ?? 0} max={30} />
+                <ScoreTile label={r.structureLabel} value={result.structureScore ?? 0} max={40} />
+                <ScoreTile label={r.coverageLabel} value={result.coverageScore ?? 0} max={30} />
+                <ScoreTile label={r.qualityLabel} value={result.qualityScore ?? 0} max={30} />
               </>
             ) : (
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 sm:col-span-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-700">Onboarding</p>
-                <p className="mt-2 text-sm font-medium text-emerald-950">
-                  L0 is a connectivity check. This run confirms your integration can fetch and submit successfully.
-                </p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-700">{r.onboardingEyebrow}</p>
+                <p className="mt-2 text-sm font-medium text-emerald-950">{r.onboardingBody}</p>
               </div>
             )}
           </div>
 
           {hasPercentile && !isOnboarding ? (
             <div className="mt-4 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-xs font-medium text-sky-900">
-              Percentile on L{result.level}: {Math.round(result.percentile!)}%
+              {r.percentile(result.level, Math.round(result.percentile!))}
             </div>
           ) : null}
 
           {!unlocked && failReasonLabel ? (
             <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-900">
-              Unlock blocked: {failReasonLabel}.
+              {r.unlockBlockedPrefix}{failReasonLabel}.
             </div>
           ) : null}
 
           {typeof result.solveTimeSeconds === 'number' ? (
             <p className="mt-3 text-xs text-slate-500">
-              Solve time: {Math.round(result.solveTimeSeconds)}s
-              {result.efficiencyBadge ? ' · Efficiency Badge earned' : ''}
+              {r.solveTime(Math.round(result.solveTimeSeconds))}
+              {result.efficiencyBadge ? r.efficiencyEarned : ''}
             </p>
           ) : null}
 
           {Array.isArray(result.flags) && result.flags.length > 0 && !isOnboarding ? (
             <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-900">
-              <p className="font-semibold">Judge flags</p>
+              <p className="font-semibold">{r.judgeFlagsHeading}</p>
               <ul className="mt-1 list-inside list-disc space-y-0.5">
                 {result.flags.map((f) => (
                   <li key={f}>{f}</li>
@@ -1219,13 +1337,13 @@ function ResultCard({
 
           {hasFieldFeedback && !isOnboarding ? (
             <div className="mt-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Field feedback</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{r.fieldFeedbackHeading}</p>
               <ul className="mt-2 space-y-2">
                 {(result.fieldScores ?? []).map((f) => (
                   <li key={f.field} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-sm font-semibold text-slate-900">{f.field}</p>
-                      <p className="text-xs font-semibold text-slate-700">{f.score} pt</p>
+                      <p className="text-xs font-semibold text-slate-700">{f.score}{r.pointsSuffix}</p>
                     </div>
                     <p className="mt-1 text-xs text-slate-600">{f.reason}</p>
                   </li>
@@ -1240,7 +1358,7 @@ function ResultCard({
                 href={`/challenge/${nextLevel}`}
                 className="inline-flex items-center rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
-                {result.level === 0 ? 'Try L1 →' : `Attempt L${nextLevel} →`}
+                {r.tryNextLevel(nextLevel)}
               </Link>
             ) : null}
             <button
@@ -1248,27 +1366,27 @@ function ResultCard({
               onClick={onRetry}
               className="inline-flex items-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             >
-              Retry L{result.level}
+              {r.retryLevel(result.level)}
             </button>
             <Link
               href="/play"
               className="inline-flex items-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             >
-              Back to Play
+              {r.backToPlay}
             </Link>
             <Link
               href="/leaderboard"
               className="inline-flex items-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             >
-              Leaderboard
+              {r.leaderboard}
             </Link>
           </div>
         </div>
 
         {result.replayUnlocked && result.nextSteps ? (
           <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-[0_10px_40px_rgba(16,185,129,0.12)]">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Beta complete</p>
-            <h2 className="mt-2 text-xl font-black tracking-tight text-emerald-950">Replay mode unlocked</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">{r.replayEyebrow}</p>
+            <h2 className="mt-2 text-xl font-black tracking-tight text-emerald-950">{r.replayTitle}</h2>
             <p className="mt-2 text-sm leading-6 text-emerald-900">{result.nextSteps.replay}</p>
             <div className="mt-4 flex flex-wrap gap-3">
               <a
@@ -1277,7 +1395,7 @@ function ResultCard({
                 rel="noreferrer"
                 className="inline-flex items-center rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
-                Join Discord
+                {r.joinDiscord}
               </a>
               <a
                 href={result.nextSteps.share}
@@ -1285,7 +1403,7 @@ function ResultCard({
                 rel="noreferrer"
                 className="inline-flex items-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
               >
-                Share result
+                {r.shareResult}
               </a>
             </div>
           </div>
@@ -1293,24 +1411,22 @@ function ResultCard({
 
         {registerPromptOpen ? (
           <div role="dialog" aria-modal="true" className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-[0_10px_40px_rgba(16,185,129,0.12)]">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Save your progress</p>
-            <h2 className="mt-2 text-xl font-black tracking-tight text-emerald-950">Unlock L6-L8 and the competitive ladder</h2>
-            <p className="mt-2 text-sm leading-6 text-emerald-900">
-              You just unlocked L5. Signing in keeps your progress, puts you on the public leaderboard, and enables L6-L8 ranked play. It is optional — you can keep replaying L1-L5 anonymously.
-            </p>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">{r.registerEyebrow}</p>
+            <h2 className="mt-2 text-xl font-black tracking-tight text-emerald-950">{r.registerTitle}</h2>
+            <p className="mt-2 text-sm leading-6 text-emerald-900">{r.registerBody}</p>
             <div className="mt-4 flex flex-wrap gap-3">
               <Link
                 href="/profile"
                 className="inline-flex items-center rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
-                Sign in
+                {r.registerCta}
               </Link>
               <button
                 type="button"
                 onClick={onDismissRegisterPrompt}
                 className="inline-flex items-center rounded-full border border-emerald-300 bg-white px-5 py-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100"
               >
-                Keep playing anonymously
+                {r.registerDismiss}
               </button>
             </div>
           </div>

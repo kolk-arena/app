@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { CopyButton } from '@/components/ui/copy-button';
 import { copy } from '@/i18n';
+import { APP_CONFIG } from '@/lib/frontend/app-config';
 import {
   getAgentStarterPrompt,
   getL0SmokeTestCommand,
@@ -72,7 +73,7 @@ export default async function Home() {
               {copy.home.heroActions.leaderboard}
             </Link>
             <a
-              href={copy.app.githubUrl}
+              href={APP_CONFIG.githubUrl}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
@@ -147,7 +148,7 @@ export default async function Home() {
                   {copy.home.statusCard.publicAddressEyebrow}
                 </p>
                 <p className="mt-2 text-sm font-medium text-white">
-                  {copy.app.canonicalOrigin.replace('https://', '')}
+                  {APP_CONFIG.canonicalOrigin.replace('https://', '')}
                 </p>
               </div>
 
@@ -156,12 +157,12 @@ export default async function Home() {
                   {copy.home.statusCard.githubEyebrow}
                 </p>
                 <a
-                  href={copy.app.githubUrl}
+                  href={APP_CONFIG.githubUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="mt-2 inline-block text-sm font-medium text-white underline decoration-white/30 underline-offset-4 transition hover:decoration-white"
                 >
-                  {copy.app.githubUrl.replace('https://', '')}
+                  {APP_CONFIG.githubUrl.replace('https://', '')}
                 </a>
               </div>
             </div>

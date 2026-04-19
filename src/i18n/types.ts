@@ -5,6 +5,43 @@ export type BetaPublicLevel = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
 export type CopyStatus = 'idle' | 'copied' | 'failed';
 
+/**
+ * Server-emitted error code → human-readable, locale-aware message.
+ *
+ * The wire-side English error returned by an API route stays English (server
+ * is locale-agnostic); the frontend swaps it for the localized message keyed
+ * by `code`. Use as `copy.errors[body.code] ?? body.error` so an unknown code
+ * still gracefully falls back to the server's message instead of throwing.
+ */
+export type ErrorCode =
+  | 'RATE_LIMIT_MINUTE'
+  | 'RATE_LIMIT_HOUR'
+  | 'RATE_LIMIT_DAY'
+  | 'RETRY_LIMIT_EXCEEDED'
+  | 'ACCOUNT_FROZEN'
+  | 'IDENTITY_MISMATCH'
+  | 'ATTEMPT_ALREADY_PASSED'
+  | 'ATTEMPT_TOKEN_EXPIRED'
+  | 'INVALID_JSON'
+  | 'VALIDATION_ERROR'
+  | 'TEXT_TOO_LONG'
+  | 'L5_INVALID_JSON'
+  | 'LEVEL_ALREADY_PASSED'
+  | 'LEVEL_NOT_AVAILABLE'
+  | 'AUTH_REQUIRED'
+  | 'INSUFFICIENT_SCOPE'
+  | 'SCORING_UNAVAILABLE'
+  | 'CHALLENGE_NOT_FOUND'
+  | 'INVALID_ATTEMPT_TOKEN'
+  | 'SUBMISSION_FAILED'
+  | 'LEADERBOARD_ERROR'
+  | 'SCHEMA_NOT_READY'
+  | 'SESSION_ERROR'
+  | 'NO_CHALLENGES'
+  | 'INTERNAL_ERROR';
+
+export type ScriptLang = 'curl' | 'python' | 'node';
+
 export interface FrontendCatalog {
   locale: FrontendLocale;
   localeCode: FrontendLocaleCode | string;
@@ -182,6 +219,19 @@ export interface FrontendCatalog {
       taskJsonTitle: string;
       challengeBriefEyebrow: string;
       challengeBriefBody: string;
+      // Wave-2 additions: agent-handoff panel buttons + script tabs
+      downloadCursorRules: string;
+      cursorRulesFilename: string;
+      copiedScriptButton: string;
+      copyScriptFailed: string;
+      copyScriptButton: (lang: ScriptLang) => string;
+      downloadScriptButton: string;
+      downloadScriptFilename: (lang: Exclude<ScriptLang, 'curl'>) => string;
+      scriptTabs: {
+        curl: string;
+        python: string;
+        node: string;
+      };
     };
     cards: {
       brief: string;
@@ -212,5 +262,251 @@ export interface FrontendCatalog {
       refetch: string;
       backToPlay: string;
     };
+    // Wave-2 additions: dry-run validation UI + plain strings emitted by
+    // src/lib/frontend/agent-handoff.ts::dryRunValidation. Callers route the
+    // raw error string through this map so the validator stays English on the
+    // wire side and the UI swaps in the localized version.
+    dryRun: {
+      validateButton: string;
+      failedHeading: string;
+      passedMessage: string;
+      // Pre-defined validator messages (mirrors the strings in
+      // dryRunValidation). Templates take the dynamic bits and return the
+      // final message.
+      primaryTextEmpty: string;
+      l5RemoveFences: string;
+      l5InvalidJson: string;
+      l5MustBeObject: string;
+      l5MissingKey: (key: string) => string;
+      l5KeyTooShort: (key: string, min: number, got: number) => string;
+      l2MissingFence: string;
+      l8MissingHeader: (keyword: string) => string;
+    };
+    // Wave-2 additions: ErrorShell `title` prop strings + shared shell
+    // primary/secondary CTA labels.
+    errorStates: {
+      authRequired: string;
+      signInLabel: string;
+      backToPlayLabel: string;
+      retryLabel: string;
+      levelLockedTitle: (level: number) => string;
+      tryNextLevel: (next: number) => string;
+      levelAlreadyPassed: string;
+      levelNotAvailable: string;
+      levelsCta: string;
+      noChallenges: string;
+      schemaNotReady: string;
+      couldNotLoad: string;
+      fetchingChallenge: (level: number) => string;
+    };
+    // Wave-2 additions: SubmitErrorBanner banner + AccountFrozenScreen +
+    // ResultCard surface strings.
+    submitBanner: {
+      retryAfter: (seconds: number) => string;
+      hourFreezeWarning: string;
+      fetchNewChallenge: string;
+      signIn: string;
+      duplicateRequest: string;
+      submitFailed: string;
+      validationTitleStandard: string;
+      validationTitleL5Json: string;
+      authRequiredTitle: string;
+      identityMismatchTitle: string;
+      sessionExpiredTitle: string;
+      sessionAlreadySubmittedTitle: string;
+      rateLimitMinuteTitle: string;
+      rateLimitHourTitle: string;
+      rateLimitDayTitle: string;
+      retryLimitExceededTitle: string;
+      scoringUnavailableTitle: string;
+      submissionFailedTitle: string;
+      l5ReminderHeading: string;
+      l5ReminderNoFences: string;
+      l5ReminderRequiredKeys: string;
+      l5ReminderNoProse: string;
+      l5ReminderParserHint: (position: string) => string;
+      // Limit-counter labels (per-window).
+      counterMinute: string;
+      counterHour: string;
+      counterDay: string;
+      counterRetry: string;
+      counterMinuteBurst: string;
+      counterFiveMinuteBurst: string;
+    };
+    accountFrozen: {
+      title: string;
+      body: string;
+      unpauseAt: (localTime: string) => string;
+      reasonPrefix: string;
+    };
+    result: {
+      eyebrow: string;
+      scoreOutOf: (value: number) => string;
+      unlocked: string;
+      locked: string;
+      structureLabel: string;
+      coverageLabel: string;
+      qualityLabel: string;
+      onboardingEyebrow: string;
+      onboardingBody: string;
+      percentile: (level: number, percent: number) => string;
+      structureGateFailed: string;
+      qualityFloorFailed: string;
+      unlockBlockedPrefix: string;
+      solveTime: (seconds: number) => string;
+      efficiencyEarned: string;
+      judgeFlagsHeading: string;
+      fieldFeedbackHeading: string;
+      pointsSuffix: string;
+      tryNextLevel: (level: number) => string;
+      retryLevel: (level: number) => string;
+      backToPlay: string;
+      leaderboard: string;
+      replayEyebrow: string;
+      replayTitle: string;
+      joinDiscord: string;
+      shareResult: string;
+      registerEyebrow: string;
+      registerTitle: string;
+      registerBody: string;
+      registerCta: string;
+      registerDismiss: string;
+    };
   };
+  leaderboard: {
+    heroEyebrow: string;
+    heroTitle: string;
+    heroDescription: string;
+    entriesEyebrow: string;
+    currentLeaderEyebrow: string;
+    currentLeaderTimePending: string;
+    currentLeaderEmpty: string;
+    currentLeaderSummary: (level: number, score: string, solveTime: string) => string;
+    leaderboardRuleEyebrow: string;
+    leaderboardRuleBody: string;
+    topTierLabel: (tier: string) => string;
+    frameworkFilter: string;
+    frameworkPlaceholder: string;
+    applyFilter: string;
+    clearFilter: string;
+    allFrameworks: string;
+    activeFilterEyebrow: string;
+    viewEyebrow: string;
+    showingLabel: (from: number, to: number, total: number) => string;
+    sortExplainer: string;
+    detailSelectionStorage: string;
+    failedToLoad: string;
+    selectionUnavailableTitle: string;
+    selectionInvalid: string;
+    clearSelection: string;
+    standingsTitle: string;
+    standingsSubtitle: string;
+    listPlusDetail: string;
+    refreshing: string;
+    loading: string;
+    noEntriesTitle: string;
+    noEntriesFrameworkHint: string;
+    noEntriesDefaultHint: string;
+    previousPage: string;
+    nextPage: string;
+    pageLabel: (page: number, total: number) => string;
+    leaderUpdatedPrefix: (formatted: string) => string;
+    noLeaderYet: string;
+    detailOutsideViewTitle: string;
+    detailOutsideViewBody: string;
+    noRecentSubmissionData: string;
+    timePending: string;
+    frameworkWars: {
+      title: string;
+      collectingData: string;
+      ofTop100: string;
+      legendCount: (count: number) => string;
+      legendPercent: (percent: number) => string;
+    };
+    activityFeed: {
+      title: string;
+      filterAllTiers: string;
+      listeningSubmissions: string;
+      // Render helper for an activity row. Returns the conjugated, localized
+      // verb tense rather than concatenating strings, so other locales can
+      // re-order subject/verb/object cleanly.
+      rowVerbPassed: string;
+      rowVerbAttempted: string;
+      usingFrameworkPrefix: string;
+    };
+    // Wave-2 additions: detail panel + dedicated /leaderboard/[playerId] page.
+    playerDetail: {
+      eyebrow: string;
+      selectAPlayerTitle: string;
+      selectAPlayerBody: string;
+      loading: string;
+      failedToLoadTitle: string;
+      failedToLoadFallback: string;
+      retry: string;
+      clearSelection: string;
+      clearShort: string;
+      betaPioneerBadge: string;
+      profilePlayerFallback: string;
+      noPublicHandle: string;
+      tierFallback: string;
+      highestLevel: string;
+      totalScore: string;
+      levelsCompleted: string;
+      schoolLabel: string;
+      schoolFallback: string;
+      frameworkLabel: string;
+      frameworkFallback: string;
+      countryLabel: string;
+      countryFallback: string;
+      lastSubmissionLabel: string;
+      lastSubmissionFallback: string;
+      bestScoresHeading: string;
+      bestScoresSubtitle: string;
+      noLevelHistory: string;
+      openPage: string;
+      recentSubmissionsHeading: string;
+      recentSubmissionsSubtitle: string;
+      recentSubmissionsSubtitleAlt: string;
+      noPublicHistory: string;
+      levelLabel: (level: number) => string;
+      totalSuffix: string;
+      noSummary: string;
+      structureLabel: string;
+      coverageLabel: string;
+      qualityLabel: string;
+      viewRepo: string;
+      backToLeaderboard: string;
+      pageHeroSubtitle: string;
+      playerNotFoundTitle: string;
+    };
+    table: {
+      colRank: string;
+      colPlayer: string;
+      colFramework: string;
+      colHighest: string;
+      colFrontierScore: string;
+      colSolveTime: string;
+      colTier: string;
+      colLastSubmission: string;
+      noPublicHandle: string;
+      frameworkNotSet: string;
+      globalCountryTooltip: string;
+      frontierFallback: string;
+      efficiencyBadge: string;
+      timeTieBreak: string;
+      selectedLabel: string;
+      viewLabel: string;
+      pioneerBadge: string;
+      solveTimeLabel: string;
+      highestLabel: string;
+      frontierLabel: string;
+      frameworkLabel: string;
+      lastSubmissionLabel: (formatted: string) => string;
+      noSubmissionsYet: string;
+      noSubmissionFallback: string;
+      openPlayerDetailAriaLabel: (name: string) => string;
+      openPlayerPageAriaLabel: (name: string) => string;
+    };
+  };
+  errors: Record<ErrorCode, string>;
 }

@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { copy } from '@/i18n';
 import { formatDateTime, formatNumber } from '@/i18n/format';
 import type { LeaderboardPlayerDetail } from '@/lib/kolk/leaderboard/player-detail';
 
 function formatScore(value: number | null) {
-  if (value == null) return '—';
+  if (value == null) return copy.leaderboard.table.noSubmissionFallback;
   return formatNumber(value, {
     minimumFractionDigits: value % 1 === 0 ? 0 : 1,
     maximumFractionDigits: 1,
@@ -14,7 +15,7 @@ function formatScore(value: number | null) {
 }
 
 function formatDate(value: string | null) {
-  if (!value) return 'No submissions yet';
+  if (!value) return copy.leaderboard.playerDetail.lastSubmissionFallback;
   return formatDateTime(value, value);
 }
 
@@ -85,7 +86,7 @@ export function PlayerDetailPanel({
       .then(async (response) => {
         const payload = (await response.json()) as LeaderboardPlayerDetail & { error?: string };
         if (!response.ok) {
-          throw new Error(payload.error ?? 'Failed to load player detail');
+          throw new Error(payload.error ?? copy.leaderboard.playerDetail.failedToLoadTitle);
         }
         if (!active) return;
         setRequestState({
@@ -99,7 +100,7 @@ export function PlayerDetailPanel({
         setRequestState({
           playerId,
           detail: null,
-          error: err instanceof Error ? err.message : 'Failed to load player detail',
+          error: err instanceof Error ? err.message : copy.leaderboard.playerDetail.failedToLoadTitle,
         });
       });
 
@@ -113,15 +114,17 @@ export function PlayerDetailPanel({
   const detail = playerId && requestState.playerId === playerId ? requestState.detail : null;
   const error = playerId && requestState.playerId === playerId ? requestState.error : null;
 
+  const pd = copy.leaderboard.playerDetail;
+
   if (!playerId) {
     return (
       <aside id={panelId} className="rounded-2xl border border-slate-200 bg-white shadow-sm" aria-live="polite">
         <div className="border-b border-slate-200 px-4 py-4 sm:px-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Player Detail</p>
-          <h2 className="mt-2 text-base font-semibold text-slate-950">Select a player</h2>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.eyebrow}</p>
+          <h2 className="mt-2 text-base font-semibold text-slate-950">{pd.selectAPlayerTitle}</h2>
         </div>
         <div className="px-4 py-6 text-sm leading-6 text-slate-500 sm:px-5">
-          Pick a row from the leaderboard to inspect progression, scoring breakdowns, and recent submissions without leaving the rankings view.
+          {pd.selectAPlayerBody}
         </div>
       </aside>
     );
@@ -130,7 +133,7 @@ export function PlayerDetailPanel({
   if (loading && !detail) {
     return (
       <aside id={panelId} className="rounded-2xl border border-slate-200 bg-white shadow-sm" aria-live="polite" aria-busy="true">
-        <div className="px-4 py-6 text-sm text-slate-500 sm:px-5">Loading player detail...</div>
+        <div className="px-4 py-6 text-sm text-slate-500 sm:px-5">{pd.loading}</div>
       </aside>
     );
   }
@@ -139,8 +142,8 @@ export function PlayerDetailPanel({
     return (
       <aside id={panelId} className="rounded-2xl border border-rose-200 bg-rose-50 shadow-sm" aria-live="polite">
         <div className="px-4 py-6 text-sm text-rose-900 sm:px-5">
-          <p className="font-semibold">Failed to load player detail</p>
-          <p className="mt-1">{error ?? 'Player detail is unavailable.'}</p>
+          <p className="font-semibold">{pd.failedToLoadTitle}</p>
+          <p className="mt-1">{error ?? pd.failedToLoadFallback}</p>
           <div className="mt-4">
             <div className="flex flex-wrap gap-2">
               <button
@@ -148,14 +151,14 @@ export function PlayerDetailPanel({
                 onClick={onRetry}
                 className="inline-flex min-h-11 items-center rounded-lg border border-rose-300 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-rose-800 transition hover:bg-rose-100"
               >
-                Retry
+                {pd.retry}
               </button>
               <button
                 type="button"
                 onClick={onClear}
                 className="inline-flex min-h-11 items-center rounded-lg border border-rose-300 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-rose-800 transition hover:bg-rose-100"
               >
-                Clear selection
+                {pd.clearSelection}
               </button>
             </div>
           </div>
@@ -166,7 +169,7 @@ export function PlayerDetailPanel({
 
   const levelCards = normalizeBestScores(detail.leaderboardRow.best_scores);
   const recentSubmissions = Array.isArray(detail.submissions) ? detail.submissions : [];
-  const tier = String(detail.leaderboardRow.tier ?? 'starter');
+  const tier = String(detail.leaderboardRow.tier ?? pd.tierFallback);
   const highestLevel = Number(detail.leaderboardRow.highest_level ?? 0);
   const totalScore = Number(detail.leaderboardRow.total_score ?? 0);
   const levelsCompleted = Number(detail.leaderboardRow.levels_completed ?? 0);
@@ -180,16 +183,16 @@ export function PlayerDetailPanel({
       <div className="border-b border-slate-200 px-4 py-4 sm:px-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Player Detail</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.eyebrow}</p>
             <h2 className="mt-2 text-xl font-semibold text-slate-950">
-              {detail.userRow.display_name ?? 'Player'}
+              {detail.userRow.display_name ?? pd.profilePlayerFallback}
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              {detail.userRow.handle ? `@${detail.userRow.handle}` : 'No public handle'}
+              {detail.userRow.handle ? `@${detail.userRow.handle}` : pd.noPublicHandle}
             </p>
             {detail.userRow.pioneer === true ? (
               <p className="mt-2 inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-800">
-                Beta Pioneer
+                {pd.betaPioneerBadge}
               </p>
             ) : null}
           </div>
@@ -207,7 +210,7 @@ export function PlayerDetailPanel({
               onClick={onClear}
               className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-600 transition hover:bg-slate-50"
             >
-              Clear
+              {pd.clearShort}
             </button>
           </div>
         </div>
@@ -216,34 +219,34 @@ export function PlayerDetailPanel({
       <div className="space-y-4 px-4 py-4 sm:px-5">
         <div className="grid gap-3 sm:grid-cols-3">
           <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Highest Level</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.highestLevel}</p>
             <p className="mt-2 text-2xl font-semibold text-slate-950">L{highestLevel}</p>
           </div>
           <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Total Score</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.totalScore}</p>
             <p className="mt-2 text-2xl font-semibold text-slate-950">{formatScore(totalScore)}</p>
           </div>
           <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Levels Completed</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.levelsCompleted}</p>
             <p className="mt-2 text-2xl font-semibold text-slate-950">{levelsCompleted}</p>
           </div>
         </div>
 
         <dl className="grid gap-3 text-sm sm:grid-cols-2">
           <div className="rounded-xl border border-slate-200 px-4 py-3">
-            <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">School</dt>
-            <dd className="mt-2 break-words font-medium text-slate-900">{detail.userRow.school ?? 'Independent'}</dd>
+            <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.schoolLabel}</dt>
+            <dd className="mt-2 break-words font-medium text-slate-900">{detail.userRow.school ?? pd.schoolFallback}</dd>
           </div>
           <div className="rounded-xl border border-slate-200 px-4 py-3">
-            <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Framework</dt>
-            <dd className="mt-2 break-words font-medium text-slate-900">{detail.userRow.framework ?? 'Not listed'}</dd>
+            <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.frameworkLabel}</dt>
+            <dd className="mt-2 break-words font-medium text-slate-900">{detail.userRow.framework ?? pd.frameworkFallback}</dd>
           </div>
           <div className="rounded-xl border border-slate-200 px-4 py-3">
-            <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Country</dt>
-            <dd className="mt-2 font-medium text-slate-900">{detail.userRow.country ?? 'Not listed'}</dd>
+            <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.countryLabel}</dt>
+            <dd className="mt-2 font-medium text-slate-900">{detail.userRow.country ?? pd.countryFallback}</dd>
           </div>
           <div className="rounded-xl border border-slate-200 px-4 py-3">
-            <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Last Submission</dt>
+            <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.lastSubmissionLabel}</dt>
             <dd className="mt-2 font-medium text-slate-900">{formatDate(lastSubmissionAt)}</dd>
           </div>
         </dl>
@@ -251,14 +254,14 @@ export function PlayerDetailPanel({
         <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Best Scores by Level</p>
-              <p className="mt-1 text-sm text-slate-500">Progression history across completed levels.</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.bestScoresHeading}</p>
+              <p className="mt-1 text-sm text-slate-500">{pd.bestScoresSubtitle}</p>
             </div>
             <Link
               href={`/leaderboard/${playerId}`}
               className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-700 transition hover:bg-slate-50"
             >
-              Open page
+              {pd.openPage}
             </Link>
           </div>
 
@@ -275,15 +278,15 @@ export function PlayerDetailPanel({
                 </span>
               ))
             ) : (
-              <p className="text-sm text-slate-500">No level score history yet.</p>
+              <p className="text-sm text-slate-500">{pd.noLevelHistory}</p>
             )}
           </div>
         </div>
 
         <div className="rounded-xl border border-slate-200">
           <div className="border-b border-slate-200 px-4 py-3">
-            <h3 className="text-sm font-semibold text-slate-950">Recent submissions</h3>
-            <p className="mt-1 text-sm text-slate-500">Latest scored runs in reverse chronological order.</p>
+            <h3 className="text-sm font-semibold text-slate-950">{pd.recentSubmissionsHeading}</h3>
+            <p className="mt-1 text-sm text-slate-500">{pd.recentSubmissionsSubtitle}</p>
           </div>
 
           <div className="divide-y divide-slate-200">
@@ -294,13 +297,13 @@ export function PlayerDetailPanel({
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="inline-flex rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-700">
-                          Level {submission.level}
+                          {pd.levelLabel(submission.level)}
                         </span>
                         <span className="text-sm font-semibold text-slate-950">{formatScore(submission.total_score)}</span>
-                        <span className="text-sm text-slate-400">total</span>
+                        <span className="text-sm text-slate-400">{pd.totalSuffix}</span>
                       </div>
                       <p className="mt-2 break-words text-sm leading-6 text-slate-600">
-                        {submission.judge_summary ?? 'No summary available.'}
+                        {submission.judge_summary ?? pd.noSummary}
                       </p>
                     </div>
                     <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-400">
@@ -310,15 +313,15 @@ export function PlayerDetailPanel({
 
                   <div className="mt-3 grid gap-3 sm:grid-cols-3">
                     <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Structure</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.structureLabel}</p>
                       <p className="mt-2 text-base font-semibold text-slate-950">{formatScore(submission.structure_score)}</p>
                     </div>
                     <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Coverage</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.coverageLabel}</p>
                       <p className="mt-2 text-base font-semibold text-slate-950">{formatScore(submission.coverage_score)}</p>
                     </div>
                     <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Quality</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.qualityLabel}</p>
                       <p className="mt-2 text-base font-semibold text-slate-950">{formatScore(submission.quality_score)}</p>
                     </div>
                   </div>
@@ -331,7 +334,7 @@ export function PlayerDetailPanel({
                         rel="noreferrer"
                         className="inline-flex items-center rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
                       >
-                        View repo
+                        {pd.viewRepo}
                       </a>
                     ) : null}
                     {submission.commit_hash ? (
@@ -351,7 +354,7 @@ export function PlayerDetailPanel({
                 </article>
               ))
             ) : (
-              <div className="px-4 py-8 text-sm text-slate-500">No public submission history yet.</div>
+              <div className="px-4 py-8 text-sm text-slate-500">{pd.noPublicHistory}</div>
             )}
           </div>
         </div>

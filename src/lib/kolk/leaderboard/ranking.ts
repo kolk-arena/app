@@ -23,6 +23,7 @@ export type PublicLeaderboardRow = {
   tier: string;
   pioneer: boolean;
   last_submission_at: string | null;
+  country_code?: string | null;
 };
 
 const VALID_TIERS = new Set(['starter', 'builder', 'specialist', 'champion']);
@@ -109,6 +110,7 @@ function normalizeLeaderboardRow(
     tier: tier && VALID_TIERS.has(tier) ? tier : 'starter',
     pioneer: entry.pioneer === true,
     last_submission_at: asIsoDateString(entry.last_submission_at),
+    country_code: asOptionalString(entry.country_code),
   };
 }
 
@@ -181,8 +183,29 @@ export async function fetchRankedLeaderboardRows(options?: { framework?: string 
     .map((entry) => normalizeLeaderboardRow(entry as Record<string, unknown>, frameworkByParticipantId))
     .filter((entry): entry is PublicLeaderboardRow => entry !== null);
 
+  const ranked = rankLeaderboardRows(normalized);
+
+  const top100 = ranked.slice(0, 100);
+  const frameworkCounts = new Map<string, number>();
+  let statCount = 0;
+  for (const row of top100) {
+    if (row.framework) {
+      frameworkCounts.set(row.framework, (frameworkCounts.get(row.framework) ?? 0) + 1);
+      statCount++;
+    }
+  }
+  
+  const frameworkStats = Array.from(frameworkCounts.entries())
+    .map(([framework, count]) => ({
+      framework,
+      count,
+      percentage: Math.round((count / Math.max(1, statCount)) * 100)
+    }))
+    .sort((a, b) => b.count - a.count);
+
   return {
-    rows: rankLeaderboardRows(normalized),
+    rows: ranked,
     total: count ?? normalized.length,
+    frameworkStats,
   };
 }

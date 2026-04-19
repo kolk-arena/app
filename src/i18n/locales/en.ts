@@ -1,4 +1,9 @@
-import type { FrontendCatalog, FrontendLocale, FrontendLocaleCode } from '@/i18n/types';
+import type {
+  FrontendCatalog,
+  FrontendLocale,
+  FrontendLocaleCode,
+  ScriptLang,
+} from '@/i18n/types';
 
 export const en = {
   locale: 'en' as FrontendLocale,
@@ -302,6 +307,20 @@ export const en = {
       challengeBriefEyebrow: 'ChallengeBrief',
       challengeBriefBody:
         'Today, the browser exposes promptMd and taskJson. For agents, the stable object to read is the brief itself, not the surrounding page chrome. Community-authored ChallengeBriefs are planned post-launch.',
+      downloadCursorRules: 'Download .cursorrules',
+      cursorRulesFilename: '.cursorrules',
+      copiedScriptButton: 'Copied!',
+      copyScriptFailed: 'Failed',
+      copyScriptButton: (lang: ScriptLang) =>
+        lang === 'curl' ? 'Copy submit contract' : `Copy ${lang} snippet`,
+      downloadScriptButton: 'Download script',
+      downloadScriptFilename: (lang) =>
+        lang === 'python' ? 'solve.py' : 'solve.js',
+      scriptTabs: {
+        curl: 'cURL',
+        python: 'Python',
+        node: 'Node.js',
+      },
     },
     cards: {
       brief: 'Brief',
@@ -335,5 +354,313 @@ export const en = {
       refetch: 'Re-fetch a fresh brief',
       backToPlay: 'Back to Play',
     },
+    dryRun: {
+      validateButton: 'Dry Run / Validate',
+      failedHeading: 'Local Validation Failed:',
+      passedMessage: 'Local Validation Passed! Ready to submit.',
+      primaryTextEmpty: 'primaryText cannot be empty.',
+      l5RemoveFences: 'Remove Markdown fences. L5 must be raw JSON.',
+      l5InvalidJson: 'Invalid JSON.',
+      l5MustBeObject: 'Must be a JSON object.',
+      l5MissingKey: (key: string) => `Missing or non-string key: ${key}.`,
+      l5KeyTooShort: (key: string, min: number, got: number) =>
+        `${key} must be at least ${min} characters (got ${got}).`,
+      l2MissingFence:
+        'L2 typically includes a fenced JSON block for the Instagram bio. The server does not enforce section titles, but the brief asks for a fenced JSON block.',
+      l8MissingHeader: (keyword: string) =>
+        `Missing a ## header containing "${keyword}".`,
+    },
+    errorStates: {
+      authRequired: 'Sign-in required',
+      signInLabel: 'Sign in',
+      backToPlayLabel: 'Back to Play',
+      retryLabel: 'Retry',
+      levelLockedTitle: (level: number) => `Level ${level} is locked`,
+      tryNextLevel: (next: number) => `Try L${next} first`,
+      levelAlreadyPassed: 'Level already passed',
+      levelNotAvailable: 'Level not available',
+      levelsCta: 'See public beta levels (L0-L8)',
+      noChallenges: 'No challenges available right now',
+      schemaNotReady: 'Service temporarily unavailable',
+      couldNotLoad: 'Could not load challenge',
+      fetchingChallenge: (level: number) => `Fetching L${level} challenge…`,
+    },
+    submitBanner: {
+      retryAfter: (seconds: number) => `Retry after ~${seconds}s.`,
+      hourFreezeWarning:
+        ' Continued rapid attempts may result in a 5-hour account freeze.',
+      fetchNewChallenge: 'Fetch a new challenge',
+      signIn: 'Sign in',
+      duplicateRequest: 'Duplicate request detected. Regenerate and try again.',
+      submitFailed: 'Submit failed',
+      validationTitleStandard:
+        'Validation error — fix input and resubmit (same attemptToken)',
+      validationTitleL5Json: 'L5 JSON invalid — same attemptToken still usable',
+      authRequiredTitle: 'Sign-in required',
+      identityMismatchTitle:
+        'Identity mismatch — re-fetch under the correct account',
+      sessionExpiredTitle: 'Session expired (24h ceiling hit)',
+      sessionAlreadySubmittedTitle: 'This session was already submitted',
+      rateLimitMinuteTitle: 'Too fast — 2 per minute per attemptToken',
+      rateLimitHourTitle: 'Hourly cap — 20 per hour per attemptToken',
+      rateLimitDayTitle:
+        'Daily cap — 99 per day per account (resets at PT midnight)',
+      retryLimitExceededTitle:
+        'This attemptToken reached the 10-submit cap — fetch a new one',
+      scoringUnavailableTitle: 'Scoring temporarily unavailable (fail-closed)',
+      submissionFailedTitle: 'Submission failed',
+      l5ReminderHeading: 'L5 reminder',
+      l5ReminderNoFences:
+        'Do not wrap the JSON in Markdown code fences (```).',
+      l5ReminderRequiredKeys:
+        'Required keys: whatsapp_message, quick_facts, first_step_checklist (all strings).',
+      l5ReminderNoProse: 'No prose before or after the JSON object.',
+      l5ReminderParserHint: (position: string) =>
+        `Parser position hint: ${position}`,
+      counterMinute: 'minute',
+      counterHour: 'hour',
+      counterDay: 'day',
+      counterRetry: 'retry',
+      counterMinuteBurst: '1-min burst',
+      counterFiveMinuteBurst: '5-min burst',
+    },
+    accountFrozen: {
+      title: 'Account paused',
+      body:
+        'You sent too many submissions too quickly. This pause applies to your whole account, not just this tab — fetching a new challenge will not unblock you.',
+      unpauseAt: (localTime: string) =>
+        `Submissions unpause at ${localTime} (local time).`,
+      reasonPrefix: 'Reason: ',
+    },
+    result: {
+      eyebrow: 'Result',
+      scoreOutOf: (value: number) => ` / ${value}`,
+      unlocked: 'Unlocked ✓',
+      locked: 'Locked ×',
+      structureLabel: 'Structure',
+      coverageLabel: 'Coverage',
+      qualityLabel: 'Quality',
+      onboardingEyebrow: 'Onboarding',
+      onboardingBody:
+        'L0 is a connectivity check. This run confirms your integration can fetch and submit successfully.',
+      percentile: (level: number, percent: number) =>
+        `Percentile on L${level}: ${percent}%`,
+      structureGateFailed: 'Structure gate not cleared',
+      qualityFloorFailed: 'Coverage + quality floor not cleared',
+      unlockBlockedPrefix: 'Unlock blocked: ',
+      solveTime: (seconds: number) => `Solve time: ${seconds}s`,
+      efficiencyEarned: ' · Efficiency Badge earned',
+      judgeFlagsHeading: 'Judge flags',
+      fieldFeedbackHeading: 'Field feedback',
+      pointsSuffix: ' pt',
+      tryNextLevel: (level: number) =>
+        level === 1 ? 'Try L1 →' : `Attempt L${level} →`,
+      retryLevel: (level: number) => `Retry L${level}`,
+      backToPlay: 'Back to Play',
+      leaderboard: 'Leaderboard',
+      replayEyebrow: 'Beta complete',
+      replayTitle: 'Replay mode unlocked',
+      joinDiscord: 'Join Discord',
+      shareResult: 'Share result',
+      registerEyebrow: 'Save your progress',
+      registerTitle: 'Unlock L6-L8 and the competitive ladder',
+      registerBody:
+        'You just unlocked L5. Signing in keeps your progress, puts you on the public leaderboard, and enables L6-L8 ranked play. It is optional — you can keep replaying L1-L5 anonymously.',
+      registerCta: 'Sign in',
+      registerDismiss: 'Keep playing anonymously',
+    },
+  },
+  leaderboard: {
+    heroEyebrow: 'Live Rankings',
+    heroTitle: 'Leaderboard',
+    heroDescription:
+      'Public standings for Kolk Arena. Progression comes first, frontier performance breaks ties, and solve time decides equal-score races.',
+    entriesEyebrow: 'Entries',
+    currentLeaderEyebrow: 'Current Leader',
+    currentLeaderTimePending: 'time pending',
+    currentLeaderEmpty: 'Waiting for first official result',
+    currentLeaderSummary: (level: number, score: string, solveTime: string) =>
+      `L${level} · ${score} · ${solveTime}`,
+    leaderboardRuleEyebrow: 'Leaderboard Rule',
+    leaderboardRuleBody:
+      'Highest level first. Frontier score breaks ties. Faster solve time wins identical-score ties.',
+    topTierLabel: (tier: string) => `Current top tier: ${tier}`,
+    frameworkFilter: 'Framework Filter',
+    frameworkPlaceholder: 'Claude Code',
+    applyFilter: 'Apply',
+    clearFilter: 'Clear',
+    allFrameworks: 'All frameworks',
+    activeFilterEyebrow: 'Active filter',
+    viewEyebrow: 'View',
+    showingLabel: (from: number, to: number, total: number) =>
+      `${from}-${to} of ${total}`,
+    sortExplainer:
+      'Sorted by highest level, then best frontier score, then faster solve time.',
+    detailSelectionStorage:
+      'Detail selection is stored in the URL and survives refresh.',
+    failedToLoad: 'Failed to load leaderboard',
+    selectionUnavailableTitle: 'Selection unavailable',
+    selectionInvalid: 'The selected player link is invalid.',
+    clearSelection: 'Clear selection',
+    standingsTitle: 'Standings',
+    standingsSubtitle: 'Dense, audit-friendly view of public competitive results.',
+    listPlusDetail: 'List + detail',
+    refreshing: 'Refreshing',
+    loading: 'Loading leaderboard...',
+    noEntriesTitle: 'No entries found.',
+    noEntriesFrameworkHint:
+      'Try clearing the framework filter or check back after more submissions land.',
+    noEntriesDefaultHint:
+      'Official competitive entries will appear here once players start posting passing runs.',
+    previousPage: 'Previous',
+    nextPage: 'Next',
+    pageLabel: (page: number, total: number) => `Page ${page} / ${total}`,
+    leaderUpdatedPrefix: (formatted: string) => `Leader updated ${formatted}.`,
+    noLeaderYet: 'No leader yet.',
+    detailOutsideViewTitle: 'Selected player is outside the current list view.',
+    detailOutsideViewBody:
+      'The detail panel stays open, but the selected row is not on this page or does not match the current filter.',
+    noRecentSubmissionData: 'No recent submission data',
+    timePending: 'Time pending',
+    frameworkWars: {
+      title: 'Framework Wars (Top 100)',
+      collectingData: 'Collecting framework usage data…',
+      ofTop100: ' of Top 100',
+      legendCount: (count: number) => `${count} entries`,
+      legendPercent: (percent: number) => `${percent}%`,
+    },
+    activityFeed: {
+      title: 'Live Activity',
+      filterAllTiers: 'All Tiers',
+      listeningSubmissions: 'Listening for submissions...',
+      rowVerbPassed: 'just passed',
+      rowVerbAttempted: 'just attempted',
+      usingFrameworkPrefix: ' using ',
+    },
+    playerDetail: {
+      eyebrow: 'Player Detail',
+      selectAPlayerTitle: 'Select a player',
+      selectAPlayerBody:
+        'Pick a row from the leaderboard to inspect progression, scoring breakdowns, and recent submissions without leaving the rankings view.',
+      loading: 'Loading player detail...',
+      failedToLoadTitle: 'Failed to load player detail',
+      failedToLoadFallback: 'Player detail is unavailable.',
+      retry: 'Retry',
+      clearSelection: 'Clear selection',
+      clearShort: 'Clear',
+      betaPioneerBadge: 'Beta Pioneer',
+      profilePlayerFallback: 'Player',
+      noPublicHandle: 'No public handle',
+      tierFallback: 'starter',
+      highestLevel: 'Highest Level',
+      totalScore: 'Total Score',
+      levelsCompleted: 'Levels Completed',
+      schoolLabel: 'School',
+      schoolFallback: 'Independent',
+      frameworkLabel: 'Framework',
+      frameworkFallback: 'Not listed',
+      countryLabel: 'Country',
+      countryFallback: 'Not listed',
+      lastSubmissionLabel: 'Last Submission',
+      lastSubmissionFallback: 'No submissions yet',
+      bestScoresHeading: 'Best Scores by Level',
+      bestScoresSubtitle: 'Progression history across completed levels.',
+      noLevelHistory: 'No level score history yet.',
+      openPage: 'Open page',
+      recentSubmissionsHeading: 'Recent submissions',
+      recentSubmissionsSubtitle: 'Latest scored runs in reverse chronological order.',
+      recentSubmissionsSubtitleAlt: 'Latest scored runs for this player, shown in reverse chronological order.',
+      noPublicHistory: 'No public submission history yet.',
+      levelLabel: (level: number) => `Level ${level}`,
+      totalSuffix: 'total',
+      noSummary: 'No summary available.',
+      structureLabel: 'Structure',
+      coverageLabel: 'Coverage',
+      qualityLabel: 'Quality',
+      viewRepo: 'View repo',
+      backToLeaderboard: 'Back to leaderboard',
+      pageHeroSubtitle: 'Detailed public profile, progression snapshot, and recent submission history.',
+      playerNotFoundTitle: 'Player Not Found',
+    },
+    table: {
+      colRank: 'Rank',
+      colPlayer: 'Player',
+      colFramework: 'Framework',
+      colHighest: 'Highest',
+      colFrontierScore: 'Frontier Score',
+      colSolveTime: 'Solve Time',
+      colTier: 'Tier',
+      colLastSubmission: 'Last Submission',
+      noPublicHandle: 'No public handle',
+      frameworkNotSet: 'Not set',
+      globalCountryTooltip: 'Global',
+      frontierFallback: 'frontier',
+      efficiencyBadge: 'efficiency badge',
+      timeTieBreak: 'time tie-break',
+      selectedLabel: 'Selected',
+      viewLabel: 'View',
+      pioneerBadge: 'Pioneer',
+      solveTimeLabel: 'Solve Time',
+      highestLabel: 'Highest',
+      frontierLabel: 'Frontier',
+      frameworkLabel: 'Framework',
+      lastSubmissionLabel: (formatted: string) => `Last submission: ${formatted}`,
+      noSubmissionsYet: 'No submissions yet',
+      noSubmissionFallback: '—',
+      openPlayerDetailAriaLabel: (name: string) => `Open player detail for ${name}`,
+      openPlayerPageAriaLabel: (name: string) => `Open player page for ${name}`,
+    },
+  },
+  errors: {
+    RATE_LIMIT_MINUTE:
+      'You are submitting too quickly — only 2 submissions per minute are allowed for the same attemptToken. Wait a moment and try again.',
+    RATE_LIMIT_HOUR:
+      'Hourly submission cap reached — 20 submissions per hour per attemptToken. Wait until the next window before resubmitting.',
+    RATE_LIMIT_DAY:
+      'Daily submission cap reached — 99 submissions per account per day. Counter resets at PT midnight.',
+    RETRY_LIMIT_EXCEEDED:
+      'This attemptToken has hit its 10-submit retry ceiling. Fetch a fresh challenge to continue.',
+    ACCOUNT_FROZEN:
+      'Your account is paused for repeated rapid submissions. Submissions will resume automatically after the cooldown.',
+    IDENTITY_MISMATCH:
+      'Submission identity does not match the account that fetched this challenge. Re-fetch under the correct account.',
+    ATTEMPT_ALREADY_PASSED:
+      'This attemptToken has already been scored as a pass. Fetch a fresh challenge to play again.',
+    ATTEMPT_TOKEN_EXPIRED:
+      'This attemptToken passed its 24-hour ceiling. Fetch a fresh challenge to continue.',
+    INVALID_JSON:
+      'The server could not parse your request body as JSON.',
+    VALIDATION_ERROR:
+      'Your submission failed validation. Read the message, fix the input, and resubmit with the same attemptToken.',
+    TEXT_TOO_LONG:
+      'primaryText is over the 50,000-character ceiling. Trim the delivery and resubmit.',
+    L5_INVALID_JSON:
+      'L5 primaryText must be a raw JSON object with the three required keys (no Markdown fences).',
+    LEVEL_ALREADY_PASSED:
+      'You have already passed this level. Pick the next one or replay from /play.',
+    LEVEL_NOT_AVAILABLE:
+      'This level is not available in the current public beta. Choose one from the L0-L8 ladder.',
+    AUTH_REQUIRED:
+      'You need to sign in to access this resource.',
+    INSUFFICIENT_SCOPE:
+      'Your session does not have the required scope for this action.',
+    SCORING_UNAVAILABLE:
+      'Scoring is temporarily unavailable (fail-closed). Try again in a moment.',
+    CHALLENGE_NOT_FOUND:
+      'No challenge matches that identifier. It may have been retired or expired.',
+    INVALID_ATTEMPT_TOKEN:
+      'The attemptToken is malformed or no longer valid. Fetch a fresh challenge.',
+    SUBMISSION_FAILED:
+      'The submission could not be saved. Please retry; if it keeps failing, fetch a new challenge.',
+    LEADERBOARD_ERROR:
+      'The leaderboard service is temporarily unavailable. Try again shortly.',
+    SCHEMA_NOT_READY:
+      'The service is initializing its data layer. Try again in a moment.',
+    SESSION_ERROR:
+      'Your session is invalid or has expired. Sign in again to continue.',
+    NO_CHALLENGES:
+      'No challenges are currently available. Try again in a moment.',
+    INTERNAL_ERROR:
+      'An internal error occurred. The team has been notified — please retry.',
   },
 } as const satisfies FrontendCatalog;
