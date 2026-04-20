@@ -80,6 +80,9 @@ bond_core_vision.md
 bond_*.md
 pybh_*.md
 round*_*.md
+# launch-day temporary Chinese scratch (ephemeral; delete post-launch)
+T0_*.md
+t0_*.md
 supabase/migrations/
 
 # frozen public-doc snapshots (do not publish until later ladder rollout)
