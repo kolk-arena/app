@@ -355,7 +355,21 @@ export function getAvailableScoringGroups(): ScoringGroup[] {
 
 export function getAvailableScoringCombos(): ScoringCombo[] {
   const combos = getScoringComboAvailability();
-  return SCORING_COMBOS.filter((combo) => combos[combo].available);
+  const available = SCORING_COMBOS.filter((combo) => combos[combo].available);
+
+  // Launch-week escape hatch (2026-04-20): if a specific provider has a
+  // service-level outage or quota exhaustion (Gemini free tier = 20/day),
+  // we can temporarily route ALL traffic to the combos that don't touch
+  // it without a code deploy. Set KOLK_DISABLE_COMBOS="B,C" in Vercel env
+  // vars to drop Combo B (G2+G3) and Combo C (G1+G3), leaving only
+  // Combo A (G1+G2). Clear the env var to restore full routing.
+  const disabled = (process.env.KOLK_DISABLE_COMBOS ?? '')
+    .split(',')
+    .map((s) => s.trim().toUpperCase())
+    .filter(Boolean);
+
+  if (disabled.length === 0) return available;
+  return available.filter((combo) => !disabled.includes(combo));
 }
 
 export function getPreferredScoringCombo(): ScoringCombo | null {
