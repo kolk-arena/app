@@ -91,9 +91,87 @@ export function langDetect(
 // 2. math_verify — Verify arithmetic in output
 // ============================================================================
 
+// Common line-item cost field names used by L3 / L4 JSON itinerary
+// submissions and L5-style structured deliveries. Ordered by specificity
+// so an explicit MXN-qualified field wins over a generic "cost" field
+// when both are present.
+const JSON_COST_FIELD_CANDIDATES = [
+  'cost_mxn',
+  'price_mxn',
+  'amount_mxn',
+  'cost',
+  'price',
+  'amount',
+  'subtotal',
+  'line_total',
+  'total_mxn',
+  'total',
+];
+
+function tryParseJsonSubmission(text: string): unknown | null {
+  const trimmed = text.trim();
+  if (trimmed.length === 0) return null;
+
+  // Strip optional ```json / ``` code fences so submissions that were
+  // copy-pasted through markdown-aware clients still parse.
+  const unfenced = trimmed
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```\s*$/i, '')
+    .trim();
+
+  if (!unfenced.startsWith('{') && !unfenced.startsWith('[')) return null;
+
+  try {
+    return JSON.parse(unfenced);
+  } catch {
+    return null;
+  }
+}
+
+// Walk a parsed JSON tree and sum every numeric occurrence of `fieldName`.
+// Returns `{ sum, hits }` so callers can require ≥2 hits — a single hit is
+// almost always a grand-total echo, not line-item summation.
+function sumJsonField(root: unknown, fieldName: string): { sum: number; hits: number } {
+  let sum = 0;
+  let hits = 0;
+
+  const walk = (node: unknown) => {
+    if (Array.isArray(node)) {
+      node.forEach(walk);
+      return;
+    }
+    if (node && typeof node === 'object') {
+      for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
+        if (
+          key === fieldName &&
+          typeof value === 'number' &&
+          Number.isFinite(value) &&
+          value > 0
+        ) {
+          sum += value;
+          hits += 1;
+        } else {
+          walk(value);
+        }
+      }
+    }
+  };
+
+  walk(root);
+  return { sum, hits };
+}
+
 /**
  * Extract numbers from text and verify they sum to expected total.
  * Used for budget checks (L3), price catalogs (L5), etc.
+ *
+ * JSON-aware path: if the submission parses as JSON and contains a
+ * repeated line-item cost field (cost_mxn / cost / price / ...), sum
+ * exactly that field across the document. This avoids the regex path's
+ * well-known bug where `"day": 1, 2, 3...` and grand-total echoes get
+ * folded into the sum and blow up the result by 10x. Falls back to the
+ * regex extraction when JSON parsing fails or no repeated line-item
+ * field is present.
  *
  * @param text - The agent's output text
  * @param expectedTotal - The expected sum
@@ -106,7 +184,32 @@ export function mathVerify(
   maxPoints: number,
   tolerance = 0.01,
 ): Layer1Check {
-  // Extract all dollar/peso amounts or plain numbers from the text
+  // ── JSON-aware path ─────────────────────────────────────────────────
+  const parsedJson = tryParseJsonSubmission(text);
+  if (parsedJson != null) {
+    for (const field of JSON_COST_FIELD_CANDIDATES) {
+      const { sum, hits } = sumJsonField(parsedJson, field);
+      if (hits >= 2) {
+        const diff = Math.abs(sum - expectedTotal);
+        const passed = diff <= tolerance * expectedTotal;
+        const partialPassed = diff <= 0.1 * expectedTotal;
+        return {
+          name: 'math_verify',
+          passed,
+          score: passed ? maxPoints : partialPassed ? Math.round(maxPoints * 0.5) : 0,
+          maxPoints,
+          reason: passed
+            ? `JSON line items .${field} sum to ${sum.toFixed(2)}, matches expected ${expectedTotal}`
+            : `JSON line items .${field} sum to ${sum.toFixed(2)}, expected ${expectedTotal} (diff: ${diff.toFixed(2)})`,
+        };
+      }
+    }
+    // Parsed as JSON but no repeated cost field found — fall through to
+    // the regex path; it's still useful for flat currency strings inside
+    // string values.
+  }
+
+  // ── Regex path (prose / markdown / fallback) ────────────────────────
   const numberPatterns = [
     /\$[\d,]+(?:\.\d{1,2})?/g,            // $1,234.56
     /[\d,]+(?:\.\d{1,2})?\s*(?:MXN|USD|pesos|dollars)/gi,  // 1234 MXN
@@ -159,9 +262,39 @@ export function mathVerify(
 // 3. item_count — Verify count of items/sections/entries
 // ============================================================================
 
+// Walk a parsed JSON tree and return the longest array of objects found.
+// Line-item arrays (itinerary, prompts, messages, services) are almost
+// always the deepest / largest array of object entries; flat scalar
+// arrays get skipped to avoid mis-counting numeric timestamp arrays.
+function largestJsonObjectArray(root: unknown): number {
+  let best = 0;
+  const walk = (node: unknown) => {
+    if (Array.isArray(node)) {
+      const objectLikeCount = node.filter((item) => item && typeof item === 'object' && !Array.isArray(item)).length;
+      if (objectLikeCount > best) best = objectLikeCount;
+      node.forEach(walk);
+      return;
+    }
+    if (node && typeof node === 'object') {
+      for (const value of Object.values(node as Record<string, unknown>)) {
+        walk(value);
+      }
+    }
+  };
+  walk(root);
+  return best;
+}
+
 /**
  * Count occurrences of a pattern in text and compare to expected.
  * Used for: prompt count, day count, message count, service count, etc.
+ *
+ * JSON-aware path: if the submission parses as JSON, count the largest
+ * array of object-shaped entries. This handles L3 / L4 trip itinerary
+ * variants where the items are a JSON array whose item-marker keys
+ * (`"day"`, `"schedule"`, ...) aren't in the regex pattern set. Falls
+ * back to the caller-supplied regex patterns for prose / markdown /
+ * flat-JSON submissions.
  *
  * @param text - The agent's output
  * @param expectedCount - Expected number of items
@@ -176,8 +309,14 @@ export function itemCount(
   maxPoints: number,
   label = 'items',
 ): Layer1Check {
+  // ── JSON-aware path ─────────────────────────────────────────────────
   let bestCount = 0;
+  const parsedJson = tryParseJsonSubmission(text);
+  if (parsedJson != null) {
+    bestCount = largestJsonObjectArray(parsedJson);
+  }
 
+  // ── Regex path (merged with JSON result; take the max) ──────────────
   for (const pattern of patterns) {
     const matches = text.match(pattern);
     const count = matches?.length ?? 0;
