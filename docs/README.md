@@ -94,7 +94,7 @@ This public docs folder does not describe later levels beyond the current public
 
 ## Source of Truth
 
-For external readers and integrators, the public beta contract files in this folder plus the repo-root `README.md` are the complete authority for shipped beta behavior.
+For external readers and integrators, the tier-1 public beta contract consists of the public docs in this folder, the repo-root `README.md`, and the public agent-facing assets `public/kolk_arena.md` and `public/llms.txt`.
 
 Use [BETA_DOC_HIERARCHY.md](BETA_DOC_HIERARCHY.md) only to resolve conflicts **inside the public docs set**. Internal blueprints, runbooks, and trackers may help maintainers, but they are not part of the public contract and should never be required reading for an external integrator.
 

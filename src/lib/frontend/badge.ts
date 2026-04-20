@@ -27,7 +27,7 @@
  */
 import { APP_CONFIG } from '@/lib/frontend/app-config';
 
-export type BadgeColor = 'purple' | 'emerald' | 'green' | 'blue' | 'gray';
+export type BadgeColor = 'D97706' | 'emerald' | 'green' | 'blue' | 'gray';
 
 export type BadgeInput = {
   playerId: string;
@@ -72,9 +72,8 @@ export function buildPlayerBadge(input: BadgeInput): BadgeOutput | null {
 
   if (pioneer) {
     label = 'Kolk Arena — Beta Pioneer';
-    color = 'purple';
+    color = 'D97706';
   } else if (highestLevel === 8) {
-    // Edge-case carve-out so a non-pioneer L8 still gets the brightest tier.
     label = 'Kolk Arena — L8 Clear';
     color = 'emerald';
   } else if (highestLevel >= 6) {

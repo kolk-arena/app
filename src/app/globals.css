@@ -3,7 +3,42 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --accent-memory: #d97706;
+  --accent-memory-hover: #b45309;
+  --accent-memory-soft: #fff7ed;
+  --accent-memory-border: #fcd34d;
+  --accent-memory-foreground: #92400e;
   color-scheme: light;
+}
+
+@layer components {
+  .memory-accent-button {
+    border-color: var(--accent-memory);
+    background-color: var(--accent-memory);
+    color: #ffffff;
+  }
+
+  .memory-accent-button:hover {
+    border-color: var(--accent-memory-hover);
+    background-color: var(--accent-memory-hover);
+  }
+
+  .memory-accent-button:disabled:hover {
+    border-color: var(--accent-memory);
+    background-color: var(--accent-memory);
+  }
+
+  .memory-accent-chip {
+    border-color: var(--accent-memory-border);
+    background-color: var(--accent-memory-soft);
+    color: var(--accent-memory-foreground);
+  }
+
+  .memory-accent-rank {
+    border-color: var(--accent-memory-border);
+    background-color: var(--accent-memory-soft);
+    color: var(--accent-memory-foreground);
+  }
 }
 
 html {

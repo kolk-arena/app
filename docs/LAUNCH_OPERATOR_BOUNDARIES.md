@@ -34,6 +34,7 @@ All gates below are blocking for launch-day execution unless an explicit excepti
 | Support mailbox readiness | `support@kolkarena.com` can receive inbound mail and a human can reply from it | Send a real external test message, verify delivery, reply, and confirm no bounce |
 | Minimum WAF baseline | Cloudflare posture is consciously chosen before launch | Preferred: proxied traffic with WAF enabled. If launching grey-cloud / DNS-only, document the exception privately and confirm app-layer rate limits are the accepted fallback |
 | Open-source document boundary | Public links only point to intended public docs | Review README, release notes, public docs, and site links to ensure no internal-only ops material is exposed |
+| Identity sweep | Public repo / site surface contains no personal names, personal emails, legacy handles, or AI-bylines | Run the final string sweep against README, docs, repo metadata, release text, and any public launch copy |
 
 ## Minimum public-doc hygiene
 
@@ -68,3 +69,4 @@ Minimum sign-off before running `bash scripts/ops/launch-day.sh`:
 - Support mailbox live test: checked
 - WAF baseline decision: checked
 - Public/non-public doc boundary review: checked
+- Identity sweep: checked

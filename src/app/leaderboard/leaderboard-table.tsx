@@ -101,11 +101,7 @@ function tierClasses(tier: string) {
 }
 
 function rankAccent(rank: number) {
-  // Rank #1 is one of the three Spark Amber (#D97706) surfaces per
-  // ADR-12. Border moves from slate-200 to amber-200 so the first-place
-  // marker distinctly glows amber; the inner text/bg palette was already
-  // amber-aligned pre-ADR-12 and stays unchanged.
-  if (rank === 1) return 'text-amber-700 bg-amber-50 border border-amber-200';
+  if (rank === 1) return 'memory-accent-rank';
   if (rank === 2) return 'text-slate-700 bg-slate-100 border border-slate-200';
   if (rank === 3) return 'text-orange-700 bg-orange-50 border border-slate-200';
   return 'text-slate-700 bg-white border-slate-200';
@@ -147,7 +143,7 @@ function LeaderboardMobileRow({
             </span>
             <span className="text-base font-semibold text-slate-900">{entry.display_name}</span>
             {entry.pioneer ? (
-              <span className="inline-flex rounded-md border border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-amber-700">
+              <span className="memory-accent-chip inline-flex rounded-md border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]">
                 {t.pioneerBadge}
               </span>
             ) : null}
@@ -254,7 +250,7 @@ function LeaderboardDesktopRow({
               {entry.display_name}
             </button>
             {entry.pioneer ? (
-              <span className="inline-flex rounded-md border border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-700">
+              <span className="memory-accent-chip inline-flex rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]">
                 {t.pioneerBadge}
               </span>
             ) : null}

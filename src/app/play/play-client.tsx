@@ -170,7 +170,7 @@ export function PlayClient() {
             {primaryAction ? (
               <Link
                 href={primaryAction.href}
-                className="inline-flex items-center rounded-md border border-slate-200 bg-slate-950 px-5 py-3 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
+                className="memory-accent-button inline-flex items-center rounded-md border px-5 py-3 font-mono text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2"
               >
                 {primaryAction.label}
               </Link>

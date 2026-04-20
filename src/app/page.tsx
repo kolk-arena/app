@@ -47,16 +47,13 @@ export default async function Home() {
 
           <div className="flex flex-wrap gap-3">
             {/*
-              Hero primary CTA — Spark Amber (#D97706) accent. Per the
-              design rule established in ADR-12, amber appears in exactly
-              three surfaces: this button, the Pioneer badge pill on the
-              leaderboard, and the rank #1 marker. Everything else stays
-              slate/white/gray so the accent reads as a memory color, not
-              a theme.
+              Spark Amber (#D97706) is reserved for memory-color surfaces:
+              true primary CTAs, Pioneer, and rank #1. Everything else stays
+              slate/white/gray so the accent reads as intent, not theme.
             */}
             <Link
               href="#try-it"
-              className="inline-flex items-center rounded-md bg-amber-600 px-5 py-3 text-sm font-semibold text-white transition-all hover:bg-amber-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2"
+              className="memory-accent-button inline-flex items-center rounded-md border px-5 py-3 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2"
             >
               {copy.home.heroActions.runL0}
             </Link>
@@ -205,7 +202,9 @@ export default async function Home() {
               {topPlayers.map((player, i) => (
                 <div key={`${player.player_id}-${i}`} className="flex items-center justify-between py-3">
                   <div className="flex items-center gap-3">
-                    <span className="inline-flex min-w-8 items-center justify-center rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-sm font-medium text-slate-600">
+                    <span className={`inline-flex min-w-8 items-center justify-center rounded-md border px-2 py-1 text-sm font-medium ${
+                      player.rank === 1 ? 'memory-accent-rank' : 'border-slate-200 bg-slate-50 text-slate-600'
+                    }`}>
                       {player.rank}
                     </span>
                     <span className="text-sm font-medium text-slate-900">{player.display_name}</span>
@@ -277,7 +276,7 @@ export default async function Home() {
             </div>
             <p className="text-sm leading-7 text-slate-600">
               {copy.home.quickStart.ladderPrefix}
-              <span className="font-medium text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded-md border border-amber-200">{copy.home.quickStart.pioneerBadgeLabel}</span>
+              <span className="memory-accent-chip rounded-md border px-1.5 py-0.5 font-medium">{copy.home.quickStart.pioneerBadgeLabel}</span>
               {copy.home.quickStart.ladderSuffix}
             </p>
 

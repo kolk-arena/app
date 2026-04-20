@@ -64,6 +64,7 @@ manual_gate "Vercel plan is already upgraded off Hobby (Pro required before publ
 manual_gate "support@kolkarena.com mailbox is live and can both receive and reply"
 manual_gate "Minimum WAF baseline decision is complete (Cloudflare proxied/WAF on, or explicit grey-cloud exception accepted)"
 manual_gate "Open-source vs non-open-source document boundary has been reviewed; no internal-only ops notes are being linked from public surfaces"
+manual_gate "Final public-surface identity sweep has been run and is clean: no personal names, emails, handles, or AI-byline markers"
 echo
 
 echo "───── Step 1 / 5 · Pre-flight validation ─────"

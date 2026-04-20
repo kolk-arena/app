@@ -851,7 +851,7 @@ export function ChallengeClient({ level }: { level: number }) {
             <button
               type="button"
               onClick={() => downloadFile(copy.challenge.agentPanel.cursorRulesFilename, getCursorRules())}
-              className="inline-flex w-full items-center justify-center rounded-md border-2 border-indigo-700 bg-indigo-50 px-4 py-2.5 font-mono text-sm font-semibold text-indigo-800 transition-colors duration-150 hover:bg-indigo-700 hover:text-white sm:w-auto"
+              className="inline-flex w-full items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white sm:w-auto"
             >
               {copy.challenge.agentPanel.downloadCursorRules}
             </button>
@@ -1041,7 +1041,7 @@ export function ChallengeClient({ level }: { level: number }) {
         <button
           type="submit"
           disabled={submitStatus.kind === 'submitting' || primaryText.trim().length === 0}
-          className="inline-flex items-center rounded-md border border-slate-200 bg-slate-950 px-6 py-3 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-slate-950 disabled:hover:text-white"
+          className="memory-accent-button inline-flex items-center rounded-md border px-6 py-3 font-mono text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitStatus.kind === 'submitting' ? copy.challenge.deliveryRules.scoring : copy.challenge.deliveryRules.submit}
         </button>
@@ -1206,14 +1206,14 @@ function ErrorShell({
                 <button
                   type="button"
                   onClick={primary.onClick}
-                  className="inline-flex items-center rounded-md border border-slate-200 bg-slate-950 px-5 py-3 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
+                  className="memory-accent-button inline-flex items-center rounded-md border px-5 py-3 font-mono text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2"
                 >
                   {primary.label}
                 </button>
               ) : primary.href ? (
                 <Link
                   href={primary.href}
-                  className="inline-flex items-center rounded-md border border-slate-200 bg-slate-950 px-5 py-3 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
+                  className="memory-accent-button inline-flex items-center rounded-md border px-5 py-3 font-mono text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2"
                 >
                   {primary.label}
                 </Link>
@@ -1562,7 +1562,7 @@ function ResultCard({
             {unlocked && nextLevel ? (
               <Link
                 href={`/challenge/${nextLevel}`}
-                className="inline-flex items-center rounded-md border border-slate-200 bg-slate-950 px-5 py-3 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
+                className="memory-accent-button inline-flex items-center rounded-md border px-5 py-3 font-mono text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2"
               >
                 {r.tryNextLevel(nextLevel)}
               </Link>
@@ -1630,7 +1630,7 @@ function ResultCard({
               <button
                 type="button"
                 onClick={onDismissRegisterPrompt}
-                className="inline-flex items-center rounded-md border-2 border-emerald-700 bg-white px-5 py-3 font-mono text-sm font-semibold text-emerald-800 transition-colors duration-150 hover:bg-emerald-700 hover:text-white"
+                className="inline-flex items-center rounded-md border border-slate-200 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
               >
                 {r.registerDismiss}
               </button>

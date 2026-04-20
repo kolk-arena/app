@@ -84,16 +84,16 @@ const PLAYER_ID = '00000000-0000-4000-8000-000000000001';
 // Color / label rules (badge spec).
 // ---------------------------------------------------------------------------
 
-test('pioneer=true returns purple Beta Pioneer badge regardless of level', () => {
+test('pioneer=true returns Spark Amber Beta Pioneer badge regardless of level', () => {
   for (const level of [-0, 0, 1, 2, 3, 5, 7, 8]) {
     const out = buildPlayerBadge({ playerId: PLAYER_ID, highestLevel: level, pioneer: true });
     assert.ok(out, `expected non-null for level=${level}`);
-    assert.equal(out.color, 'purple', `level=${level} should be purple`);
+    assert.equal(out.color, 'D97706', `level=${level} should use Spark Amber`);
     assert.equal(out.displayLabel, 'Kolk Arena — Beta Pioneer');
     // shields URL must encode "Beta Pioneer" with `_` for the space.
     assert.ok(
-      out.shieldsUrl.includes('Beta_Pioneer-purple'),
-      `shieldsUrl should encode 'Beta Pioneer' with underscore: ${out.shieldsUrl}`,
+      out.shieldsUrl.includes('Beta_Pioneer-D97706'),
+      `shieldsUrl should encode 'Beta Pioneer' with underscore and Spark Amber color: ${out.shieldsUrl}`,
     );
   }
 });
@@ -227,7 +227,7 @@ test('profile URL is built from APP_CONFIG.canonicalOrigin and embeds the player
 test('shields URL ends with the matching color slug', () => {
   // pioneer beats level
   assert.ok(
-    buildPlayerBadge({ playerId: PLAYER_ID, highestLevel: 0, pioneer: true }).shieldsUrl.endsWith('-purple'),
+    buildPlayerBadge({ playerId: PLAYER_ID, highestLevel: 0, pioneer: true }).shieldsUrl.endsWith('-D97706'),
   );
   // level-only colors
   assert.ok(
