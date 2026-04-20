@@ -398,10 +398,21 @@ async function runOpenAIJudgeModel(
   const invoke = async () => {
     assertBudgetAvailable(budgetMax);
 
+    // Budget: `gpt-5-nano` / `gpt-5-mini` are reasoning models. Their
+    // `completion_tokens` counter charges BOTH invisible reasoning tokens
+    // AND the visible output. With max_tokens=1000 the reasoning burn
+    // (typically 1.5k–3k on complex judge prompts) consumed the entire
+    // budget before any content was emitted, producing an empty
+    // `message.content` and a `judge_error` → 503 SCORING_UNAVAILABLE
+    // for any submission whose `selectScoringCombo` hash routed through
+    // Combo A or Combo B (both include OpenAI via G2). Bumping to 6000
+    // leaves ample headroom for reasoning + full JSON rubric output on
+    // reasoning models, and is harmless for xAI grok-4-1-fast (non-
+    // reasoning) which tops out around ~1.5k for the same prompt shape.
     const response = await runtime.client.chat.completions.create({
       model: runtime.model,
       temperature: 0.1,
-      max_tokens: 1000,
+      max_tokens: 6000,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: submissionText },
@@ -411,7 +422,14 @@ async function runOpenAIJudgeModel(
 
     const content = response.choices[0]?.message?.content;
     if (!content) {
-      throw new Error('Empty response from OpenAI-compatible judge');
+      // Emit enough context for Vercel logs to diagnose if this ever
+      // happens again after the budget fix: the failure mode was
+      // previously silent and cost us most of T-0 to root-cause.
+      const finishReason = response.choices[0]?.finish_reason;
+      const usage = response.usage;
+      throw new Error(
+        `Empty response from OpenAI-compatible judge (provider=${runtime.provider} model=${runtime.model} finish=${finishReason} usage=${JSON.stringify(usage)})`,
+      );
     }
 
     const parsed = JSON.parse(extractJsonText(content)) as JudgeRawResponse;
