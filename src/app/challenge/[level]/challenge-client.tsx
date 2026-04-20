@@ -25,6 +25,7 @@ import {
   getCursorRules,
   dryRunValidation,
 } from '@/lib/frontend/agent-handoff';
+import { usePublicTextAsset } from '@/lib/frontend/use-public-text-asset';
 import { MAX_PRIMARY_TEXT_CHARS } from '@/lib/kolk/constants';
 
 /**
@@ -241,6 +242,7 @@ export function ChallengeClient({ level }: { level: number }) {
   const [refreshNonce, setRefreshNonce] = useState(0);
   const [scriptTab, setScriptTab] = useState<'curl'|'python'|'node'>('curl');
   const [dryRunResult, setDryRunResult] = useState<{valid: boolean; errors: string[]; warnings: string[]} | null>(null);
+  const skillContent = usePublicTextAsset('/kolk_arena.md');
   const idempotencyKeyRef = useRef<string>('');
   const { defaultLayout, onLayoutChanged } = useDefaultLayout({
     id: `challenge-layout-l${level}`,
@@ -801,6 +803,30 @@ export function ChallengeClient({ level }: { level: number }) {
             {copy.challenge.agentPanel.supportAssetsBody}
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
+            <CopyButton
+              value={skillContent}
+              idleLabel={copy.homeInteractive.copySkill}
+              copiedLabel={copy.homeInteractive.copiedSkill}
+              failedLabel={copy.homeInteractive.copyFailed}
+              className="inline-flex w-full items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white sm:w-auto"
+              disabled={!skillContent}
+            />
+            <button
+              type="button"
+              onClick={() => skillContent && downloadFile('kolk_arena.md', skillContent)}
+              disabled={!skillContent}
+              className="inline-flex w-full items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+            >
+              {copy.homeInteractive.downloadSkill}
+            </button>
+            <a
+              href="/kolk_arena.md"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex w-full items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white sm:w-auto"
+            >
+              {copy.homeInteractive.openSkill}
+            </a>
             <CopyButton
               value={submitContractSnippet}
               idleLabel={copy.challenge.agentPanel.copySubmitContract}

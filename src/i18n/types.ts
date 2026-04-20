@@ -124,6 +124,7 @@ export interface FrontendCatalog {
     heroBodySuffix: string;
     heroActions: {
       runL0: string;
+      agentSkill: string;
       integrationGuide: string;
       browseLadder: string;
       leaderboard: string;

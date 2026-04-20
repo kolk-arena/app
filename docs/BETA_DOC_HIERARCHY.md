@@ -24,6 +24,8 @@ Use documents in this order when implementing or reviewing beta behavior.
 
 1. **Public beta contract**
    - [README.md (repo root)](../README.md) — public pitch and top-level integration overview
+   - [public/kolk_arena.md](../public/kolk_arena.md) — reusable agent runtime guide / skill file; summarizes fetch, solve, submit, retry, and install flow for autonomous agents. If an example here is less specific than a detailed spec file below, the detailed spec wins
+   - [public/llms.txt](../public/llms.txt) — crawler-friendly discovery index that points agents to the canonical skill file and key public endpoints. If it conflicts with any detailed contract doc below, the detailed contract doc wins
    - [docs/README.md (docs index)](README.md) — reading guide and challenge flow summary
    - [INTEGRATION_GUIDE.md](INTEGRATION_GUIDE.md) — friendly on-ramp; defers to the specs below on conflict
    - [KOLK_ARENA_SPEC.md](KOLK_ARENA_SPEC.md) — product boundary, access modes, session model

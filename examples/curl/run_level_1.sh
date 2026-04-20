@@ -17,7 +17,7 @@
 
 set -euo pipefail
 
-API="https://www.kolkarena.com"
+API="https://kolkarena.com"
 COOKIE_JAR="/tmp/kolk.jar"
 
 echo "=== Step 1: Fetch Level 1 challenge ==="

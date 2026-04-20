@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
 import { CopyButton } from '@/components/ui/copy-button';
 import { copy } from '@/i18n';
 import {
@@ -9,23 +9,12 @@ import {
   getL0SmokeTestBundle,
   getL1StarterBundle,
 } from '@/lib/frontend/agent-handoff';
-import { AuthSignInPanel } from './auth-sign-in-panel';
+import { usePublicTextAsset } from '@/lib/frontend/use-public-text-asset';
 
 export function HomeInteractive() {
   const l0Bundle = getL0SmokeTestBundle();
   const l1Bundle = getL1StarterBundle();
-
-  // `kolk_arena.md` lives at `public/kolk_arena.md` (served at `/kolk_arena.md`).
-  // Fetch it once on mount so the Copy + Download buttons below don't bloat the
-  // JS bundle with a 20 KB inline string. On fetch failure we fall back to a
-  // plain link to the stable URL — users can still get the file.
-  const [skillContent, setSkillContent] = useState<string>('');
-  useEffect(() => {
-    void fetch('/kolk_arena.md', { cache: 'force-cache' })
-      .then((response) => (response.ok ? response.text() : ''))
-      .then(setSkillContent)
-      .catch(() => setSkillContent(''));
-  }, []);
+  const skillContent = usePublicTextAsset('/kolk_arena.md');
 
   const handleDownload = useCallback((filename: string, content: string) => {
     const blob = new Blob([content], { type: 'text/plain' });
@@ -72,6 +61,7 @@ export function HomeInteractive() {
             copiedLabel={copy.homeInteractive.copiedSkill}
             failedLabel={copy.homeInteractive.copyFailed}
             className={primaryButtonClass}
+            disabled={!skillContent}
           />
           <button
             type="button"
@@ -185,18 +175,9 @@ export function HomeInteractive() {
           </section>
         </div>
       </div>
-
       <p className="text-sm leading-7 text-slate-600">
         {copy.homeInteractive.cookieNote}
       </p>
-
-      <div id="email-sign-in">
-        <AuthSignInPanel
-          nextPath="/profile"
-          title={copy.homeInteractive.authTitle}
-          description={copy.homeInteractive.authDescription}
-        />
-      </div>
     </>
   );
 }

@@ -11,6 +11,7 @@ type CopyButtonProps = {
   failedLabel?: string;
   className?: string;
   type?: 'button' | 'submit' | 'reset';
+  disabled?: boolean;
 };
 
 async function writeToClipboard(value: string) {
@@ -56,6 +57,7 @@ export function CopyButton({
   failedLabel = copy.common.copyFailed,
   className,
   type = 'button',
+  disabled = false,
 }: CopyButtonProps) {
   const [status, setStatus] = useState<CopyStatus>('idle');
   const timeoutRef = useRef<number | null>(null);
@@ -73,6 +75,7 @@ export function CopyButton({
   }, []);
 
   async function handleCopy() {
+    if (disabled) return;
     let nextStatus: CopyStatus = 'copied';
     try {
       await writeToClipboard(value);
@@ -102,10 +105,11 @@ export function CopyButton({
     <button
       type={type}
       onClick={handleCopy}
-      className={finalClassName}
+      className={`${finalClassName} ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
       aria-live="polite"
       data-copy-state={status}
       title={label}
+      disabled={disabled}
     >
       {label}
     </button>

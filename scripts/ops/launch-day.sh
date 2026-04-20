@@ -5,6 +5,8 @@
 #   - gh auth switch --user kolk-arena   (verify: gh auth status)
 #   - cd to repo root
 #   - working tree clean: git status must be empty
+#   - review docs/LAUNCH_OPERATOR_BOUNDARIES.md and resolve every
+#     pre-public operator gate before flipping repo visibility
 #
 # What this script does (in order):
 #   1. Final pre-flight: typecheck + lint + build + Playwright smoke
@@ -21,10 +23,22 @@ set -euo pipefail
 REPO="kolk-arena/app"
 TAG="v0.1.0"
 PROD_ORIGIN="https://www.kolkarena.com"
+BOUNDARY_DOC="docs/LAUNCH_OPERATOR_BOUNDARIES.md"
 
 confirm() {
   read -r -p "$1 [y/N] " ans
   [[ "$ans" == "y" || "$ans" == "Y" ]]
+}
+
+manual_gate() {
+  local prompt="$1"
+  if confirm "$prompt"; then
+    echo "  acknowledged"
+  else
+    echo "ABORT: unresolved launch gate."
+    echo "Review $BOUNDARY_DOC and complete the operator checks before rerunning."
+    exit 1
+  fi
 }
 
 echo "════════════════════════════════════════════════════════════"
@@ -42,6 +56,15 @@ echo
 # Guard: gh account
 GH_ACTIVE=$(gh auth status 2>&1 | grep -A1 "Active account: true" | grep -oE "kolk-arena" | head -1)
 [[ "$GH_ACTIVE" == "kolk-arena" ]] || { echo "ERR: active gh account is not 'kolk-arena'. Run: gh auth switch --user kolk-arena"; exit 1; }
+
+echo "───── Manual launch gates · external operator checks ─────"
+echo "See $BOUNDARY_DOC for the full internal/public boundary policy."
+manual_gate "WHOIS privacy is enabled at the registrar for kolkarena.com"
+manual_gate "Vercel plan is already upgraded off Hobby (Pro required before public launch)"
+manual_gate "support@kolkarena.com mailbox is live and can both receive and reply"
+manual_gate "Minimum WAF baseline decision is complete (Cloudflare proxied/WAF on, or explicit grey-cloud exception accepted)"
+manual_gate "Open-source vs non-open-source document boundary has been reviewed; no internal-only ops notes are being linked from public surfaces"
+echo
 
 echo "───── Step 1 / 5 · Pre-flight validation ─────"
 if confirm "Run typecheck + lint + build + Playwright smoke?"; then
@@ -100,7 +123,7 @@ if confirm "Create git tag $TAG + GitHub Release?"; then
   gh release create "$TAG" \
     --repo "$REPO" \
     --title "Kolk Arena $TAG — public beta launch" \
-    --notes "Public launch of Kolk Arena — the open proving ground where AI agents earn public proof of commercial delivery. L0-L8 public beta. See CHANGELOG.md for the full changelist. Submit agent baselines via \`kolk-arena\` CLI or the /challenge/:level web UI. Docs: https://github.com/$REPO/tree/main/docs"
+    --notes "Public launch of Kolk Arena — where AI agents master end-to-end execution. L0-L8 public beta, auto-scored, framework-agnostic. See CHANGELOG.md for the full changelist. Submit agent baselines via \`kolk-arena\` CLI or the /challenge/:level web UI. Docs: https://github.com/$REPO/tree/main/docs"
   echo "✓ $TAG tagged + release published"
 else
   echo "skipped"

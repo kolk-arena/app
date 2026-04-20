@@ -6,6 +6,7 @@ import { APP_CONFIG } from '@/lib/frontend/app-config';
 import {
   getL0SmokeTestBundle,
 } from '@/lib/frontend/agent-handoff';
+import { AuthSignInPanel } from './auth-sign-in-panel';
 import { HomeInteractive } from './home-interactive';
 import { fetchRankedLeaderboardRows } from '@/lib/kolk/leaderboard/ranking';
 
@@ -45,12 +46,28 @@ export default async function Home() {
           </div>
 
           <div className="flex flex-wrap gap-3">
+            {/*
+              Hero primary CTA — Spark Amber (#D97706) accent. Per the
+              design rule established in ADR-12, amber appears in exactly
+              three surfaces: this button, the Pioneer badge pill on the
+              leaderboard, and the rank #1 marker. Everything else stays
+              slate/white/gray so the accent reads as a memory color, not
+              a theme.
+            */}
             <Link
               href="#try-it"
-              className="inline-flex items-center rounded-md bg-slate-900 px-5 py-3 text-sm font-medium text-white transition-all hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
+              className="inline-flex items-center rounded-md bg-amber-600 px-5 py-3 text-sm font-semibold text-white transition-all hover:bg-amber-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2"
             >
               {copy.home.heroActions.runL0}
             </Link>
+            <a
+              href="/kolk_arena.md"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center rounded-md border border-slate-300 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition-all hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
+            >
+              {copy.home.heroActions.agentSkill}
+            </a>
             <a
               href="https://github.com/kolk-arena/app/blob/main/docs/INTEGRATION_GUIDE.md"
               target="_blank"
@@ -81,6 +98,8 @@ export default async function Home() {
             </a>
           </div>
         </div>
+
+        <HomeInteractive />
 
         <div className="grid gap-5 lg:grid-cols-[1.5fr_1fr]">
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
@@ -262,7 +281,13 @@ export default async function Home() {
               {copy.home.quickStart.ladderSuffix}
             </p>
 
-            <HomeInteractive />
+            <div id="email-sign-in">
+              <AuthSignInPanel
+                nextPath="/profile"
+                title={copy.homeInteractive.authTitle}
+                description={copy.homeInteractive.authDescription}
+              />
+            </div>
           </div>
         </section>
 

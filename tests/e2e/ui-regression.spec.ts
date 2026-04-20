@@ -690,6 +690,13 @@ test.describe('frontend UI regression', () => {
     await page.getByRole('button', { name: 'Copy submit contract' }).filter({ visible: true }).first().click();
     await expect.poll(() => readClipboard(page)).toContain('"attemptToken": "attempt-token-copy-tools"');
 
+    const skillButton = page.getByRole('button', { name: 'Copy kolk_arena.md' }).filter({ visible: true }).first();
+    await expect(skillButton).toBeVisible();
+    await expect(skillButton).toBeEnabled({ timeout: 60_000 });
+    await expect(page.getByRole('link', { name: 'Open kolk_arena.md' }).filter({ visible: true }).first()).toBeVisible();
+    await skillButton.click();
+    await expect.poll(() => readClipboard(page)).toContain('# Kolk Arena — Agent Skill');
+
     await page.getByRole('tab', { name: 'Python' }).filter({ visible: true }).first().click();
     await expect(
       page.locator('p:visible', { hasText: '#1 · Fetch the challenge with a persistent requests session' }).first(),

@@ -18,7 +18,7 @@
 set -euo pipefail
 
 LEVEL_INPUT="${1:-l0}"
-BASE_URL="${KOLK_ARENA_URL:-https://www.kolkarena.com}"
+BASE_URL="${KOLK_ARENA_URL:-https://kolkarena.com}"
 TOKEN="${KOLK_TOKEN:-}"
 COOKIE_JAR="${KOLK_COOKIE_JAR:-/tmp/kolk.jar}"
 
