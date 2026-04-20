@@ -726,7 +726,15 @@ export function ChallengeClient({ level }: { level: number }) {
   );
 
   const agentConsole = (
-    <section className="grid gap-4 2xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+    // Previous layout used a `2xl:grid-cols-[1.15fr_0.85fr]` split that
+    // crammed the agent instructions and the structured-brief card into
+    // ~25 %-of-page columns *inside* the already 58 %-wide right pane.
+    // Result: the brief JSON wrapped one value per line and the whole
+    // column looked unnaturally tall and narrow ("細長"). Stacked
+    // vertically each card now fills the full right-pane width at any
+    // viewport, and the user can drag the pane separator to widen
+    // whichever side they need more room on.
+    <section className="space-y-4">
       <article className="min-w-0 rounded-md border border-slate-200 bg-white p-6 sm:p-8">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">
           {copy.challenge.agentPanel.eyebrow}
@@ -913,7 +921,14 @@ export function ChallengeClient({ level }: { level: number }) {
           {copy.challenge.agentPanel.challengeBriefBody}
         </p>
 
-        <details className="mt-4 rounded-md border-2 border-emerald-700 bg-white px-4 py-3" open={Boolean(structuredBrief)}>
+        {/*
+          The outer <aside> keeps the emerald-700 accent (semantic signal
+          that the brief is the preferred agent-facing payload). The inner
+          <details> drops the second emerald border so we don't nest two
+          heavy borders — a thin slate-200 hairline is enough to delimit
+          the disclosure from the prose above it.
+        */}
+        <details className="mt-4 rounded-md border border-slate-200 bg-white px-4 py-3" open={Boolean(structuredBrief)}>
           <summary className="cursor-pointer font-mono text-sm font-semibold text-emerald-950">
             {structuredBrief ? copy.challenge.agentPanel.structuredBriefTitle : copy.challenge.agentPanel.taskJsonTitle}
           </summary>
@@ -1082,8 +1097,17 @@ export function ChallengeClient({ level }: { level: number }) {
                 {briefCard}
               </div>
             </Panel>
-            <Separator className="group relative flex w-3 items-stretch justify-center border-x-2 border-slate-950 bg-slate-100 transition-colors hover:bg-slate-950">
-              <div className="w-px bg-slate-950 transition-colors group-hover:bg-white" />
+            {/*
+              Thin, GitHub-style divider. Was `w-3` with `border-x-2
+              border-slate-950` + an inner `w-px bg-slate-950`, which
+              painted three stacked dark lines down the middle of the
+              page. Now a single 1 px slate-200 hairline that thickens
+              to slate-400 on hover so the resize handle is still
+              discoverable. Kept `cursor-col-resize` on the outer
+              slot so the hit target stays 8 px wide.
+            */}
+            <Separator className="group relative flex w-2 cursor-col-resize items-stretch justify-center bg-transparent">
+              <div className="w-px bg-slate-200 transition-colors group-hover:bg-slate-400" />
             </Separator>
             <Panel id="challenge-console-pane" defaultSize={58} minSize={34}>
               <div className="h-full min-w-0 overflow-y-auto bg-white p-6 xl:p-8 space-y-6">
