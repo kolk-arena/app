@@ -414,9 +414,19 @@ async function runOpenAIJudgeModel(
     //
     // The param is typed as `any` here because the OpenAI TS client union
     // doesn't cleanly express "pick exactly one of these names per model".
+    // Reasoning-model constraints for the `openai` provider (gpt-5-nano /
+    // gpt-5-mini as of 2026-04-20):
+    //   * `max_tokens` is rejected — use `max_completion_tokens` instead.
+    //   * `temperature` is rejected unless it's the default `1` — any
+    //     other value (even 0.1) returns 400 `unsupported_value` and the
+    //     whole combo fails fast before the judge prompt is even read.
+    //
+    // We deliberately OMIT `temperature` on the OpenAI path so the model
+    // runs at its default. xAI grok-4-1-fast is still a conventional
+    // (non-reasoning) OpenAI-compatible endpoint and honors explicit
+    // temperature, so we keep the deterministic 0.1 on that path.
     const baseParams = {
       model: runtime.model,
-      temperature: 0.1,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: submissionText },
@@ -426,7 +436,7 @@ async function runOpenAIJudgeModel(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const params: any = runtime.provider === 'openai'
       ? { ...baseParams, max_completion_tokens: 6000 }
-      : { ...baseParams, max_tokens: 6000 };
+      : { ...baseParams, max_tokens: 6000, temperature: 0.1 };
 
     const response = await runtime.client.chat.completions.create(params);
 
