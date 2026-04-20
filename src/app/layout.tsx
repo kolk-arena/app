@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { copy } from "@/i18n";
+import { APP_CONFIG } from "@/lib/frontend/app-config";
 import { Nav } from "./nav";
 import "./globals.css";
 
@@ -21,16 +22,16 @@ export const metadata: Metadata = {
   },
   description: copy.meta.description,
   openGraph: {
-    title: copy.app.name,
+    title: APP_CONFIG.name,
     description: copy.meta.openGraphDescription,
-    url: copy.app.canonicalOrigin,
-    siteName: copy.app.name,
+    url: APP_CONFIG.canonicalOrigin,
+    siteName: APP_CONFIG.name,
     type: "website",
-    images: [{ url: `${copy.app.canonicalOrigin}/og.png`, width: 1200, height: 630, alt: copy.app.name }],
+    images: [{ url: `${APP_CONFIG.canonicalOrigin}/og.png`, width: 1200, height: 630, alt: APP_CONFIG.name }],
   },
   twitter: {
     card: "summary_large_image",
-    title: copy.app.name,
+    title: APP_CONFIG.name,
     description: copy.meta.twitterDescription,
   },
 };

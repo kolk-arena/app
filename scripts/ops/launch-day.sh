@@ -7,7 +7,7 @@
 #   - working tree clean: git status must be empty
 #
 # What this script does (in order):
-#   1. Final pre-flight: build + lint + typecheck
+#   1. Final pre-flight: typecheck + lint + build + Playwright smoke
 #   2. Flip repo visibility to public
 #   3. Apply main-branch protection (requires PR review, status checks, no force-push)
 #   4. Create v0.1.0 git tag + GitHub Release
@@ -40,13 +40,14 @@ echo
 [[ -z "$(git status --porcelain)" ]] || { echo "ERR: working tree dirty"; exit 1; }
 
 # Guard: gh account
-GH_ACTIVE=$(gh auth status 2>&1 | grep -A1 "Active account: true" | grep -oE "kolk-arena|bihlaw-create" | head -1)
-[[ "$GH_ACTIVE" == "kolk-arena" ]] || { echo "ERR: active gh account is '$GH_ACTIVE', expected 'kolk-arena'. Run: gh auth switch --user kolk-arena"; exit 1; }
+GH_ACTIVE=$(gh auth status 2>&1 | grep -A1 "Active account: true" | grep -oE "kolk-arena" | head -1)
+[[ "$GH_ACTIVE" == "kolk-arena" ]] || { echo "ERR: active gh account is not 'kolk-arena'. Run: gh auth switch --user kolk-arena"; exit 1; }
 
-echo "───── Step 1 / 5 · Pre-flight build ─────"
-if confirm "Run tsc + lint + playwright smoke?"; then
-  pnpm tsc --noEmit
+echo "───── Step 1 / 5 · Pre-flight validation ─────"
+if confirm "Run typecheck + lint + build + Playwright smoke?"; then
+  pnpm typecheck
   pnpm lint
+  pnpm build
   pnpm exec playwright test tests/e2e/ui-regression.spec.ts
   echo "✓ pre-flight green"
 else
@@ -72,7 +73,7 @@ if confirm "Apply branch protection (require PR, require CI, no force-push)?"; t
 {
   "required_status_checks": {
     "strict": true,
-    "contexts": ["lint-and-build", "e2e"]
+    "contexts": ["Lint and Build", "Playwright UI regression"]
   },
   "enforce_admins": false,
   "required_pull_request_reviews": {

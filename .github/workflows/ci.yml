@@ -35,6 +35,12 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      - name: Unit tests
+        run: pnpm test:unit
+
+      - name: Provider contract tests
+        run: pnpm test:provider-contract
+
       - name: Build
         run: pnpm build
 

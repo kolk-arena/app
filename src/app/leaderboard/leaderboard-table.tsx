@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { copy } from '@/i18n';
 import { formatClockSeconds, formatDateTime, formatNumber } from '@/i18n/format';
@@ -20,9 +21,9 @@ type LeaderboardEntry = {
   total_score: number;
   levels_completed: number;
   tier: string;
-  pioneer: boolean;
+  pioneer?: boolean;
   last_submission_at: string | null;
-  country_code: string | null;
+  country_code?: string | null;
 };
 
 function getFlagEmoji(countryCode: string | null | undefined) {
@@ -98,47 +99,46 @@ function bandDotClasses(band: LeaderboardEntry['best_color_band']) {
 function tierClasses(tier: string) {
   switch (tier) {
     case 'champion':
-      return 'border-amber-200 bg-amber-50 text-amber-800';
+      return 'border border-slate-200 bg-amber-50 text-amber-800';
     case 'specialist':
-      return 'border-sky-200 bg-sky-50 text-sky-800';
+      return 'border border-slate-200 bg-sky-50 text-sky-800';
     case 'builder':
-      return 'border-emerald-200 bg-emerald-50 text-emerald-800';
+      return 'border border-slate-200 bg-emerald-50 text-emerald-800';
     default:
       return 'border-slate-200 bg-slate-100 text-slate-700';
   }
 }
 
 function rankAccent(rank: number) {
-  if (rank === 1) return 'text-amber-700 bg-amber-50 border-amber-200';
-  if (rank === 2) return 'text-slate-700 bg-slate-100 border-slate-300';
-  if (rank === 3) return 'text-orange-700 bg-orange-50 border-orange-200';
+  if (rank === 1) return 'text-amber-700 bg-amber-50 border border-slate-200';
+  if (rank === 2) return 'text-slate-700 bg-slate-100 border border-slate-200';
+  if (rank === 3) return 'text-orange-700 bg-orange-50 border border-slate-200';
   return 'text-slate-700 bg-white border-slate-200';
 }
 
 function LeaderboardMobileRow({
   entry,
   selectedPlayerId,
-  onSelectPlayer,
+  detailPageSearch,
 }: {
   entry: LeaderboardEntry;
   selectedPlayerId: string | null;
-  onSelectPlayer: (playerId: string) => void;
+  detailPageSearch: string;
 }) {
   const isUpdated = useHighlightOnChange(entry.last_submission_at);
   const isSelected = selectedPlayerId === entry.player_id;
   const t = copy.leaderboard.table;
 
   return (
-    <button
-      type="button"
-      className={`flex w-full flex-col gap-4 px-4 py-4 text-left transition-colors duration-1000 ${
+    <Link
+      href={`/leaderboard/${entry.player_id}${detailPageSearch}`}
+      className={`flex w-full flex-col gap-4 px-2 py-2 text-left transition-colors duration-1000 ${
         isUpdated
           ? 'bg-emerald-100/80'
           : isSelected
           ? 'bg-slate-100/90'
           : 'bg-white hover:bg-slate-50/80'
       }`}
-      onClick={() => onSelectPlayer(entry.player_id)}
       aria-label={t.openPlayerPageAriaLabel(entry.display_name)}
     >
       <div className="flex items-start justify-between gap-3">
@@ -150,45 +150,52 @@ function LeaderboardMobileRow({
             <span className="text-sm" title={entry.country_code || t.globalCountryTooltip}>
               {getFlagEmoji(entry.country_code)}
             </span>
-            <span className="text-base font-semibold text-slate-950">{entry.display_name}</span>
+            <span className="text-base font-semibold text-slate-900">{entry.display_name}</span>
             {entry.pioneer ? (
-              <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-800">
+              <span className="inline-flex rounded-md border border border-slate-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-800">
                 {t.pioneerBadge}
               </span>
             ) : null}
-            <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] ${tierClasses(entry.tier)}`}>
+            <span className={`inline-flex rounded-md border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] ${tierClasses(entry.tier)}`}>
               {entry.tier}
             </span>
           </div>
           <p className="text-sm text-slate-500">
             {entry.handle ? `@${entry.handle}` : t.noPublicHandle}
           </p>
+          <p className="text-xs text-slate-400">
+            {entry.school ?? t.schoolFallback}
+          </p>
         </div>
-        <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
+        <span className="rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
           {t.viewLabel}
         </span>
       </div>
 
-      <dl className="grid grid-cols-2 gap-3 text-sm">
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+      <dl className="grid gap-3 text-sm sm:grid-cols-2">
+        <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
           <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{t.frameworkLabel}</dt>
           <dd className="mt-1 break-words font-medium text-slate-900">{entry.framework ?? t.frameworkNotSet}</dd>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+        <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
+          <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{t.schoolLabel}</dt>
+          <dd className="mt-1 break-words font-medium text-slate-900">{entry.school ?? t.schoolFallback}</dd>
+        </div>
+        <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
           <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{t.highestLabel}</dt>
           <dd className="mt-1 font-medium text-slate-900">L{entry.highest_level}</dd>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+        <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
           <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{t.frontierLabel}</dt>
           <dd className="mt-1 flex items-center gap-2 font-medium text-slate-900">
             <span
               aria-hidden="true"
-              className={`inline-flex h-2.5 w-2.5 rounded-full ${bandDotClasses(entry.best_color_band ?? null)}`}
+              className={`inline-flex h-2.5 w-2.5 rounded-md ${bandDotClasses(entry.best_color_band ?? null)}`}
             />
             {formatScore(entry.best_score_on_highest)}
           </dd>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+        <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
           <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{t.solveTimeLabel}</dt>
           <dd className="mt-1 font-medium text-slate-900">
             {formatSolveTime(entry.solve_time_seconds)}
@@ -200,7 +207,7 @@ function LeaderboardMobileRow({
       <p className="text-xs leading-5 text-slate-500">
         {t.lastSubmissionLabel(formatDate(entry.last_submission_at))}
       </p>
-    </button>
+    </Link>
   );
 }
 
@@ -230,12 +237,12 @@ function LeaderboardDesktopRow({
       }`}
       aria-selected={isSelected}
     >
-      <td className="border-b border-slate-200 px-4 py-3 font-semibold text-slate-950">
+      <td className="border-b border-slate-100 px-2 py-1.5 font-semibold text-slate-900">
         <span className={`inline-flex min-w-10 items-center justify-center rounded-md border px-2.5 py-1 ${rankAccent(entry.rank)}`}>
           {entry.rank}
         </span>
       </td>
-      <td className="border-b border-slate-200 px-4 py-3">
+      <td className="border-b border-slate-100 px-2 py-1.5">
         <div className="flex min-w-[14rem] max-w-[18rem] flex-col gap-1">
           <div className="flex items-center gap-2">
             <span className="text-sm" title={entry.country_code || t.globalCountryTooltip}>
@@ -244,7 +251,7 @@ function LeaderboardDesktopRow({
             <button
               type="button"
               onClick={() => onSelectPlayer(entry.player_id)}
-              className="rounded-sm break-words text-left font-semibold text-slate-950 underline-offset-4 outline-none transition hover:underline focus-visible:ring-2 focus-visible:ring-slate-300"
+              className="rounded-md break-words text-left font-semibold text-slate-900 underline-offset-4 outline-none transition hover:underline focus-visible:ring-2 focus-visible:ring-slate-300"
               aria-controls={detailRegionId}
               aria-expanded={isSelected}
               aria-label={t.openPlayerDetailAriaLabel(entry.display_name)}
@@ -252,7 +259,7 @@ function LeaderboardDesktopRow({
               {entry.display_name}
             </button>
             {entry.pioneer ? (
-              <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-800">
+              <span className="inline-flex rounded-md border border border-slate-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-800">
                 {t.pioneerBadge}
               </span>
             ) : null}
@@ -265,29 +272,30 @@ function LeaderboardDesktopRow({
           ) : (
             <span className="text-xs text-slate-400">{t.noPublicHandle}</span>
           )}
+          <span className="text-xs text-slate-400">{entry.school ?? t.schoolFallback}</span>
         </div>
       </td>
-      <td className="border-b border-slate-200 px-4 py-3 text-slate-600">
+      <td className="border-b border-slate-100 px-2 py-1.5 text-slate-600">
         {entry.framework ?? t.frameworkNotSet}
       </td>
-      <td className="border-b border-slate-200 px-4 py-3">
+      <td className="border-b border-slate-100 px-2 py-1.5">
         <span className="inline-flex min-w-14 items-center justify-center rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 font-medium text-slate-800">
           L{entry.highest_level}
         </span>
       </td>
-      <td className="border-b border-slate-200 px-4 py-3 font-medium text-slate-950">
+      <td className="border-b border-slate-100 px-2 py-1.5 font-medium text-slate-900">
         <div className="flex flex-col gap-1">
           <span>{formatScore(entry.best_score_on_highest)}</span>
           <span className="flex items-center gap-1 text-xs text-slate-400">
             <span
               aria-hidden="true"
-              className={`inline-flex h-2.5 w-2.5 rounded-full ${bandDotClasses(entry.best_color_band ?? null)}`}
+              className={`inline-flex h-2.5 w-2.5 rounded-md ${bandDotClasses(entry.best_color_band ?? null)}`}
             />
             {entry.best_quality_label ?? t.frontierFallback}
           </span>
         </div>
       </td>
-      <td className="border-b border-slate-200 px-4 py-3 font-medium text-slate-950">
+      <td className="border-b border-slate-100 px-2 py-1.5 font-medium text-slate-900">
         <div className="flex flex-col gap-1">
           <span>{formatSolveTime(entry.solve_time_seconds)}</span>
           <span className="text-xs text-slate-400">
@@ -295,12 +303,12 @@ function LeaderboardDesktopRow({
           </span>
         </div>
       </td>
-      <td className="border-b border-slate-200 px-4 py-3">
-        <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] ${tierClasses(entry.tier)}`}>
+      <td className="border-b border-slate-100 px-2 py-1.5">
+        <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] ${tierClasses(entry.tier)}`}>
           {entry.tier}
         </span>
       </td>
-      <td className="border-b border-slate-200 px-4 py-3 text-slate-600">
+      <td className="border-b border-slate-100 px-2 py-1.5 text-slate-600">
         {formatDate(entry.last_submission_at)}
       </td>
     </tr>
@@ -312,37 +320,39 @@ export function LeaderboardTable({
   selectedPlayerId,
   onSelectPlayer,
   detailRegionId,
+  detailPageSearch,
 }: {
   entries: LeaderboardEntry[];
   selectedPlayerId: string | null;
   onSelectPlayer: (playerId: string) => void;
   detailRegionId: string;
+  detailPageSearch: string;
 }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <div className="divide-y divide-slate-200 md:hidden">
         {entries.map((entry) => (
           <LeaderboardMobileRow 
             key={`${entry.player_id}-${entry.rank}-${entry.last_submission_at ?? 'none'}-mobile`}
             entry={entry}
             selectedPlayerId={selectedPlayerId}
-            onSelectPlayer={onSelectPlayer}
+            detailPageSearch={detailPageSearch}
           />
         ))}
       </div>
 
       <div className="hidden max-h-[68vh] overflow-auto md:block">
         <table className="min-w-[58rem] border-collapse text-left text-sm text-slate-700 lg:min-w-full">
-          <thead className="sticky top-0 z-10 bg-slate-50 text-xs uppercase tracking-[0.16em] text-slate-500 shadow-[0_1px_0_0_rgb(226,232,240)]">
+          <thead className="sticky top-0 z-10 bg-slate-50 text-xs font-medium text-slate-500 border-b border-slate-100">
             <tr>
-              <th className="border-b border-slate-200 px-4 py-3 font-semibold">{copy.leaderboard.table.colRank}</th>
-              <th className="border-b border-slate-200 px-4 py-3 font-semibold">{copy.leaderboard.table.colPlayer}</th>
-              <th className="border-b border-slate-200 px-4 py-3 font-semibold">{copy.leaderboard.table.colFramework}</th>
-              <th className="border-b border-slate-200 px-4 py-3 font-semibold">{copy.leaderboard.table.colHighest}</th>
-              <th className="border-b border-slate-200 px-4 py-3 font-semibold">{copy.leaderboard.table.colFrontierScore}</th>
-              <th className="border-b border-slate-200 px-4 py-3 font-semibold">{copy.leaderboard.table.colSolveTime}</th>
-              <th className="border-b border-slate-200 px-4 py-3 font-semibold">{copy.leaderboard.table.colTier}</th>
-              <th className="border-b border-slate-200 px-4 py-3 font-semibold">{copy.leaderboard.table.colLastSubmission}</th>
+              <th className="border-b border-slate-100 px-2 py-1.5">{copy.leaderboard.table.colRank}</th>
+              <th className="border-b border-slate-100 px-2 py-1.5">{copy.leaderboard.table.colPlayer}</th>
+              <th className="border-b border-slate-100 px-2 py-1.5">{copy.leaderboard.table.colFramework}</th>
+              <th className="border-b border-slate-100 px-2 py-1.5">{copy.leaderboard.table.colHighest}</th>
+              <th className="border-b border-slate-100 px-2 py-1.5">{copy.leaderboard.table.colFrontierScore}</th>
+              <th className="border-b border-slate-100 px-2 py-1.5">{copy.leaderboard.table.colSolveTime}</th>
+              <th className="border-b border-slate-100 px-2 py-1.5">{copy.leaderboard.table.colTier}</th>
+              <th className="border-b border-slate-100 px-2 py-1.5">{copy.leaderboard.table.colLastSubmission}</th>
             </tr>
           </thead>
           <tbody>

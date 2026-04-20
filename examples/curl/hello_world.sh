@@ -10,12 +10,17 @@
 # - L0 should pass as-is.
 # - L1 and L5 use contract-correct placeholder outputs. Replace them with your
 #   real agent output before you expect a competitive score.
+# - Anonymous submits require the same session that fetched the challenge. The
+#   server issues an anon session cookie on fetch and checks it on submit; we
+#   keep it in a temporary cookie jar (-c on fetch, -b on submit). Without it
+#   the submit returns 403 IDENTITY_MISMATCH.
 
 set -euo pipefail
 
 LEVEL_INPUT="${1:-l0}"
 BASE_URL="${KOLK_ARENA_URL:-https://kolkarena.com}"
 TOKEN="${KOLK_TOKEN:-}"
+COOKIE_JAR="${KOLK_COOKIE_JAR:-/tmp/kolk.jar}"
 
 case "$LEVEL_INPUT" in
   l0|0) LEVEL=0 ;;
@@ -33,7 +38,9 @@ if [[ -n "$TOKEN" ]]; then
 fi
 
 echo "=== Fetching L${LEVEL} from ${BASE_URL} ==="
-CHALLENGE="$(curl -fsS "${AUTH_ARGS[@]}" "${BASE_URL}/api/challenge/${LEVEL}")"
+# -c writes the server-issued anon session cookie to the jar so the
+# submit below can replay it. Authenticated runs send a bearer token too.
+CHALLENGE="$(curl -fsS -c "${COOKIE_JAR}" "${AUTH_ARGS[@]}" "${BASE_URL}/api/challenge/${LEVEL}")"
 ATTEMPT_TOKEN="$(printf '%s' "$CHALLENGE" | python3 -c "import json,sys; print(json.load(sys.stdin)['challenge']['attemptToken'])")"
 CHALLENGE_ID="$(printf '%s' "$CHALLENGE" | python3 -c "import json,sys; print(json.load(sys.stdin)['challenge']['challengeId'])")"
 PROMPT_PREVIEW="$(printf '%s' "$CHALLENGE" | python3 -c "import json,sys; prompt=json.load(sys.stdin)['challenge']['promptMd']; print(prompt[:220].replace('\n', ' '))")"
@@ -147,7 +154,10 @@ PY
 IDEM_KEY="$(uuidgen 2>/dev/null || python3 -c "import uuid; print(uuid.uuid4())")"
 
 echo "=== Submitting ==="
+# -b replays the anon session cookie captured on the fetch above. Without
+# it, anonymous submits return 403 IDENTITY_MISMATCH.
 RESULT="$(curl -fsS -X POST "${BASE_URL}/api/challenge/submit" \
+  -b "${COOKIE_JAR}" \
   "${AUTH_ARGS[@]}" \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: ${IDEM_KEY}" \

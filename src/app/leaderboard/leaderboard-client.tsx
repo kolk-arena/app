@@ -1,46 +1,32 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useId, useState, useTransition } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { copy } from '@/i18n';
 import { formatClockSeconds, formatDateTime, formatNumber } from '@/i18n/format';
+import type { ActivityFeedEntry, LeaderboardResponse as SharedLeaderboardResponse } from '@/lib/kolk/types';
 import { LeaderboardTable } from './leaderboard-table';
 import { PlayerDetailPanel } from './player-detail-panel';
 
-type LeaderboardEntry = {
-  player_id: string;
-  rank: number;
-  display_name: string;
-  handle?: string | null;
-  framework?: string | null;
-  school: string | null;
-  highest_level: number;
-  best_score_on_highest: number;
-  best_color_band?: 'RED' | 'ORANGE' | 'YELLOW' | 'GREEN' | 'BLUE' | null;
-  best_quality_label?: string | null;
-  solve_time_seconds?: number | null;
-  efficiency_badge?: boolean;
-  total_score: number;
-  levels_completed: number;
-  tier: string;
-  pioneer: boolean;
-  last_submission_at: string | null;
-  country_code: string | null;
-};
+type LeaderboardEntry = SharedLeaderboardResponse['leaderboard'][number];
 
 type FrameworkStat = { framework: string; count: number; percentage: number };
+type ActiveFilter = {
+  key: 'framework' | 'school';
+  label: string;
+  value: string;
+};
 
-type LeaderboardResponse = {
+type LeaderboardResponse = Omit<SharedLeaderboardResponse, 'framework_stats'> & {
   leaderboard: LeaderboardEntry[];
-  total: number;
-  page: number;
-  limit: number;
   framework_stats?: FrameworkStat[];
 };
 
 const DEFAULT_LIMIT = 25;
 const QUICK_FRAMEWORKS = ['Claude Code', 'Cursor', 'Windsurf', 'OpenHands', 'LangGraph', 'Custom'];
-const LIVE_POLL_MS = 15_000;
+const LEADERBOARD_POLL_MS = 30_000;
+const ACTIVITY_FEED_POLL_MS = 15_000;
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -94,6 +80,7 @@ export function LeaderboardClient() {
 
   const page = readPositiveInt(searchParams.get('page'), 1);
   const framework = searchParams.get('framework') ?? '';
+  const school = searchParams.get('school') ?? '';
   const limit = readPositiveInt(searchParams.get('limit'), DEFAULT_LIMIT);
   const selectedPlayerId = asValidPlayerId(searchParams.get('player'));
 
@@ -104,12 +91,17 @@ export function LeaderboardClient() {
   const [selectionMessage, setSelectionMessage] = useState<string | null>(null);
   const [detailRetryNonce, setDetailRetryNonce] = useState(0);
   const [frameworkInput, setFrameworkInput] = useState(framework);
+  const [schoolInput, setSchoolInput] = useState(school);
   const [isPending, startTransition] = useTransition();
   const detailRegionId = useId();
 
   useEffect(() => {
     setFrameworkInput(framework);
   }, [framework]);
+
+  useEffect(() => {
+    setSchoolInput(school);
+  }, [school]);
 
   useEffect(() => {
     const rawPlayerId = searchParams.get('player');
@@ -132,6 +124,7 @@ export function LeaderboardClient() {
       page: String(page),
       limit: String(limit),
       framework: framework || null,
+      school: school || null,
     });
 
     const fetchLeaderboard = () => {
@@ -160,21 +153,22 @@ export function LeaderboardClient() {
 
     fetchLeaderboard();
 
-    // Poll every 15s, skipping hidden tabs so background tabs do not drive
-    // Vercel + Supabase quota. See `docs/FRONTEND_BETA_STATES` for rationale.
+    // The leaderboard payload is materially heavier than the live activity
+    // feed, so it refreshes more conservatively. Background tabs are also
+    // skipped to protect Vercel + Supabase quota.
     const interval = setInterval(() => {
       if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
         return;
       }
       fetchLeaderboard();
-    }, LIVE_POLL_MS);
+    }, LEADERBOARD_POLL_MS);
 
     return () => {
       active = false;
       controller.abort();
       clearInterval(interval);
     };
-  }, [page, framework, limit]);
+  }, [page, framework, school, limit]);
 
   useEffect(() => {
     let active = true;
@@ -191,15 +185,16 @@ export function LeaderboardClient() {
       }
     };
     fetchFeed();
-    // 15s polling + skip hidden tabs. Server also has an in-memory IP rate
-    // limit (src/app/api/activity-feed/route.ts) as a belt-and-suspenders
-    // defence against abuse.
+    // Keep the community feed feeling live while leaving the heavier standings
+    // query on a slower cadence. Server also has an in-memory IP rate limit
+    // (src/app/api/activity-feed/route.ts) as a belt-and-suspenders defence
+    // against abuse.
     const interval = setInterval(() => {
       if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
         return;
       }
       fetchFeed();
-    }, LIVE_POLL_MS);
+    }, ACTIVITY_FEED_POLL_MS);
     return () => {
       active = false;
       clearInterval(interval);
@@ -214,6 +209,27 @@ export function LeaderboardClient() {
   const topEntry = entries[0] ?? null;
   const topTier = topEntry?.tier ?? 'starter';
   const selectedPlayerOnPage = entries.some((entry) => entry.player_id === selectedPlayerId);
+  const detailPageSearch = buildQueryString(new URLSearchParams(searchParams.toString()), {
+    player: null,
+  });
+  const lb = copy.leaderboard;
+  const activeFilters: ActiveFilter[] = [];
+
+  if (framework) {
+    activeFilters.push({
+      key: 'framework',
+      label: lb.activeFilterFramework,
+      value: framework,
+    });
+  }
+
+  if (school) {
+    activeFilters.push({
+      key: 'school',
+      label: lb.activeFilterSchool,
+      value: school,
+    });
+  }
 
   function navigate(updates: Record<string, string | null>) {
     startTransition(() => {
@@ -227,18 +243,19 @@ export function LeaderboardClient() {
     setSelectionMessage(null);
     navigate({
       framework: frameworkInput.trim() || null,
+      school: schoolInput.trim() || null,
       page: '1',
-      player: null,
     });
   }
 
   function clearFilters() {
     setFrameworkInput('');
+    setSchoolInput('');
     setSelectionMessage(null);
     navigate({
       framework: null,
+      school: null,
       page: '1',
-      player: null,
     });
   }
 
@@ -255,6 +272,20 @@ export function LeaderboardClient() {
     setDetailRetryNonce((current) => current + 1);
   }
 
+  function clearSingleFilter(filterKey: 'framework' | 'school') {
+    if (filterKey === 'framework') {
+      setFrameworkInput('');
+    } else {
+      setSchoolInput('');
+    }
+
+    setSelectionMessage(null);
+    navigate({
+      [filterKey]: null,
+      page: '1',
+    });
+  }
+
   function handleSelectPlayer(playerId: string) {
     setSelectionMessage(null);
     if (window.matchMedia('(max-width: 1023px)').matches) {
@@ -267,20 +298,18 @@ export function LeaderboardClient() {
     });
   }
 
-  const lb = copy.leaderboard;
-
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-950">
+    <main className="min-h-screen bg-slate-50 text-slate-900">
       <section className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-6 sm:gap-6 sm:px-6 sm:py-8 lg:px-8">
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 px-4 py-4 sm:px-6">
+        <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-100 px-3 py-2 sm:px-5">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="space-y-2">
-                <div className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                <div className="inline-flex items-center rounded-md border border-slate-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
                   {lb.heroEyebrow}
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">{lb.heroTitle}</h1>
+                  <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{lb.heroTitle}</h1>
                   <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">
                     {lb.heroDescription}
                   </p>
@@ -291,13 +320,13 @@ export function LeaderboardClient() {
               </div>
 
             <div className="grid w-full gap-3 sm:w-auto sm:min-w-[15rem] sm:grid-cols-2">
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+              <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{lb.entriesEyebrow}</p>
-                <p className="mt-2 text-2xl font-semibold text-slate-950">{total}</p>
+                <p className="mt-2 inline-block bg-emerald-50 px-3 py-1 font-mono tabular-nums text-3xl text-emerald-700 border border-emerald-200 shadow-sm">{total}</p>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+              <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{lb.currentLeaderEyebrow}</p>
-                <p className="mt-2 truncate text-sm font-semibold text-slate-950">
+                <p className="mt-2 inline-block bg-emerald-50 px-3 py-1 text-xl font-bold tracking-tight text-emerald-700 border border-emerald-200 shadow-sm truncate">
                   {topEntry ? topEntry.display_name : lb.currentLeaderEmpty}
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
@@ -311,11 +340,11 @@ export function LeaderboardClient() {
                 </p>
               </div>
               {data?.framework_stats && data.framework_stats.length > 0 ? (
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 sm:col-span-2">
+                <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-4 sm:col-span-2">
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{lb.frameworkWars.title}</p>
                   </div>
-                  <div className="flex h-3 w-full overflow-hidden rounded-full bg-slate-200">
+                  <div className="flex h-4 w-full overflow-hidden border border-slate-200 bg-slate-200 shadow-sm">
                     {data.framework_stats.map((stat, idx) => {
                       const bgColors = ['bg-emerald-500', 'bg-sky-500', 'bg-indigo-500', 'bg-amber-500', 'bg-rose-500'];
                       return (
@@ -333,7 +362,7 @@ export function LeaderboardClient() {
                       const textColors = ['text-emerald-700', 'text-sky-700', 'text-indigo-700', 'text-amber-700', 'text-rose-700'];
                       return (
                         <div key={stat.framework} className="flex items-center gap-1.5">
-                          <span className={`h-2 w-2 rounded-full bg-current ${textColors[idx % textColors.length]}`} />
+                          <span className={`h-2 w-2 rounded-md bg-current ${textColors[idx % textColors.length]}`} />
                           <span className="font-medium">{stat.framework}</span>
                           <span className="text-slate-400">({lb.frameworkWars.legendPercent(stat.percentage)})</span>
                         </div>
@@ -342,7 +371,7 @@ export function LeaderboardClient() {
                   </div>
                 </div>
               ) : (
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 sm:col-span-2">
+                <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 sm:col-span-2">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{lb.leaderboardRuleEyebrow}</p>
                   <p className="mt-2 text-sm font-medium text-slate-900">
                     {lb.leaderboardRuleBody}
@@ -358,21 +387,31 @@ export function LeaderboardClient() {
 
           <div className="grid gap-4 px-4 py-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
             <div className="space-y-3">
-              <form onSubmit={handleFilterSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <form onSubmit={handleFilterSubmit} className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
                 <label className="flex min-w-0 flex-1 flex-col gap-1.5">
                   <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{lb.frameworkFilter}</span>
                   <input
                     value={frameworkInput}
                     onChange={(event) => setFrameworkInput(event.target.value)}
                     placeholder={lb.frameworkPlaceholder}
-                    className="min-h-12 rounded-lg border border-slate-300 bg-white px-4 text-base text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200 sm:text-sm"
+                    className="min-h-8 rounded-xl border border-slate-200 bg-white px-4 text-base text-slate-900 outline-none transition focus:ring-2 focus:ring-slate-900 sm:text-sm shadow-sm"
+                  />
+                </label>
+
+                <label className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{lb.schoolFilter}</span>
+                  <input
+                    value={schoolInput}
+                    onChange={(event) => setSchoolInput(event.target.value)}
+                    placeholder={lb.schoolPlaceholder}
+                    className="min-h-8 rounded-xl border border-slate-200 bg-white px-4 text-base text-slate-900 outline-none transition focus:ring-2 focus:ring-slate-900 sm:text-sm shadow-sm"
                   />
                 </label>
 
                 <div className="grid grid-cols-2 gap-2 sm:flex sm:items-end">
                   <button
                     type="submit"
-                    className="min-h-12 rounded-lg bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+                    className="min-h-8 rounded-xl border border-slate-200 shadow-sm bg-slate-900 px-4 text-sm font-semibold text-white transition hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-sm disabled:opacity-60"
                     disabled={isPending}
                   >
                     {lb.applyFilter}
@@ -380,7 +419,7 @@ export function LeaderboardClient() {
                   <button
                     type="button"
                     onClick={clearFilters}
-                    className="min-h-12 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                    className="min-h-8 rounded-md border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-1"
                   >
                     {lb.clearFilter}
                   </button>
@@ -390,11 +429,11 @@ export function LeaderboardClient() {
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  onClick={() => navigate({ framework: null, page: '1', player: null })}
-                    className={`min-h-10 rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] transition ${
+                  onClick={() => navigate({ framework: null, page: '1' })}
+                    className={`min-h-8 rounded-xl border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] transition ${
                       framework
-                        ? 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
-                        : 'border-slate-900 bg-slate-900 text-white'
+                        ? 'border-slate-200 bg-white shadow-sm text-slate-700 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-1'
+                        : 'border-slate-900 bg-slate-900 text-white shadow-sm focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-1'
                   }`}
                 >
                   {lb.allFrameworks}
@@ -403,11 +442,11 @@ export function LeaderboardClient() {
                   <button
                     key={candidate}
                     type="button"
-                    onClick={() => navigate({ framework: candidate, page: '1', player: null })}
-                    className={`min-h-10 rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] transition ${
+                    onClick={() => navigate({ framework: candidate, page: '1' })}
+                    className={`min-h-8 rounded-xl border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] transition ${
                       framework === candidate
                         ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                        : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                        : 'border-slate-200 bg-white shadow-sm text-slate-700 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-1'
                     }`}
                   >
                     {candidate}
@@ -415,22 +454,32 @@ export function LeaderboardClient() {
                 ))}
               </div>
 
-              {framework ? (
+              {activeFilters.length > 0 ? (
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
                     {lb.activeFilterEyebrow}
                   </span>
-                  <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800">
-                    <span>{framework}</span>
-                    <button type="button" onClick={clearFilters} className="min-h-7 text-emerald-700 hover:text-emerald-900">
-                      {lb.clearFilter}
-                    </button>
-                  </span>
+                  {activeFilters.map((filter) => (
+                    <span
+                      key={filter.key}
+                      className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800"
+                    >
+                      <span className="text-emerald-700">{filter.label}:</span>
+                      <span>{filter.value}</span>
+                      <button
+                        type="button"
+                        onClick={() => clearSingleFilter(filter.key)}
+                        className="min-h-7 text-emerald-700 hover:text-emerald-900"
+                      >
+                        {lb.clearFilter}
+                      </button>
+                    </span>
+                  ))}
                 </div>
               ) : null}
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{lb.viewEyebrow}</p>
               <p className="mt-2 text-sm font-medium text-slate-900">
                 {lb.showingLabel(showingFrom, showingTo, total)}
@@ -448,14 +497,14 @@ export function LeaderboardClient() {
         </div>
 
         {error ? (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-900 shadow-sm">
+          <div className="rounded-xl border border-slate-200 bg-rose-50 px-5 py-4 text-sm text-rose-900 shadow-sm">
             <p className="font-semibold">{lb.failedToLoad}</p>
             <p className="mt-1">{error}</p>
           </div>
         ) : null}
 
         {!error && selectionMessage ? (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900 shadow-sm">
+          <div className="rounded-xl border border-slate-200 bg-amber-50 px-5 py-4 text-sm text-amber-900 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="font-semibold">{lb.selectionUnavailableTitle}</p>
@@ -464,7 +513,7 @@ export function LeaderboardClient() {
               <button
                 type="button"
                 onClick={clearSelectedPlayer}
-                className="inline-flex items-center rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-amber-800 transition hover:bg-amber-100"
+                className="inline-flex items-center rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-amber-800 transition hover:bg-amber-100"
               >
                 {lb.clearSelection}
               </button>
@@ -473,20 +522,20 @@ export function LeaderboardClient() {
         ) : null}
 
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(22rem,0.8fr)]">
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-4 sm:px-6">
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-3 py-2 sm:px-5">
               <div>
-                <h2 className="text-base font-semibold text-slate-950">{lb.standingsTitle}</h2>
+                <h2 className="text-base font-semibold text-slate-900">{lb.standingsTitle}</h2>
                 <p className="mt-1 text-sm text-slate-500">
                   {lb.standingsSubtitle}
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <span className="hidden rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-600 xl:inline-flex">
+                <span className="hidden rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-600 xl:inline-flex">
                   {lb.listPlusDetail}
                 </span>
                 {isPending || loading ? (
-                  <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
+                  <span className="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
                     {lb.refreshing}
                   </span>
                 ) : null}
@@ -501,7 +550,7 @@ export function LeaderboardClient() {
               <div className="px-5 py-10 sm:px-6">
                 <p className="text-sm font-semibold text-slate-900">{lb.noEntriesTitle}</p>
                 <p className="mt-1 text-sm text-slate-500">
-                  {framework ? lb.noEntriesFrameworkHint : lb.noEntriesDefaultHint}
+                  {activeFilters.length > 0 ? lb.noEntriesFilteredHint : lb.noEntriesDefaultHint}
                 </p>
               </div>
             ) : null}
@@ -513,6 +562,7 @@ export function LeaderboardClient() {
                   selectedPlayerId={selectedPlayerId}
                   onSelectPlayer={handleSelectPlayer}
                   detailRegionId={detailRegionId}
+                  detailPageSearch={detailPageSearch}
                 />
 
               <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
@@ -525,18 +575,18 @@ export function LeaderboardClient() {
                       type="button"
                       onClick={() => navigate({ page: String(page - 1) })}
                       disabled={page <= 1 || isPending}
-                      className="min-h-11 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="min-h-8 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {lb.previousPage}
                     </button>
-                    <span className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-center text-sm font-medium text-slate-700">
+                    <span className="inline-flex min-h-8 items-center justify-center rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-center text-sm font-medium text-slate-700">
                       {lb.pageLabel(page, pageCount)}
                     </span>
                     <button
                       type="button"
                       onClick={() => navigate({ page: String(page + 1) })}
                       disabled={page >= pageCount || isPending}
-                      className="min-h-11 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="min-h-8 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {lb.nextPage}
                     </button>
@@ -548,7 +598,7 @@ export function LeaderboardClient() {
 
           <div className="xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)] xl:self-start xl:overflow-auto space-y-4">
             {!loading && selectedPlayerId && !selectedPlayerOnPage && !selectionMessage ? (
-              <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900 shadow-sm">
+              <div className="mb-4 rounded-xl border border-slate-200 bg-amber-50 px-5 py-4 text-sm text-amber-900 shadow-sm">
                 <p className="font-semibold">{lb.detailOutsideViewTitle}</p>
                 <p className="mt-1">
                   {lb.detailOutsideViewBody}
@@ -561,23 +611,36 @@ export function LeaderboardClient() {
               onClear={clearSelectedPlayer}
               onRetry={retrySelectedPlayer}
               panelId={detailRegionId}
+              detailPageSearch={detailPageSearch}
             />
 
-            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm flex flex-col max-h-80">
-              <div className="border-b border-slate-200 px-4 py-3 flex items-center justify-between">
+            <section
+              aria-label={lb.activityFeed.title}
+              className="rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col max-h-80"
+            >
+              <div className="border-b border-slate-200 px-3 py-2 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <div className="h-2 w-2 rounded-md bg-emerald-500 animate-pulse" />
                   <h3 className="text-sm font-semibold text-slate-900">{lb.activityFeed.title}</h3>
                 </div>
                 <span className="text-[10px] uppercase tracking-wider text-slate-500">{lb.activityFeed.filterAllTiers}</span>
               </div>
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {feed.map((f: ActivityFeedRow) => (
-                  <ActivityFeedItem key={f.id} row={f} />
-                ))}
-                {feed.length === 0 && <div className="text-xs text-slate-500">{lb.activityFeed.listeningSubmissions}</div>}
+              <div className="flex-1 overflow-y-auto p-4">
+                {feed.length > 0 ? (
+                  <ul aria-live="polite" className="space-y-4">
+                    {feed.map((f: ActivityFeedRow) => (
+                      <li key={f.id}>
+                        <ActivityFeedItem row={f} detailPageSearch={detailPageSearch} />
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div aria-live="polite" className="text-xs text-slate-500">
+                    {lb.activityFeed.listeningSubmissions}
+                  </div>
+                )}
               </div>
-            </div>
+            </section>
           </div>
         </section>
       </section>
@@ -590,14 +653,10 @@ export function LeaderboardClient() {
  * `src/app/api/activity-feed/route.ts`). Kept narrow on purpose — the row only
  * needs the keys the UI renders. New keys land here when the API adds them.
  */
-type ActivityFeedRow = {
-  id: string;
-  display_name: string;
-  framework?: string | null;
-  level: number;
-  unlocked: boolean;
-  submitted_at: string | null;
-};
+type ActivityFeedRow = Pick<
+  ActivityFeedEntry,
+  'id' | 'player_id' | 'display_name' | 'framework' | 'level' | 'unlocked' | 'submitted_at'
+>;
 
 /**
  * Render a single activity-feed row.
@@ -607,13 +666,17 @@ type ActivityFeedRow = {
  * pulled from `copy.leaderboard.activityFeed` so future locales translate
  * "just passed" / "just attempted" / " using " independently.
  */
-function ActivityFeedItem({ row }: { row: ActivityFeedRow }) {
+function ActivityFeedItem({
+  row,
+  detailPageSearch,
+}: {
+  row: ActivityFeedRow;
+  detailPageSearch: string;
+}) {
   const af = copy.leaderboard.activityFeed;
   const verb = row.unlocked ? af.rowVerbPassed : af.rowVerbAttempted;
-  return (
-    <div
-      className={`text-sm text-slate-600 border-l-2 ${row.unlocked ? 'border-emerald-200' : 'border-slate-200'} pl-3 py-0.5`}
-    >
+  const content = (
+    <>
       <span className="font-semibold text-slate-900">{row.display_name}</span> {verb}{' '}
       <span className="font-semibold text-slate-900">L{row.level}</span>
       {row.framework ? (
@@ -623,6 +686,27 @@ function ActivityFeedItem({ row }: { row: ActivityFeedRow }) {
         </span>
       ) : null}
       <div className="text-[10px] text-slate-400 mt-0.5">{formatUpdatedLabel(row.submitted_at)}</div>
-    </div>
+    </>
+  );
+
+  if (!row.player_id) {
+    return (
+      <div
+        className={`border-l-2 pl-3 py-0.5 text-sm text-slate-600 ${row.unlocked ? 'border-emerald-200' : 'border-slate-200'}`}
+      >
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      href={`/leaderboard/${row.player_id}${detailPageSearch}`}
+      className={`block rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 transition hover:border-slate-300 hover:bg-white ${
+        row.unlocked ? 'border-emerald-200' : ''
+      }`}
+    >
+      {content}
+    </Link>
   );
 }

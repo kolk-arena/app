@@ -1,6 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { CopyButton } from '@/components/ui/copy-button';
+import { copy } from '@/i18n';
 import { formatDateTime } from '@/i18n/format';
 
 type ApiTokenPublicView = {
@@ -21,22 +23,23 @@ type Status =
   | { kind: 'loading' }
   | { kind: 'error'; message: string };
 
-const SELECTABLE_SCOPES: { scope: string; label: string; detail: string; default: boolean }[] = [
-  { scope: 'submit:onboarding', label: 'submit:onboarding', detail: 'Submit to L0 (onboarding connectivity check).', default: true },
-  { scope: 'submit:ranked', label: 'submit:ranked', detail: 'Submit to ranked ladder L1-L8.', default: true },
-  { scope: 'fetch:challenge', label: 'fetch:challenge', detail: 'Fetch challenge packages (GET /api/challenge/:level).', default: true },
-  { scope: 'read:profile', label: 'read:profile', detail: 'Read the authenticated profile (GET /api/profile).', default: true },
-  { scope: 'write:profile', label: 'write:profile', detail: 'Update the authenticated profile (PATCH /api/profile).', default: false },
-];
-
 export function ApiTokensPanel() {
+  const t = copy.profile.apiTokens;
   const [status, setStatus] = useState<Status>({ kind: 'loading' });
   const [tokens, setTokens] = useState<ApiTokenPublicView[]>([]);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
-  const [newScopes, setNewScopes] = useState<Set<string>>(
-    () => new Set(SELECTABLE_SCOPES.filter((s) => s.default).map((s) => s.scope)),
+  const scopeCheckboxes = useMemo(
+    () => [
+      { scope: 'submit:onboarding', default: true, ...t.scopeOptions.submitOnboarding },
+      { scope: 'submit:ranked', default: true, ...t.scopeOptions.submitRanked },
+      { scope: 'fetch:challenge', default: true, ...t.scopeOptions.fetchChallenge },
+      { scope: 'read:profile', default: true, ...t.scopeOptions.readProfile },
+      { scope: 'write:profile', default: false, ...t.scopeOptions.writeProfile },
+    ],
+    [t],
   );
+  const [newScopes, setNewScopes] = useState<Set<string>>(() => new Set(scopeCheckboxes.filter((s) => s.default).map((s) => s.scope)));
   const [justCreated, setJustCreated] = useState<CreateResponse | null>(null);
 
   const load = useCallback(async () => {
@@ -44,37 +47,35 @@ export function ApiTokensPanel() {
     try {
       const resp = await fetch('/api/tokens', { credentials: 'include', cache: 'no-store' });
       if (resp.status === 401) {
-        setStatus({ kind: 'error', message: 'Sign in required to manage API tokens.' });
+        setStatus({ kind: 'error', message: t.signInRequired });
         return;
       }
       if (!resp.ok) {
         const body = await resp.json().catch(() => ({}));
-        setStatus({ kind: 'error', message: typeof body?.error === 'string' ? body.error : 'Failed to load tokens' });
+        setStatus({ kind: 'error', message: typeof body?.error === 'string' ? body.error : t.failedToLoad });
         return;
       }
       const body = await resp.json();
       setTokens((body?.tokens ?? []) as ApiTokenPublicView[]);
       setStatus({ kind: 'idle' });
     } catch (err) {
-      setStatus({ kind: 'error', message: err instanceof Error ? err.message : 'Failed to load tokens' });
+      setStatus({ kind: 'error', message: err instanceof Error ? err.message : t.failedToLoad });
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  const scopeCheckboxes = useMemo(() => SELECTABLE_SCOPES, []);
-
   async function handleCreate(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmed = newName.trim();
     if (trimmed.length === 0) {
-      setStatus({ kind: 'error', message: 'Name is required.' });
+      setStatus({ kind: 'error', message: t.nameRequired });
       return;
     }
     if (newScopes.size === 0) {
-      setStatus({ kind: 'error', message: 'Pick at least one scope.' });
+      setStatus({ kind: 'error', message: t.pickScopeRequired });
       return;
     }
 
@@ -94,7 +95,7 @@ export function ApiTokensPanel() {
       });
       const body = await resp.json().catch(() => ({}));
       if (!resp.ok) {
-        setStatus({ kind: 'error', message: typeof body?.error === 'string' ? body.error : 'Failed to create token' });
+        setStatus({ kind: 'error', message: typeof body?.error === 'string' ? body.error : t.failedToCreate });
         return;
       }
       const created = body as CreateResponse;
@@ -102,14 +103,14 @@ export function ApiTokensPanel() {
       setNewName('');
       await load();
     } catch (err) {
-      setStatus({ kind: 'error', message: err instanceof Error ? err.message : 'Failed to create token' });
+      setStatus({ kind: 'error', message: err instanceof Error ? err.message : t.failedToCreate });
     } finally {
       setCreating(false);
     }
   }
 
   async function handleRevoke(tokenId: string) {
-    const ok = window.confirm('Revoke this token? Agents using it will stop working immediately.');
+    const ok = window.confirm(t.revokeConfirm);
     if (!ok) return;
 
     try {
@@ -119,14 +120,14 @@ export function ApiTokensPanel() {
       });
       if (!resp.ok) {
         const body = await resp.json().catch(() => ({}));
-        setStatus({ kind: 'error', message: typeof body?.error === 'string' ? body.error : 'Failed to revoke token' });
+        setStatus({ kind: 'error', message: typeof body?.error === 'string' ? body.error : t.failedToRevoke });
         return;
       }
       // If the just-created token was revoked, hide the plaintext banner too
       if (justCreated?.id === tokenId) setJustCreated(null);
       await load();
     } catch (err) {
-      setStatus({ kind: 'error', message: err instanceof Error ? err.message : 'Failed to revoke token' });
+      setStatus({ kind: 'error', message: err instanceof Error ? err.message : t.failedToRevoke });
     }
   }
 
@@ -139,62 +140,53 @@ export function ApiTokensPanel() {
     });
   }
 
-  async function handleCopy(value: string) {
-    try {
-      await navigator.clipboard.writeText(value);
-    } catch {
-      // no-op: clipboard can fail on older browsers, the token is still visible
-    }
-  }
-
   return (
-    <section className="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_20px_80px_rgba(15,23,42,0.08)]">
+    <section className="space-y-5 rounded-md border-2 border-slate-950 bg-white p-6">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Machine surface</p>
-        <h2 className="text-2xl font-bold tracking-tight text-slate-950">API tokens</h2>
-        <p className="mt-1 text-sm leading-6 text-slate-600">
-          Personal Access Tokens let bots, CLIs, and scripts authenticate on your behalf with an explicit scope set. Tokens are shown in plaintext exactly once — copy immediately.
+        <p className="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">{t.sectionEyebrow}</p>
+        <h2 className="text-2xl font-bold tracking-tight text-slate-950">{t.sectionTitle}</h2>
+        <p className="mt-1 text-sm leading-6 text-slate-700">
+          {t.sectionBody}
         </p>
       </div>
 
       {status.kind === 'error' ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800" role="alert">
+        <div className="rounded-md border-2 border-rose-700 bg-rose-50 px-4 py-3 text-sm text-rose-900" role="alert">
           {status.message}
         </div>
       ) : null}
 
       {justCreated ? (
-        <div className="space-y-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-          <p className="font-semibold">Your new token — copy it now. You will not see it again.</p>
-          <code className="block break-all rounded-lg bg-white/70 px-3 py-2 font-mono text-xs text-emerald-900">{justCreated.token}</code>
+        <div className="space-y-2 rounded-md border-2 border-emerald-700 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+          <p className="font-semibold">{t.newTokenTitle}</p>
+          <code className="block break-all rounded-md border-2 border-emerald-700 bg-white px-3 py-2 font-mono text-xs text-emerald-900">{justCreated.token}</code>
           <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => handleCopy(justCreated.token)}
-              className="rounded-full border border-emerald-300 bg-white px-4 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-100"
-            >
-              Copy to clipboard
-            </button>
+            <CopyButton
+              value={justCreated.token}
+              idleLabel={t.copyToken}
+              copiedLabel={t.copiedToken}
+              className="rounded-md border-2 border-emerald-700 bg-white px-4 py-1 font-mono text-xs font-semibold text-emerald-800 transition-colors duration-150 hover:bg-emerald-700 hover:text-white"
+            />
             <button
               type="button"
               onClick={() => setJustCreated(null)}
-              className="rounded-full border border-emerald-300 bg-white px-4 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-100"
+              className="rounded-md border-2 border-emerald-700 bg-white px-4 py-1 font-mono text-xs font-semibold text-emerald-800 transition-colors duration-150 hover:bg-emerald-700 hover:text-white"
             >
-              I have copied it, dismiss
+              {t.dismissToken}
             </button>
           </div>
         </div>
       ) : null}
 
-      <form onSubmit={handleCreate} className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <form onSubmit={handleCreate} className="space-y-4 rounded-md border-2 border-slate-950 bg-slate-50 p-4">
         <div>
           <label className="block space-y-2 text-sm text-slate-800">
-            <span className="font-semibold">Token name</span>
+            <span className="font-mono font-semibold uppercase tracking-[0.14em] text-slate-700">{t.tokenName}</span>
             <input
-              className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3"
+              className="w-full rounded-md border-2 border-slate-950 bg-white px-4 py-3 text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950"
               value={newName}
               onChange={(event) => setNewName(event.target.value)}
-              placeholder="My L6 agent"
+              placeholder={t.tokenNamePlaceholder}
               maxLength={80}
               disabled={creating}
             />
@@ -202,11 +194,11 @@ export function ApiTokensPanel() {
         </div>
 
         <fieldset className="space-y-2">
-          <legend className="text-sm font-semibold text-slate-800">Scopes</legend>
-          <p className="text-xs text-slate-600">Check only what the token needs. Scopes can always be removed later by revoking and re-issuing.</p>
+          <legend className="font-mono text-sm font-semibold uppercase tracking-[0.14em] text-slate-700">{t.scopes}</legend>
+          <p className="text-xs text-slate-700">{t.scopesHelp}</p>
           <ul className="grid gap-2 sm:grid-cols-2">
             {scopeCheckboxes.map((s) => (
-              <li key={s.scope} className="rounded-2xl border border-slate-200 bg-white px-3 py-2">
+              <li key={s.scope} className="rounded-md border-2 border-slate-950 bg-white px-3 py-2">
                 <label className="flex items-start gap-2 text-sm">
                   <input
                     type="checkbox"
@@ -216,8 +208,8 @@ export function ApiTokensPanel() {
                     disabled={creating}
                   />
                   <span>
-                    <code className="font-mono text-[12px] text-slate-900">{s.label}</code>
-                    <p className="text-xs text-slate-600">{s.detail}</p>
+                    <code className="font-mono text-[12px] text-slate-950">{s.label}</code>
+                    <p className="text-xs text-slate-700">{s.detail}</p>
                   </span>
                 </label>
               </li>
@@ -228,49 +220,49 @@ export function ApiTokensPanel() {
         <button
           type="submit"
           disabled={creating}
-          className="rounded-full bg-slate-950 px-5 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          className="rounded-md border-2 border-slate-950 bg-slate-950 px-5 py-2 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950 disabled:opacity-60 disabled:hover:bg-slate-950 disabled:hover:text-white"
         >
-          {creating ? 'Creating…' : 'Create new token'}
+          {creating ? t.creating : t.create}
         </button>
       </form>
 
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Active tokens</p>
+        <p className="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">{t.activeTokens}</p>
         {status.kind === 'loading' ? (
-          <p className="mt-2 text-sm text-slate-500">Loading…</p>
+          <p className="mt-2 text-sm text-slate-700">{t.loading}</p>
         ) : tokens.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-500">No active tokens yet. Create one above to let a bot or CLI authenticate on your behalf.</p>
+          <p className="mt-2 text-sm text-slate-700">{t.empty}</p>
         ) : (
           <ul className="mt-2 space-y-2">
             {tokens.map((token) => (
-              <li key={token.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3">
+              <li key={token.id} className="flex flex-wrap items-center justify-between gap-3 rounded-md border-2 border-slate-950 bg-white px-4 py-3">
                 <div className="flex flex-col gap-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-semibold text-slate-900">{token.name}</span>
-                    <code className="rounded bg-slate-100 px-2 py-0.5 font-mono text-[11px] text-slate-700">{token.token_prefix}…</code>
-                    <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-600">
+                    <span className="text-sm font-semibold text-slate-950">{token.name}</span>
+                    <code className="rounded-md border-2 border-slate-950 bg-slate-100 px-2 py-0.5 font-mono text-[11px] text-slate-950">{token.token_prefix}…</code>
+                    <span className="rounded-md border-2 border-slate-950 bg-slate-50 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-700">
                       {token.client_kind}
                     </span>
                   </div>
-                  <div className="flex flex-wrap gap-1 text-xs text-slate-600">
+                  <div className="flex flex-wrap gap-1 text-xs text-slate-700">
                     {token.scopes.map((scope) => (
-                      <code key={scope} className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] text-slate-700">
+                      <code key={scope} className="rounded-md border-2 border-slate-950 bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] text-slate-950">
                         {scope}
                       </code>
                     ))}
                   </div>
-                  <p className="text-[11px] text-slate-500">
-                    Created {formatDateTime(token.created_at, token.created_at)}
-                    {token.last_used_at ? ` · Last used ${formatDateTime(token.last_used_at, token.last_used_at)}` : ' · Never used'}
-                    {token.expires_at ? ` · Expires ${formatDateTime(token.expires_at, token.expires_at)}` : ' · No expiry set'}
+                  <p className="font-mono text-[11px] text-slate-700">
+                    {t.createdAt(formatDateTime(token.created_at, token.created_at))}
+                    {token.last_used_at ? ` · ${t.lastUsedAt(formatDateTime(token.last_used_at, token.last_used_at))}` : ` · ${t.neverUsed}`}
+                    {token.expires_at ? ` · ${t.expiresAt(formatDateTime(token.expires_at, token.expires_at))}` : ` · ${t.noExpiry}`}
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => handleRevoke(token.id)}
-                  className="rounded-full border border-rose-200 bg-white px-3 py-1 text-xs font-semibold text-rose-700 transition hover:bg-rose-50"
+                  className="rounded-md border-2 border-rose-700 bg-white px-3 py-1 font-mono text-xs font-semibold text-rose-800 transition-colors duration-150 hover:bg-rose-700 hover:text-white"
                 >
-                  Revoke
+                  {t.revoke}
                 </button>
               </li>
             ))}

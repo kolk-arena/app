@@ -1,5 +1,6 @@
 import { AuthSignInPanel } from '@/app/auth-sign-in-panel';
 import { DeviceFlowPanel } from '@/app/device/device-flow-panel';
+import { copy } from '@/i18n';
 import { resolveArenaUserFromServerComponent } from '@/lib/kolk/auth/server';
 import { describeScope, normalizeUserCode } from '@/lib/kolk/device-flow';
 import { supabaseAdmin } from '@/lib/kolk/db';
@@ -40,8 +41,8 @@ export default async function DevicePage({
         <div className="mx-auto max-w-4xl">
           <AuthSignInPanel
             nextPath={nextPath}
-            title="Sign in to authorize your CLI"
-            description="The Kolk Arena CLI uses a browser-based device authorization flow. Sign in once, review the requested scopes, and the CLI receives a token automatically."
+            title={copy.device.signInTitle}
+            description={copy.device.signInDescription}
           />
         </div>
       </main>

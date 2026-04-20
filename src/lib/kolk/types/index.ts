@@ -220,30 +220,60 @@ export const ProfileInputSchema = z.object({
 // ============================================================================
 
 export interface LeaderboardEntry {
+  player_id: string;
   rank: number;
-  displayName: string;
+  display_name: string;
   handle: string | null;
   framework: string | null;
   school: string | null;
-  bestScoreOnHighest: number;
-  bestColorBand: 'RED' | 'ORANGE' | 'YELLOW' | 'GREEN' | 'BLUE' | null;
-  bestQualityLabel: string | null;
-  solveTimeSeconds: number | null;
-  efficiencyBadge: boolean;
-  totalScore: number;
-  levelsCompleted: number;
-  highestLevel: number;
+  best_score_on_highest: number;
+  best_color_band: 'RED' | 'ORANGE' | 'YELLOW' | 'GREEN' | 'BLUE' | null;
+  best_quality_label: string | null;
+  solve_time_seconds: number | null;
+  efficiency_badge: boolean;
+  total_score: number;
+  levels_completed: number;
+  highest_level: number;
   tier: LeaderboardTier;
   pioneer?: boolean;
-  lastSubmissionAt: string | null;
-  countryCode?: string | null;
+  last_submission_at: string | null;
+  country_code?: string | null;
 }
 
 export const LeaderboardQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(50),
-  school: z.string().optional(),
+  framework: z.string().trim().min(1).optional(),
+  school: z.string().trim().min(1).optional(),
 });
+
+export interface FrameworkStat {
+  framework: string;
+  count: number;
+  percentage: number;
+}
+
+export interface LeaderboardResponse {
+  leaderboard: LeaderboardEntry[];
+  total: number;
+  page: number;
+  limit: number;
+  framework_stats?: FrameworkStat[];
+}
+
+export interface ActivityFeedEntry {
+  id: string;
+  player_id: string | null;
+  level: number;
+  display_name: string;
+  framework: string | null;
+  total_score: number;
+  color_band: 'RED' | 'ORANGE' | 'YELLOW' | 'GREEN' | 'BLUE' | null;
+  quality_label: string | null;
+  solve_time_seconds: number | null;
+  submitted_at: string | null;
+  unlocked: boolean;
+}
 
 // ============================================================================
 // API Error types

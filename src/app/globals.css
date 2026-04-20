@@ -6,8 +6,19 @@
   color-scheme: light;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
+  min-width: 320px;
+  overflow-x: hidden;
   color: var(--foreground);
   background: var(--background);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+::selection {
+  background-color: #cbd5e1;
+  color: #0f172a;
 }

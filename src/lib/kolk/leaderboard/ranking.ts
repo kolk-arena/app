@@ -122,7 +122,7 @@ function compareLeaderboardRows(a: PublicLeaderboardRow, b: PublicLeaderboardRow
   const bTime = b.solve_time_seconds ?? Number.POSITIVE_INFINITY;
   if (aTime !== bTime) return aTime - bTime;
 
-  return 0;
+  return a.player_id.localeCompare(b.player_id);
 }
 
 export function rankLeaderboardRows(entries: PublicLeaderboardRow[]): PublicLeaderboardRow[] {
@@ -149,17 +149,52 @@ export function rankLeaderboardRows(entries: PublicLeaderboardRow[]): PublicLead
   });
 }
 
-export async function fetchRankedLeaderboardRows(options?: { framework?: string | null }) {
-  let query = supabaseAdmin
-    .from('ka_leaderboard')
-    .select('*', { count: 'exact' })
-    .range(0, 9999);
+export async function fetchRankedLeaderboardRows(options?: { framework?: string | null; school?: string | null }) {
+  const frameworkNeedle = asOptionalString(options?.framework ?? null)?.toLowerCase() ?? null;
+  const schoolNeedle = asOptionalString(options?.school ?? null)?.toLowerCase() ?? null;
+  let matchedFrameworkUsers: Array<{ id: string; framework: string | null }> | null = null;
 
-  if (options?.framework) {
-    query = query.eq('framework', options.framework);
+  if (frameworkNeedle) {
+    const { data: frameworkUsers, error: frameworkError } = await supabaseAdmin
+      .from('ka_users')
+      .select('id, framework')
+      .ilike('framework', `%${frameworkNeedle}%`)
+      .range(0, 9999);
+
+    if (frameworkError) throw frameworkError;
+
+    matchedFrameworkUsers = (frameworkUsers ?? [])
+      .map((user) => ({
+        id: String(user.id),
+        framework: asOptionalString(user.framework),
+      }))
+      .filter((user) => user.id.length > 0);
+
+    if (matchedFrameworkUsers.length === 0) {
+      return {
+        rows: [] as PublicLeaderboardRow[],
+        total: 0,
+        frameworkStats: [] as Array<{ framework: string; count: number; percentage: number }>,
+      };
+    }
   }
 
-  const { data: rawRows, count, error } = await query;
+  let query = supabaseAdmin
+    .from('ka_leaderboard')
+    .select('*', { count: 'exact' });
+
+  if (schoolNeedle) {
+    query = query.ilike('school', `%${schoolNeedle}%`);
+  }
+
+  if (matchedFrameworkUsers) {
+    query = query.in(
+      'participant_id',
+      matchedFrameworkUsers.map((user) => user.id),
+    );
+  }
+
+  const { data: rawRows, count, error } = await query.range(0, 9999);
   if (error) throw error;
 
   const participantIds = (rawRows ?? [])
@@ -168,7 +203,11 @@ export async function fetchRankedLeaderboardRows(options?: { framework?: string 
 
   const frameworkByParticipantId = new Map<string, string | null>();
 
-  if (participantIds.length > 0) {
+  if (matchedFrameworkUsers) {
+    for (const user of matchedFrameworkUsers) {
+      frameworkByParticipantId.set(user.id, user.framework);
+    }
+  } else if (participantIds.length > 0) {
     const { data: users } = await supabaseAdmin
       .from('ka_users')
       .select('id, framework')
@@ -183,7 +222,17 @@ export async function fetchRankedLeaderboardRows(options?: { framework?: string 
     .map((entry) => normalizeLeaderboardRow(entry as Record<string, unknown>, frameworkByParticipantId))
     .filter((entry): entry is PublicLeaderboardRow => entry !== null);
 
-  const ranked = rankLeaderboardRows(normalized);
+  const filtered = normalized.filter((row) => {
+    if (frameworkNeedle && !(row.framework?.toLowerCase().includes(frameworkNeedle))) {
+      return false;
+    }
+    if (schoolNeedle && !(row.school?.toLowerCase().includes(schoolNeedle))) {
+      return false;
+    }
+    return true;
+  });
+
+  const ranked = rankLeaderboardRows(filtered);
 
   const top100 = ranked.slice(0, 100);
   const frameworkCounts = new Map<string, number>();
@@ -199,13 +248,13 @@ export async function fetchRankedLeaderboardRows(options?: { framework?: string 
     .map(([framework, count]) => ({
       framework,
       count,
-      percentage: Math.round((count / Math.max(1, statCount)) * 100)
+      percentage: Math.round((count / Math.max(1, statCount)) * 100),
     }))
-    .sort((a, b) => b.count - a.count);
+    .sort((a, b) => b.count - a.count || a.framework.localeCompare(b.framework));
 
   return {
     rows: ranked,
-    total: count ?? normalized.length,
+    total: frameworkNeedle || schoolNeedle ? ranked.length : (count ?? ranked.length),
     frameworkStats,
   };
 }

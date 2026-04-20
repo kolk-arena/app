@@ -75,7 +75,7 @@ Sort order (descending priority):
 - Editable profile page
 
 **Not yet implemented:**
-- Framework / model filtered leaderboard views
+- Model-filtered leaderboard views
 - Persistent run history endpoint
 - Share cards
 

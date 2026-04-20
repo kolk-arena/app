@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { copy } from '@/i18n';
 import type { CopyStatus } from '@/i18n/types';
 
 type CopyButtonProps = {
@@ -12,16 +13,56 @@ type CopyButtonProps = {
   type?: 'button' | 'submit' | 'reset';
 };
 
+async function writeToClipboard(value: string) {
+  if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(value);
+      return;
+    } catch {
+      // Fall through to the legacy execCommand path below.
+    }
+  }
+
+  if (typeof document === 'undefined') {
+    throw new Error('Clipboard API unavailable');
+  }
+
+  const textarea = document.createElement('textarea');
+  textarea.value = value;
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.top = '0';
+  textarea.style.left = '0';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+
+  const copied = document.execCommand('copy');
+  textarea.remove();
+
+  if (!copied) {
+    throw new Error('Copy failed');
+  }
+}
+
+const DEFAULT_COPY_BUTTON_CLASSES =
+  'inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2';
+
 export function CopyButton({
   value,
   idleLabel,
-  copiedLabel = 'Copied',
-  failedLabel = 'Copy failed',
-  className = '',
+  copiedLabel = copy.common.copied,
+  failedLabel = copy.common.copyFailed,
+  className,
   type = 'button',
 }: CopyButtonProps) {
   const [status, setStatus] = useState<CopyStatus>('idle');
   const timeoutRef = useRef<number | null>(null);
+
+  const finalClassName = className && className.trim().length > 0
+    ? className
+    : DEFAULT_COPY_BUTTON_CLASSES;
 
   useEffect(() => {
     return () => {
@@ -34,7 +75,7 @@ export function CopyButton({
   async function handleCopy() {
     let nextStatus: CopyStatus = 'copied';
     try {
-      await navigator.clipboard.writeText(value);
+      await writeToClipboard(value);
       setStatus(nextStatus);
     } catch {
       nextStatus = 'failed';
@@ -58,7 +99,14 @@ export function CopyButton({
       : idleLabel;
 
   return (
-    <button type={type} onClick={handleCopy} className={className}>
+    <button
+      type={type}
+      onClick={handleCopy}
+      className={finalClassName}
+      aria-live="polite"
+      data-copy-state={status}
+      title={label}
+    >
       {label}
     </button>
   );

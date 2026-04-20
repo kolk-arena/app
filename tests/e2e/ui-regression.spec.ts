@@ -207,41 +207,112 @@ async function mockEmailRegister(page: Page) {
 
 async function mockLeaderboard(page: Page) {
   await page.route('**/api/leaderboard?*', async (route) => {
+    const entries = [
+      {
+        player_id: PLAYER_ID,
+        rank: 1,
+        display_name: 'Ada Lovelace',
+        handle: 'ada',
+        framework: 'OpenAI Agents',
+        school: 'Independent',
+        highest_level: 7,
+        best_score_on_highest: 96.5,
+        best_color_band: 'BLUE',
+        best_quality_label: 'Exceptional',
+        solve_time_seconds: 214,
+        efficiency_badge: true,
+        total_score: 320.5,
+        levels_completed: 7,
+        tier: 'champion',
+        pioneer: false,
+        last_submission_at: '2026-04-16T00:00:00.000Z',
+        country_code: 'GB',
+      },
+      {
+        player_id: '22222222-2222-4222-8222-222222222222',
+        rank: 2,
+        display_name: 'Grace Hopper',
+        handle: 'grace',
+        framework: 'Cursor',
+        school: 'Independent',
+        highest_level: 6,
+        best_score_on_highest: 90,
+        best_color_band: 'GREEN',
+        best_quality_label: 'Strong',
+        solve_time_seconds: 301,
+        efficiency_badge: false,
+        total_score: 280,
+        levels_completed: 6,
+        tier: 'specialist',
+        pioneer: false,
+        last_submission_at: '2026-04-15T00:00:00.000Z',
+        country_code: 'US',
+      },
+    ];
+    const url = new URL(route.request().url());
+    const framework = url.searchParams.get('framework')?.toLowerCase() ?? '';
+    const school = url.searchParams.get('school')?.toLowerCase() ?? '';
+    const filteredEntries = entries.filter((entry) => {
+      const matchesFramework = !framework || (entry.framework ?? '').toLowerCase().includes(framework);
+      const matchesSchool = !school || (entry.school ?? '').toLowerCase().includes(school);
+      return matchesFramework && matchesSchool;
+    });
+    const frameworkCounts = new Map<string, number>();
+    for (const entry of filteredEntries) {
+      if (!entry.framework) continue;
+      frameworkCounts.set(entry.framework, (frameworkCounts.get(entry.framework) ?? 0) + 1);
+    }
+
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        leaderboard: [
-          {
-            player_id: PLAYER_ID,
-            rank: 1,
-            display_name: 'Ada Lovelace',
-            handle: 'ada',
-            school: 'Independent',
-            highest_level: 7,
-            best_score_on_highest: 96.5,
-            total_score: 320.5,
-            levels_completed: 7,
-            tier: 'champion',
-            last_submission_at: '2026-04-16T00:00:00.000Z',
-          },
-          {
-            player_id: '22222222-2222-4222-8222-222222222222',
-            rank: 2,
-            display_name: 'Grace Hopper',
-            handle: 'grace',
-            school: 'Independent',
-            highest_level: 6,
-            best_score_on_highest: 90,
-            total_score: 280,
-            levels_completed: 6,
-            tier: 'specialist',
-            last_submission_at: '2026-04-15T00:00:00.000Z',
-          },
-        ],
-        total: 2,
+        leaderboard: filteredEntries,
+        total: filteredEntries.length,
         page: 1,
         limit: 25,
+        framework_stats: Array.from(frameworkCounts.entries()).map(([name, count]) => ({
+          framework: name,
+          count,
+          percentage: Math.round((count / Math.max(filteredEntries.length, 1)) * 100),
+        })),
+      }),
+    });
+  });
+
+  await page.route('**/api/activity-feed', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        feed: [
+          {
+            id: 'feed-1',
+            player_id: PLAYER_ID,
+            level: 7,
+            display_name: 'Ada Lovelace',
+            framework: 'OpenAI Agents',
+            total_score: 96.5,
+            color_band: 'BLUE',
+            quality_label: 'Exceptional',
+            solve_time_seconds: 214,
+            submitted_at: '2026-04-16T00:00:00.000Z',
+            unlocked: true,
+          },
+          {
+            id: 'feed-2',
+            player_id: '22222222-2222-4222-8222-222222222222',
+            level: 6,
+            display_name: 'Grace Hopper',
+            framework: 'Cursor',
+            total_score: 90,
+            color_band: 'GREEN',
+            quality_label: 'Strong',
+            solve_time_seconds: 301,
+            submitted_at: '2026-04-15T00:00:00.000Z',
+            unlocked: false,
+          },
+        ],
       }),
     });
   });
@@ -251,6 +322,11 @@ function playerDetailPayload() {
   return {
     leaderboardRow: {
       highest_level: 7,
+      best_score_on_highest: 96.5,
+      best_color_band: 'BLUE',
+      best_quality_label: 'Exceptional',
+      solve_time_seconds: 214,
+      efficiency_badge: true,
       total_score: 320.5,
       levels_completed: 7,
       tier: 'champion',
@@ -326,6 +402,10 @@ test.describe('frontend UI regression', () => {
     await page.getByRole('button', { name: 'Copy L0 smoke test' }).first().click();
     await expect(page.getByRole('button', { name: 'Copied L0 smoke test' }).first()).toBeVisible();
     await expect.poll(() => readClipboard(page)).toContain('https://kolkarena.com/api/challenge/0');
+    await expect(page.getByText('#1 · Fetch L0 and preserve the anonymous session cookie')).toBeVisible();
+    await expect(page.getByText('#2 · Submit with the same cookie jar and attemptToken')).toBeVisible();
+    await page.getByRole('button', { name: 'Copy this step #1' }).first().click();
+    await expect.poll(() => readClipboard(page)).toContain('ATTEMPT="$(jq -r \'.challenge.attemptToken\' /tmp/kolk_l0.json)"');
 
     await page.getByRole('button', { name: 'Copy agent starter' }).first().click();
     await expect.poll(() => readClipboard(page)).toContain('Produce only the final primaryText I should submit.');
@@ -377,7 +457,13 @@ test.describe('frontend UI regression', () => {
     await page.getByRole('button', { name: 'Save profile' }).click();
 
     await expect(page.getByText('Session expired')).toBeVisible();
-    await expect(page.getByText('Your session has expired. Sign in again to save your changes.', { exact: true })).toBeVisible();
+    await expect(
+      page.getByText(
+        'Your session has expired. Sign in again to save your changes. Your edits are preserved below.',
+        { exact: true },
+      ),
+    ).toBeVisible();
+    await expect(page.getByLabel('Display name')).toHaveValue('Ada Byron');
     await expect(page.getByRole('main').getByRole('link', { name: 'GitHub' })).toBeVisible();
   });
 
@@ -388,6 +474,8 @@ test.describe('frontend UI regression', () => {
     await page.goto('/play');
 
     await expect(page.getByText('Anonymous browser-session progress detected up to')).toBeVisible();
+    await expect(page.getByText('Highest cleared: L3')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Continue to L4' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Start L4 →' })).toBeVisible();
     await expect(page.getByText('Locked · clear L4 first')).toBeVisible();
   });
@@ -505,9 +593,13 @@ test.describe('frontend UI regression', () => {
     });
 
     await page.goto('/challenge/1', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByText('# Order Brief A').first()).toBeVisible({ timeout: 60_000 });
-    await page.getByRole('button', { name: 'Re-fetch a fresh brief' }).click();
-    await expect(page.getByText('# Order Brief B').first()).toBeVisible({ timeout: 60_000 });
+    await expect(page.locator('pre:visible').filter({ hasText: '# Order Brief A' })).toBeVisible({
+      timeout: 60_000,
+    });
+    await page.getByRole('button', { name: 'Re-fetch a fresh brief' }).filter({ visible: true }).first().click();
+    await expect(page.locator('pre:visible').filter({ hasText: '# Order Brief B' })).toBeVisible({
+      timeout: 60_000,
+    });
     await expect.poll(() => fetchCount).toBe(2);
   });
 
@@ -551,20 +643,34 @@ test.describe('frontend UI regression', () => {
 
     await page.goto('/challenge/1', { waitUntil: 'domcontentloaded' });
 
-    await expect(page.getByRole('button', { name: '🤖 Copy System Prompt for AI' })).toBeVisible({ timeout: 60_000 });
-    await expect(page.getByText('ChallengeBrief', { exact: true }).first()).toBeVisible({ timeout: 60_000 });
-    await expect(page.getByText('View structured brief JSON').first()).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByRole('button', { name: 'Copy AI handoff brief' }).filter({ visible: true }).first()).toBeVisible({
+      timeout: 60_000,
+    });
+    await expect(page.getByRole('button', { name: 'Copy structured brief JSON' }).filter({ visible: true }).first()).toBeVisible({
+      timeout: 60_000,
+    });
+    await expect(page.locator('summary:visible').filter({ hasText: 'View structured brief JSON' })).toBeVisible({
+      timeout: 60_000,
+    });
 
-    await page.getByRole('button', { name: '🤖 Copy System Prompt for AI' }).click();
+    await page.getByRole('button', { name: 'Copy AI handoff brief' }).filter({ visible: true }).first().click();
     await expect.poll(() => readClipboard(page)).toContain('Level: L1 — Quick Translate');
     await expect.poll(() => readClipboard(page)).toContain('structured_brief JSON');
 
-    await page.getByRole('button', { name: 'Copy submit contract' }).click();
+    await page.getByRole('button', { name: 'Copy submit contract' }).filter({ visible: true }).first().click();
     await expect.poll(() => readClipboard(page)).toContain('"attemptToken": "attempt-token-copy-tools"');
 
-    await page.getByRole('button', { name: 'Python' }).click();
-    await page.getByRole('button', { name: 'Copy python snippet' }).click();
+    await page.getByRole('tab', { name: 'Python' }).filter({ visible: true }).first().click();
+    await expect(
+      page.locator('p:visible', { hasText: '#1 · Fetch the challenge with a persistent requests session' }).first(),
+    ).toBeVisible();
+    await expect(
+      page.locator('p:visible', { hasText: '#3 · Submit with the same session so the cookie replays automatically' }).first(),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Copy python snippet' }).filter({ visible: true }).first().click();
     await expect.poll(() => readClipboard(page)).toContain('requests.Session()');
+    await page.locator('button:visible', { hasText: 'Copy this step #1' }).first().click();
+    await expect.poll(() => readClipboard(page)).toContain('challenge = response.json()["challenge"]');
   });
 
   test('leaderboard preserves detail selection across refresh', async ({ page }) => {
@@ -585,6 +691,7 @@ test.describe('frontend UI regression', () => {
     ]);
     await expect(page).toHaveURL(new RegExp(`\\/leaderboard\\?player=${PLAYER_ID}`));
     await expect(page.getByText('Strong structured delivery with clear coverage.')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Copy profile link' })).toBeVisible();
     await expect(page.getByText('Detail selection is stored in the URL and survives refresh.')).toBeVisible();
 
     await Promise.all([
@@ -639,7 +746,7 @@ test.describe('frontend UI regression', () => {
     await expect.poll(() => detailRequests).toBeGreaterThan(1);
   });
 
-  test('leaderboard filter clears selected player and returns to list-only state', async ({ page }) => {
+  test('leaderboard filter preserves selected player and marks detail as outside the current filtered view', async ({ page }) => {
     await mockLeaderboard(page);
     await page.route(`**/api/leaderboard/${PLAYER_ID}`, async (route) => {
       await route.fulfill({
@@ -663,9 +770,9 @@ test.describe('frontend UI regression', () => {
     await page.getByLabel('Framework Filter').fill('Cursor');
     await page.getByRole('button', { name: 'Apply' }).click();
 
-    await expect(page).toHaveURL(/\/leaderboard\?page=1&limit=25&framework=Cursor|\/leaderboard\?framework=Cursor&page=1&limit=25|\/leaderboard\?framework=Cursor&page=1|\/leaderboard\?page=1&framework=Cursor|\/leaderboard\?framework=Cursor/);
-    await expect(page).not.toHaveURL(new RegExp(`player=${PLAYER_ID}`));
-    await expect(page.getByRole('heading', { name: 'Select a player' })).toBeVisible();
+    await expect(page).toHaveURL(new RegExp(`\\/leaderboard\\?.*player=${PLAYER_ID}.*framework=Cursor|\\/leaderboard\\?.*framework=Cursor.*player=${PLAYER_ID}`));
+    await expect(page.getByText('Selected player is outside the current list view.')).toBeVisible();
+    await expect(page.getByText('Strong structured delivery with clear coverage.')).toBeVisible();
   });
 
   test('mobile leaderboard cards keep navigation semantics instead of expand semantics', async ({ page }) => {
@@ -674,7 +781,7 @@ test.describe('frontend UI regression', () => {
 
     await page.goto('/leaderboard');
 
-    const mobileCard = page.getByRole('button', { name: 'Open player page for Ada Lovelace' });
+    const mobileCard = page.getByRole('link', { name: 'Open player page for Ada Lovelace' });
     await expect(mobileCard).toBeVisible();
     await expect(mobileCard).not.toHaveAttribute('aria-controls', /.+/);
     await expect(mobileCard).not.toHaveAttribute('aria-expanded', /.+/);

@@ -17,11 +17,14 @@ export type ErrorCode =
   | 'RATE_LIMIT_MINUTE'
   | 'RATE_LIMIT_HOUR'
   | 'RATE_LIMIT_DAY'
+  | 'RATE_LIMITED'
   | 'RETRY_LIMIT_EXCEEDED'
   | 'ACCOUNT_FROZEN'
   | 'IDENTITY_MISMATCH'
   | 'ATTEMPT_ALREADY_PASSED'
   | 'ATTEMPT_TOKEN_EXPIRED'
+  | 'MISSING_IDEMPOTENCY_KEY'
+  | 'DUPLICATE_REQUEST'
   | 'INVALID_JSON'
   | 'VALIDATION_ERROR'
   | 'TEXT_TOO_LONG'
@@ -33,8 +36,11 @@ export type ErrorCode =
   | 'SCORING_UNAVAILABLE'
   | 'CHALLENGE_NOT_FOUND'
   | 'INVALID_ATTEMPT_TOKEN'
+  | 'INVALID_PLAYER_ID'
+  | 'PLAYER_NOT_FOUND'
   | 'SUBMISSION_FAILED'
   | 'LEADERBOARD_ERROR'
+  | 'ACTIVITY_FEED_ERROR'
   | 'SCHEMA_NOT_READY'
   | 'SESSION_ERROR'
   | 'NO_CHALLENGES'
@@ -45,17 +51,17 @@ export type ScriptLang = 'curl' | 'python' | 'node';
 export interface FrontendCatalog {
   locale: FrontendLocale;
   localeCode: FrontendLocaleCode | string;
-  app: {
-    name: string;
-    githubUrl: string;
-    canonicalOrigin: string;
-  };
   meta: {
     titleDefault: string;
     titleTemplate: string;
     description: string;
     openGraphDescription: string;
     twitterDescription: string;
+  };
+  common: {
+    copyFailed: string;
+    copied: string;
+    copyThisStep: string;
   };
   nav: {
     home: string;
@@ -83,6 +89,18 @@ export interface FrontendCatalog {
     emailRequired: string;
     startEmailSignInFailed: string;
     checkEmail: string;
+    sessionCheckUnknown: string;
+    sessionCheckFailed: (message: string) => string;
+    oauthGitHub: string;
+    oauthGoogle: string;
+    emailSignInEyebrow: string;
+    emailSignInBody: string;
+    emailLabel: string;
+    emailPlaceholder: string;
+    displayNameLabel: string;
+    displayNamePlaceholder: string;
+    sending: string;
+    sendSignInLink: string;
     statusMessages: {
       success: { title: string; body: string };
       missing_code: { title: string; body: string };
@@ -138,6 +156,7 @@ export interface FrontendCatalog {
       bodySuffix: string;
       ladderPrefix: string;
       ladderSuffix: string;
+      pioneerBadgeLabel: string;
     };
     stack: {
       eyebrow: string;
@@ -147,10 +166,18 @@ export interface FrontendCatalog {
     };
   };
   homeInteractive: {
+    starterScriptsEyebrow: string;
+    starterScriptsBody: string;
+    handoffEyebrow: string;
+    handoffBody: string;
+    resourcesEyebrow: string;
+    resourcesBody: string;
     copyL0: string;
     copiedL0: string;
+    downloadL0: string;
     copyL1: string;
     copiedL1: string;
+    downloadL1: string;
     copyAgentPrompt: string;
     copiedAgentPrompt: string;
     copyFailed: string;
@@ -161,7 +188,102 @@ export interface FrontendCatalog {
     authTitle: string;
     authDescription: string;
   };
+  profile: {
+    pageEyebrow: string;
+    pageTitle: string;
+    logOut: string;
+    loggingOut: string;
+    loading: string;
+    loadFailedTitle: string;
+    loadFailedHint: string;
+    loadFailedFallback: string;
+    saveFailedFallback: string;
+    logoutFailedFallback: string;
+    retry: string;
+    signInTitle: string;
+    signInDescription: string;
+    sessionExpiredTitle: string;
+    sessionExpiredBody: string;
+    sessionExpiredGithub: string;
+    sessionExpiredGoogle: string;
+    summary: {
+      canonicalEmail: string;
+      loginMethods: string;
+      highestUnlockedLevel: string;
+      betaPioneer: string;
+      verifiedAt: string;
+      emailFallback: string;
+      pioneerYes: string;
+      pioneerNo: string;
+      notSet: string;
+    };
+    progression: {
+      eyebrow: string;
+      title: string;
+      viewOnLeaderboard: string;
+      highestLevel: string;
+      publicBetaProgress: string;
+      betaLevels: (current: number, total: number) => string;
+      nextStep: string;
+      nextStepComplete: string;
+      nextStepAttempt: (level: number) => string;
+      pioneerUnlocked: string;
+    };
+    publicProfile: {
+      eyebrow: string;
+      title: string;
+      displayName: string;
+      handle: string;
+      framework: string;
+      school: string;
+      country: string;
+      save: string;
+      saving: string;
+      saved: string;
+      success: string;
+    };
+    apiTokens: {
+      sectionEyebrow: string;
+      sectionTitle: string;
+      sectionBody: string;
+      signInRequired: string;
+      failedToLoad: string;
+      nameRequired: string;
+      pickScopeRequired: string;
+      failedToCreate: string;
+      revokeConfirm: string;
+      failedToRevoke: string;
+      newTokenTitle: string;
+      copyToken: string;
+      copiedToken: string;
+      dismissToken: string;
+      formTitle: string;
+      tokenName: string;
+      tokenNamePlaceholder: string;
+      scopes: string;
+      scopesHelp: string;
+      create: string;
+      creating: string;
+      activeTokens: string;
+      loading: string;
+      empty: string;
+      createdAt: (value: string) => string;
+      lastUsedAt: (value: string) => string;
+      neverUsed: string;
+      expiresAt: (value: string) => string;
+      noExpiry: string;
+      revoke: string;
+      scopeOptions: {
+        submitOnboarding: { label: string; detail: string };
+        submitRanked: { label: string; detail: string };
+        fetchChallenge: { label: string; detail: string };
+        readProfile: { label: string; detail: string };
+        writeProfile: { label: string; detail: string };
+      };
+    };
+  };
   play: {
+    metaDescription: string;
     levelCards: readonly {
       level: BetaPublicLevel;
       name: string;
@@ -180,11 +302,54 @@ export interface FrontendCatalog {
       anonymousTail: string;
       signedOutPrefix: string;
       signedOutTail: string;
+      signInCta: string;
+    };
+    summary: {
+      modeLabel: string;
+      progressLabel: string;
+      nextLabel: string;
+      anonymousMode: string;
+      signedInMode: string;
+      loadingValue: string;
+      progressValue: (level: number) => string;
+      anonymousUnlockHint: string;
+      signedInUnlockHint: string;
+      nextStepSignIn: string;
+      nextStepStart: (level: number) => string;
+      nextStepComplete: string;
+    };
+    actions: {
+      continueToLevel: (level: number) => string;
+      runL0: string;
+      signInToCompete: string;
+      openLeaderboard: string;
+      openProfile: string;
+    };
+    cardUi: {
+      suggestedTime: (minutes: number) => string;
+      bandLabel: (band: string) => string;
+      smokeTestBadge: string;
+      runLevel0: string;
+      signInRequiredBadge: string;
+      signInUnlockLevels: string;
+      progressionLocked: (level: number) => string;
+      goToLevel: (level: number) => string;
+      startLevel: (level: number) => string;
+      recommendedBadge: string;
+      clearedBadge: string;
+      availableBadge: string;
+      practiceBadge: string;
+      competitiveBadge: string;
     };
     agentPanel: {
       eyebrow: string;
       title: string;
       body: string;
+      directEyebrow: string;
+      directBody: string;
+      resourcesEyebrow: string;
+      resourcesTitle: string;
+      resourcesBody: string;
       copyAgentPrompt: string;
       copiedAgentPrompt: string;
       copySubmitContract: string;
@@ -197,11 +362,23 @@ export interface FrontendCatalog {
     };
   };
   challenge: {
+    header: {
+      backToPlay: string;
+      levelBand: (level: number, band: string) => string;
+      bossLevel: string;
+      resultLevelTitle: (level: number, levelName: string) => string;
+    };
     agentPanel: {
       eyebrow: string;
       title: string;
       body: string;
       steps: readonly string[];
+      directActionsEyebrow: string;
+      directActionsBody: string;
+      supportAssetsEyebrow: string;
+      supportAssetsBody: string;
+      scriptToolkitEyebrow: string;
+      scriptToolkitBody: string;
       copyAgentBrief: string;
       copiedAgentBrief: string;
       copyOutputTemplate: string;
@@ -227,6 +404,7 @@ export interface FrontendCatalog {
       copyScriptButton: (lang: ScriptLang) => string;
       downloadScriptButton: string;
       downloadScriptFilename: (lang: ScriptLang) => string;
+      scriptTabListAriaLabel: string;
       scriptTabs: {
         curl: string;
         python: string;
@@ -394,6 +572,7 @@ export interface FrontendCatalog {
     };
   };
   leaderboard: {
+    metaDescription: string;
     heroEyebrow: string;
     heroTitle: string;
     heroDescription: string;
@@ -407,10 +586,14 @@ export interface FrontendCatalog {
     topTierLabel: (tier: string) => string;
     frameworkFilter: string;
     frameworkPlaceholder: string;
+    schoolFilter: string;
+    schoolPlaceholder: string;
     applyFilter: string;
     clearFilter: string;
     allFrameworks: string;
     activeFilterEyebrow: string;
+    activeFilterFramework: string;
+    activeFilterSchool: string;
     viewEyebrow: string;
     showingLabel: (from: number, to: number, total: number) => string;
     sortExplainer: string;
@@ -425,7 +608,7 @@ export interface FrontendCatalog {
     refreshing: string;
     loading: string;
     noEntriesTitle: string;
-    noEntriesFrameworkHint: string;
+    noEntriesFilteredHint: string;
     noEntriesDefaultHint: string;
     previousPage: string;
     nextPage: string;
@@ -465,6 +648,8 @@ export interface FrontendCatalog {
       retry: string;
       clearSelection: string;
       clearShort: string;
+      copyProfileLink: string;
+      copiedProfileLink: string;
       betaPioneerBadge: string;
       profilePlayerFallback: string;
       noPublicHandle: string;
@@ -539,12 +724,51 @@ export interface FrontendCatalog {
       highestLabel: string;
       frontierLabel: string;
       frameworkLabel: string;
+      schoolLabel: string;
+      schoolFallback: string;
       lastSubmissionLabel: (formatted: string) => string;
       noSubmissionsYet: string;
       noSubmissionFallback: string;
       openPlayerDetailAriaLabel: (name: string) => string;
       openPlayerPageAriaLabel: (name: string) => string;
     };
+  };
+  device: {
+    signInTitle: string;
+    signInDescription: string;
+    panelEyebrow: string;
+    panelTitle: string;
+    cliCommand: string;
+    panelBodyPrefix: string;
+    panelBodySuffix: string;
+    enterCodeTitle: string;
+    enterCodeBodyPrefix: string;
+    enterCodeBodySuffix: string;
+    codePlaceholder: string;
+    continue: string;
+    invalidCodePrefix: string;
+    invalidCodeSuffix: string;
+    expiredCodePrefix: string;
+    expiredCodeSuffix: string;
+    deniedRequest: string;
+    verifiedRequest: string;
+    missingCode: string;
+    missingProofToken: string;
+    pickOneScope: string;
+    authorizing: string;
+    authorizeFailed: string;
+    authorizeSuccess: string;
+    cancelling: string;
+    cancelFailed: string;
+    cancelSuccess: string;
+    userCode: string;
+    client: string;
+    requestedAt: (value: string) => string;
+    requestedScopesTitle: string;
+    requestedScopesBody: string;
+    expiresAt: (value: string) => string;
+    authorize: string;
+    cancel: string;
   };
   errors: Record<ErrorCode, string>;
 }

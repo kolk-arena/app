@@ -89,13 +89,13 @@ export function AuthSignInPanel({
 
         setSessionState('anonymous');
         setSessionError(
-          typeof payload?.error === 'string' ? payload.error : 'Unable to confirm current session state.',
+          typeof payload?.error === 'string' ? payload.error : copy.auth.sessionCheckUnknown,
         );
       })
       .catch((error: unknown) => {
         if (!active || controller.signal.aborted) return;
         setSessionState('anonymous');
-        setSessionError(error instanceof Error ? error.message : 'Unable to confirm current session state.');
+        setSessionError(error instanceof Error ? error.message : copy.auth.sessionCheckUnknown);
       });
 
     return () => {
@@ -147,26 +147,26 @@ export function AuthSignInPanel({
   const encodedNext = encodeURIComponent(nextPath);
 
   return (
-    <div className="rounded-3xl border border-amber-200 bg-amber-50 p-4 shadow-[0_20px_80px_rgba(15,23,42,0.08)] sm:p-6 lg:p-8">
+    <div className="rounded-md border-2 border-slate-950 bg-amber-50 p-4 sm:p-6 lg:p-8">
       <div className="space-y-6">
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
+          <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-amber-800">
             {copy.auth.signInRequiredEyebrow}
           </p>
           <h2 className="text-2xl font-black tracking-tight text-slate-950">
             {title}
           </h2>
-          <p className="max-w-2xl text-sm leading-7 text-amber-900">
+          <p className="max-w-2xl text-sm leading-7 text-slate-800">
             {description}
           </p>
         </div>
 
         {authStatusMessage ? (
           <div
-            className={`rounded-2xl px-4 py-3 text-sm ${
+            className={`rounded-md border-2 px-4 py-3 text-sm ${
               authStatusMessage.tone === 'success'
-                ? 'border border-emerald-200 bg-emerald-50 text-emerald-900'
-                : 'border border-rose-200 bg-rose-50 text-rose-900'
+                ? 'border-emerald-700 bg-emerald-50 text-emerald-900'
+                : 'border-rose-700 bg-rose-50 text-rose-900'
             }`}
           >
             <p className="font-semibold">{authStatusMessage.title}</p>
@@ -175,13 +175,13 @@ export function AuthSignInPanel({
         ) : null}
 
         {sessionState === 'checking' ? (
-          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+          <div className="rounded-md border-2 border-slate-950 bg-white px-4 py-3 text-sm text-slate-700">
             {copy.auth.checkingSession}
           </div>
         ) : null}
 
         {sessionState === 'authenticated' ? (
-          <div className="rounded-2xl border border-emerald-200 bg-white px-5 py-4 text-sm text-slate-700">
+          <div className="rounded-md border-2 border-emerald-700 bg-white px-5 py-4 text-sm text-slate-800">
             <p className="font-semibold text-slate-950">{copy.auth.alreadySignedInTitle}</p>
             <p className="mt-1">
               {copy.auth.alreadySignedInBody}
@@ -189,13 +189,13 @@ export function AuthSignInPanel({
             <div className="mt-4 flex flex-wrap gap-3">
               <Link
                 href={nextPath}
-                className="inline-flex items-center rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                className="inline-flex items-center rounded-md border-2 border-slate-950 bg-slate-950 px-5 py-3 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
               >
                 {copy.auth.continue}
               </Link>
               <Link
                 href="/profile"
-                className="inline-flex items-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+                className="inline-flex items-center rounded-md border-2 border-slate-950 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
               >
                 {copy.auth.openProfile}
               </Link>
@@ -204,8 +204,8 @@ export function AuthSignInPanel({
         ) : null}
 
         {sessionError && sessionState !== 'authenticated' ? (
-          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-            Could not confirm existing session state: {sessionError}
+          <div className="rounded-md border-2 border-slate-950 bg-white px-4 py-3 text-sm text-slate-700">
+            {copy.auth.sessionCheckFailed(sessionError)}
           </div>
         ) : null}
 
@@ -214,32 +214,32 @@ export function AuthSignInPanel({
         <div className="grid gap-3 sm:grid-cols-2">
           <a
             href={`/api/auth/oauth/github?next=${encodedNext}`}
-            className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-slate-800"
+            className="inline-flex min-h-12 w-full items-center justify-center rounded-md border-2 border-slate-950 bg-slate-950 px-5 py-3 text-center font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
           >
-            Sign in with GitHub
+            {copy.auth.oauthGitHub}
           </a>
           <a
             href={`/api/auth/oauth/google?next=${encodedNext}`}
-            className="inline-flex min-h-12 w-full items-center justify-center rounded-full border border-slate-300 bg-white px-5 py-3 text-center text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+            className="inline-flex min-h-12 w-full items-center justify-center rounded-md border-2 border-slate-950 bg-white px-5 py-3 text-center font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
           >
-            Sign in with Google
+            {copy.auth.oauthGoogle}
           </a>
         </div>
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-4 sm:p-5">
+        <div className="rounded-md border-2 border-slate-950 bg-white p-4 sm:p-5">
           <div className="space-y-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                Email sign-in
+              <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">
+                {copy.auth.emailSignInEyebrow}
               </p>
-              <p className="mt-2 text-sm leading-7 text-slate-600">
-                Enter your email to receive the verification link or code.
+              <p className="mt-2 text-sm leading-7 text-slate-700">
+                {copy.auth.emailSignInBody}
               </p>
             </div>
 
             <form onSubmit={handleEmailSignIn} className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-              <label className="space-y-2 text-sm text-slate-700">
-                <span>Email</span>
+              <label className="space-y-2 text-sm text-slate-800">
+                <span className="font-mono font-semibold uppercase tracking-[0.14em] text-slate-700">{copy.auth.emailLabel}</span>
                 <input
                   type="email"
                   required
@@ -248,41 +248,41 @@ export function AuthSignInPanel({
                   autoComplete="email"
                   inputMode="email"
                   spellCheck={false}
-                  className="min-h-12 w-full rounded-2xl border border-slate-300 px-4 py-3 text-base sm:text-sm"
-                  placeholder="you@example.com"
+                  className="min-h-12 w-full rounded-md border-2 border-slate-950 bg-white px-4 py-3 text-base text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950 sm:text-sm"
+                  placeholder={copy.auth.emailPlaceholder}
                 />
               </label>
-              <label className="space-y-2 text-sm text-slate-700">
-                <span>Display name</span>
+              <label className="space-y-2 text-sm text-slate-800">
+                <span className="font-mono font-semibold uppercase tracking-[0.14em] text-slate-700">{copy.auth.displayNameLabel}</span>
                 <input
                   type="text"
                   value={displayName}
                   onChange={(event) => setDisplayName(event.target.value)}
                   autoComplete="nickname"
                   maxLength={60}
-                  className="min-h-12 w-full rounded-2xl border border-slate-300 px-4 py-3 text-base sm:text-sm"
-                  placeholder="Optional"
+                  className="min-h-12 w-full rounded-md border-2 border-slate-950 bg-white px-4 py-3 text-base text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950 sm:text-sm"
+                  placeholder={copy.auth.displayNamePlaceholder}
                 />
               </label>
               <div className="flex items-end">
                 <button
                   type="submit"
                   disabled={emailState === 'submitting' || email.trim().length === 0}
-                  className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60 lg:w-auto"
+                  className="inline-flex min-h-12 w-full items-center justify-center rounded-md border-2 border-slate-950 bg-slate-950 px-5 py-3 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950 disabled:opacity-60 disabled:hover:bg-slate-950 disabled:hover:text-white lg:w-auto"
                 >
-                  {emailState === 'submitting' ? 'Sending...' : 'Send sign-in link'}
+                  {emailState === 'submitting' ? copy.auth.sending : copy.auth.sendSignInLink}
                 </button>
               </div>
             </form>
 
             {emailState === 'success' ? (
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800" aria-live="polite">
+              <div className="rounded-md border-2 border-emerald-700 bg-emerald-50 px-4 py-3 text-sm text-emerald-900" aria-live="polite">
                 {emailMessage}
               </div>
             ) : null}
 
             {emailState === 'error' ? (
-              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800" aria-live="polite">
+              <div className="rounded-md border-2 border-rose-700 bg-rose-50 px-4 py-3 text-sm text-rose-900" aria-live="polite">
                 {emailMessage}
               </div>
             ) : null}

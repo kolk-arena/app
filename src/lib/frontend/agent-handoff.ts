@@ -1,6 +1,6 @@
 import { copy } from '@/i18n';
 import { APP_CONFIG } from '@/lib/frontend/app-config';
-import type { BetaPublicLevel } from '@/i18n/types';
+import type { BetaPublicLevel, ScriptLang } from '@/i18n/types';
 
 type ChallengeHandoffArgs = {
   level: BetaPublicLevel;
@@ -13,6 +13,17 @@ type ChallengeHandoffArgs = {
 const CANONICAL_ORIGIN = APP_CONFIG.canonicalOrigin;
 
 type JsonRecord = Record<string, unknown>;
+
+export type ScriptStep = {
+  title: string;
+  code: string;
+};
+
+export type ScriptBundle = {
+  filename: string;
+  code: string;
+  steps: readonly ScriptStep[];
+};
 
 function stringifyJson(value: unknown) {
   return JSON.stringify(value, null, 2);
@@ -27,54 +38,91 @@ export function extractStructuredBrief(taskJson: JsonRecord) {
   return asObject(taskJson.structured_brief) ?? null;
 }
 
-export function getL0SmokeTestCommand() {
-  return `# 1. Fetch L0. -c saves the anon session cookie the server sets.
-curl -sc /tmp/kolk.jar ${CANONICAL_ORIGIN}/api/challenge/0 > /tmp/kolk_l0.json
-ATTEMPT=$(jq -r '.challenge.attemptToken' /tmp/kolk_l0.json)
+function buildShellBundle(filename: string, steps: readonly ScriptStep[]): ScriptBundle {
+  const code = steps
+    .map((step, index) => `# ${index + 1}. ${step.title}\n${step.code}`)
+    .join('\n\n');
 
-# 2. Submit. -b replays the cookie; the server requires the same anon
-#    session that fetched the challenge. Without -c/-b you get 403
-#    IDENTITY_MISMATCH on submit.
+  return { filename, code, steps };
+}
+
+export function getL0SmokeTestBundle(): ScriptBundle {
+  const steps: readonly ScriptStep[] = [
+    {
+      title: 'Fetch L0 and preserve the anonymous session cookie',
+      code: `curl -sc /tmp/kolk.jar ${CANONICAL_ORIGIN}/api/challenge/0 > /tmp/kolk_l0.json
+ATTEMPT="$(jq -r '.challenge.attemptToken' /tmp/kolk_l0.json)"`,
+    },
+    {
+      title: 'Submit with the same cookie jar and attemptToken',
+      code: `curl -sb /tmp/kolk.jar -X POST ${CANONICAL_ORIGIN}/api/challenge/submit \\
+  -H "Content-Type: application/json" \\
+  -H "Idempotency-Key: $(uuidgen)" \\
+  -d "{\\"attemptToken\\":\\"$ATTEMPT\\",\\"primaryText\\":\\"Hello Kolk Arena\\"}" \\
+  > /tmp/kolk_l0_result.json`,
+    },
+    {
+      title: 'Check the unlock response shape',
+      code: `jq '{ unlocked, aiJudged, levelUnlocked }' /tmp/kolk_l0_result.json`,
+    },
+  ];
+
+  return buildShellBundle('kolk-l0-smoke-test.sh', steps);
+}
+
+export function getL0SmokeTestCommand() {
+  return getL0SmokeTestBundle().code;
+}
+
+export function getL1StarterBundle(): ScriptBundle {
+  const steps: readonly ScriptStep[] = [
+    {
+      title: 'Fetch L1 and preserve the anonymous session cookie',
+      code: `curl -sc /tmp/kolk.jar ${CANONICAL_ORIGIN}/api/challenge/1 > /tmp/kolk_l1.json`,
+    },
+    {
+      title: 'Inspect the agent-facing brief and extract the attemptToken',
+      code: `jq '.challenge | { attemptToken, promptMd, taskJson }' /tmp/kolk_l1.json
+ATTEMPT="$(jq -r '.challenge.attemptToken' /tmp/kolk_l1.json)"`,
+    },
+    {
+      title: 'Submit the final delivery with the same cookie jar',
+      code: `cat > payload.json <<JSON
+{
+  "attemptToken": "$ATTEMPT",
+  "primaryText": "YOUR_AI_GENERATED_TEXT_HERE"
+}
+JSON
+
 curl -sb /tmp/kolk.jar -X POST ${CANONICAL_ORIGIN}/api/challenge/submit \\
   -H "Content-Type: application/json" \\
   -H "Idempotency-Key: $(uuidgen)" \\
-  -d "{\\"attemptToken\\":\\"$ATTEMPT\\",\\"primaryText\\":\\"Hello Kolk Arena\\"}"
+  -d @payload.json`,
+    },
+  ];
 
-# 3. Expect unlocked:true, aiJudged:false, levelUnlocked:1.
-#    Your integration is wired. Move on to L1 ranked translation.`;
+  return buildShellBundle('kolk-l1-starter.sh', steps);
 }
 
 export function getL1StarterCommand() {
-  return `# 1. Fetch L1 and preserve the anon session cookie.
-curl -sc /tmp/kolk.jar ${CANONICAL_ORIGIN}/api/challenge/1 > /tmp/kolk_l1.json
-
-# 2. Inspect the agent-facing brief.
-jq '.challenge | { attemptToken, promptMd, taskJson }' /tmp/kolk_l1.json
-
-# 3. Hand promptMd + taskJson.structured_brief to your AI agent and ask it
-#    to return only the final translated delivery text.
-
-# 4. Submit the final delivery with the same cookie jar and attemptToken.
-curl -sb /tmp/kolk.jar -X POST ${CANONICAL_ORIGIN}/api/challenge/submit \\
-  -H "Content-Type: application/json" \\
-  -H "Idempotency-Key: $(uuidgen)" \\
-  -d @payload.json`;
+  return getL1StarterBundle().code;
 }
 
 export function getAgentStarterPrompt() {
   return `You are helping me submit to Kolk Arena.
 
-I will paste a fetched challenge JSON object from the Kolk Arena API.
+I will paste one fetched challenge JSON object from the Kolk Arena API.
 
-Your job:
+Return contract:
 1. Read challenge.promptMd carefully.
-2. Read challenge.taskJson.structured_brief if it exists.
+2. Read challenge.taskJson.structured_brief if it exists; otherwise use challenge.taskJson.
 3. Produce only the final primaryText I should submit.
 
 Return rules:
 - Return only the final delivery text.
 - Do not explain your reasoning.
 - Do not add prefaces, notes, or trailing commentary.
+- Do not ask follow-up questions.
 - Do not wrap the answer in Markdown fences unless the brief explicitly requires fenced content.
 - For L5, return raw JSON object text only with these string keys:
   whatsapp_message, quick_facts, first_step_checklist.`;
@@ -92,8 +140,12 @@ Body:
 }`;
 }
 
-export function getCurlSolveSnippet(level: BetaPublicLevel) {
-  return `#!/usr/bin/env bash
+export function getChallengeScriptBundle(lang: ScriptLang, level: BetaPublicLevel): ScriptBundle {
+  if (lang === 'curl') {
+    const steps: readonly ScriptStep[] = [
+      {
+        title: 'Fetch the challenge and preserve the anonymous session cookie',
+        code: `#!/usr/bin/env bash
 set -euo pipefail
 
 BASE="${CANONICAL_ORIGIN}"
@@ -101,28 +153,138 @@ LEVEL=${level}
 COOKIE_JAR="$(mktemp)"
 CHALLENGE_JSON="$(mktemp)"
 
-# 1) Fetch the challenge and keep the anon session cookie.
-curl -sc "$COOKIE_JAR" "$BASE/api/challenge/$LEVEL" > "$CHALLENGE_JSON"
-
-# 2) Inspect the brief your agent should read.
-jq '.challenge | { attemptToken, promptMd, taskJson }' "$CHALLENGE_JSON"
-
-# 3) Extract the attempt token for submit.
+curl -sc "$COOKIE_JAR" "$BASE/api/challenge/$LEVEL" > "$CHALLENGE_JSON"`,
+      },
+      {
+        title: 'Inspect the brief, then prepare the payload your agent will fill',
+        code: `jq '.challenge | { attemptToken, promptMd, taskJson }' "$CHALLENGE_JSON"
 ATTEMPT_TOKEN="$(jq -r '.challenge.attemptToken' "$CHALLENGE_JSON")"
 
-# 4) Replace YOUR_AI_GENERATED_TEXT_HERE with the final delivery from your agent.
 cat > payload.json <<JSON
 {
   "attemptToken": "$ATTEMPT_TOKEN",
   "primaryText": "YOUR_AI_GENERATED_TEXT_HERE"
 }
-JSON
-
-# 5) Submit with the same cookie jar and a fresh Idempotency-Key.
-curl -sb "$COOKIE_JAR" -X POST "$BASE/api/challenge/submit" \\
+JSON`,
+      },
+      {
+        title: 'Submit the final delivery with the same cookie jar',
+        code: `curl -sb "$COOKIE_JAR" -X POST "$BASE/api/challenge/submit" \\
   -H "Content-Type: application/json" \\
   -H "Idempotency-Key: $(uuidgen)" \\
-  -d @payload.json`
+  -d @payload.json`,
+      },
+    ];
+
+    return buildShellBundle('solve.sh', steps);
+  }
+
+  if (lang === 'python') {
+    const steps: readonly ScriptStep[] = [
+      {
+        title: 'Fetch the challenge with a persistent requests session',
+        code: `import uuid
+import requests
+
+BASE = "${CANONICAL_ORIGIN}"
+LEVEL = ${level}
+
+session = requests.Session()
+response = session.get(f"{BASE}/api/challenge/{LEVEL}", timeout=30)
+response.raise_for_status()
+challenge = response.json()["challenge"]
+attempt_token = challenge["attemptToken"]
+
+print({
+    "attemptToken": attempt_token,
+    "promptMd": challenge["promptMd"],
+    "taskJson": challenge["taskJson"],
+})`,
+      },
+      {
+        title: 'Insert the final primaryText from your agent',
+        code: `primary_text = "YOUR_AI_GENERATED_TEXT_HERE"
+payload = {
+    "attemptToken": attempt_token,
+    "primaryText": primary_text,
+}`,
+      },
+      {
+        title: 'Submit with the same session so the cookie replays automatically',
+        code: `submit_response = session.post(
+    f"{BASE}/api/challenge/submit",
+    headers={
+        "Content-Type": "application/json",
+        "Idempotency-Key": str(uuid.uuid4()),
+    },
+    json=payload,
+    timeout=60,
+)
+print(submit_response.status_code, submit_response.json())`,
+      },
+    ];
+
+    return {
+      filename: 'solve.py',
+      code: steps.map((step, index) => `# ${index + 1}. ${step.title}\n${step.code}`).join('\n\n'),
+      steps,
+    };
+  }
+
+  const steps: readonly ScriptStep[] = [
+    {
+      title: 'Fetch the challenge and replay the anonymous session cookie manually',
+      code: `const BASE = "${CANONICAL_ORIGIN}";
+const LEVEL = ${level};
+
+const fetchRes = await fetch(\`\${BASE}/api/challenge/\${LEVEL}\`);
+const setCookie = fetchRes.headers.get("set-cookie") ?? "";
+const cookie = setCookie.split(/,(?=\\s*\\w+=)/)
+  .map((chunk) => chunk.split(";")[0].trim())
+  .filter(Boolean)
+  .join("; ");
+
+const { challenge } = await fetchRes.json();
+const attemptToken = challenge.attemptToken;
+
+console.log({
+  attemptToken,
+  promptMd: challenge.promptMd,
+  taskJson: challenge.taskJson,
+});`,
+    },
+    {
+      title: 'Insert the final primaryText from your agent',
+      code: `const payload = {
+  attemptToken,
+  primaryText: "YOUR_AI_GENERATED_TEXT_HERE",
+};`,
+    },
+    {
+      title: 'Submit with the replayed cookie and a fresh Idempotency-Key',
+      code: `const submitRes = await fetch(\`\${BASE}/api/challenge/submit\`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Idempotency-Key": crypto.randomUUID(),
+    Cookie: cookie,
+  },
+  body: JSON.stringify(payload),
+});
+
+console.log(submitRes.status, await submitRes.json());`,
+    },
+  ];
+
+  return {
+    filename: 'solve.js',
+    code: steps.map((step, index) => `// ${index + 1}. ${step.title}\n${step.code}`).join('\n\n'),
+    steps,
+  };
+}
+
+export function getCurlSolveSnippet(level: BetaPublicLevel) {
+  return getChallengeScriptBundle('curl', level).code;
 }
 
 function levelRuleLines(level: BetaPublicLevel) {
@@ -331,19 +493,24 @@ export function buildChallengeAgentBrief({
   const rules = getLevelRuleSummary(level);
   const structuredBrief = extractStructuredBrief(taskJson);
 
-  return `You are an expert AI agent helping me solve a Kolk Arena challenge.
+  return `You are producing a Kolk Arena submission.
 
-### SYSTEM RULES
-- Return ONLY the final output payload.
+### OUTPUT CONTRACT
+- Return ONLY the final primaryText payload.
 - No pleasantries, no explanations, no commentary, no analysis.
 - Do not ask clarifying questions. Solve from the provided brief in one pass.
 - No markdown formatting unless explicitly requested.
 ${level === 5 ? '- For L5, return raw JSON object text only. Do not wrap it in Markdown fences.' : '- Do not wrap the answer in Markdown fences unless the brief explicitly requires fenced content.'}
 
-### CHALLENGE INFO
+### CHALLENGE
 Level: L${level} — ${levelName}
 
-### CONSTRAINTS & FORMATTING
+### SOURCE OF TRUTH
+- Follow the task description exactly.
+- Use the ${structuredBrief ? 'structured_brief JSON' : 'taskJson'} block as the machine-readable source of facts and fields.
+- If the brief contains both prose and structured fields, satisfy the level rules and required output shape exactly.
+
+### REQUIRED FORMAT
 ${rules}
 
 ### TASK DESCRIPTION
@@ -354,11 +521,11 @@ ${promptMd}
 ${stringifyJson(structuredBrief ?? taskJson)}
 \`\`\`
 
-### EXPECTED OUTPUT TEMPLATE
-Please ensure your output structurally matches the following template:
+### OUTPUT SHAPE
+Match this structure exactly:
 ${outputTemplate}
 
-### SELF-CHECK BEFORE RETURNING
+### FINAL CHECK
 - Make sure every required section, key, or header is present exactly as requested.
 - Make sure the output is complete and directly usable as primaryText.
 - Remove any draft notes, rationale, or extra wrapper text before returning the final answer.`;
@@ -369,71 +536,11 @@ export function getStructuredBriefCopy(taskJson: JsonRecord) {
 }
 
 export function getPythonSubmitSnippet(level: BetaPublicLevel) {
-  return `import uuid
-import requests
-
-BASE = "${CANONICAL_ORIGIN}"
-LEVEL = ${level}
-
-# requests.Session() persists cookies across GET -> POST.
-# anon session cookie from fetch must replay on submit, or the server
-# returns 403 IDENTITY_MISMATCH.
-session = requests.Session()
-
-# 1) Fetch the challenge and read the attemptToken.
-r = session.get(f"{BASE}/api/challenge/{LEVEL}", timeout=30)
-r.raise_for_status()
-ch = r.json()["challenge"]
-attempt_token = ch["attemptToken"]
-
-# 2) Replace YOUR_AI_GENERATED_TEXT_HERE with your agent's delivery.
-primary_text = "YOUR_AI_GENERATED_TEXT_HERE"
-
-# 3) Submit. Session() replays the anon-session cookie automatically.
-r = session.post(
-    f"{BASE}/api/challenge/submit",
-    headers={
-        "Content-Type": "application/json",
-        "Idempotency-Key": str(uuid.uuid4()),
-    },
-    json={"attemptToken": attempt_token, "primaryText": primary_text},
-    timeout=60,
-)
-print(r.status_code, r.json())`;
+  return getChallengeScriptBundle('python', level).code;
 }
 
 export function getNodeSubmitSnippet(level: BetaPublicLevel) {
-  return `// Zero dependencies. Runs on Node 18+, Deno, Bun, Cloudflare Workers.
-const BASE = "${CANONICAL_ORIGIN}";
-const LEVEL = ${level};
-
-// 1) Fetch — capture the anon-session Set-Cookie header.
-// anon session cookie from fetch must replay on submit, or the server
-// returns 403 IDENTITY_MISMATCH.
-const fetchRes = await fetch(\`\${BASE}/api/challenge/\${LEVEL}\`);
-const setCookie = fetchRes.headers.get('set-cookie') ?? '';
-// Extract just "name=value" pairs for replay on the submit request.
-const cookie = setCookie.split(/,(?=\\s*\\w+=)/)
-  .map(c => c.split(';')[0].trim())
-  .filter(Boolean)
-  .join('; ');
-const { challenge } = await fetchRes.json();
-const attemptToken = challenge.attemptToken;
-
-// 2) Submit — replay the cookie so the server sees the same anon session.
-const submitRes = await fetch(\`\${BASE}/api/challenge/submit\`, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "Idempotency-Key": crypto.randomUUID(),
-    Cookie: cookie,
-  },
-  body: JSON.stringify({
-    attemptToken,
-    primaryText: "YOUR_AI_GENERATED_TEXT_HERE",
-  }),
-});
-console.log(submitRes.status, await submitRes.json());`;
+  return getChallengeScriptBundle('node', level).code;
 }
 
 export function getCursorRules() {

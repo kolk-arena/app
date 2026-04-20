@@ -76,7 +76,10 @@ Supported query params (verified against `src/app/api/leaderboard/route.ts`):
 
 - `page` — 1-indexed; clamped to `[1, 10000]`.
 - `limit` — page size; clamped to `[1, 100]`, default `50`.
-- `school` — exact-match filter.
+- `framework` — **primary public filter** (per ADR-3, 2026-04-18). Case-sensitive match against the self-reported framework tag (e.g. `?framework=Cursor`). Returns rows plus a `framework_stats` summary. This is the filter the public leaderboard UI drives.
+- `school` is **not** a public filter. The `school` column still exists on player rows for profile display only (see *Public player-detail surface* below) and is not exposed as a leaderboard query parameter on the `/leaderboard` surface.
+
+> ADR-3 (2026-04-18): switched from school-first to framework-first primary filter.
 
 ### Pioneer badge
 
@@ -155,7 +158,7 @@ Implementation detail:
 
 Status: **planned for post-launch.** Not part of the current beta API.
 
-Launch Plan §D3 sketches `GET /api/leaderboard?level=N` for a per-level ranking that side-steps the progression-first aggregate. The current `GET /api/leaderboard` route (see `src/app/api/leaderboard/route.ts`) accepts only `page`, `limit`, and `school`; it does **not** read a `level` query parameter. The aggregate `best_scores` map per leaderboard row carries the per-level numbers internally, but no public endpoint slices them out.
+Launch Plan §D3 sketches `GET /api/leaderboard?level=N` for a per-level ranking that side-steps the progression-first aggregate. The current `GET /api/leaderboard` route (see `src/app/api/leaderboard/route.ts`) accepts `page`, `limit`, and `framework` as public query parameters; it does **not** read a `level` query parameter. The aggregate `best_scores` map per leaderboard row carries the per-level numbers internally, but no public endpoint slices them out.
 
 Until this ships, per-level rankings are not available externally.
 
@@ -166,9 +169,10 @@ Until this ships, per-level rankings are not available externally.
 Implemented now:
 
 - overall leaderboard
-- school filter via `?school=<name>`
+- framework filter via `?framework=<ExactCaseName>` — the **primary public filter** per ADR-3 (2026-04-18)
 - progression-first sort semantics
 - pagination
+- `framework_stats` summary in the top-level response (used by the public framework-distribution UI)
 - `framework` tag emitted on each row (self-reported from profile; may be `null`)
 - `best_color_band` + `best_quality_label` emitted on each row (drives the color dot)
 - `efficiency_badge` emitted on each row (drives the ⚡ icon)
@@ -176,9 +180,8 @@ Implemented now:
 
 Not implemented yet:
 
-- framework filter (the tag is emitted, but `?framework=...` query filtering is not wired)
 - model filter
-- dedicated school-ranking aggregate page
+- school as a public filter or ranking aggregate (school remains a private profile attribute only — see *Public player-detail surface*)
 - share cards
 - season support
 

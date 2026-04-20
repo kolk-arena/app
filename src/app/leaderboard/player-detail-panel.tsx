@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { CopyButton } from '@/components/ui/copy-button';
 import { copy } from '@/i18n';
 import { formatDateTime, formatNumber } from '@/i18n/format';
+import { APP_CONFIG } from '@/lib/frontend/app-config';
 import { buildPlayerBadge } from '@/lib/frontend/badge';
 import type { LeaderboardPlayerDetail } from '@/lib/kolk/leaderboard/player-detail';
 
@@ -58,18 +59,22 @@ export function PlayerDetailPanel({
   onClear,
   onRetry,
   panelId,
+  detailPageSearch,
 }: {
   playerId: string | null;
   onClear: () => void;
   onRetry: () => void;
   panelId: string;
+  detailPageSearch: string;
 }) {
   const [requestState, setRequestState] = useState<{
     playerId: string | null;
+    status: 'idle' | 'success' | 'error';
     detail: LeaderboardPlayerDetail | null;
     error: string | null;
   }>({
     playerId: null,
+    status: 'idle',
     detail: null,
     error: null,
   });
@@ -93,6 +98,7 @@ export function PlayerDetailPanel({
         if (!active) return;
         setRequestState({
           playerId,
+          status: 'success',
           detail: payload,
           error: null,
         });
@@ -101,6 +107,7 @@ export function PlayerDetailPanel({
         if (!active || controller.signal.aborted) return;
         setRequestState({
           playerId,
+          status: 'error',
           detail: null,
           error: err instanceof Error ? err.message : copy.leaderboard.playerDetail.failedToLoadTitle,
         });
@@ -112,15 +119,21 @@ export function PlayerDetailPanel({
     };
   }, [playerId]);
 
-  const loading = playerId != null && requestState.playerId !== playerId && requestState.error == null;
-  const detail = playerId && requestState.playerId === playerId ? requestState.detail : null;
-  const error = playerId && requestState.playerId === playerId ? requestState.error : null;
+  const loading = playerId != null && requestState.playerId !== playerId;
+  const detail =
+    playerId && requestState.playerId === playerId && requestState.status === 'success' ? requestState.detail : null;
+  const error =
+    playerId && requestState.playerId === playerId && requestState.status === 'error' ? requestState.error : null;
 
   const pd = copy.leaderboard.playerDetail;
 
   if (!playerId) {
     return (
-      <aside id={panelId} className="rounded-2xl border border-slate-200 bg-white shadow-sm" aria-live="polite">
+      <aside
+        id={panelId}
+        className="rounded-none border-2 border-slate-900 bg-white shadow-[8px_8px_0px_0px_#0f172a]"
+        aria-live="polite"
+      >
         <div className="border-b border-slate-200 px-4 py-4 sm:px-5">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.eyebrow}</p>
           <h2 className="mt-2 text-base font-semibold text-slate-950">{pd.selectAPlayerTitle}</h2>
@@ -134,7 +147,12 @@ export function PlayerDetailPanel({
 
   if (loading && !detail) {
     return (
-      <aside id={panelId} className="rounded-2xl border border-slate-200 bg-white shadow-sm" aria-live="polite" aria-busy="true">
+      <aside
+        id={panelId}
+        className="rounded-none border-2 border-slate-900 bg-white shadow-[8px_8px_0px_0px_#0f172a]"
+        aria-live="polite"
+        aria-busy="true"
+      >
         <div className="px-4 py-6 text-sm text-slate-500 sm:px-5">{pd.loading}</div>
       </aside>
     );
@@ -142,7 +160,11 @@ export function PlayerDetailPanel({
 
   if (error || !detail) {
     return (
-      <aside id={panelId} className="rounded-2xl border border-rose-200 bg-rose-50 shadow-sm" aria-live="polite">
+      <aside
+        id={panelId}
+        className="rounded-none border-2 border-slate-900 bg-rose-50 shadow-[8px_8px_0px_0px_#0f172a]"
+        aria-live="polite"
+      >
         <div className="px-4 py-6 text-sm text-rose-900 sm:px-5">
           <p className="font-semibold">{pd.failedToLoadTitle}</p>
           <p className="mt-1">{error ?? pd.failedToLoadFallback}</p>
@@ -151,14 +173,14 @@ export function PlayerDetailPanel({
               <button
                 type="button"
                 onClick={onRetry}
-                className="inline-flex min-h-11 items-center rounded-lg border border-rose-300 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-rose-800 transition hover:bg-rose-100"
+                className="inline-flex min-h-11 items-center rounded-md border-2 border-rose-700 bg-white px-3 py-2 font-mono text-xs font-semibold uppercase tracking-[0.12em] text-rose-800 transition-colors duration-150 hover:bg-rose-700 hover:text-white"
               >
                 {pd.retry}
               </button>
               <button
                 type="button"
                 onClick={onClear}
-                className="inline-flex min-h-11 items-center rounded-lg border border-rose-300 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-rose-800 transition hover:bg-rose-100"
+                className="inline-flex min-h-11 items-center rounded-md border-2 border-rose-700 bg-white px-3 py-2 font-mono text-xs font-semibold uppercase tracking-[0.12em] text-rose-800 transition-colors duration-150 hover:bg-rose-700 hover:text-white"
               >
                 {pd.clearSelection}
               </button>
@@ -197,9 +219,15 @@ export function PlayerDetailPanel({
     pioneer: detail.userRow.pioneer === true,
     displayName: detail.userRow.display_name,
   });
+  const publicProfileUrl = `${APP_CONFIG.canonicalOrigin}/leaderboard/${playerId}`;
+  const fullPageHref = `/leaderboard/${playerId}${detailPageSearch}`;
 
   return (
-    <aside id={panelId} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" aria-live="polite">
+    <aside
+      id={panelId}
+      className="overflow-hidden rounded-none border-2 border-slate-900 bg-white shadow-[8px_8px_0px_0px_#0f172a]"
+      aria-live="polite"
+    >
       <div className="border-b border-slate-200 px-4 py-4 sm:px-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -211,7 +239,7 @@ export function PlayerDetailPanel({
               {detail.userRow.handle ? `@${detail.userRow.handle}` : pd.noPublicHandle}
             </p>
             {detail.userRow.pioneer === true ? (
-              <p className="mt-2 inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-800">
+              <p className="mt-2 inline-flex rounded-none border-2 border-slate-900 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-800">
                 {pd.betaPioneerBadge}
               </p>
             ) : null}
@@ -219,16 +247,22 @@ export function PlayerDetailPanel({
 
           <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
             <span
-              className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] ${tierClasses(
+              className={`inline-flex rounded-none border px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] ${tierClasses(
                 tier,
               )}`}
             >
               {tier}
             </span>
+            <CopyButton
+              value={publicProfileUrl}
+              idleLabel={pd.copyProfileLink}
+              copiedLabel={pd.copiedProfileLink}
+              className="inline-flex min-h-11 items-center rounded-md border-2 border-slate-950 bg-white px-3 py-2 font-mono text-xs font-semibold uppercase tracking-[0.12em] text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+            />
             <button
               type="button"
               onClick={onClear}
-              className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-600 transition hover:bg-slate-50"
+              className="inline-flex min-h-11 items-center rounded-md border-2 border-slate-950 bg-white px-3 py-2 font-mono text-xs font-semibold uppercase tracking-[0.12em] text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
             >
               {pd.clearShort}
             </button>
@@ -238,48 +272,48 @@ export function PlayerDetailPanel({
 
       <div className="space-y-4 px-4 py-4 sm:px-5">
         <div className="grid gap-3 sm:grid-cols-3">
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <div className="rounded-none border-2 border-slate-900 bg-slate-50 px-4 py-3">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.highestLevel}</p>
             <p className="mt-2 text-2xl font-semibold text-slate-950">L{highestLevel}</p>
           </div>
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <div className="rounded-none border-2 border-slate-900 bg-slate-50 px-4 py-3">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.totalScore}</p>
             <p className="mt-2 text-2xl font-semibold text-slate-950">{formatScore(totalScore)}</p>
           </div>
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <div className="rounded-none border-2 border-slate-900 bg-slate-50 px-4 py-3">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.levelsCompleted}</p>
             <p className="mt-2 text-2xl font-semibold text-slate-950">{levelsCompleted}</p>
           </div>
         </div>
 
         <dl className="grid gap-3 text-sm sm:grid-cols-2">
-          <div className="rounded-xl border border-slate-200 px-4 py-3">
+          <div className="rounded-none border-2 border-slate-900 px-4 py-3">
             <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.schoolLabel}</dt>
             <dd className="mt-2 break-words font-medium text-slate-900">{detail.userRow.school ?? pd.schoolFallback}</dd>
           </div>
-          <div className="rounded-xl border border-slate-200 px-4 py-3">
+          <div className="rounded-none border-2 border-slate-900 px-4 py-3">
             <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.frameworkLabel}</dt>
             <dd className="mt-2 break-words font-medium text-slate-900">{detail.userRow.framework ?? pd.frameworkFallback}</dd>
           </div>
-          <div className="rounded-xl border border-slate-200 px-4 py-3">
+          <div className="rounded-none border-2 border-slate-900 px-4 py-3">
             <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.countryLabel}</dt>
             <dd className="mt-2 font-medium text-slate-900">{detail.userRow.country ?? pd.countryFallback}</dd>
           </div>
-          <div className="rounded-xl border border-slate-200 px-4 py-3">
+          <div className="rounded-none border-2 border-slate-900 px-4 py-3">
             <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.lastSubmissionLabel}</dt>
             <dd className="mt-2 font-medium text-slate-900">{formatDate(lastSubmissionAt)}</dd>
           </div>
         </dl>
 
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4">
+        <div className="rounded-none border-2 border-slate-900 bg-slate-50 px-4 py-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.bestScoresHeading}</p>
               <p className="mt-1 text-sm text-slate-500">{pd.bestScoresSubtitle}</p>
             </div>
             <Link
-              href={`/leaderboard/${playerId}`}
-              className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-700 transition hover:bg-slate-50"
+              href={fullPageHref}
+              className="inline-flex min-h-11 items-center rounded-md border-2 border-slate-950 bg-white px-3 py-2 font-mono text-xs font-semibold uppercase tracking-[0.12em] text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
             >
               {pd.openPage}
             </Link>
@@ -290,7 +324,7 @@ export function PlayerDetailPanel({
               levelCards.map((entry) => (
                 <span
                   key={entry.level}
-                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700"
+                  className="inline-flex items-center gap-2 rounded-none border-2 border-slate-900 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700"
                 >
                   <span>L{entry.level}</span>
                   <span className="text-slate-400">·</span>
@@ -304,7 +338,7 @@ export function PlayerDetailPanel({
         </div>
 
         {sidebarBadge ? (
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4">
+          <div className="rounded-none border-2 border-slate-900 bg-slate-50 px-4 py-4">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
               {badgeCopy.sidebarEyebrow}
             </p>
@@ -316,13 +350,13 @@ export function PlayerDetailPanel({
                 idleLabel={badgeCopy.sidebarCopyButton}
                 copiedLabel={badgeCopy.sidebarCopiedButton}
                 failedLabel={badgeCopy.copyFailed}
-                className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-700 transition hover:bg-slate-50"
+                className="inline-flex min-h-11 items-center rounded-md border-2 border-slate-950 bg-white px-3 py-2 font-mono text-xs font-semibold uppercase tracking-[0.12em] text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
               />
             </div>
           </div>
         ) : null}
 
-        <div className="rounded-xl border border-slate-200">
+        <div className="rounded-none border-2 border-slate-900">
           <div className="border-b border-slate-200 px-4 py-3">
             <h3 className="text-sm font-semibold text-slate-950">{pd.recentSubmissionsHeading}</h3>
             <p className="mt-1 text-sm text-slate-500">{pd.recentSubmissionsSubtitle}</p>
@@ -335,7 +369,7 @@ export function PlayerDetailPanel({
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="inline-flex rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-700">
+                        <span className="inline-flex rounded-md border-2 border-slate-950 bg-slate-50 px-2.5 py-1 font-mono text-xs font-semibold uppercase tracking-[0.12em] text-slate-950">
                           {pd.levelLabel(submission.level)}
                         </span>
                         <span className="text-sm font-semibold text-slate-950">{formatScore(submission.total_score)}</span>
@@ -351,15 +385,15 @@ export function PlayerDetailPanel({
                   </div>
 
                   <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+                    <div className="rounded-none border-2 border-slate-900 bg-slate-50 px-3 py-3">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.structureLabel}</p>
                       <p className="mt-2 text-base font-semibold text-slate-950">{formatScore(submission.structure_score)}</p>
                     </div>
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+                    <div className="rounded-none border-2 border-slate-900 bg-slate-50 px-3 py-3">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.coverageLabel}</p>
                       <p className="mt-2 text-base font-semibold text-slate-950">{formatScore(submission.coverage_score)}</p>
                     </div>
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+                    <div className="rounded-none border-2 border-slate-900 bg-slate-50 px-3 py-3">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.qualityLabel}</p>
                       <p className="mt-2 text-base font-semibold text-slate-950">{formatScore(submission.quality_score)}</p>
                     </div>
@@ -371,20 +405,20 @@ export function PlayerDetailPanel({
                         href={submission.repo_url}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                        className="inline-flex items-center rounded-none border-2 border-slate-900 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
                       >
                         {pd.viewRepo}
                       </a>
                     ) : null}
                     {submission.commit_hash ? (
-                          <code className="max-w-full overflow-x-auto rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">
-                            {submission.commit_hash}
-                          </code>
+                      <code className="max-w-full overflow-x-auto rounded-none border-2 border-slate-900 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">
+                        {submission.commit_hash}
+                      </code>
                     ) : null}
                     {normalizeFlags(submission.flags).map((flag) => (
                       <span
                         key={flag}
-                        className="inline-flex items-center rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700"
+                        className="inline-flex items-center rounded-none border-2 border-slate-900 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700"
                       >
                         {flag}
                       </span>

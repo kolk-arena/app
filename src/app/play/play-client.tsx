@@ -27,11 +27,18 @@ type LevelCard = {
 
 function bandBadge(band: LevelCard['band']): string {
   switch (band) {
-    case 'A': return 'bg-emerald-50 text-emerald-800 border-emerald-200';
-    case 'B': return 'bg-sky-50 text-sky-800 border-sky-200';
-    case 'C': return 'bg-amber-50 text-amber-800 border-amber-200';
-    case 'D': return 'bg-rose-50 text-rose-800 border-rose-200';
+    case 'A': return 'bg-emerald-50 text-emerald-800 border-emerald-700';
+    case 'B': return 'bg-sky-50 text-sky-800 border-sky-700';
+    case 'C': return 'bg-amber-50 text-amber-800 border-amber-700';
+    case 'D': return 'bg-rose-50 text-rose-800 border-rose-700';
   }
+}
+
+function getRecommendedLevel(maxLevel: number, signedIn: boolean) {
+  if (maxLevel <= 0) return 0;
+  if (!signedIn && maxLevel >= ANONYMOUS_MAX_LEVEL) return null;
+  if (signedIn && maxLevel >= 8) return null;
+  return maxLevel + 1;
 }
 
 export function PlayClient() {
@@ -100,102 +107,205 @@ export function PlayClient() {
   const anonymousMaxLevel = auth.status === 'anonymous' ? auth.maxLevel : 0;
   const maxLevel = auth.status === 'signed_in' ? auth.maxLevel : anonymousMaxLevel;
   const displayName = auth.status === 'signed_in' ? auth.displayName : null;
+  const playUi = copy.play.cardUi;
+  const recommendedLevel = getRecommendedLevel(maxLevel, signedIn);
+  const summary = copy.play.summary;
+  const actions = copy.play.actions;
+
+  const primaryAction =
+    auth.status === 'loading'
+      ? null
+      : recommendedLevel === 0
+      ? { href: '/challenge/0', label: actions.runL0 }
+      : recommendedLevel != null
+      ? { href: `/challenge/${recommendedLevel}`, label: actions.continueToLevel(recommendedLevel) }
+      : !signedIn
+      ? { href: '/profile', label: actions.signInToCompete }
+      : { href: '/leaderboard', label: actions.openLeaderboard };
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
       <section className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
         <header className="space-y-3">
-          <div className="inline-flex w-fit items-center rounded-full border border-emerald-300/80 bg-emerald-50/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700 shadow-sm">
+          <div className="inline-flex w-fit items-center rounded-md border-2 border-emerald-700 bg-emerald-50 px-3 py-1 font-mono text-xs font-semibold uppercase tracking-[0.2em] text-emerald-800">
             {copy.play.badge}
           </div>
           <h1 className="text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">{copy.play.title}</h1>
           <p className="max-w-3xl text-base leading-7 text-slate-700">
             {copy.play.bodyPrefix}
-            <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-800">summary</code>,{' '}
-            <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-800">fieldScores</code>, and{' '}
-            <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-800">qualitySubscores</code>
+            <code className="rounded-md border-2 border-slate-950 bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-950">summary</code>,{' '}
+            <code className="rounded-md border-2 border-slate-950 bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-950">fieldScores</code>, and{' '}
+            <code className="rounded-md border-2 border-slate-950 bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-950">qualitySubscores</code>
             {copy.play.bodySuffix}
           </p>
-          <p className="text-sm text-slate-600" aria-live="polite">
+          <p className="text-sm text-slate-700" aria-live="polite">
             {auth.status === 'loading' ? (
               copy.play.session.checking
             ) : signedIn ? (
               <>
                 {copy.play.session.signedInPrefix(displayName)}
-                <span className="font-semibold text-slate-900">L{maxLevel}</span>
+                <span className="font-mono font-semibold text-slate-950">L{maxLevel}</span>
               </>
             ) : maxLevel > 0 ? (
               <>
                 {copy.play.session.anonymousPrefix}
-                <span className="font-semibold text-slate-900">L{maxLevel}</span>.{' '}
-                <Link href="/profile" className="font-semibold text-emerald-700 underline decoration-emerald-300 underline-offset-2 hover:decoration-emerald-700">
-                  Sign in
+                <span className="font-mono font-semibold text-slate-950">L{maxLevel}</span>.{' '}
+                <Link href="/profile" className="font-semibold text-emerald-800 underline decoration-emerald-700 underline-offset-2 hover:decoration-emerald-900">
+                  {copy.play.session.signInCta}
                 </Link>{' '}
                 {copy.play.session.anonymousTail}
               </>
             ) : (
               <>
                 {copy.play.session.signedOutPrefix}
-                <span className="font-semibold text-slate-900">L{ANONYMOUS_MAX_LEVEL}</span>.{' '}
-                <Link href="/profile" className="font-semibold text-emerald-700 underline decoration-emerald-300 underline-offset-2 hover:decoration-emerald-700">
-                  Sign in
+                <span className="font-mono font-semibold text-slate-950">L{ANONYMOUS_MAX_LEVEL}</span>.{' '}
+                <Link href="/profile" className="font-semibold text-emerald-800 underline decoration-emerald-700 underline-offset-2 hover:decoration-emerald-900">
+                  {copy.play.session.signInCta}
                 </Link>{' '}
                 {copy.play.session.signedOutTail}
               </>
             )}
           </p>
+          <div className="flex flex-wrap gap-3 pt-2">
+            {primaryAction ? (
+              <Link
+                href={primaryAction.href}
+                className="inline-flex items-center rounded-md border-2 border-slate-950 bg-slate-950 px-5 py-3 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
+              >
+                {primaryAction.label}
+              </Link>
+            ) : null}
+            <Link
+              href="/leaderboard"
+              className="inline-flex items-center rounded-md border-2 border-slate-950 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+            >
+              {actions.openLeaderboard}
+            </Link>
+            <Link
+              href="/profile"
+              className="inline-flex items-center rounded-md border-2 border-slate-950 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+            >
+              {actions.openProfile}
+            </Link>
+          </div>
         </header>
 
-        <section className="grid gap-4 lg:grid-cols-[1.25fr_0.75fr]">
-          <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_10px_40px_rgba(15,23,42,0.04)]">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+        <section className="grid gap-4 sm:grid-cols-3">
+          <article className="rounded-md border-2 border-slate-950 bg-white p-5">
+            <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">{summary.modeLabel}</p>
+            <p className="mt-2 text-xl font-black tracking-tight text-slate-950">
+              {auth.status === 'loading' ? summary.loadingValue : signedIn ? summary.signedInMode : summary.anonymousMode}
+            </p>
+            <p className="mt-2 text-sm leading-6 text-slate-700">
+              {signedIn ? summary.signedInUnlockHint : summary.anonymousUnlockHint}
+            </p>
+          </article>
+          <article className="rounded-md border-2 border-slate-950 bg-white p-5">
+            <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">{summary.progressLabel}</p>
+            <p className="mt-2 text-xl font-black tracking-tight text-slate-950">
+              {auth.status === 'loading' ? summary.loadingValue : summary.progressValue(maxLevel)}
+            </p>
+            <p className="mt-2 text-sm leading-6 text-slate-700">
+              {signedIn ? summary.signedInUnlockHint : summary.anonymousUnlockHint}
+            </p>
+          </article>
+          <article className="rounded-md border-2 border-slate-950 bg-white p-5">
+            <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">{summary.nextLabel}</p>
+            <p className="mt-2 text-xl font-black tracking-tight text-slate-950">
+              {auth.status === 'loading'
+                ? summary.loadingValue
+                : recommendedLevel != null
+                ? summary.nextStepStart(recommendedLevel)
+                : signedIn
+                ? summary.nextStepComplete
+                : summary.nextStepSignIn}
+            </p>
+            <p className="mt-2 text-sm leading-6 text-slate-700">
+              {recommendedLevel === 0
+                ? copy.challenge.deliveryRules.level0
+                : recommendedLevel != null
+                ? playUi.startLevel(recommendedLevel)
+                : signedIn
+                ? summary.signedInUnlockHint
+                : summary.anonymousUnlockHint}
+            </p>
+          </article>
+        </section>
+
+        <section className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+          <article className="min-w-0 rounded-md border-2 border-slate-950 bg-white p-6">
+            <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">
               {copy.play.agentPanel.eyebrow}
             </p>
             <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">
               {copy.play.agentPanel.title}
             </h2>
-            <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-600">
+            <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-700">
               {copy.play.agentPanel.body}
             </p>
+            <div className="mt-5 rounded-md border-2 border-slate-950 bg-slate-50 p-4">
+              <p className="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">
+                {copy.play.agentPanel.directEyebrow}
+              </p>
+              <p className="mt-2 text-sm leading-6 text-slate-700">
+                {copy.play.agentPanel.directBody}
+              </p>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <CopyButton
+                  value={agentStarterPrompt}
+                  idleLabel={copy.play.agentPanel.copyAgentPrompt}
+                  copiedLabel={copy.play.agentPanel.copiedAgentPrompt}
+                  className="inline-flex w-full items-center justify-center rounded-md border-2 border-slate-950 bg-slate-950 px-4 py-2.5 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950 sm:w-auto"
+                />
+                {(['claude', 'chatgpt', 'gemini', 'perplexity'] as const).map((service) => {
+                  const link = buildAiDeepLink(service, agentStarterPrompt);
+                  if (!link) return null;
+                  const icon = copy.challenge.agentPanel.openInIcon[service];
+                  return (
+                    <a
+                      key={service}
+                      href={link.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex w-full items-center justify-center gap-1.5 rounded-md border-2 border-slate-950 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white sm:w-auto"
+                      title={link.truncated ? copy.challenge.agentPanel.openInTruncatedHint : undefined}
+                    >
+                      {icon ? <span aria-hidden="true">{icon}</span> : null}
+                      <span>{copy.challenge.agentPanel.openInLabel[service]}</span>
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
+          </article>
+
+          <aside className="min-w-0 rounded-md border-2 border-slate-950 bg-white p-6">
+            <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">
+              {copy.play.agentPanel.resourcesEyebrow}
+            </p>
+            <h3 className="mt-2 text-lg font-black tracking-tight text-slate-950">
+              {copy.play.agentPanel.resourcesTitle}
+            </h3>
+            <p className="mt-2 text-sm leading-7 text-slate-700">
+              {copy.play.agentPanel.resourcesBody}
+            </p>
             <div className="mt-4 flex flex-wrap gap-3">
-              <CopyButton
-                value={agentStarterPrompt}
-                idleLabel={copy.play.agentPanel.copyAgentPrompt}
-                copiedLabel={copy.play.agentPanel.copiedAgentPrompt}
-                className="inline-flex items-center rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
-              />
-              {(['claude', 'chatgpt', 'gemini', 'perplexity'] as const).map((service) => {
-                const link = buildAiDeepLink(service, agentStarterPrompt);
-                if (!link) return null;
-                return (
-                  <a
-                    key={service}
-                    href={link.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
-                    title={link.truncated ? copy.challenge.agentPanel.openInTruncatedHint : undefined}
-                  >
-                    {copy.challenge.agentPanel.openInIcon[service]} {copy.challenge.agentPanel.openInLabel[service]}
-                  </a>
-                );
-              })}
               <CopyButton
                 value={submitContractSnippet}
                 idleLabel={copy.play.agentPanel.copySubmitContract}
                 copiedLabel={copy.play.agentPanel.copiedSubmitContract}
-                className="inline-flex items-center rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+                className="inline-flex w-full items-center justify-center rounded-md border-2 border-slate-950 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white sm:w-auto"
               />
               <a
                 href="https://github.com/kolk-arena/app/blob/main/docs/INTEGRATION_GUIDE.md"
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+                className="inline-flex w-full items-center justify-center rounded-md border-2 border-slate-950 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white sm:w-auto"
               >
                 {copy.play.agentPanel.guideCta}
               </a>
             </div>
-          </article>
+          </aside>
         </section>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -205,72 +315,103 @@ export function PlayClient() {
             const isLocked = requiresAuth && !signedIn;
             const hasUnlockedProgression = isL0 || card.level === 1 || maxLevel >= card.level - 1;
             const isBlockedByProgression = !isLocked && !hasUnlockedProgression;
+            const isCleared =
+              (card.level === 0 && maxLevel > 0) || (card.level > 0 && maxLevel >= card.level);
+            const isRecommended = recommendedLevel === card.level;
 
             return (
               <article
                 key={card.level}
-                className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_10px_40px_rgba(15,23,42,0.04)] sm:p-6"
+                className={`flex flex-col gap-3 rounded-md border-2 bg-white p-5 sm:p-6 ${
+                  isRecommended ? 'border-slate-950 ring-2 ring-emerald-600 ring-offset-2' : 'border-slate-950'
+                }`}
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-950 text-sm font-black text-white">
+                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-md border-2 border-slate-950 bg-slate-950 font-mono text-sm font-black text-white">
                       L{card.level}
                     </span>
                     <div>
                       <h2 className="text-base font-bold text-slate-950">{card.name}</h2>
-                      <p className="text-xs font-medium text-slate-500">~{card.suggestedTimeMinutes} min suggested</p>
+                      <p className="font-mono text-xs font-medium text-slate-700">{playUi.suggestedTime(card.suggestedTimeMinutes)}</p>
                     </div>
                   </div>
-                  <span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${bandBadge(card.band)}`}>
-                    Band {card.band}
+                  <span className={`rounded-md border-2 px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] ${bandBadge(card.band)}`}>
+                    {playUi.bandLabel(card.band)}
                   </span>
                 </div>
 
-                <p className="text-sm leading-6 text-slate-600">{card.hint}</p>
+                <div className="flex flex-wrap gap-2">
+                  {isRecommended ? (
+                    <span className="inline-flex items-center rounded-md border-2 border-slate-950 bg-slate-950 px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-white">
+                      {playUi.recommendedBadge}
+                    </span>
+                  ) : null}
+                  {isCleared ? (
+                    <span className="inline-flex items-center rounded-md border-2 border-emerald-700 bg-emerald-50 px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-800">
+                      {playUi.clearedBadge}
+                    </span>
+                  ) : !isLocked && !isBlockedByProgression ? (
+                    <span className="inline-flex items-center rounded-md border-2 border-sky-700 bg-sky-50 px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-800">
+                      {playUi.availableBadge}
+                    </span>
+                  ) : null}
+                  <span
+                    className={`inline-flex items-center rounded-md border-2 px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] ${
+                      requiresAuth
+                        ? 'border-rose-700 bg-rose-50 text-rose-800'
+                        : 'border-slate-950 bg-slate-50 text-slate-800'
+                    }`}
+                  >
+                    {requiresAuth ? playUi.competitiveBadge : playUi.practiceBadge}
+                  </span>
+                </div>
+
+                <p className="text-sm leading-6 text-slate-700">{card.hint}</p>
 
                 <div className="mt-auto flex flex-wrap items-center gap-2 pt-2">
                   {isL0 ? (
                     <>
-                      <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600">
-                        Smoke test · no AI cost
+                      <span className="inline-flex items-center rounded-md border-2 border-slate-950 bg-slate-50 px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-700">
+                        {playUi.smokeTestBadge}
                       </span>
                       <Link
                         href="/challenge/0"
-                        className="inline-flex items-center rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+                        className="inline-flex items-center rounded-md border-2 border-slate-950 bg-white px-4 py-2 font-mono text-xs font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
                       >
-                        Run L0
+                        {playUi.runLevel0}
                       </Link>
                     </>
                   ) : isLocked ? (
                     <>
-                      <span className="inline-flex items-center rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-rose-700">
-                        Sign-in required
+                      <span className="inline-flex items-center rounded-md border-2 border-rose-700 bg-rose-50 px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-rose-800">
+                        {playUi.signInRequiredBadge}
                       </span>
                       <Link
                         href="/profile"
-                        className="inline-flex items-center rounded-full bg-slate-950 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800"
+                        className="inline-flex items-center rounded-md border-2 border-slate-950 bg-slate-950 px-4 py-2 font-mono text-xs font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
                       >
-                        Sign in to unlock L6-L8
+                        {playUi.signInUnlockLevels}
                       </Link>
                     </>
                   ) : isBlockedByProgression ? (
                     <>
-                      <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-800">
-                        Locked · clear L{card.level - 1} first
+                      <span className="inline-flex items-center rounded-md border-2 border-amber-700 bg-amber-50 px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-800">
+                        {playUi.progressionLocked(card.level - 1)}
                       </span>
                       <Link
                         href={`/challenge/${card.level - 1}`}
-                        className="inline-flex items-center rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+                        className="inline-flex items-center rounded-md border-2 border-slate-950 bg-white px-4 py-2 font-mono text-xs font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
                       >
-                        Go to L{card.level - 1}
+                        {playUi.goToLevel(card.level - 1)}
                       </Link>
                     </>
                   ) : (
                     <Link
                       href={`/challenge/${card.level}`}
-                      className="inline-flex items-center rounded-full bg-slate-950 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800"
+                      className="inline-flex items-center rounded-md border-2 border-slate-950 bg-slate-950 px-4 py-2 font-mono text-xs font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
                     >
-                      Start L{card.level} →
+                      {playUi.startLevel(card.level)}
                     </Link>
                   )}
                 </div>
@@ -279,8 +420,8 @@ export function PlayClient() {
           })}
         </div>
 
-        <aside className="rounded-3xl border border-slate-200 bg-white p-6 text-sm leading-7 text-slate-700 shadow-[0_10px_40px_rgba(15,23,42,0.04)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{copy.play.contract.eyebrow}</p>
+        <aside className="rounded-md border-2 border-slate-950 bg-white p-6 text-sm leading-7 text-slate-700">
+          <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">{copy.play.contract.eyebrow}</p>
           <ul className="mt-2 list-inside list-disc space-y-1">
             {copy.play.contract.bullets.map((bullet) => (
               <li key={bullet}>{bullet}</li>

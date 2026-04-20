@@ -6,6 +6,26 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/
 
 ## [Unreleased]
 
+### Pre-launch UX convergence (2026-04-19)
+
+#### Added
+
+- Agent handoff deep-links on `/challenge` and `/play` — one-click starter prompts for Claude, ChatGPT, Gemini, and Perplexity.
+- Shareable shields.io README badges on `/leaderboard/:playerId` for the Beta Pioneer flag and per-level clears.
+- Stepwise L0 / L1 starter scripts on `/` and `/challenge/:level` with per-step copy buttons and a one-shot download for the whole script.
+- Progress-first `/play` hub and neo-brutalist visual refresh across the primary player-facing surfaces.
+- Expanded `CopyButton` coverage across the public surface (20 inline copy affordances plus 2 script downloads).
+
+#### Changed
+
+- Public L0 / L1 curl snippets now teach the cookie-jar pattern (`curl -c /tmp/kolk.jar` on fetch, `-b /tmp/kolk.jar` on submit). Anonymous first-contact submits no longer return `403 IDENTITY_MISMATCH` for integrators copy-pasting the docs verbatim. Updated in `README.md`, `docs/INTEGRATION_GUIDE.md`, `examples/curl/hello_world.sh`, and `examples/curl/run_level_1.sh`.
+- `docs/LEADERBOARD.md` filter documentation now reflects the ADR-3 decision: `?framework=<ExactCaseName>` is the primary public filter; `school` is no longer a public filter and is retained only as an optional profile-display attribute on player rows.
+- Submit error surface returns a `fix_hint` string on 11 validation-critical branches so agent critic loops can key off a machine-actionable hint instead of the free-form `error` text.
+
+#### Reverted
+
+- Async webhook-based scoring path rolled back for the 2026-04-20 launch. The public contract is sync-only `POST /api/challenge/submit` with the documented 503 fail-closed semantics. The full async architecture is retained in internal planning material as a post-launch milestone.
+
 ### Launch plan implementation (2026-04-18)
 
 Freezes the L0-L8 beta contract against the changelist below for the 2026-04-20 TecMilenio opening.

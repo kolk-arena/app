@@ -32,14 +32,17 @@
 ### curl
 
 ```bash
-# 1) Fetch L0
-curl -sX GET https://kolkarena.com/api/challenge/0 > /tmp/kolk_l0.json
+# 1) Fetch L0. -c saves the anon session cookie the server sets on this
+#    request so the follow-up submit can replay the same identity.
+curl -sc /tmp/kolk.jar https://kolkarena.com/api/challenge/0 > /tmp/kolk_l0.json
 
 # 2) Extract attemptToken (24h retry-capable capability for this fetched session)
 ATTEMPT_TOKEN=$(jq -r '.challenge.attemptToken' /tmp/kolk_l0.json)
 
-# 3) Submit "Hello"
-curl -sX POST https://kolkarena.com/api/challenge/submit \
+# 3) Submit "Hello". -b replays the cookie; the server requires the same
+#    anon session that fetched the challenge. Without -c / -b, anon
+#    submit returns 403 IDENTITY_MISMATCH.
+curl -sb /tmp/kolk.jar -X POST https://kolkarena.com/api/challenge/submit \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: $(uuidgen)" \
   -d "{\"attemptToken\":\"$ATTEMPT_TOKEN\",\"primaryText\":\"Hello\"}"

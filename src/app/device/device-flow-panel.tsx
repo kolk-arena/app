@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { copy } from '@/i18n';
 import { formatDateTime, formatTimeOnly } from '@/i18n/format';
 
 type ScopeView = {
@@ -71,7 +72,7 @@ export function DeviceFlowPanel({
 
   function openCode() {
     if (!normalizedCode) {
-      setStatus({ kind: 'error', message: 'Enter the code shown in your CLI first.' });
+      setStatus({ kind: 'error', message: copy.device.missingCode });
       return;
     }
 
@@ -81,15 +82,15 @@ export function DeviceFlowPanel({
   async function authorize() {
     if (!deviceRequest) return;
     if (!deviceRequest.deviceCode) {
-      setStatus({ kind: 'error', message: 'This device request is missing its proof-of-knowledge token. Reload the page with a fresh ?code=… query.' });
+      setStatus({ kind: 'error', message: copy.device.missingProofToken });
       return;
     }
     if (selectedScopes.size === 0) {
-      setStatus({ kind: 'error', message: 'Pick at least one scope before authorizing.' });
+      setStatus({ kind: 'error', message: copy.device.pickOneScope });
       return;
     }
 
-    setStatus({ kind: 'submitting', message: 'Authorizing CLI…' });
+    setStatus({ kind: 'submitting', message: copy.device.authorizing });
 
     const response = await fetch('/api/auth/device/verify', {
       method: 'POST',
@@ -106,25 +107,25 @@ export function DeviceFlowPanel({
     if (!response.ok) {
       setStatus({
         kind: 'error',
-        message: typeof body?.error === 'string' ? body.error : 'Failed to authorize this CLI request.',
+        message: typeof body?.error === 'string' ? body.error : copy.device.authorizeFailed,
       });
       return;
     }
 
     setStatus({
       kind: 'success',
-      message: 'Authorization complete. You can close this window; your CLI is now signed in.',
+      message: copy.device.authorizeSuccess,
     });
   }
 
   async function deny() {
     if (!deviceRequest) return;
     if (!deviceRequest.deviceCode) {
-      setStatus({ kind: 'error', message: 'This device request is missing its proof-of-knowledge token. Reload the page with a fresh ?code=… query.' });
+      setStatus({ kind: 'error', message: copy.device.missingProofToken });
       return;
     }
 
-    setStatus({ kind: 'submitting', message: 'Cancelling request…' });
+    setStatus({ kind: 'submitting', message: copy.device.cancelling });
 
     const response = await fetch('/api/auth/device/deny', {
       method: 'POST',
@@ -140,14 +141,14 @@ export function DeviceFlowPanel({
     if (!response.ok) {
       setStatus({
         kind: 'error',
-        message: typeof body?.error === 'string' ? body.error : 'Failed to cancel this CLI request.',
+        message: typeof body?.error === 'string' ? body.error : copy.device.cancelFailed,
       });
       return;
     }
 
     setStatus({
       kind: 'success',
-      message: 'Request cancelled. Return to your CLI and run `kolk-arena login` again if you want to restart.',
+      message: copy.device.cancelSuccess,
     });
   }
 
@@ -165,105 +166,113 @@ export function DeviceFlowPanel({
 
   const statusMessage =
     status.kind === 'error'
-      ? 'border-rose-200 bg-rose-50 text-rose-900'
+      ? 'border-rose-700 bg-rose-50 text-rose-900'
       : status.kind === 'success'
-      ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
-      : 'border-slate-200 bg-slate-50 text-slate-700';
+      ? 'border-emerald-700 bg-emerald-50 text-emerald-900'
+      : 'border-slate-950 bg-slate-50 text-slate-800';
 
   return (
-    <section className="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_10px_40px_rgba(15,23,42,0.04)] sm:p-8">
+    <section className="space-y-5 rounded-md border-2 border-slate-950 bg-white p-6 sm:p-8">
       <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">CLI sign-in</p>
-        <h1 className="text-3xl font-black tracking-tight text-slate-950">Device authorization</h1>
-        <p className="max-w-3xl text-sm leading-7 text-slate-600">
-          Approve a pending <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">kolk-arena login</code> request without copying any bearer token into the terminal.
+        <p className="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">{copy.device.panelEyebrow}</p>
+        <h1 className="text-3xl font-black tracking-tight text-slate-950">{copy.device.panelTitle}</h1>
+        <p className="max-w-3xl text-sm leading-7 text-slate-700">
+          {copy.device.panelBodyPrefix}
+          <code className="rounded-md border-2 border-slate-950 bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-950">{copy.device.cliCommand}</code>
+          {copy.device.panelBodySuffix}
         </p>
       </div>
 
       {status.kind !== 'idle' ? (
-        <div className={`rounded-2xl border px-4 py-3 text-sm ${statusMessage}`}>
+        <div className={`rounded-md border-2 px-4 py-3 text-sm ${statusMessage}`}>
           {status.message}
         </div>
       ) : null}
 
       {!deviceRequest ? (
-        <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <div className="space-y-4 rounded-md border-2 border-slate-950 bg-slate-50 p-4">
           <div>
-            <p className="text-sm font-semibold text-slate-950">Enter your CLI code</p>
-            <p className="mt-1 text-sm text-slate-600">
-              Run <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">kolk-arena login</code>, then paste the 8-character code shown in the terminal.
+            <p className="text-sm font-semibold text-slate-950">{copy.device.enterCodeTitle}</p>
+            <p className="mt-1 text-sm text-slate-700">
+              {copy.device.enterCodeBodyPrefix}
+              <code className="rounded-md border-2 border-slate-950 bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-950">{copy.device.cliCommand}</code>
+              {copy.device.enterCodeBodySuffix}
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
             <input
               value={codeInput}
               onChange={(event) => setCodeInput(event.target.value)}
-              placeholder="ABCD-1234"
-              className="min-h-12 flex-1 rounded-2xl border border-slate-300 bg-white px-4 py-3 font-mono text-base uppercase tracking-[0.18em] text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+              placeholder={copy.device.codePlaceholder}
+              className="min-h-12 flex-1 rounded-md border-2 border-slate-950 bg-white px-4 py-3 font-mono text-base uppercase tracking-[0.18em] text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950"
             />
             <button
               type="button"
               onClick={openCode}
-              className="min-h-12 rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+              className="min-h-12 rounded-md border-2 border-slate-950 bg-slate-950 px-5 py-3 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
             >
-              Continue
+              {copy.device.continue}
             </button>
           </div>
         </div>
       ) : null}
 
       {effectiveRequestStatus === 'invalid' ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-900">
-          This code is not recognized. Return to your CLI and run <code className="rounded bg-white px-1.5 py-0.5 text-xs">kolk-arena login</code> again.
+        <div className="rounded-md border-2 border-rose-700 bg-rose-50 px-4 py-4 text-sm text-rose-900">
+          {copy.device.invalidCodePrefix}
+          <code className="rounded-md border-2 border-rose-700 bg-white px-1.5 py-0.5 font-mono text-xs">{copy.device.cliCommand}</code>
+          {copy.device.invalidCodeSuffix}
         </div>
       ) : null}
 
       {effectiveRequestStatus === 'expired' ? (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
-          This code has expired. Return to your CLI and run <code className="rounded bg-white px-1.5 py-0.5 text-xs">kolk-arena login</code> again.
+        <div className="rounded-md border-2 border-amber-700 bg-amber-50 px-4 py-4 text-sm text-amber-900">
+          {copy.device.expiredCodePrefix}
+          <code className="rounded-md border-2 border-amber-700 bg-white px-1.5 py-0.5 font-mono text-xs">{copy.device.cliCommand}</code>
+          {copy.device.expiredCodeSuffix}
         </div>
       ) : null}
 
       {effectiveRequestStatus === 'denied' ? (
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700">
-          This request was already cancelled. Return to your CLI and start a fresh device flow if needed.
+        <div className="rounded-md border-2 border-slate-950 bg-slate-50 px-4 py-4 text-sm text-slate-800">
+          {copy.device.deniedRequest}
         </div>
       ) : null}
 
       {effectiveRequestStatus === 'verified' ? (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-900">
-          This CLI request is already authorized. You can close this window.
+        <div className="rounded-md border-2 border-emerald-700 bg-emerald-50 px-4 py-4 text-sm text-emerald-900">
+          {copy.device.verifiedRequest}
         </div>
       ) : null}
 
       {effectiveRequestStatus === 'pending' && deviceRequest ? (
-        <div className="space-y-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <div className="space-y-5 rounded-md border-2 border-slate-950 bg-slate-50 p-4">
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">User code</p>
+            <div className="rounded-md border-2 border-slate-950 bg-white px-4 py-3">
+              <p className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-slate-700">{copy.device.userCode}</p>
               <p className="mt-2 font-mono text-lg font-semibold tracking-[0.18em] text-slate-950">{deviceRequest.userCode}</p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Client</p>
+            <div className="rounded-md border-2 border-slate-950 bg-white px-4 py-3">
+              <p className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-slate-700">{copy.device.client}</p>
               <p className="mt-2 text-sm font-semibold text-slate-950">{deviceRequest.clientKind}</p>
-              <p className="mt-1 text-xs text-slate-500">Requested at {formatDateTime(deviceRequest.createdAt, deviceRequest.createdAt)}</p>
+              <p className="mt-1 font-mono text-xs text-slate-700">{copy.device.requestedAt(formatDateTime(deviceRequest.createdAt, deviceRequest.createdAt))}</p>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
+          <div className="rounded-md border-2 border-slate-950 bg-white px-4 py-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold text-slate-950">Requested scopes</p>
-                <p className="mt-1 text-sm text-slate-600">You may uncheck scopes to issue a narrower token than the CLI requested.</p>
+                <p className="text-sm font-semibold text-slate-950">{copy.device.requestedScopesTitle}</p>
+                <p className="mt-1 text-sm text-slate-700">{copy.device.requestedScopesBody}</p>
               </div>
-              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
-                Expires {formatTimeOnly(deviceRequest.expiresAt, deviceRequest.expiresAt)}
+              <span className="rounded-md border-2 border-slate-950 bg-slate-50 px-3 py-1 font-mono text-xs font-semibold uppercase tracking-[0.12em] text-slate-700">
+                {copy.device.expiresAt(formatTimeOnly(deviceRequest.expiresAt, deviceRequest.expiresAt))}
               </span>
             </div>
 
             <ul className="mt-4 grid gap-2">
               {deviceRequest.requestedScopes.map((scope) => (
-                <li key={scope.scope} className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
+                <li key={scope.scope} className="rounded-md border-2 border-slate-950 bg-slate-50 px-3 py-3">
                   <label className="flex items-start gap-3 text-sm">
                     <input
                       type="checkbox"
@@ -272,8 +281,8 @@ export function DeviceFlowPanel({
                       onChange={() => toggleScope(scope.scope)}
                     />
                     <span>
-                      <code className="rounded bg-white px-1.5 py-0.5 font-mono text-[11px] text-slate-900">{scope.label}</code>
-                      <p className="mt-1 text-sm text-slate-600">{scope.detail}</p>
+                      <code className="rounded-md border-2 border-slate-950 bg-white px-1.5 py-0.5 font-mono text-[11px] text-slate-950">{scope.label}</code>
+                      <p className="mt-1 text-sm text-slate-700">{scope.detail}</p>
                     </span>
                   </label>
                 </li>
@@ -286,17 +295,17 @@ export function DeviceFlowPanel({
               type="button"
               onClick={authorize}
               disabled={status.kind === 'submitting'}
-              className="min-h-12 rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+              className="min-h-12 rounded-md border-2 border-slate-950 bg-slate-950 px-5 py-3 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950 disabled:opacity-60 disabled:hover:bg-slate-950 disabled:hover:text-white"
             >
-              Authorize CLI
+              {copy.device.authorize}
             </button>
             <button
               type="button"
               onClick={deny}
               disabled={status.kind === 'submitting'}
-              className="min-h-12 rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+              className="min-h-12 rounded-md border-2 border-slate-950 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white disabled:opacity-60"
             >
-              Cancel request
+              {copy.device.cancel}
             </button>
           </div>
         </div>

@@ -8,11 +8,6 @@ import type {
 export const en = {
   locale: 'en' as FrontendLocale,
   localeCode: 'en-US' as FrontendLocaleCode,
-  app: {
-    name: 'Kolk Arena',
-    githubUrl: 'https://github.com/kolk-arena/app',
-    canonicalOrigin: 'https://kolkarena.com',
-  },
   meta: {
     titleDefault: 'Kolk Arena',
     titleTemplate: '%s | Kolk Arena',
@@ -22,6 +17,11 @@ export const en = {
       'A public benchmark for AI agents that complete real digital service deliveries.',
     twitterDescription:
       'L0-L8 public beta AI agent benchmark. Auto-scored. Leaderboarded. Framework-agnostic.',
+  },
+  common: {
+    copyFailed: 'Copy failed',
+    copied: 'Copied',
+    copyThisStep: 'Copy this step',
   },
   nav: {
     home: 'Home',
@@ -52,6 +52,18 @@ export const en = {
     startEmailSignInFailed: 'Failed to start email sign-in',
     checkEmail:
       'Check your email for the verification link or code.',
+    sessionCheckUnknown: 'Unable to confirm current session state.',
+    sessionCheckFailed: (message: string) => `Could not confirm existing session state: ${message}`,
+    oauthGitHub: 'Sign in with GitHub',
+    oauthGoogle: 'Sign in with Google',
+    emailSignInEyebrow: 'Email sign-in',
+    emailSignInBody: 'Enter your email to receive the verification link or code.',
+    emailLabel: 'Email',
+    emailPlaceholder: 'you@example.com',
+    displayNameLabel: 'Display name',
+    displayNamePlaceholder: 'Optional',
+    sending: 'Sending...',
+    sendSignInLink: 'Send sign-in link',
     statusMessages: {
       success: {
         title: 'Sign-in complete',
@@ -109,7 +121,7 @@ export const en = {
       challengeBriefEyebrow: 'ChallengeBrief',
       challengeBriefTitle: 'The reusable object is the brief, not the page chrome',
       challengeBriefBody:
-        'In the public beta UI, the agent-facing brief is promptMd plus structured_brief. Kolk Arena is the proof surface that scores whether an agent can satisfy that ChallengeBrief cleanly.',
+        'In the public beta UI, the agent-facing brief is the readable brief text plus structured_brief. Kolk Arena is the proof surface that scores whether an agent can satisfy that ChallengeBrief cleanly.',
       challengeBriefFuture:
         'Community-authored ChallengeBriefs are planned post-launch. The beta contract is being kept stable so early integrations port forward.',
     },
@@ -141,6 +153,7 @@ export const en = {
       ladderPrefix:
         'The ranked ladder runs L1 through L8: translation, business bios, business profiles, travel itineraries, JSON welcome kits, landing copy, prompt packs, and a final L8 business package. Anonymous play covers L1-L5; sign in once to unlock L6-L8. Clearing L8 awards the permanent ',
       ladderSuffix: ' badge.',
+      pioneerBadgeLabel: 'Beta Pioneer',
     },
     stack: {
       eyebrow: 'Operator stack',
@@ -156,10 +169,21 @@ export const en = {
     },
   },
   homeInteractive: {
+    starterScriptsEyebrow: 'Starter scripts',
+    starterScriptsBody:
+      'Copy or download the exact shell commands for L0 and L1. Keep script-oriented setup separate from direct prompt handoff.',
+    handoffEyebrow: 'Direct handoff',
+    handoffBody:
+      'Copy one starter prompt when you want to paste the brief straight into Claude, Codex, Cursor, OpenHands, or another AI tool.',
+    resourcesEyebrow: 'Explore',
+    resourcesBody:
+      'Open the live endpoint, leaderboard, or docs without mixing those links into your starter scripts.',
     copyL0: 'Copy L0 smoke test',
     copiedL0: 'Copied L0 smoke test',
+    downloadL0: 'Download L0 script',
     copyL1: 'Copy L1 starter',
     copiedL1: 'Copied L1 starter',
+    downloadL1: 'Download L1 script',
     copyAgentPrompt: 'Copy agent starter',
     copiedAgentPrompt: 'Copied agent starter',
     copyFailed: 'Copy failed',
@@ -172,7 +196,119 @@ export const en = {
     authDescription:
       'Use GitHub, Google, or email to unlock competitive play and continue into your profile.',
   },
+  profile: {
+    pageEyebrow: 'Account',
+    pageTitle: 'Profile',
+    logOut: 'Log out',
+    loggingOut: 'Logging out...',
+    loading: 'Loading profile...',
+    loadFailedTitle: 'Failed to load profile',
+    loadFailedHint: 'This may be a network error or server issue. Try refreshing the page.',
+    loadFailedFallback: 'Failed to load profile',
+    saveFailedFallback: 'Failed to update profile',
+    logoutFailedFallback: 'Failed to log out',
+    retry: 'Retry',
+    signInTitle: 'Sign in to view your profile',
+    signInDescription: 'Use GitHub, Google, or email to load your Kolk Arena profile and continue competitive play.',
+    sessionExpiredTitle: 'Session expired',
+    sessionExpiredBody: 'Your session has expired. Sign in again to save your changes. Your edits are preserved below.',
+    sessionExpiredGithub: 'GitHub',
+    sessionExpiredGoogle: 'Google',
+    summary: {
+      canonicalEmail: 'Canonical email',
+      loginMethods: 'Login methods',
+      highestUnlockedLevel: 'Highest unlocked level',
+      betaPioneer: 'Beta Pioneer',
+      verifiedAt: 'Verified at',
+      emailFallback: 'email',
+      pioneerYes: 'Yes',
+      pioneerNo: 'Not yet',
+      notSet: 'Not set',
+    },
+    progression: {
+      eyebrow: 'Progression',
+      title: 'My progress',
+      viewOnLeaderboard: 'View on leaderboard',
+      highestLevel: 'Highest Level',
+      publicBetaProgress: 'Public beta progress',
+      betaLevels: (current: number, total: number) => `${current}/${total} beta levels`,
+      nextStep: 'Next Step',
+      nextStepComplete: 'L0-L8 public beta complete',
+      nextStepAttempt: (level: number) => `Attempt L${level}`,
+      pioneerUnlocked: 'Beta Pioneer unlocked. You completed the full L0-L8 public beta.',
+    },
+    publicProfile: {
+      eyebrow: 'Public profile',
+      title: 'Editable, not required',
+      displayName: 'Display name',
+      handle: 'Handle',
+      framework: 'Framework',
+      school: 'School',
+      country: 'Country',
+      save: 'Save profile',
+      saving: 'Saving...',
+      saved: 'Saved',
+      success: 'Profile saved successfully.',
+    },
+    apiTokens: {
+      sectionEyebrow: 'Machine surface',
+      sectionTitle: 'API tokens',
+      sectionBody:
+        'Personal Access Tokens let bots, CLIs, and scripts authenticate on your behalf with an explicit scope set. Tokens are shown in plaintext exactly once — copy immediately.',
+      signInRequired: 'Sign in required to manage API tokens.',
+      failedToLoad: 'Failed to load tokens',
+      nameRequired: 'Name is required.',
+      pickScopeRequired: 'Pick at least one scope.',
+      failedToCreate: 'Failed to create token',
+      revokeConfirm: 'Revoke this token? Agents using it will stop working immediately.',
+      failedToRevoke: 'Failed to revoke token',
+      newTokenTitle: 'Your new token — copy it now. You will not see it again.',
+      copyToken: 'Copy to clipboard',
+      copiedToken: 'Copied to clipboard',
+      dismissToken: 'I have copied it, dismiss',
+      formTitle: 'Create a new token',
+      tokenName: 'Token name',
+      tokenNamePlaceholder: 'My L6 agent',
+      scopes: 'Scopes',
+      scopesHelp: 'Check only what the token needs. Scopes can always be removed later by revoking and re-issuing.',
+      create: 'Create new token',
+      creating: 'Creating…',
+      activeTokens: 'Active tokens',
+      loading: 'Loading…',
+      empty: 'No active tokens yet. Create one above to let a bot or CLI authenticate on your behalf.',
+      createdAt: (value: string) => `Created ${value}`,
+      lastUsedAt: (value: string) => `Last used ${value}`,
+      neverUsed: 'Never used',
+      expiresAt: (value: string) => `Expires ${value}`,
+      noExpiry: 'No expiry set',
+      revoke: 'Revoke',
+      scopeOptions: {
+        submitOnboarding: {
+          label: 'submit:onboarding',
+          detail: 'Submit to L0 (onboarding connectivity check).',
+        },
+        submitRanked: {
+          label: 'submit:ranked',
+          detail: 'Submit to ranked ladder L1-L8.',
+        },
+        fetchChallenge: {
+          label: 'fetch:challenge',
+          detail: 'Fetch challenge packages (GET /api/challenge/:level).',
+        },
+        readProfile: {
+          label: 'read:profile',
+          detail: 'Read the authenticated profile (GET /api/profile).',
+        },
+        writeProfile: {
+          label: 'write:profile',
+          detail: 'Update the authenticated profile (PATCH /api/profile).',
+        },
+      },
+    },
+  },
   play: {
+    metaDescription:
+      'Pick an entry point for your agent — L0 smoke test through the L8 final boss. Every submit returns critic feedback you can iterate on.',
     levelCards: [
       {
         level: 0,
@@ -254,12 +390,57 @@ export const en = {
         'Not signed in. Anonymous play is capped at ',
       signedOutTail:
         'Sign in to unlock the competitive L6-L8 tier. The permanent Beta Pioneer badge is awarded on L8 clear, not at sign-in.',
+      signInCta: 'Sign in',
+    },
+    summary: {
+      modeLabel: 'Mode',
+      progressLabel: 'Progress',
+      nextLabel: 'Next step',
+      anonymousMode: 'Anonymous practice',
+      signedInMode: 'Signed-in competitive',
+      loadingValue: 'Loading…',
+      progressValue: (level: number) => `Highest cleared: L${level}`,
+      anonymousUnlockHint: 'Anonymous runs count locally through L5 only.',
+      signedInUnlockHint: 'Signed-in runs count toward the public ladder.',
+      nextStepSignIn: 'Sign in to unlock the competitive L6-L8 tier.',
+      nextStepStart: (level: number) => `Recommended run: L${level}`,
+      nextStepComplete: 'Public beta cleared. Replay, share, or inspect the leaderboard.',
+    },
+    actions: {
+      continueToLevel: (level: number) => `Continue to L${level}`,
+      runL0: 'Run L0',
+      signInToCompete: 'Sign in to compete',
+      openLeaderboard: 'Open leaderboard',
+      openProfile: 'Open profile',
+    },
+    cardUi: {
+      suggestedTime: (minutes: number) => `~${minutes} min suggested`,
+      bandLabel: (band: string) => `Band ${band}`,
+      smokeTestBadge: 'Smoke test · no AI cost',
+      runLevel0: 'Run L0',
+      signInRequiredBadge: 'Sign-in required',
+      signInUnlockLevels: 'Sign in to unlock L6-L8',
+      progressionLocked: (level: number) => `Locked · clear L${level} first`,
+      goToLevel: (level: number) => `Go to L${level}`,
+      startLevel: (level: number) => `Start L${level} →`,
+      recommendedBadge: 'Recommended',
+      clearedBadge: 'Cleared',
+      availableBadge: 'Available now',
+      practiceBadge: 'Practice tier',
+      competitiveBadge: 'Competitive tier',
     },
     agentPanel: {
       eyebrow: 'Agent handoff',
-      title: 'Fetch a brief, hand it to your agent, submit primaryText back',
+      title: 'Start with one prompt, then keep the submit contract separate',
       body:
         'Use the same contract in Claude, Codex, Cursor, OpenHands, n8n, or any workflow that can read JSON and post HTTP.',
+      directEyebrow: 'Direct handoff',
+      directBody:
+        'Use this for hosted assistants or copy-paste workflows. The prompt already tells the model to return final primaryText only.',
+      resourcesEyebrow: 'Submit contract',
+      resourcesTitle: 'Keep the HTTP side explicit',
+      resourcesBody:
+        'Copy the submit snippet or open the integration guide when you are wiring your own agent, script, or community tool.',
       copyAgentPrompt: 'Copy agent starter',
       copiedAgentPrompt: 'Copied agent starter',
       copySubmitContract: 'Copy submit contract',
@@ -278,6 +459,12 @@ export const en = {
     },
   },
   challenge: {
+    header: {
+      backToPlay: '← Play',
+      levelBand: (level: number, band: string) => `L${level} · Band ${band}`,
+      bossLevel: 'Boss level',
+      resultLevelTitle: (level: number, levelName: string) => `L${level} · ${levelName}`,
+    },
     agentPanel: {
       eyebrow: 'Use your own AI agent',
       title:
@@ -289,9 +476,18 @@ export const en = {
         'Paste it into your agent or workflow. Tell it to return only the final primaryText payload.',
         'Paste the result below, or post the same primaryText to /api/challenge/submit with this attemptToken.',
       ],
-      copyAgentBrief: '🤖 Copy System Prompt for AI',
-      copiedAgentBrief: 'Copied system prompt',
-      copyOutputTemplate: 'Copy suggested output template',
+      directActionsEyebrow: 'Direct handoff',
+      directActionsBody:
+        'Use one button to copy the full AI-ready brief, or send the same brief straight into a hosted assistant.',
+      supportAssetsEyebrow: 'Reference assets',
+      supportAssetsBody:
+        'Use these when you need the raw prompt, structured JSON, output template, or submit contract while building your own workflow.',
+      scriptToolkitEyebrow: 'Local scripts',
+      scriptToolkitBody:
+        'Copy a single step or download the full runnable file. Keep scripts separate from the direct prompt handoff so the flow stays obvious.',
+      copyAgentBrief: 'Copy AI handoff brief',
+      copiedAgentBrief: 'Copied AI handoff brief',
+      copyOutputTemplate: 'Copy output template',
       copiedOutputTemplate: 'Copied output template',
       copyStructuredBrief: 'Copy structured brief JSON',
       copiedStructuredBrief: 'Copied structured brief JSON',
@@ -300,32 +496,33 @@ export const en = {
       copySubmitContract: 'Copy submit contract',
       copiedSubmitContract: 'Copied submit contract',
       copyFailed: 'Copy failed',
-      copyBriefText: 'Copy brief text',
-      copiedBriefText: 'Copied brief text',
+      copyBriefText: 'Copy brief text only',
+      copiedBriefText: 'Copied brief text only',
       structuredBriefTitle: 'View structured brief JSON',
-      taskJsonTitle: 'View task JSON',
-      challengeBriefEyebrow: 'ChallengeBrief',
+      taskJsonTitle: 'View brief JSON',
+      challengeBriefEyebrow: 'Structured brief',
       challengeBriefBody:
-        'Today, the browser exposes promptMd and taskJson. For agents, the stable object to read is the brief itself, not the surrounding page chrome. Community-authored ChallengeBriefs are planned post-launch.',
-      downloadCursorRules: 'Download .cursorrules',
+        'Today, the browser exposes both the human-readable brief text and the machine-readable brief JSON. For agents, hand off the brief payload itself, not the surrounding page chrome. Prefer structured_brief when it exists; otherwise use the fallback brief JSON.',
+      downloadCursorRules: 'Download Cursor rules',
       cursorRulesFilename: '.cursorrules',
-      copiedScriptButton: 'Copied!',
-      copyScriptFailed: 'Failed',
+      copiedScriptButton: 'Copied script',
+      copyScriptFailed: 'Script copy failed',
       copyScriptButton: (lang: ScriptLang) =>
         lang === 'curl' ? 'Copy curl script' : `Copy ${lang} snippet`,
-      downloadScriptButton: 'Download script',
+      downloadScriptButton: 'Download file',
       downloadScriptFilename: (lang) =>
         lang === 'curl' ? 'solve.sh' : lang === 'python' ? 'solve.py' : 'solve.js',
+      scriptTabListAriaLabel: 'Script languages',
       scriptTabs: {
         curl: 'cURL',
         python: 'Python',
         node: 'Node.js',
       },
       openInIcon: {
-        claude: '🧠',
-        chatgpt: '🤖',
-        gemini: '✨',
-        perplexity: '🔍',
+        claude: '↗',
+        chatgpt: '↗',
+        gemini: '↗',
+        perplexity: '↗',
       },
       openInLabel: {
         claude: 'Open in Claude',
@@ -334,7 +531,7 @@ export const en = {
         perplexity: 'Open in Perplexity',
       },
       openInTruncatedHint:
-        'Prompt was truncated to fit this service\u2019s URL length. Copy the full prompt with the 🤖 button for completeness.',
+        'Prompt was truncated to fit this service\u2019s URL length. Use “Copy AI handoff brief” if you need the full version.',
     },
     cards: {
       brief: 'Brief',
@@ -492,6 +689,8 @@ export const en = {
     },
   },
   leaderboard: {
+    metaDescription:
+      'Follow the public Kolk Arena beta ladder, inspect player detail, and watch live leaderboard movement across L0-L8.',
     heroEyebrow: 'Live Rankings',
     heroTitle: 'Leaderboard',
     heroDescription:
@@ -508,10 +707,14 @@ export const en = {
     topTierLabel: (tier: string) => `Current top tier: ${tier}`,
     frameworkFilter: 'Framework Filter',
     frameworkPlaceholder: 'Claude Code',
+    schoolFilter: 'School Filter',
+    schoolPlaceholder: 'Stanford',
     applyFilter: 'Apply',
     clearFilter: 'Clear',
     allFrameworks: 'All frameworks',
     activeFilterEyebrow: 'Active filter',
+    activeFilterFramework: 'Framework',
+    activeFilterSchool: 'School',
     viewEyebrow: 'View',
     showingLabel: (from: number, to: number, total: number) =>
       `${from}-${to} of ${total}`,
@@ -529,8 +732,8 @@ export const en = {
     refreshing: 'Refreshing',
     loading: 'Loading leaderboard...',
     noEntriesTitle: 'No entries found.',
-    noEntriesFrameworkHint:
-      'Try clearing the framework filter or check back after more submissions land.',
+    noEntriesFilteredHint:
+      'Try clearing one of the active filters or check back after more submissions land.',
     noEntriesDefaultHint:
       'Official competitive entries will appear here once players start posting passing runs.',
     previousPage: 'Previous',
@@ -569,6 +772,8 @@ export const en = {
       retry: 'Retry',
       clearSelection: 'Clear selection',
       clearShort: 'Clear',
+      copyProfileLink: 'Copy profile link',
+      copiedProfileLink: 'Copied profile link',
       betaPioneerBadge: 'Beta Pioneer',
       profilePlayerFallback: 'Player',
       noPublicHandle: 'No public handle',
@@ -640,6 +845,8 @@ export const en = {
       highestLabel: 'Highest',
       frontierLabel: 'Frontier',
       frameworkLabel: 'Framework',
+      schoolLabel: 'School',
+      schoolFallback: 'Independent',
       lastSubmissionLabel: (formatted: string) => `Last submission: ${formatted}`,
       noSubmissionsYet: 'No submissions yet',
       noSubmissionFallback: '—',
@@ -647,13 +854,66 @@ export const en = {
       openPlayerPageAriaLabel: (name: string) => `Open player page for ${name}`,
     },
   },
+  device: {
+    signInTitle: 'Sign in to authorize your CLI',
+    signInDescription:
+      'The Kolk Arena CLI uses a browser-based device authorization flow. Sign in once, review the requested scopes, and the CLI receives a token automatically.',
+    panelEyebrow: 'CLI sign-in',
+    panelTitle: 'Device authorization',
+    cliCommand: 'kolk-arena login',
+    panelBodyPrefix: 'Approve a pending ',
+    panelBodySuffix:
+      ' request without copying any bearer token into the terminal.',
+    enterCodeTitle: 'Enter your CLI code',
+    enterCodeBodyPrefix: 'Run ',
+    enterCodeBodySuffix:
+      ', then paste the 8-character code shown in the terminal.',
+    codePlaceholder: 'ABCD-1234',
+    continue: 'Continue',
+    invalidCodePrefix:
+      'This code is not recognized. Return to your CLI and run ',
+    invalidCodeSuffix: ' again.',
+    expiredCodePrefix:
+      'This code has expired. Return to your CLI and run ',
+    expiredCodeSuffix: ' again.',
+    deniedRequest:
+      'This request was already cancelled. Return to your CLI and start a fresh device flow if needed.',
+    verifiedRequest:
+      'This CLI request is already authorized. You can close this window.',
+    missingCode: 'Enter the code shown in your CLI first.',
+    missingProofToken:
+      'This device request is missing its proof-of-knowledge token. Reload the page with a fresh ?code=… query.',
+    pickOneScope: 'Pick at least one scope before authorizing.',
+    authorizing: 'Authorizing CLI…',
+    authorizeFailed: 'Failed to authorize this CLI request.',
+    authorizeSuccess: 'Authorization complete. You can close this window; your CLI is now signed in.',
+    cancelling: 'Cancelling request…',
+    cancelFailed: 'Failed to cancel this CLI request.',
+    cancelSuccess:
+      'Request cancelled. Return to your CLI and run kolk-arena login again if you want to restart.',
+    userCode: 'User code',
+    client: 'Client',
+    requestedAt: (value: string) => `Requested at ${value}`,
+    requestedScopesTitle: 'Requested scopes',
+    requestedScopesBody:
+      'You may uncheck scopes to issue a narrower token than the CLI requested.',
+    expiresAt: (value: string) => `Expires ${value}`,
+    authorize: 'Authorize CLI',
+    cancel: 'Cancel request',
+  },
   errors: {
+    MISSING_IDEMPOTENCY_KEY:
+      'Every submit must include a unique Idempotency-Key header.',
+    DUPLICATE_REQUEST:
+      'This Idempotency-Key was already used. Generate a fresh one and retry.',
     RATE_LIMIT_MINUTE:
       'You are submitting too quickly — only 2 submissions per minute are allowed for the same attemptToken. Wait a moment and try again.',
     RATE_LIMIT_HOUR:
       'Hourly submission cap reached — 20 submissions per hour per attemptToken. Wait until the next window before resubmitting.',
     RATE_LIMIT_DAY:
       'Daily submission cap reached — 99 submissions per account per day. Counter resets at PT midnight.',
+    RATE_LIMITED:
+      'This endpoint is being polled too quickly. Wait a moment and try again.',
     RETRY_LIMIT_EXCEEDED:
       'This attemptToken has hit its 10-submit retry ceiling. Fetch a fresh challenge to continue.',
     ACCOUNT_FROZEN:
@@ -686,10 +946,16 @@ export const en = {
       'No challenge matches that identifier. It may have been retired or expired.',
     INVALID_ATTEMPT_TOKEN:
       'The attemptToken is malformed or no longer valid. Fetch a fresh challenge.',
+    INVALID_PLAYER_ID:
+      'The player link is invalid.',
+    PLAYER_NOT_FOUND:
+      'That player could not be found.',
     SUBMISSION_FAILED:
       'The submission could not be saved. Please retry; if it keeps failing, fetch a new challenge.',
     LEADERBOARD_ERROR:
       'The leaderboard service is temporarily unavailable. Try again shortly.',
+    ACTIVITY_FEED_ERROR:
+      'The live activity feed is temporarily unavailable. Try again shortly.',
     SCHEMA_NOT_READY:
       'The service is initializing its data layer. Try again in a moment.',
     SESSION_ERROR:
