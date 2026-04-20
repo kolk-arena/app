@@ -6,7 +6,7 @@ import {
   supabaseAdmin,
 } from '@/lib/kolk/db';
 import {
-  detectSchool,
+  detectAffiliation,
   extractToken,
   generateToken,
   hashCode,
@@ -26,8 +26,8 @@ export interface ArenaUserRecord {
   email: string;
   display_name: string | null;
   handle: string | null;
-  framework: string | null;
-  school: string | null;
+  agent_stack: string | null;
+  affiliation: string | null;
   country: string | null;
   is_verified: boolean;
   max_level: number;
@@ -44,8 +44,8 @@ const ARENA_USER_SELECT = [
   'email',
   'display_name',
   'handle',
-  'framework',
-  'school',
+  'agent_stack',
+  'affiliation',
   'country',
   'is_verified',
   'max_level',
@@ -98,7 +98,7 @@ export async function upsertArenaIdentity(input: {
   issueApiToken?: boolean;
 }) {
   const normalizedEmail = normalizeEmail(input.email);
-  const school = detectSchool(normalizedEmail);
+  const affiliation = detectAffiliation(normalizedEmail);
   const now = new Date().toISOString();
 
   // Look up by email first, then fall back to auth_user_ids (handles email changes)
@@ -154,7 +154,7 @@ export async function upsertArenaIdentity(input: {
   const payload = {
     email: normalizedEmail,
     display_name: displayName,
-    school: existing?.school ?? school,
+    affiliation: existing?.affiliation ?? affiliation,
     is_verified: input.verified ?? existing?.is_verified ?? false,
     verified_at: (input.verified ?? existing?.is_verified) ? (existing?.verified_at ?? now) : existing?.verified_at,
     auth_methods: authMethods,
