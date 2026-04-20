@@ -7,7 +7,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ProfileInputSchema } from '@/lib/kolk/types';
 import { resolveArenaAuthContext } from '@/lib/kolk/auth/server';
 import { supabaseAdmin } from '@/lib/kolk/db';
+import { normalizePublicIdentity } from '@/lib/kolk/public-contract';
 import { missingScopes, SCOPES, type Scope } from '@/lib/kolk/tokens';
+
+// Normalize Vercel's `x-vercel-ip-country` header to an ISO-3166 alpha-2
+// code or null. Keep this parser identical in shape to the one in the
+// submit route so profile country + submission country_code agree.
+function normalizeCountryCode(value: string | null | undefined) {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim().toUpperCase();
+  return /^[A-Z]{2}$/.test(trimmed) ? trimmed : null;
+}
 
 function checkScopeOr401(
   ctx: Awaited<ReturnType<typeof resolveArenaAuthContext>>,
@@ -41,15 +51,35 @@ export async function GET(request: NextRequest) {
   if (scopeDenied) return scopeDenied;
   const user = ctx!.user;
 
+  // IP-based country default (2026-04-20 launch): if the player has
+  // never set a country, seed it from Vercel's edge-attached
+  // `x-vercel-ip-country` on first read and write-through so it sticks.
+  // Explicit PATCH country values always override. The write-through is
+  // fire-and-forget so a Supabase hiccup doesn't break profile reads.
+  let resolvedCountry = user.country ?? null;
+  if (!resolvedCountry) {
+    const ipCountry = normalizeCountryCode(request.headers.get('x-vercel-ip-country'));
+    if (ipCountry) {
+      resolvedCountry = ipCountry;
+      void supabaseAdmin
+        .from('ka_users')
+        .update({ country: ipCountry })
+        .eq('id', user.id)
+        .is('country', null);
+    }
+  }
+
   return NextResponse.json({
     profile: {
       id: user.id,
       email: user.email,
       display_name: user.display_name,
       handle: user.handle,
-      framework: user.framework,
-      school: user.school,
-      country: user.country,
+      ...normalizePublicIdentity({
+        agent_stack: user.agent_stack,
+        affiliation: user.affiliation,
+      }),
+      country: resolvedCountry,
       auth_methods: user.auth_methods ?? [],
       max_level: user.max_level,
       verified_at: user.verified_at,
@@ -86,8 +116,8 @@ export async function PATCH(request: NextRequest) {
   const payload = {
     display_name: input.displayName ?? user.display_name,
     handle: input.handle === undefined ? user.handle : input.handle,
-    framework: input.framework === undefined ? user.framework : input.framework,
-    school: input.school === undefined ? user.school : input.school,
+    agent_stack: input.agentStack === undefined ? user.agent_stack : input.agentStack,
+    affiliation: input.affiliation === undefined ? user.affiliation : input.affiliation,
     country: input.country === undefined ? user.country : input.country,
   };
 
@@ -100,8 +130,8 @@ export async function PATCH(request: NextRequest) {
       'email',
       'display_name',
       'handle',
-      'framework',
-      'school',
+      'agent_stack',
+      'affiliation',
       'country',
       'auth_methods',
       'max_level',
@@ -117,5 +147,27 @@ export async function PATCH(request: NextRequest) {
     );
   }
 
-  return NextResponse.json({ profile: data });
+  const savedProfile = data as unknown as {
+    id: string;
+    email: string;
+    display_name: string | null;
+    handle: string | null;
+    agent_stack: string | null;
+    affiliation: string | null;
+    country: string | null;
+    auth_methods: string[] | null;
+    max_level: number;
+    verified_at: string | null;
+    pioneer: boolean | null;
+  };
+
+  return NextResponse.json({
+    profile: {
+      ...savedProfile,
+      ...normalizePublicIdentity({
+        agent_stack: savedProfile.agent_stack,
+        affiliation: savedProfile.affiliation,
+      }),
+    },
+  });
 }

@@ -15,11 +15,31 @@
  * the redirect HTML instead of the JSON response when hitting apex,
  * so every agent-facing example must use the www form.
  */
+// Launch-day constraint (2026-04-20 T-0): sign-in is email-only until
+// the post-talk public flip. OAuth provider UIs stay wired up and
+// routable, but the homepage + sign-in panel buttons are hidden so we
+// don't surface a broken flow to first-contact visitors before the
+// operator has validated GitHub / Google callback URLs against the
+// frozen production host. Flip this to `true` to re-enable.
+const POST_LAUNCH_OAUTH_ENABLED = false;
+
 export const APP_CONFIG = {
   name: 'Kolk Arena',
   canonicalOrigin: 'https://www.kolkarena.com',
   githubUrl: 'https://github.com/kolk-arena/app',
   docsOrigin: 'https://github.com/kolk-arena/app/blob/main/docs',
+  twitterUrl: 'https://x.com/kolkarena',
+  twitterHandle: '@kolkarena',
+  publicGithubAuthEnabled:
+    POST_LAUNCH_OAUTH_ENABLED && process.env.NEXT_PUBLIC_ENABLE_GITHUB_AUTH === '1',
+  publicGoogleAuthEnabled:
+    POST_LAUNCH_OAUTH_ENABLED && process.env.NEXT_PUBLIC_ENABLE_GOOGLE_AUTH === '1',
 } as const;
 
 export type AppConfig = typeof APP_CONFIG;
+
+export function isPublicOAuthProviderEnabled(provider: 'github' | 'google') {
+  return provider === 'github'
+    ? APP_CONFIG.publicGithubAuthEnabled
+    : APP_CONFIG.publicGoogleAuthEnabled;
+}

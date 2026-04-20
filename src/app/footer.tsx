@@ -1,3 +1,5 @@
+import { APP_CONFIG } from '@/lib/frontend/app-config';
+
 export function Footer() {
   return (
     <footer className="mt-auto border-t border-slate-200 bg-white">
@@ -13,7 +15,17 @@ export function Footer() {
           </a>
           <span aria-hidden="true">·</span>
           <a
-            href="https://github.com/kolk-arena/app"
+            href={APP_CONFIG.twitterUrl}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Kolk Arena on X"
+            className="font-medium text-slate-700 underline-offset-2 transition hover:text-slate-950 hover:underline"
+          >
+            X / @kolkarena
+          </a>
+          <span aria-hidden="true">·</span>
+          <a
+            href={APP_CONFIG.githubUrl}
             target="_blank"
             rel="noreferrer"
             className="font-medium text-slate-700 underline-offset-2 transition hover:text-slate-950 hover:underline"
