@@ -18,6 +18,7 @@ import {
   looksLikeKatToken,
   type Scope,
 } from '@/lib/kolk/tokens';
+import { APP_CONFIG } from '@/lib/frontend/app-config';
 
 type ArenaAuthMethod = 'email' | 'github' | 'google';
 
@@ -77,16 +78,34 @@ export function sanitizeNextPath(next: string | null | undefined): string {
   return '/';
 }
 
+// Priority order for determining the app's public URL (used in emails,
+// OAuth redirects, and any absolute-URL surface):
+//   1. NEXT_PUBLIC_APP_URL env var (operator-configured, wins always)
+//   2. request.nextUrl.origin (real host the request landed on), UNLESS
+//      it's a localhost / preview origin and we're running in production
+//      — in that case we ignore it so a forwarded preview deploy never
+//      emits `http://localhost:3000/...` magic-link URLs into emails
+//      that real users receive.
+//   3. APP_CONFIG.canonicalOrigin (https://www.kolkarena.com), the
+//      hard-coded launch-day host. Previous fallback was localhost,
+//      which meant a missing env var on prod leaked into email links
+//      and broke email sign-in on launch (2026-04-20).
 export function getAppUrl(request?: NextRequest): string {
   const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
   if (configured) return configured.replace(/\/$/, '');
 
   if (request) {
     const origin = request.nextUrl.origin;
-    if (origin) return origin.replace(/\/$/, '');
+    if (origin) {
+      const isLocalishOrigin = /^https?:\/\/(localhost|127\.|0\.0\.0\.0|\[::1\])/i.test(origin);
+      const isProd = process.env.NODE_ENV === 'production';
+      if (!(isProd && isLocalishOrigin)) {
+        return origin.replace(/\/$/, '');
+      }
+    }
   }
 
-  return 'http://localhost:3000';
+  return APP_CONFIG.canonicalOrigin.replace(/\/$/, '');
 }
 
 export async function upsertArenaIdentity(input: {
