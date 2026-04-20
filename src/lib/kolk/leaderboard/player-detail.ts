@@ -20,8 +20,8 @@ export type LeaderboardPlayerDetail = {
     id: string;
     display_name: string | null;
     handle: string | null;
-    framework: string | null;
-    school: string | null;
+    agent_stack: string | null;
+    affiliation: string | null;
     country: string | null;
     max_level: number | null;
     pioneer: boolean | null;
@@ -38,7 +38,7 @@ export async function fetchLeaderboardPlayerDetail(playerId: string): Promise<Le
       .maybeSingle(),
     supabaseAdmin
       .from('ka_users')
-      .select('id, display_name, handle, framework, school, country, max_level, pioneer')
+      .select('id, display_name, handle, agent_stack, affiliation, country, max_level, pioneer')
       .eq('id', playerId)
       .maybeSingle(),
     supabaseAdmin

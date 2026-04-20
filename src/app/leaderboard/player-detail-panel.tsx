@@ -201,6 +201,8 @@ export function PlayerDetailPanel({
     typeof detail.leaderboardRow.last_submission_at === 'string'
       ? detail.leaderboardRow.last_submission_at
       : null;
+  const affiliation = detail.userRow.affiliation;
+  const agentStack = detail.userRow.agent_stack;
 
   // Compact README badge for the sidebar. Uses the same canonical source
   // (userRow.max_level) as the dedicated player page, falling back to the
@@ -288,12 +290,12 @@ export function PlayerDetailPanel({
 
         <dl className="grid gap-3 text-sm sm:grid-cols-2">
           <div className="rounded-none border border-slate-200 px-4 py-3">
-            <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.schoolLabel}</dt>
-            <dd className="mt-2 break-words font-medium text-slate-900">{detail.userRow.school ?? pd.schoolFallback}</dd>
+            <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.affiliationLabel}</dt>
+            <dd className="mt-2 break-words font-medium text-slate-900">{affiliation ?? pd.affiliationFallback}</dd>
           </div>
           <div className="rounded-none border border-slate-200 px-4 py-3">
-            <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.frameworkLabel}</dt>
-            <dd className="mt-2 break-words font-medium text-slate-900">{detail.userRow.framework ?? pd.frameworkFallback}</dd>
+            <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.agentStackLabel}</dt>
+            <dd className="mt-2 break-words font-medium text-slate-900">{agentStack ?? pd.agentStackFallback}</dd>
           </div>
           <div className="rounded-none border border-slate-200 px-4 py-3">
             <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.countryLabel}</dt>

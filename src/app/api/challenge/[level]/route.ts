@@ -103,7 +103,7 @@ export async function GET(
   } else if (level > ANONYMOUS_BETA_MAX_LEVEL) {
     return NextResponse.json(
       {
-        error: `Authentication required for level ${level}. Pass L1-L5 first, then sign in with GitHub, Google, or email.`,
+        error: `Authentication required for level ${level}. Pass L1-L5 first, then sign in to continue.`,
         code: 'AUTH_REQUIRED',
       },
       { status: 401 },

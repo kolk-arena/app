@@ -47,6 +47,7 @@ export function inferAuthMethodFromUser(user: User): ArenaAuthMethod {
  * function continue to compile; it always returns null.
  */
 export function detectAffiliation(_email: string): string | null {
+  void _email;
   return null;
 }
 

@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react';
 import { CopyButton } from '@/components/ui/copy-button';
 import { copy } from '@/i18n';
 import {
-  buildAiDeepLink,
   getAgentStarterPrompt,
   getSubmitContractSnippet,
 } from '@/lib/frontend/agent-handoff';
@@ -111,6 +110,9 @@ export function PlayClient() {
   const recommendedLevel = getRecommendedLevel(maxLevel, signedIn);
   const summary = copy.play.summary;
   const actions = copy.play.actions;
+  const levelCards = copy.play.levelCards;
+  const l0Card = levelCards.find((card) => card.level === 0) ?? levelCards[0];
+  const ladderCards = levelCards.filter((card) => card.level > 0);
 
   const primaryAction =
     auth.status === 'loading'
@@ -175,18 +177,6 @@ export function PlayClient() {
                 {primaryAction.label}
               </Link>
             ) : null}
-            <Link
-              href="/leaderboard"
-              className="inline-flex items-center rounded-md border border-slate-200 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
-            >
-              {actions.openLeaderboard}
-            </Link>
-            <Link
-              href="/profile"
-              className="inline-flex items-center rounded-md border border-slate-200 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
-            >
-              {actions.openProfile}
-            </Link>
           </div>
         </header>
 
@@ -232,6 +222,33 @@ export function PlayClient() {
           </article>
         </section>
 
+        <section className="rounded-md border border-emerald-200 bg-emerald-50/40 p-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-800">Step 2 · Run L0</p>
+          <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">
+            {l0Card.name}
+          </h2>
+          <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-700">
+            {l0Card.hint}
+          </p>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <span className="inline-flex items-center rounded-md border border-emerald-200 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-800">
+              {playUi.smokeTestBadge}
+            </span>
+            <Link
+              href="/challenge/0"
+              className="memory-accent-button inline-flex items-center rounded-md border px-5 py-3 font-mono text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2"
+            >
+              {playUi.runLevel0}
+            </Link>
+            <Link
+              href="/leaderboard"
+              className="inline-flex items-center rounded-md border border-slate-200 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+            >
+              {actions.openLeaderboard}
+            </Link>
+          </div>
+        </section>
+
         <section className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
           <article className="min-w-0 rounded-md border border-slate-200 bg-white p-6">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">
@@ -248,33 +265,23 @@ export function PlayClient() {
                 {copy.play.agentPanel.directEyebrow}
               </p>
               <p className="mt-2 text-sm leading-6 text-slate-700">
-                {copy.play.agentPanel.directBody}
+                Install <code className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 font-mono text-[12px] text-slate-950">kolk_arena.md</code> first, then copy the starter prompt only when you need a fast one-off handoff.
               </p>
               <div className="mt-4 flex flex-wrap gap-3">
+                <a
+                  href="/kolk_arena.md"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex w-full items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white sm:w-auto"
+                >
+                  Open kolk_arena.md
+                </a>
                 <CopyButton
                   value={agentStarterPrompt}
                   idleLabel={copy.play.agentPanel.copyAgentPrompt}
                   copiedLabel={copy.play.agentPanel.copiedAgentPrompt}
                   className="inline-flex w-full items-center justify-center rounded-md border border-slate-200 bg-slate-950 px-4 py-2.5 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950 sm:w-auto"
                 />
-                {(['claude', 'chatgpt', 'gemini', 'perplexity'] as const).map((service) => {
-                  const link = buildAiDeepLink(service, agentStarterPrompt);
-                  if (!link) return null;
-                  const icon = copy.challenge.agentPanel.openInIcon[service];
-                  return (
-                    <a
-                      key={service}
-                      href={link.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white sm:w-auto"
-                      title={link.truncated ? copy.challenge.agentPanel.openInTruncatedHint : undefined}
-                    >
-                      {icon ? <span aria-hidden="true">{icon}</span> : null}
-                      <span>{copy.challenge.agentPanel.openInLabel[service]}</span>
-                    </a>
-                  );
-                })}
               </div>
             </div>
           </article>
@@ -290,12 +297,6 @@ export function PlayClient() {
               {copy.play.agentPanel.resourcesBody}
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
-              <CopyButton
-                value={submitContractSnippet}
-                idleLabel={copy.play.agentPanel.copySubmitContract}
-                copiedLabel={copy.play.agentPanel.copiedSubmitContract}
-                className="inline-flex w-full items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white sm:w-auto"
-              />
               <a
                 href="https://github.com/kolk-arena/app/blob/main/docs/INTEGRATION_GUIDE.md"
                 target="_blank"
@@ -305,18 +306,20 @@ export function PlayClient() {
                 {copy.play.agentPanel.guideCta}
               </a>
             </div>
+            <pre className="mt-4 overflow-x-auto rounded-md border border-slate-200 bg-slate-50 p-3 text-xs leading-6 text-slate-700">
+              {submitContractSnippet}
+            </pre>
           </aside>
         </section>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {copy.play.levelCards.map((card) => {
+          {ladderCards.map((card) => {
             const requiresAuth = card.level > ANONYMOUS_MAX_LEVEL;
-            const isL0 = card.level === 0;
             const isLocked = requiresAuth && !signedIn;
-            const hasUnlockedProgression = isL0 || card.level === 1 || maxLevel >= card.level - 1;
+            const hasUnlockedProgression = card.level === 1 || maxLevel >= card.level - 1;
             const isBlockedByProgression = !isLocked && !hasUnlockedProgression;
             const isCleared =
-              (card.level === 0 && maxLevel > 0) || (card.level > 0 && maxLevel >= card.level);
+              maxLevel >= card.level;
             const isRecommended = recommendedLevel === card.level;
 
             return (
@@ -370,19 +373,7 @@ export function PlayClient() {
                 <p className="text-sm leading-6 text-slate-700">{card.hint}</p>
 
                 <div className="mt-auto flex flex-wrap items-center gap-2 pt-2">
-                  {isL0 ? (
-                    <>
-                      <span className="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-700">
-                        {playUi.smokeTestBadge}
-                      </span>
-                      <Link
-                        href="/challenge/0"
-                        className="inline-flex items-center rounded-md border border-slate-200 bg-white px-4 py-2 font-mono text-xs font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
-                      >
-                        {playUi.runLevel0}
-                      </Link>
-                    </>
-                  ) : isLocked ? (
+                  {isLocked ? (
                     <>
                       <span className="inline-flex items-center rounded-md border-2 border-rose-700 bg-rose-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-rose-800">
                         {playUi.signInRequiredBadge}

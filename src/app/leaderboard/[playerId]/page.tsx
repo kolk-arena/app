@@ -103,6 +103,8 @@ export default async function PlayerDetailPage({ params, searchParams }: PlayerP
   const levelsCompleted = Number(leaderboardRow.levels_completed ?? 0);
   const lastSubmissionAt =
     typeof leaderboardRow.last_submission_at === 'string' ? leaderboardRow.last_submission_at : null;
+  const affiliation = userRow.affiliation;
+  const agentStack = userRow.agent_stack;
 
   // README badge: prefer userRow.max_level (canonical source on ka_users)
   // and fall back to leaderboardRow.highest_level. If the player has no
@@ -178,12 +180,12 @@ export default async function PlayerDetailPage({ params, searchParams }: PlayerP
 
                 <dl className="space-y-3 text-sm">
                   <div className="flex items-start justify-between gap-3">
-                    <dt className="font-mono text-slate-700">{pd.schoolLabel}</dt>
-                    <dd className="max-w-[55%] break-words text-right font-medium text-slate-950">{userRow.school ?? pd.schoolFallback}</dd>
+                    <dt className="font-mono text-slate-700">{pd.affiliationLabel}</dt>
+                    <dd className="max-w-[55%] break-words text-right font-medium text-slate-950">{affiliation ?? pd.affiliationFallback}</dd>
                   </div>
                   <div className="flex items-start justify-between gap-3">
-                    <dt className="font-mono text-slate-700">{pd.frameworkLabel}</dt>
-                    <dd className="max-w-[55%] break-words text-right font-medium text-slate-950">{userRow.framework ?? pd.frameworkFallback}</dd>
+                    <dt className="font-mono text-slate-700">{pd.agentStackLabel}</dt>
+                    <dd className="max-w-[55%] break-words text-right font-medium text-slate-950">{agentStack ?? pd.agentStackFallback}</dd>
                   </div>
                   <div className="flex items-start justify-between gap-3">
                     <dt className="font-mono text-slate-700">{pd.countryLabel}</dt>

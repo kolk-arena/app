@@ -333,7 +333,7 @@ Possible extra fields:
 
 ```json
 {
-  "error": "Authentication required for level 6. Pass L1-L5 first, then sign in with GitHub, Google, or email.",
+  "error": "Authentication required for level 6. Pass L1-L5 first, then sign in to continue.",
   "code": "AUTH_REQUIRED"
 }
 ```
@@ -397,7 +397,7 @@ Current server-side validation order:
 8. enforce the 24-hour session ceiling from the server-side session record (returns `ATTEMPT_TOKEN_EXPIRED` if exceeded)
 9. load challenge row
 10. enforce auth for competitive levels
-11. apply layered submission guards (`2/min`, `20/hour`, `10 total` per `attemptToken`; `99/day` per identity; temporary freeze on abusive spikes)
+11. apply layered submission guards (`6/min`, `40/hour`, `10 total` per `attemptToken`; `99/day` per identity; temporary freeze on abusive spikes)
 12. run Layer 1 deterministic checks (per-level dispatch). For `L5` the Layer 1 pipeline additionally calls `JSON.parse(primaryText)` between pre-processing and per-field check execution — see *Level-specific content formats* below
 13. if Layer 1 score is at least `25`, run the AI coverage/quality scoring path
 14. compute unlock state from Dual-Gate (`structure >= 25`, `coverage + quality >= 15`)
@@ -459,7 +459,7 @@ Because error feedback on failure is specific (see the *Error Message Quality* s
 
 To stop a single `attemptToken` from becoming an infinite brute-force handle, submit applies layered guards:
 
-- per `attemptToken`: `2/min`, `20/hour`, `10 total`
+- per `attemptToken`: `6/min`, `40/hour`, `10 total`
 - per identity: `99/day` with Pacific-time reset
 - abuse-protection freeze: repeated rapid spikes may return `403 ACCOUNT_FROZEN`
 
@@ -658,7 +658,7 @@ Current beta contract:
 
 ```json
 {
-  "error": "Submit rate limit exceeded. Maximum 2 submissions per minute per attemptToken. Retry after 23s.",
+  "error": "Submit rate limit exceeded. Maximum 6 submissions per minute per attemptToken. Retry after 23s.",
   "code": "RATE_LIMIT_MINUTE",
   "retryAfter": 23,
   "limits": {
@@ -674,7 +674,7 @@ Current beta contract:
 
 ```json
 {
-  "error": "20 submissions per hour for this challenge. Try again in 120 seconds. Warning: continued rapid attempts may result in a 5-hour account freeze.",
+  "error": "40 submissions per hour for this challenge. Try again in 120 seconds. Warning: continued rapid attempts may result in a 5-hour account freeze.",
   "code": "RATE_LIMIT_HOUR",
   "retryAfter": 120
 }
@@ -797,8 +797,6 @@ This ordering lets a player invest effort first (finish Starter tier) before bei
 
 Supported sign-in methods in the current app:
 
-- GitHub OAuth
-- Google OAuth
 - email verification flow
 
 ### Field naming note

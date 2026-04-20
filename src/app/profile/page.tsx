@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { copy } from '@/i18n';
 import { formatDateTime } from '@/i18n/format';
 import { AuthSignInPanel } from '@/app/auth-sign-in-panel';
+import { APP_CONFIG } from '@/lib/frontend/app-config';
 import { ApiTokensPanel } from './api-tokens-panel';
 
 type Profile = {
@@ -12,8 +13,8 @@ type Profile = {
   email: string;
   display_name: string | null;
   handle: string | null;
-  framework: string | null;
-  school: string | null;
+  agent_stack: string | null;
+  affiliation: string | null;
   country: string | null;
   auth_methods: string[];
   max_level: number;
@@ -33,8 +34,8 @@ export default function ProfilePage() {
   const [form, setForm] = useState({
     displayName: '',
     handle: '',
-    framework: '',
-    school: '',
+    agentStack: '',
+    affiliation: '',
     country: '',
   });
 
@@ -59,8 +60,8 @@ export default function ProfilePage() {
           setForm({
             displayName: '',
             handle: '',
-            framework: '',
-            school: '',
+            agentStack: '',
+            affiliation: '',
             country: '',
           });
           return;
@@ -76,8 +77,8 @@ export default function ProfilePage() {
         setForm({
           displayName: nextProfile.display_name ?? '',
           handle: nextProfile.handle ?? '',
-          framework: nextProfile.framework ?? '',
-          school: nextProfile.school ?? '',
+          agentStack: nextProfile.agent_stack ?? '',
+          affiliation: nextProfile.affiliation ?? '',
           country: nextProfile.country ?? '',
         });
       })
@@ -114,8 +115,8 @@ export default function ProfilePage() {
         body: JSON.stringify({
           displayName: form.displayName,
           handle: form.handle || null,
-          framework: form.framework || null,
-          school: form.school || null,
+          agentStack: form.agentStack || null,
+          affiliation: form.affiliation || null,
           country: form.country || null,
         }),
       });
@@ -137,8 +138,8 @@ export default function ProfilePage() {
       setForm({
         displayName: nextProfile.display_name ?? '',
         handle: nextProfile.handle ?? '',
-        framework: nextProfile.framework ?? '',
-        school: nextProfile.school ?? '',
+        agentStack: nextProfile.agent_stack ?? '',
+        affiliation: nextProfile.affiliation ?? '',
         country: nextProfile.country ?? '',
       });
       setSaveSuccess(true);
@@ -235,11 +236,20 @@ export default function ProfilePage() {
                 <p className="mt-1 text-sm text-amber-800">
                   {p.sessionExpiredBody}
                 </p>
-                <div className="mt-4 flex flex-wrap gap-3">
-                  <a href="/api/auth/oauth/github?next=/profile" className="rounded-md border border-slate-200 bg-slate-950 px-4 py-2 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950">{p.sessionExpiredGithub}</a>
-                  <a href="/api/auth/oauth/google?next=/profile" className="rounded-md border border-slate-200 bg-white px-4 py-2 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white">{p.sessionExpiredGoogle}</a>
-                </div>
+                <p className="mt-3 text-sm text-amber-800">
+                  {APP_CONFIG.publicGithubAuthEnabled || APP_CONFIG.publicGoogleAuthEnabled
+                    ? p.signInDescription
+                    : copy.auth.emailSignInBody}
+                </p>
               </div>
+            ) : null}
+
+            {authRequired ? (
+              <AuthSignInPanel
+                nextPath="/profile"
+                title={p.signInTitle}
+                description={p.signInDescription}
+              />
             ) : null}
 
             <div className="grid gap-4 rounded-md border border-slate-200 bg-white p-6 sm:grid-cols-2">
@@ -323,12 +333,12 @@ export default function ProfilePage() {
                   <input className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950" value={form.handle} onChange={(event) => setForm((current) => ({ ...current, handle: event.target.value }))} />
                 </label>
                 <label className="space-y-2 text-sm text-slate-800">
-                  <span className="font-semibold uppercase tracking-[0.14em] text-slate-700">{p.publicProfile.framework}</span>
-                  <input className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950" value={form.framework} onChange={(event) => setForm((current) => ({ ...current, framework: event.target.value }))} />
+                  <span className="font-semibold uppercase tracking-[0.14em] text-slate-700">{p.publicProfile.agentStack}</span>
+                  <input className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950" value={form.agentStack} onChange={(event) => setForm((current) => ({ ...current, agentStack: event.target.value }))} />
                 </label>
                 <label className="space-y-2 text-sm text-slate-800">
-                  <span className="font-semibold uppercase tracking-[0.14em] text-slate-700">{p.publicProfile.school}</span>
-                  <input className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950" value={form.school} onChange={(event) => setForm((current) => ({ ...current, school: event.target.value }))} />
+                  <span className="font-semibold uppercase tracking-[0.14em] text-slate-700">{p.publicProfile.affiliation}</span>
+                  <input className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950" value={form.affiliation} onChange={(event) => setForm((current) => ({ ...current, affiliation: event.target.value }))} />
                 </label>
                 <label className="space-y-2 text-sm text-slate-800 sm:col-span-2">
                   <span className="font-semibold uppercase tracking-[0.14em] text-slate-700">{p.publicProfile.country}</span>

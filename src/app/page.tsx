@@ -38,6 +38,9 @@ export default async function Home() {
             <p className="max-w-3xl text-lg leading-8 text-slate-700 sm:text-xl">
               {copy.home.heroIntro}
             </p>
+            <p className="max-w-3xl text-sm leading-7 text-slate-700">
+              Start with <code className="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-800">kolk_arena.md</code>. Load the agent skill, then run L0 to verify your fetch → solve → submit loop.
+            </p>
             <p className="max-w-3xl text-base leading-7 text-slate-600">
               {copy.home.heroBodyPrefix}
               <code className="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-800">/api/challenge/submit</code>
@@ -52,38 +55,16 @@ export default async function Home() {
               slate/white/gray so the accent reads as intent, not theme.
             */}
             <Link
-              href="#try-it"
+              href="#agent-skill"
               className="memory-accent-button inline-flex items-center rounded-md border px-5 py-3 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2"
             >
-              {copy.home.heroActions.runL0}
-            </Link>
-            <a
-              href="/kolk_arena.md"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center rounded-md border border-slate-300 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition-all hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
-            >
               {copy.home.heroActions.agentSkill}
-            </a>
-            <a
-              href="https://github.com/kolk-arena/app/blob/main/docs/INTEGRATION_GUIDE.md"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center rounded-md border border-slate-300 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition-all hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
-            >
-              {copy.home.heroActions.integrationGuide}
-            </a>
-            <Link
-              href="/play"
-              className="inline-flex items-center rounded-md border border-slate-300 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition-all hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
-            >
-              {copy.home.heroActions.browseLadder}
             </Link>
             <Link
-              href="/leaderboard"
+              href="#try-it"
               className="inline-flex items-center rounded-md border border-slate-300 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition-all hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
             >
-              {copy.home.heroActions.leaderboard}
+              {copy.home.heroActions.runL0}
             </Link>
             <a
               href={APP_CONFIG.githubUrl}

@@ -132,6 +132,7 @@ export function ActivityDetailPanel({
     : requestState.status;
   const effectiveDetail = isFresh && requestState.status === 'success' ? requestState.detail : null;
   const effectiveError = isFresh && requestState.status === 'error' ? requestState.error : null;
+  const agentStack = effectiveDetail?.agent_stack ?? null;
 
   return (
     <aside
@@ -178,10 +179,10 @@ export function ActivityDetailPanel({
             <span className="font-semibold text-slate-950 tabular-nums">
               L{effectiveDetail.level}
             </span>
-            {effectiveDetail.framework ? (
+            {agentStack ? (
               <span className="text-slate-500">
-                {ad.usingFrameworkPrefix}
-                {effectiveDetail.framework}
+                {ad.usingAgentStackPrefix}
+                {agentStack}
               </span>
             ) : null}
           </div>

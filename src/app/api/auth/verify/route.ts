@@ -7,6 +7,7 @@ import { createRouteHandlerSupabaseClient } from '@/lib/kolk/db';
 import { VerifyInputSchema } from '@/lib/kolk/types';
 import { syncArenaIdentityFromSupabaseUser } from '@/lib/kolk/auth/server';
 import { normalizeEmail } from '@/lib/kolk/auth';
+import { normalizePublicIdentity } from '@/lib/kolk/public-contract';
 import { createIpRateLimiter, getClientIp } from '@/lib/kolk/rate-limit';
 
 // 6-digit OTP brute-force defence. 10/min/IP is large enough for a user
@@ -69,7 +70,10 @@ export async function POST(request: NextRequest) {
         id: synced.user.id,
         email: synced.user.email,
         display_name: synced.user.display_name,
-        school: synced.user.school,
+        ...normalizePublicIdentity({
+          agent_stack: synced.user.agent_stack,
+          affiliation: synced.user.affiliation,
+        }),
         max_level: synced.user.max_level,
         auth_methods: synced.user.auth_methods ?? [],
       },

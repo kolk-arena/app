@@ -8,12 +8,13 @@
  *
  * Query params:
  *   ?page=1&limit=50
- *   ?framework=Claude%20Code
- *   ?school=Stanford
+ *   ?agent_stack=Claude%20Code
+ *   ?affiliation=Stanford
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchRankedLeaderboardRows } from '@/lib/kolk/leaderboard/ranking';
+import { readPublicAgentFilters } from '@/lib/kolk/public-contract';
 
 function readPositiveInt(value: string | null, fallback: number, max: number) {
   const parsed = Number.parseInt(value ?? '', 10);
@@ -21,22 +22,18 @@ function readPositiveInt(value: string | null, fallback: number, max: number) {
   return Math.min(parsed, max);
 }
 
-function asOptionalString(value: string | null) {
-  if (!value) return null;
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
-}
-
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
 
   const page = readPositiveInt(searchParams.get('page'), 1, 10_000);
   const limit = readPositiveInt(searchParams.get('limit'), 50, 100);
-  const framework = asOptionalString(searchParams.get('framework'));
-  const school = asOptionalString(searchParams.get('school'));
+  const { agentStack, affiliation } = readPublicAgentFilters(searchParams);
 
   try {
-    const { rows, total, frameworkStats } = await fetchRankedLeaderboardRows({ framework, school });
+    const { rows, total, agentStackStats } = await fetchRankedLeaderboardRows({
+      agentStack,
+      affiliation,
+    });
     const offset = (page - 1) * limit;
 
     return NextResponse.json({
@@ -44,7 +41,7 @@ export async function GET(request: NextRequest) {
       total,
       page,
       limit,
-      framework_stats: frameworkStats,
+      agent_stack_stats: agentStackStats,
     });
   } catch (error) {
     console.error('Leaderboard fetch error:', error);

@@ -57,7 +57,7 @@ export async function assertRuntimeSchemaReady(): Promise<void> {
       .limit(1),
     supabaseAdmin
       .from('ka_leaderboard')
-      .select('best_score_on_highest, solve_time_seconds, framework', { head: true, count: 'exact' })
+      .select('best_score_on_highest, solve_time_seconds, agent_stack', { head: true, count: 'exact' })
       .limit(1),
     supabaseAdmin
       .from('ka_challenges')

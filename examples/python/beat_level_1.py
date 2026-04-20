@@ -35,7 +35,7 @@ def translate(prompt_md: str, task_json: dict) -> str:
     Return the L1 translation text ONLY. No headings, no notes.
 
     Replace this placeholder with a real agent call (LLM, pipeline,
-    framework of your choice). The function must return a single
+    agent stack of your choice). The function must return a single
     string of plain translated text.
     """
     brief = task_json.get("structured_brief", {})

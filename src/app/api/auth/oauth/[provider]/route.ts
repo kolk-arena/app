@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerSupabaseClient } from '@/lib/kolk/db';
 import { OAuthProviderSchema } from '@/lib/kolk/types';
 import { getAppUrl, sanitizeNextPath } from '@/lib/kolk/auth/server';
+import { isPublicOAuthProviderEnabled } from '@/lib/frontend/app-config';
 
 export async function GET(
   request: NextRequest,
@@ -27,6 +28,11 @@ export async function GET(
 
   const next = request.nextUrl.searchParams.get('next');
   const nextPath = sanitizeNextPath(next);
+  if (!isPublicOAuthProviderEnabled(parsed.data)) {
+    const redirectUrl = new URL(nextPath, getAppUrl(request));
+    redirectUrl.searchParams.set('auth_error', 'provider_disabled');
+    return NextResponse.redirect(redirectUrl);
+  }
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: parsed.data,

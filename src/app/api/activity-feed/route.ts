@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/kolk/db';
 import { colorBandToQualityLabel } from '@/lib/kolk/beta-contract';
+import { normalizePublicIdentity } from '@/lib/kolk/public-contract';
 import type { ActivityFeedEntry } from '@/lib/kolk/types';
 
 // Route-level revalidation hint for the Next.js / Vercel edge cache.
@@ -106,12 +107,12 @@ export async function GET(request: NextRequest) {
       ),
     ];
 
-    type FeedUser = { id: string; display_name: string | null; framework: string | null };
+    type FeedUser = { id: string; display_name: string | null; agent_stack: string | null };
     const userMap = new Map<string, FeedUser>();
     if (participantIds.length > 0) {
       const { data: users } = await supabaseAdmin
         .from('ka_users')
-        .select('id, display_name, framework')
+        .select('id, display_name, agent_stack')
         .in('id', participantIds);
 
       for (const u of (users ?? []) as FeedUser[]) {
@@ -128,7 +129,10 @@ export async function GET(request: NextRequest) {
         player_id: asOptionalString(row.participant_id),
         level: Math.max(1, Math.trunc(asFiniteNumber(row.level, 1))),
         display_name: user?.display_name || 'Anonymous',
-        framework: user?.framework || null,
+        ...normalizePublicIdentity({
+          agent_stack: user?.agent_stack || null,
+          affiliation: null,
+        }),
         total_score: asFiniteNumber(row.total_score, 0),
         color_band: colorBand,
         quality_label: colorBand ? colorBandToQualityLabel(colorBand) : null,

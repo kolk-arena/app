@@ -565,17 +565,19 @@ async function cmdStart(startLevel: number, token: string | undefined, baseUrl: 
   }
 }
 
-async function cmdLeaderboard(school: string | undefined, baseUrl: string) {
+async function cmdLeaderboard(agentStack: string | undefined, affiliation: string | undefined, baseUrl: string) {
   console.log(bold('\n  KOLK ARENA LEADERBOARD\n'));
 
   const params = new URLSearchParams({ limit: '20' });
-  if (school) params.set('school', school);
+  if (agentStack) params.set('agent_stack', agentStack);
+  if (affiliation) params.set('affiliation', affiliation);
 
   const data = await api(`/api/leaderboard?${params}`, { baseUrl }) as {
     leaderboard: {
       rank: number;
       display_name: string;
-      school: string | null;
+      agent_stack?: string | null;
+      affiliation?: string | null;
       best_score_on_highest: number;
       highest_level: number;
       tier: string;
@@ -589,14 +591,16 @@ async function cmdLeaderboard(school: string | undefined, baseUrl: string) {
     return;
   }
 
-  console.log(`  ${bold('#'.padEnd(4))} ${bold('Name'.padEnd(20))} ${bold('Frontier'.padEnd(10))} ${bold('Lvl'.padEnd(5))} ${bold('Tier'.padEnd(12))} ${bold('Time'.padEnd(8))} ${bold('School')}`);
-  console.log(`  ${'─'.repeat(84)}`);
+  console.log(`  ${bold('#'.padEnd(4))} ${bold('Name'.padEnd(20))} ${bold('Frontier'.padEnd(10))} ${bold('Lvl'.padEnd(5))} ${bold('Tier'.padEnd(12))} ${bold('Time'.padEnd(8))} ${bold('Affiliation'.padEnd(18))} ${bold('Agent Stack')}`);
+  console.log(`  ${'─'.repeat(126)}`);
 
   for (const entry of data.leaderboard) {
     const tierColor = entry.tier === 'champion' ? green : entry.tier === 'specialist' ? cyan : entry.tier === 'builder' ? yellow : dim;
     const solveTime = entry.solve_time_seconds != null ? `${entry.solve_time_seconds}s` : '—';
+    const entryAffiliation = entry.affiliation ?? '—';
+    const entryAgentStack = entry.agent_stack ?? '—';
     console.log(
-      `  ${String(entry.rank).padEnd(4)} ${String(entry.display_name).padEnd(20)} ${String(entry.best_score_on_highest).padEnd(10)} ${String(entry.highest_level).padEnd(5)} ${tierColor(entry.tier.padEnd(12))} ${solveTime.padEnd(8)} ${entry.school ?? '—'}`
+      `  ${String(entry.rank).padEnd(4)} ${String(entry.display_name).padEnd(20)} ${String(entry.best_score_on_highest).padEnd(10)} ${String(entry.highest_level).padEnd(5)} ${tierColor(entry.tier.padEnd(12))} ${solveTime.padEnd(8)} ${entryAffiliation.padEnd(18)} ${entryAgentStack}`
     );
   }
 
@@ -636,8 +640,13 @@ async function main() {
     }
     case 'leaderboard':
     case 'lb': {
-      const schoolIdx = args.indexOf('--school');
-      await cmdLeaderboard(schoolIdx >= 0 ? args[schoolIdx + 1] : undefined, baseUrl);
+      const agentStackIdx = args.indexOf('--agent-stack');
+      const affiliationIdx = args.indexOf('--affiliation');
+      await cmdLeaderboard(
+        agentStackIdx >= 0 ? args[agentStackIdx + 1] : undefined,
+        affiliationIdx >= 0 ? args[affiliationIdx + 1] : undefined,
+        baseUrl,
+      );
       break;
     }
     case 'help':
@@ -656,7 +665,8 @@ ${bold('Usage:')}
   kolk-arena start --level 5          Start from L5 (Welcome Kit — JSON-in-primaryText)
   kolk-arena start --token <tok>      Override stored token for this run
   kolk-arena leaderboard              View leaderboard
-  kolk-arena leaderboard --school X   Filter by school
+  kolk-arena leaderboard --agent-stack X   Filter by AI agent / model / tool
+  kolk-arena leaderboard --affiliation X   Filter by team / company / campus
   kolk-arena help                     Show this help
 
 ${bold('Credential sources (in order):')}

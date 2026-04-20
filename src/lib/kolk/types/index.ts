@@ -202,18 +202,28 @@ export type OAuthProvider = z.infer<typeof OAuthProviderSchema>;
 export interface ProfileInput {
   displayName?: string;
   handle?: string | null;
-  framework?: string | null;
-  school?: string | null;
+  agentStack?: string | null;
+  affiliation?: string | null;
   country?: string | null;
 }
 
-export const ProfileInputSchema = z.object({
-  displayName: z.string().trim().min(1).max(60).optional(),
-  handle: z.string().trim().min(1).max(40).optional().nullable(),
-  framework: z.string().trim().min(1).max(80).optional().nullable(),
-  school: z.string().trim().min(1).max(120).optional().nullable(),
-  country: z.string().trim().min(1).max(80).optional().nullable(),
-});
+const nullableTrimmedText = (max: number) => z.string().trim().min(1).max(max).optional().nullable();
+
+export const ProfileInputSchema = z
+  .object({
+    displayName: z.string().trim().min(1).max(60).optional(),
+    handle: z.string().trim().min(1).max(40).optional().nullable(),
+    agentStack: nullableTrimmedText(80),
+    affiliation: nullableTrimmedText(120),
+    country: z.string().trim().min(1).max(80).optional().nullable(),
+  })
+  .transform((input) => ({
+    displayName: input.displayName,
+    handle: input.handle,
+    agentStack: input.agentStack,
+    affiliation: input.affiliation,
+    country: input.country,
+  }));
 
 // ============================================================================
 // Leaderboard types
@@ -224,8 +234,8 @@ export interface LeaderboardEntry {
   rank: number;
   display_name: string;
   handle: string | null;
-  framework: string | null;
-  school: string | null;
+  agent_stack: string | null;
+  affiliation: string | null;
   best_score_on_highest: number;
   best_color_band: 'RED' | 'ORANGE' | 'YELLOW' | 'GREEN' | 'BLUE' | null;
   best_quality_label: string | null;
@@ -240,15 +250,22 @@ export interface LeaderboardEntry {
   country_code?: string | null;
 }
 
-export const LeaderboardQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(50),
-  framework: z.string().trim().min(1).optional(),
-  school: z.string().trim().min(1).optional(),
-});
+export const LeaderboardQuerySchema = z
+  .object({
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(50),
+    agent_stack: z.string().trim().min(1).optional(),
+    affiliation: z.string().trim().min(1).optional(),
+  })
+  .transform((input) => ({
+    page: input.page,
+    limit: input.limit,
+    agent_stack: input.agent_stack,
+    affiliation: input.affiliation,
+  }));
 
-export interface FrameworkStat {
-  framework: string;
+export interface AgentStackStat {
+  agent_stack: string;
   count: number;
   percentage: number;
 }
@@ -258,7 +275,7 @@ export interface LeaderboardResponse {
   total: number;
   page: number;
   limit: number;
-  framework_stats?: FrameworkStat[];
+  agent_stack_stats?: AgentStackStat[];
 }
 
 export interface ActivityFeedEntry {
@@ -266,7 +283,7 @@ export interface ActivityFeedEntry {
   player_id: string | null;
   level: number;
   display_name: string;
-  framework: string | null;
+  agent_stack: string | null;
   total_score: number;
   color_band: 'RED' | 'ORANGE' | 'YELLOW' | 'GREEN' | 'BLUE' | null;
   quality_label: string | null;
@@ -292,7 +309,7 @@ export interface ActivitySubmissionDetail {
   level: number;
   player_id: string | null;
   display_name: string;
-  framework: string | null;
+  agent_stack: string | null;
   country_code: string | null;
   total_score: number;
   structure_score: number | null;

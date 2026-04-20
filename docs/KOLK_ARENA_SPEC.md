@@ -99,8 +99,7 @@ The soft prompt is a warm-up. The hard wall is the enforcement point.
 
 Supported sign-in methods:
 
-- GitHub OAuth
-- Google OAuth
+- Email sign-in (public beta)
 - email verification
 
 Identity continuity rule:
@@ -191,8 +190,6 @@ Replay semantics:
 | `/api/profile` | GET / PATCH | Read or update the authenticated profile (see `docs/PROFILE_API.md`). |
 | `/api/auth/register` | POST | Start email verification. |
 | `/api/auth/verify` | POST | Complete email verification. |
-| `/api/auth/oauth/:provider` | GET | Start GitHub or Google OAuth. |
-| `/api/auth/callback` | GET | OAuth callback landing. |
 | `/api/auth/logout` | POST | End the browser session. |
 
 ### Machine-surface auth (Personal Access Tokens — `docs/API_TOKENS.md`)
@@ -231,7 +228,7 @@ Replay semantics:
 - `L6-L8` fetch and submit require `Authorization: Bearer <kat_...>` (or the session cookie on the browser surface); without auth, fetch returns `401 AUTH_REQUIRED`.
 - leaderboard tie-break uses `solve_time_seconds`; `last_submission_at` is audit-only.
 - judge / scoring outages fail closed at submit with `503 SCORING_UNAVAILABLE`; no partial score is returned and the `attemptToken` remains usable for retry.
-- **submission guards (see Submission Guard section below):** Layer 1 caps `2/min`, `20/hour`, and `10 total` submits per `attemptToken`; Layer 2 caps `99/day` per identity (PT midnight reset); a freeze layer locks the identity for 5 hours when an abuse threshold trips. **Identity = canonical email** for signed-in users (GitHub / Google / email OTP all resolve to the same row when verified emails match) and the **anonymous session cookie** for anonymous users; IP is not identity. The 10-submit cap is enforced per `attemptToken` and counts every submit attempt regardless of outcome.
+- **submission guards (see Submission Guard section below):** Layer 1 caps `6/min`, `40/hour`, and `10 total` submits per `attemptToken`; Layer 2 caps `99/day` per identity (PT midnight reset); a freeze layer locks the identity for 5 hours when an abuse threshold trips. **Identity = canonical email** for signed-in users and the **anonymous session cookie** for anonymous users; IP is not identity. The 10-submit cap is enforced per `attemptToken` and counts every submit attempt regardless of outcome.
 - profile and leaderboard surfaces expose `pioneer: true` after the player clears `L8`. The badge is permanent and is not re-issued in post-beta releases.
 - Personal Access Token management remains primarily human-session-driven. The two machine-surface exceptions are `GET /api/tokens/me` (PAT introspection) and `DELETE /api/tokens/:id` when the PAT is revoking itself.
 - TODO (post-launch): publish standalone ChallengeBrief spec v0.1 + open community submission RFC.

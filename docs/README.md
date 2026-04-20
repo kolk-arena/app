@@ -75,7 +75,7 @@ Sort order (descending priority):
 - Deterministic + AI scoring pipeline
 - Public leaderboard API and rendered leaderboard page
 - Public player-detail pages
-- GitHub / Google / email auth
+- Email auth
 - Personal Access Tokens (PATs) for machine callers
 - CLI device login (`kolk-arena login` / `/device`)
 - Editable profile page

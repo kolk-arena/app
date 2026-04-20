@@ -760,10 +760,10 @@ test.describe('frontend UI regression', () => {
     await mockLeaderboard(page);
 
     let detailRequests = 0;
-    await page.route(`**/api/leaderboard/${PLAYER_ID}`, async (route) => {
+    await page.route(`**/api/leaderboard/${PLAYER_ID}*`, async (route) => {
       detailRequests += 1;
 
-      if (detailRequests === 1) {
+      if (detailRequests <= 2) {
         await route.fulfill({
           status: 500,
           contentType: 'application/json',
@@ -795,12 +795,12 @@ test.describe('frontend UI regression', () => {
     ]);
 
     await expect(page.getByText('Strong structured delivery with clear coverage.')).toBeVisible({ timeout: 20_000 });
-    await expect.poll(() => detailRequests).toBeGreaterThan(1);
+    await expect.poll(() => detailRequests).toBeGreaterThan(2);
   });
 
   test('leaderboard filter preserves selected player and marks detail as outside the current filtered view', async ({ page }) => {
     await mockLeaderboard(page);
-    await page.route(`**/api/leaderboard/${PLAYER_ID}`, async (route) => {
+    await page.route(`**/api/leaderboard/${PLAYER_ID}*`, async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -812,7 +812,7 @@ test.describe('frontend UI regression', () => {
 
     await expect(page.getByRole('button', { name: 'Open player detail for Ada Lovelace' })).toBeVisible();
     await Promise.all([
-      page.waitForResponse(`**/api/leaderboard/${PLAYER_ID}`),
+      page.waitForResponse(`**/api/leaderboard/${PLAYER_ID}*`),
       page.getByRole('button', { name: 'Open player detail for Ada Lovelace' }).click(),
     ]);
 

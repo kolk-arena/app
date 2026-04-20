@@ -30,7 +30,7 @@ The following documentation categories are intentionally public at launch:
 - Public landing / repo surfaces: `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `LICENSE`, `AGENTS.md`, `.github/SECURITY.md`
 - Canonical agent assets: `kolk_arena.md`, `public/kolk_arena.md`, `public/llms.txt`
 - Public beta contract docs: `docs/README.md`, `docs/BETA_DOC_HIERARCHY.md`, `docs/INTEGRATION_GUIDE.md`, `docs/KOLK_ARENA_SPEC.md`, `docs/LEVELS.md`, `docs/SCORING.md`, `docs/SUBMISSION_API.md`, `docs/LEADERBOARD.md`, `docs/PROFILE_API.md`, `docs/API_TOKENS.md`, `docs/AUTH_DEVICE_FLOW.md`, `docs/FRONTEND_BETA_STATES.md`
-- Public engineering / example references: `docs/I18N_GUIDE.md`, `examples/README.md`, `examples/crewai/README.md`, `examples/langchain/README.md`
+- Public engineering / example references: `docs/I18N_GUIDE.md`, `examples/README.md`, `examples/curl/**`, `examples/python/**`
 - Public-safe operator asset: this file, `docs/LAUNCH_OPERATOR_BOUNDARIES.md`
 
 Everything else is internal by default and should not be tracked for public release unless the release owner explicitly re-classifies it.

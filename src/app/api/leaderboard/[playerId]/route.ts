@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { fetchLeaderboardPlayerDetail } from '@/lib/kolk/leaderboard/player-detail';
+import { normalizePublicIdentity } from '@/lib/kolk/public-contract';
 
 type RouteProps = {
   params: Promise<{ playerId: string }>;
@@ -70,7 +71,10 @@ export async function GET(_request: Request, { params }: RouteProps) {
         ? Math.max(0, Math.trunc(asFiniteNumber(detail.leaderboardRow.solve_time_seconds, 0)))
         : null,
       efficiency_badge: detail.leaderboardRow.efficiency_badge === true,
-      framework: asOptionalString(detail.leaderboardRow.framework),
+      ...normalizePublicIdentity({
+        agent_stack: asOptionalString((detail.leaderboardRow as Record<string, unknown>).agent_stack),
+        affiliation: asOptionalString((detail.leaderboardRow as Record<string, unknown>).affiliation),
+      }),
       total_score: asFiniteNumber(detail.leaderboardRow.total_score, 0),
       levels_completed: Math.max(0, Math.trunc(asFiniteNumber(detail.leaderboardRow.levels_completed, 0))),
       tier: tier && VALID_TIERS.has(tier) ? tier : 'starter',
@@ -81,8 +85,10 @@ export async function GET(_request: Request, { params }: RouteProps) {
       ...detail.userRow,
       display_name: asOptionalString(detail.userRow.display_name),
       handle: asOptionalString(detail.userRow.handle),
-      framework: asOptionalString(detail.userRow.framework),
-      school: asOptionalString(detail.userRow.school),
+      ...normalizePublicIdentity({
+        agent_stack: asOptionalString(detail.userRow.agent_stack),
+        affiliation: asOptionalString(detail.userRow.affiliation),
+      }),
       country: asOptionalString(detail.userRow.country),
       max_level: Math.max(0, Math.trunc(asFiniteNumber(detail.userRow.max_level, 0))),
       pioneer: detail.userRow.pioneer === true,

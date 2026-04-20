@@ -11,8 +11,8 @@ type LeaderboardEntry = {
   rank: number;
   display_name: string;
   handle?: string | null;
-  framework?: string | null;
-  school: string | null;
+  agent_stack?: string | null;
+  affiliation?: string | null;
   highest_level: number;
   best_score_on_highest: number;
   best_color_band?: 'RED' | 'ORANGE' | 'YELLOW' | 'GREEN' | 'BLUE' | null;
@@ -119,6 +119,8 @@ function LeaderboardMobileRow({
   const isUpdated = useHighlightOnChange(entry.last_submission_at);
   const isSelected = selectedPlayerId === entry.player_id;
   const t = copy.leaderboard.table;
+  const affiliation = entry.affiliation;
+  const agentStack = entry.agent_stack;
 
   return (
     <Link
@@ -155,7 +157,7 @@ function LeaderboardMobileRow({
             {entry.handle ? `@${entry.handle}` : t.noPublicHandle}
           </p>
           <p className="text-xs text-slate-400">
-            {entry.school ?? t.schoolFallback}
+            {affiliation ?? t.affiliationFallback}
           </p>
         </div>
         <span className="rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
@@ -165,12 +167,12 @@ function LeaderboardMobileRow({
 
       <dl className="grid gap-3 text-sm sm:grid-cols-2">
         <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
-          <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{t.frameworkLabel}</dt>
-          <dd className="mt-1 break-words font-medium text-slate-900">{entry.framework ?? t.frameworkNotSet}</dd>
+          <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{t.agentStackLabel}</dt>
+          <dd className="mt-1 break-words font-medium text-slate-900">{agentStack ?? t.agentStackNotSet}</dd>
         </div>
         <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
-          <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{t.schoolLabel}</dt>
-          <dd className="mt-1 break-words font-medium text-slate-900">{entry.school ?? t.schoolFallback}</dd>
+          <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{t.affiliationLabel}</dt>
+          <dd className="mt-1 break-words font-medium text-slate-900">{affiliation ?? t.affiliationFallback}</dd>
         </div>
         <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
           <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{t.highestLabel}</dt>
@@ -216,6 +218,8 @@ function LeaderboardDesktopRow({
   const isUpdated = useHighlightOnChange(entry.last_submission_at);
   const isSelected = selectedPlayerId === entry.player_id;
   const t = copy.leaderboard.table;
+  const affiliation = entry.affiliation;
+  const agentStack = entry.agent_stack;
 
   return (
     <tr
@@ -263,11 +267,11 @@ function LeaderboardDesktopRow({
           ) : (
             <span className="text-xs text-slate-400">{t.noPublicHandle}</span>
           )}
-          <span className="text-xs text-slate-400">{entry.school ?? t.schoolFallback}</span>
+          <span className="text-xs text-slate-400">{affiliation ?? t.affiliationFallback}</span>
         </div>
       </td>
       <td className="border-b border-slate-100 px-2 py-1.5 text-slate-600">
-        {entry.framework ?? t.frameworkNotSet}
+        {agentStack ?? t.agentStackNotSet}
       </td>
       <td className="border-b border-slate-100 px-2 py-1.5">
         <span className="inline-flex min-w-14 items-center justify-center rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 font-medium text-slate-800">
@@ -338,7 +342,7 @@ export function LeaderboardTable({
             <tr>
               <th className="border-b border-slate-100 px-2 py-1.5">{copy.leaderboard.table.colRank}</th>
               <th className="border-b border-slate-100 px-2 py-1.5">{copy.leaderboard.table.colPlayer}</th>
-              <th className="border-b border-slate-100 px-2 py-1.5">{copy.leaderboard.table.colFramework}</th>
+              <th className="border-b border-slate-100 px-2 py-1.5">{copy.leaderboard.table.colAgentStack}</th>
               <th className="border-b border-slate-100 px-2 py-1.5">{copy.leaderboard.table.colHighest}</th>
               <th className="border-b border-slate-100 px-2 py-1.5">{copy.leaderboard.table.colFrontierScore}</th>
               <th className="border-b border-slate-100 px-2 py-1.5">{copy.leaderboard.table.colSolveTime}</th>

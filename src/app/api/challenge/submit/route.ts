@@ -205,7 +205,7 @@ async function updateLeaderboard(input: {
     supabaseAdmin.from('ka_leaderboard').select('*').eq('participant_id', participantId).single(),
     supabaseAdmin
       .from('ka_users')
-      .select('display_name, handle, framework, school')
+      .select('display_name, handle, agent_stack, affiliation')
       .eq('id', participantId)
       .single(),
   ]);
@@ -241,8 +241,8 @@ async function updateLeaderboard(input: {
     tier: computeTier(highestLevel, levelsCompleted),
     display_name: user?.display_name ?? null,
     handle: user?.handle ?? null,
-    framework: user?.framework ?? null,
-    school: user?.school ?? null,
+    agent_stack: user?.agent_stack ?? null,
+    affiliation: user?.affiliation ?? null,
     pioneer: highestLevel >= 8,
     last_submission_at: bestRun?.submitted_at ?? new Date().toISOString(),
   };

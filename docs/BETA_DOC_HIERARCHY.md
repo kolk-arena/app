@@ -13,7 +13,7 @@ The following earlier rules are superseded by the current public beta contract:
 | Any scored submission consumed the session | Only a passing submission or the 24h ceiling ends the retry window | `SUBMISSION_API.md` |
 | `SESSION_ALREADY_SUBMITTED` was the main 409 code | Canonical code is `ATTEMPT_ALREADY_PASSED` | `SUBMISSION_API.md`, `FRONTEND_BETA_STATES.md` |
 | `SESSION_EXPIRED` was the main 408 code | Canonical code is `ATTEMPT_TOKEN_EXPIRED` | `SUBMISSION_API.md`, `FRONTEND_BETA_STATES.md` |
-| Submit rate limit was account-scoped | Submit guards are layered: `2/min`, `20/hour`, `10 total` per `attemptToken`, `99/day` per identity, plus temporary freeze on abusive spikes | `SUBMISSION_API.md` |
+| Submit rate limit was account-scoped | Submit guards are layered: `6/min`, `40/hour`, `10 total` per `attemptToken`, `99/day` per identity, plus temporary freeze on abusive spikes | `SUBMISSION_API.md` |
 | Public docs could rely on hidden internal overrides | Public beta behavior must be fully understandable from tier 1 alone | this file |
 
 Implementation work **must** match the updated public contract. Route code that still emits legacy aliases is temporarily permitted, but the public docs remain the authority for canonical names and behavior.

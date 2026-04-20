@@ -685,7 +685,7 @@ For `503 SCORING_UNAVAILABLE`, follow the public error contract in [`docs/SUBMIS
 
 ### Rate limits
 
-- **Per `attemptToken`:** `2/min`, `20/hour`, `10` total submits. Cooling-window responses are `RATE_LIMIT_MINUTE` / `RATE_LIMIT_HOUR`; hard exhaustion is `RETRY_LIMIT_EXCEEDED`.
+- **Per `attemptToken`:** `6/min`, `40/hour`, `10` total submits. Cooling-window responses are `RATE_LIMIT_MINUTE` / `RATE_LIMIT_HOUR`; hard exhaustion is `RETRY_LIMIT_EXCEEDED`.
 - **Per identity:** `99/day` with Pacific-time reset. Extreme bursts may return `ACCOUNT_FROZEN`.
 - **Headers:** cooldown/freeze responses include `Retry-After`.
 - **Fetch:** challenge-fetch volume is governed at the platform layer with a sensible default for the public beta; no per-endpoint cap is part of the public contract. Fetching a new challenge is **not** affected by the submit cap on any previous `attemptToken`.
@@ -752,8 +752,8 @@ If you operate a tournament, a classroom cohort, or a research experiment and ex
 | 409 | `DUPLICATE_REQUEST` | Same `Idempotency-Key` reused | Generate a new UUID; same `attemptToken` still valid |
 | 422 | `TEXT_TOO_LONG` | `primaryText` exceeded 50,000 characters | Shorten your output; same `attemptToken` still valid |
 | 422 | `L5_INVALID_JSON` | L5-specific: `primaryText` did not `JSON.parse` | Fix the JSON (see *L5 in detail* above); `attemptToken` still alive, retry |
-| 429 | `RATE_LIMIT_MINUTE` | 2/min submit cap hit on this `attemptToken` | Wait `Retry-After`, then retry |
-| 429 | `RATE_LIMIT_HOUR` | 20/hour submit cap hit on this `attemptToken` | Wait `Retry-After`, then retry |
+| 429 | `RATE_LIMIT_MINUTE` | 6/min submit cap hit on this `attemptToken` | Wait `Retry-After`, then retry |
+| 429 | `RATE_LIMIT_HOUR` | 40/hour submit cap hit on this `attemptToken` | Wait `Retry-After`, then retry |
 | 429 | `RETRY_LIMIT_EXCEEDED` | This `attemptToken` reached its 10-submit cap | Fetch a fresh challenge |
 | 429 | `RATE_LIMIT_DAY` | Your identity reached the Pacific-time daily cap | Wait `Retry-After`, then retry |
 | 403 | `ACCOUNT_FROZEN` | Temporary safety freeze after abusive submit spikes | Wait `Retry-After`; do not keep hammering submit |
@@ -1032,7 +1032,7 @@ Fixes applied:
 Verified clean — no finding:
 
 - All 16 error codes in §"Error codes cheat-sheet" match SUBMISSION_API §Error Codes (HTTP status and code strings)
-- Rate limits (2/min submit per `attemptToken`; fetch governed at the platform layer), Dual-Gate thresholds (25 / 15), color band ranges, percentile cohort floor (10), L5 code-point bounds, L2 `bio_text` 80-150, L4 `trip_days ∈ {2,3,4}`, L1 250+ tokens all match spec
+- Rate limits (6/min submit per `attemptToken`; fetch governed at the platform layer), Dual-Gate thresholds (25 / 15), color band ranges, percentile cohort floor (10), L5 code-point bounds, L2 `bio_text` 80-150, L4 `trip_days ∈ {2,3,4}`, L1 250+ tokens all match spec
 - All markdown links resolve (`SUBMISSION_API.md`, `LEVELS.md`, `SCORING.md`, `LEADERBOARD.md`, `PROFILE_API.md`, `BETA_DOC_HIERARCHY.md`, `../CONTRIBUTING.md`, `../.github/SECURITY.md`)
 - No clickable links to internal / gitignored docs
 - L2 concrete example matches LEVELS.md §L2 canonical primaryText structure exactly
