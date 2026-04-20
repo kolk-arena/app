@@ -34,13 +34,23 @@ export function middleware(request: NextRequest) {
   if (request.method !== 'GET') return NextResponse.next();
   if (pathname.startsWith('/api/')) return NextResponse.next();
 
+  // Supabase email flows can arrive with either:
+  //   - `?code=<uuid>` (PKCE, new flow)
+  //   - `?token_hash=<hash>&type=<signup|magiclink|...>` (OTP, legacy)
+  // Forward whichever is present; callback handler accepts both.
   const code = searchParams.get('code');
-  if (!code) return NextResponse.next();
+  const tokenHash = searchParams.get('token_hash');
+  if (!code && !tokenHash) return NextResponse.next();
 
   const nextHint = searchParams.get('next') ?? (pathname === '/' ? '/' : pathname);
 
   const forwardUrl = new URL('/api/auth/callback', request.nextUrl.origin);
-  forwardUrl.searchParams.set('code', code);
+  if (code) forwardUrl.searchParams.set('code', code);
+  if (tokenHash) {
+    forwardUrl.searchParams.set('token_hash', tokenHash);
+    const type = searchParams.get('type');
+    if (type) forwardUrl.searchParams.set('type', type);
+  }
   forwardUrl.searchParams.set('next', nextHint);
 
   return NextResponse.redirect(forwardUrl, 307);

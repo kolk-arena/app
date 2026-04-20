@@ -45,7 +45,23 @@ function isGithubNoreply(email: string | null | undefined) {
 }
 
 export async function GET(request: NextRequest) {
+  // Email flows arrive here in two shapes, depending on Supabase project
+  // settings + which email template fired:
+  //   1. PKCE   — `?code=<uuid>`. Exchanged via `exchangeCodeForSession`.
+  //              Needs the PKCE code_verifier cookie from the original
+  //              signInWithOtp request to still be present in this
+  //              browser (fails cross-device).
+  //   2. OTP    — `?token_hash=<hash>&type=magiclink|signup|recovery|
+  //              invite|email_change`. Exchanged via `verifyOtp`. Does
+  //              NOT require a prior cookie — works cross-device.
+  //
+  // We accept both so users who click the link in a different browser
+  // than where they registered can still sign in. If neither param is
+  // present we surface `missing_code`; if exchange fails we log the
+  // Supabase error to make Vercel logs actually useful for diagnosis.
   const code = request.nextUrl.searchParams.get('code');
+  const tokenHash = request.nextUrl.searchParams.get('token_hash');
+  const typeParam = request.nextUrl.searchParams.get('type');
   const next = request.nextUrl.searchParams.get('next');
   const nextPath = sanitizeNextPath(next);
   const redirectUrl = new URL(nextPath, request.nextUrl.origin);
@@ -53,14 +69,42 @@ export async function GET(request: NextRequest) {
   // Always create the SSR client so applyCookies is available in all paths
   const { supabase, applyCookies } = createRouteHandlerSupabaseClient(request);
 
-  if (!code) {
+  if (!code && !tokenHash) {
+    console.warn('[auth/callback] missing both code and token_hash', {
+      search: Object.fromEntries(request.nextUrl.searchParams.entries()),
+    });
     redirectUrl.searchParams.set('auth_error', 'missing_code');
     return applyCookies(NextResponse.redirect(redirectUrl));
   }
 
   try {
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-    if (error || !data.user) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let data: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let error: any;
+
+    if (tokenHash) {
+      // Legacy / cross-device magic-link flow. `type` defaults to
+      // 'magiclink' if the email template didn't include it (Supabase's
+      // default sign-in templates emit the type explicitly so this is
+      // mostly a safety net).
+      const type = (typeParam as 'magiclink' | 'signup' | 'recovery' | 'invite' | 'email_change' | null) ?? 'magiclink';
+      const result = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
+      data = result.data;
+      error = result.error;
+      if (error) {
+        console.warn('[auth/callback] verifyOtp failed', { type, message: error?.message, status: error?.status });
+      }
+    } else {
+      const result = await supabase.auth.exchangeCodeForSession(code!);
+      data = result.data;
+      error = result.error;
+      if (error) {
+        console.warn('[auth/callback] exchangeCodeForSession failed', { message: error?.message, status: error?.status });
+      }
+    }
+
+    if (error || !data?.user) {
       redirectUrl.searchParams.set('auth_error', 'exchange_failed');
       return applyCookies(NextResponse.redirect(redirectUrl));
     }
