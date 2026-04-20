@@ -7,9 +7,13 @@
  * Keep `canonicalOrigin` aligned with `CANONICAL_ORIGIN` in
  * `src/lib/frontend/agent-handoff.ts` (which now reads from this file).
  *
- * Note: the production canonical host is the apex `kolkarena.com` (no www).
- * Cookie + cURL examples in the integration docs and the e2e regression
- * fixtures depend on that exact host string.
+ * Note: the production canonical host is `www.kolkarena.com`. The apex
+ * `kolkarena.com` 307-redirects to www at the edge (see the launch-day
+ * smoke test in `scripts/ops/launch-day.sh` step 5). Cookie + cURL
+ * examples in the integration docs and the e2e regression fixtures
+ * depend on that exact host string — plain `curl` without `-L` saves
+ * the redirect HTML instead of the JSON response when hitting apex,
+ * so every agent-facing example must use the www form.
  */
 export const APP_CONFIG = {
   name: 'Kolk Arena',

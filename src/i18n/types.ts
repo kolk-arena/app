@@ -172,6 +172,13 @@ export interface FrontendCatalog {
     };
   };
   homeInteractive: {
+    skillEyebrow: string;
+    skillTitle: string;
+    skillBody: string;
+    copySkill: string;
+    copiedSkill: string;
+    downloadSkill: string;
+    openSkill: string;
     starterScriptsEyebrow: string;
     starterScriptsBody: string;
     handoffEyebrow: string;

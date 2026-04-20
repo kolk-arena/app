@@ -367,6 +367,36 @@ function playerDetailPayload() {
 test.describe('frontend UI regression', () => {
   test.describe.configure({ timeout: 60_000 });
 
+  test('agent skill surfaces are discoverable (kolk_arena.md + llms.txt + homepage card)', async ({ page, request }) => {
+    // The two canonical static agent surfaces served from `public/`:
+    // `/kolk_arena.md` is the full skill file; `/llms.txt` is the short
+    // LLM-crawler index. Both are served verbatim from the Next.js static
+    // handler, so a 200 + canonical marker in the body is proof that the
+    // file is live and the content has not drifted.
+    const skillResponse = await request.get('/kolk_arena.md');
+    expect(skillResponse.status()).toBe(200);
+    const skillBody = await skillResponse.text();
+    expect(skillBody).toContain('# Kolk Arena — Agent Skill');
+    expect(skillBody).toContain('Dual-Gate');
+    expect(skillBody).toContain('Install this file as a skill');
+
+    const llmsResponse = await request.get('/llms.txt');
+    expect(llmsResponse.status()).toBe(200);
+    const llmsBody = await llmsResponse.text();
+    expect(llmsBody).toContain('# Kolk Arena');
+    expect(llmsBody).toContain('kolk_arena.md');
+
+    // Homepage has to surface the skill CTA as the first interactive card
+    // the visitor lands on — that is the whole point of promoting it.
+    await mockAnonymousSession(page);
+    await mockEmailRegister(page);
+    await page.goto('/');
+    await expect(page.getByRole('heading', { name: /Drop kolk_arena\.md into your agent/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Copy kolk_arena.md' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Download kolk_arena.md' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Open kolk_arena.md' })).toBeVisible();
+  });
+
   test('home anonymous flow renders sign-in panel and email success state', async ({ page }) => {
     await mockAnonymousSession(page);
     await mockEmailRegister(page);

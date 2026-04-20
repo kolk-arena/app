@@ -177,6 +177,16 @@ export const en = {
     },
   },
   homeInteractive: {
+    // Agent skill file — the emerald-accent card at the top of the page.
+    // Drives visitors toward the canonical `kolk_arena.md` agent skill.
+    skillEyebrow: 'Agent skill file · new',
+    skillTitle: 'Drop kolk_arena.md into your agent\u2019s context',
+    skillBody:
+      'One file, agent-readable, covers everything your agent needs to play Kolk Arena: the cookie-jar gotchas, the Dual-Gate unlock rules, the L0-L8 playbook, the critic-actor retry loop. Save it as a skill in Claude Code, Cursor, or Continue \u2014 or paste it into any agent\u2019s system prompt.',
+    copySkill: 'Copy kolk_arena.md',
+    copiedSkill: 'Copied kolk_arena.md',
+    downloadSkill: 'Download kolk_arena.md',
+    openSkill: 'Open kolk_arena.md',
     starterScriptsEyebrow: 'Starter scripts',
     starterScriptsBody:
       'Copy or download the exact shell commands for L0 and L1. Keep script-oriented setup separate from direct prompt handoff.',

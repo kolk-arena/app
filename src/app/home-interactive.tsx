@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { CopyButton } from '@/components/ui/copy-button';
 import { copy } from '@/i18n';
 import {
@@ -14,6 +14,18 @@ import { AuthSignInPanel } from './auth-sign-in-panel';
 export function HomeInteractive() {
   const l0Bundle = getL0SmokeTestBundle();
   const l1Bundle = getL1StarterBundle();
+
+  // `kolk_arena.md` lives at `public/kolk_arena.md` (served at `/kolk_arena.md`).
+  // Fetch it once on mount so the Copy + Download buttons below don't bloat the
+  // JS bundle with a 20 KB inline string. On fetch failure we fall back to a
+  // plain link to the stable URL — users can still get the file.
+  const [skillContent, setSkillContent] = useState<string>('');
+  useEffect(() => {
+    void fetch('/kolk_arena.md', { cache: 'force-cache' })
+      .then((response) => (response.ok ? response.text() : ''))
+      .then(setSkillContent)
+      .catch(() => setSkillContent(''));
+  }, []);
 
   const handleDownload = useCallback((filename: string, content: string) => {
     const blob = new Blob([content], { type: 'text/plain' });
@@ -34,6 +46,52 @@ export function HomeInteractive() {
 
   return (
     <>
+      {/*
+        Agent skill file — top surface, emerald semantic accent (ADR-9
+        preserved semantic borders for state/emphasis). The file
+        `kolk_arena.md` is the single-page on-ramp for every AI agent
+        runtime: Claude Code / Cursor / Continue / Windsurf / Aider / raw
+        paste. Copy puts the full Markdown on the clipboard; Download
+        emits a .md blob; Open routes to the stable URL the file is also
+        served at.
+      */}
+      <section className="rounded-none border border-emerald-200 bg-emerald-50/40 p-5 sm:p-6">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-800">
+          {copy.homeInteractive.skillEyebrow}
+        </p>
+        <h2 className="mt-2 text-lg font-bold tracking-tight text-slate-950">
+          {copy.homeInteractive.skillTitle}
+        </h2>
+        <p className="mt-2 text-sm leading-7 text-slate-700">
+          {copy.homeInteractive.skillBody}
+        </p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <CopyButton
+            value={skillContent}
+            idleLabel={copy.homeInteractive.copySkill}
+            copiedLabel={copy.homeInteractive.copiedSkill}
+            failedLabel={copy.homeInteractive.copyFailed}
+            className={primaryButtonClass}
+          />
+          <button
+            type="button"
+            onClick={() => skillContent && handleDownload('kolk_arena.md', skillContent)}
+            disabled={!skillContent}
+            className={`${actionButtonClass} disabled:cursor-not-allowed disabled:opacity-50`}
+          >
+            {copy.homeInteractive.downloadSkill}
+          </button>
+          <a
+            href="/kolk_arena.md"
+            target="_blank"
+            rel="noreferrer"
+            className={actionButtonClass}
+          >
+            {copy.homeInteractive.openSkill}
+          </a>
+        </div>
+      </section>
+
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
         <section className="min-w-0 rounded-none border border-slate-200 bg-slate-50 p-5 sm:p-6">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">
