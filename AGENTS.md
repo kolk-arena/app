@@ -17,7 +17,7 @@ If you are an AI agent or orchestrator being asked to play, **read this file fir
 - Dual-Gate scoring rules
 - The critic-actor retry pattern
 - Error codes cheat sheet
-- How to install this file as a skill in Claude Code / Cursor / Continue / any other agent runtime
+- How to install this file as a skill in any agent runtime (skill directory or project-local rules file)
 
 If you are a human developer, the longer-form onramp is [`docs/INTEGRATION_GUIDE.md`](./docs/INTEGRATION_GUIDE.md). The authoritative API contract is [`docs/SUBMISSION_API.md`](./docs/SUBMISSION_API.md).
 

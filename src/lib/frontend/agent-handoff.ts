@@ -128,11 +128,27 @@ Return rules:
   whatsapp_message, quick_facts, first_step_checklist.`;
 }
 
-export function getSubmitContractSnippet(attemptToken = '<attemptToken>') {
+function isCompetitiveLevel(level: BetaPublicLevel) {
+  return level >= 6;
+}
+
+export function getSubmitContractSnippet(
+  attemptToken = '<attemptToken>',
+  level?: BetaPublicLevel,
+) {
+  const authLines =
+    level == null
+      ? `  Cookie: <same cookie jar from fetch>   # anonymous L0-L5
+  Authorization: Bearer <token>    # signed-in L6-L8`
+      : isCompetitiveLevel(level)
+      ? '  Authorization: Bearer <token>'
+      : '  Cookie: <same cookie jar from fetch>';
+
   return `POST ${CANONICAL_ORIGIN}/api/challenge/submit
 Headers:
   Content-Type: application/json
   Idempotency-Key: <uuid>
+${authLines}
 Body:
 {
   "attemptToken": "${attemptToken}",
@@ -141,23 +157,28 @@ Body:
 }
 
 export function getChallengeScriptBundle(lang: ScriptLang, level: BetaPublicLevel): ScriptBundle {
+  const competitive = isCompetitiveLevel(level);
+
   if (lang === 'curl') {
-    const steps: readonly ScriptStep[] = [
-      {
-        title: 'Fetch the challenge and preserve the anonymous session cookie',
-        code: `#!/usr/bin/env bash
+    const steps: readonly ScriptStep[] = competitive
+      ? [
+          {
+            title: 'Set your bearer token and fetch the challenge',
+            code: `#!/usr/bin/env bash
 set -euo pipefail
 
 BASE="${CANONICAL_ORIGIN}"
 LEVEL=${level}
-COOKIE_JAR="$(mktemp)"
 CHALLENGE_JSON="$(mktemp)"
+KOLK_TOKEN="\${KOLK_TOKEN:-YOUR_PAT_HERE}"
 
-curl -sc "$COOKIE_JAR" "$BASE/api/challenge/$LEVEL" > "$CHALLENGE_JSON"`,
-      },
-      {
-        title: 'Inspect the brief, then prepare the payload your agent will fill',
-        code: `jq '.challenge | { attemptToken, promptMd, taskJson }' "$CHALLENGE_JSON"
+curl -sS "$BASE/api/challenge/$LEVEL" \
+  -H "Authorization: Bearer $KOLK_TOKEN" \
+  > "$CHALLENGE_JSON"`,
+          },
+          {
+            title: 'Inspect the brief, then prepare the payload your agent will fill',
+            code: `jq '.challenge | { attemptToken, promptMd, taskJson }' "$CHALLENGE_JSON"
 ATTEMPT_TOKEN="$(jq -r '.challenge.attemptToken' "$CHALLENGE_JSON")"
 
 cat > payload.json <<JSON
@@ -166,24 +187,109 @@ cat > payload.json <<JSON
   "primaryText": "YOUR_AI_GENERATED_TEXT_HERE"
 }
 JSON`,
-      },
-      {
-        title: 'Submit the final delivery with the same cookie jar',
-        code: `curl -sb "$COOKIE_JAR" -X POST "$BASE/api/challenge/submit" \\
+          },
+          {
+            title: 'Submit the final delivery with the same bearer token',
+            code: `curl -sS -X POST "$BASE/api/challenge/submit" \\
+  -H "Authorization: Bearer $KOLK_TOKEN" \\
   -H "Content-Type: application/json" \\
   -H "Idempotency-Key: $(uuidgen)" \\
   -d @payload.json`,
-      },
-    ];
+          },
+        ]
+      : [
+          {
+            title: 'Fetch the challenge and preserve the anonymous session cookie',
+            code: `#!/usr/bin/env bash
+set -euo pipefail
+
+BASE="${CANONICAL_ORIGIN}"
+LEVEL=${level}
+COOKIE_JAR="$(mktemp)"
+CHALLENGE_JSON="$(mktemp)"
+
+curl -sc "$COOKIE_JAR" "$BASE/api/challenge/$LEVEL" > "$CHALLENGE_JSON"`,
+          },
+          {
+            title: 'Inspect the brief, then prepare the payload your agent will fill',
+            code: `jq '.challenge | { attemptToken, promptMd, taskJson }' "$CHALLENGE_JSON"
+ATTEMPT_TOKEN="$(jq -r '.challenge.attemptToken' "$CHALLENGE_JSON")"
+
+cat > payload.json <<JSON
+{
+  "attemptToken": "$ATTEMPT_TOKEN",
+  "primaryText": "YOUR_AI_GENERATED_TEXT_HERE"
+}
+JSON`,
+          },
+          {
+            title: 'Submit the final delivery with the same cookie jar',
+            code: `curl -sb "$COOKIE_JAR" -X POST "$BASE/api/challenge/submit" \\
+  -H "Content-Type: application/json" \\
+  -H "Idempotency-Key: $(uuidgen)" \\
+  -d @payload.json`,
+          },
+        ];
 
     return buildShellBundle('solve.sh', steps);
   }
 
   if (lang === 'python') {
-    const steps: readonly ScriptStep[] = [
-      {
-        title: 'Fetch the challenge with a persistent requests session',
-        code: `import uuid
+    const steps: readonly ScriptStep[] = competitive
+      ? [
+          {
+            title: 'Fetch the challenge with a bearer token',
+            code: `import os
+import uuid
+import requests
+
+BASE = "${CANONICAL_ORIGIN}"
+LEVEL = ${level}
+TOKEN = os.environ["KOLK_TOKEN"]
+
+session = requests.Session()
+response = session.get(
+    f"{BASE}/api/challenge/{LEVEL}",
+    headers={"Authorization": f"Bearer {TOKEN}"},
+    timeout=30,
+)
+response.raise_for_status()
+challenge = response.json()["challenge"]
+attempt_token = challenge["attemptToken"]
+
+print({
+    "attemptToken": attempt_token,
+    "promptMd": challenge["promptMd"],
+    "taskJson": challenge["taskJson"],
+})`,
+          },
+          {
+            title: 'Insert the final primaryText from your agent',
+            code: `primary_text = "YOUR_AI_GENERATED_TEXT_HERE"
+payload = {
+    "attemptToken": attempt_token,
+    "primaryText": primary_text,
+}`,
+          },
+          {
+            title: 'Submit with the same bearer token',
+            code: `submit_response = session.post(
+    f"{BASE}/api/challenge/submit",
+    headers={
+        "Authorization": f"Bearer {TOKEN}",
+        "Content-Type": "application/json",
+        "Idempotency-Key": str(uuid.uuid4()),
+    },
+    json=payload,
+    timeout=60,
+)
+print(submit_response.status_code, submit_response.json())`,
+          },
+        ]
+      : [
+          {
+            title: 'Fetch the challenge with a persistent requests session',
+            code: `import uuid
 import requests
 
 BASE = "${CANONICAL_ORIGIN}"
@@ -200,18 +306,18 @@ print({
     "promptMd": challenge["promptMd"],
     "taskJson": challenge["taskJson"],
 })`,
-      },
-      {
-        title: 'Insert the final primaryText from your agent',
-        code: `primary_text = "YOUR_AI_GENERATED_TEXT_HERE"
+          },
+          {
+            title: 'Insert the final primaryText from your agent',
+            code: `primary_text = "YOUR_AI_GENERATED_TEXT_HERE"
 payload = {
     "attemptToken": attempt_token,
     "primaryText": primary_text,
 }`,
-      },
-      {
-        title: 'Submit with the same session so the cookie replays automatically',
-        code: `submit_response = session.post(
+          },
+          {
+            title: 'Submit with the same session so the cookie replays automatically',
+            code: `submit_response = session.post(
     f"{BASE}/api/challenge/submit",
     headers={
         "Content-Type": "application/json",
@@ -221,8 +327,8 @@ payload = {
     timeout=60,
 )
 print(submit_response.status_code, submit_response.json())`,
-      },
-    ];
+          },
+        ];
 
     return {
       filename: 'solve.py',
@@ -231,10 +337,55 @@ print(submit_response.status_code, submit_response.json())`,
     };
   }
 
-  const steps: readonly ScriptStep[] = [
-    {
-      title: 'Fetch the challenge and replay the anonymous session cookie manually',
-      code: `const BASE = "${CANONICAL_ORIGIN}";
+  const steps: readonly ScriptStep[] = competitive
+    ? [
+        {
+          title: 'Fetch the challenge with a bearer token',
+          code: `const BASE = "${CANONICAL_ORIGIN}";
+const LEVEL = ${level};
+const TOKEN = process.env.KOLK_TOKEN ?? "YOUR_PAT_HERE";
+
+const fetchRes = await fetch(\`\${BASE}/api/challenge/\${LEVEL}\`, {
+  headers: {
+    Authorization: \`Bearer \${TOKEN}\`,
+  },
+});
+
+const { challenge } = await fetchRes.json();
+const attemptToken = challenge.attemptToken;
+
+console.log({
+  attemptToken,
+  promptMd: challenge.promptMd,
+  taskJson: challenge.taskJson,
+});`,
+        },
+        {
+          title: 'Insert the final primaryText from your agent',
+          code: `const payload = {
+  attemptToken,
+  primaryText: "YOUR_AI_GENERATED_TEXT_HERE",
+};`,
+        },
+        {
+          title: 'Submit with the same bearer token',
+          code: `const submitRes = await fetch(\`\${BASE}/api/challenge/submit\`, {
+  method: "POST",
+  headers: {
+    Authorization: \`Bearer \${TOKEN}\`,
+    "Content-Type": "application/json",
+    "Idempotency-Key": crypto.randomUUID(),
+  },
+  body: JSON.stringify(payload),
+});
+
+console.log(submitRes.status, await submitRes.json());`,
+        },
+      ]
+    : [
+        {
+          title: 'Fetch the challenge and replay the anonymous session cookie manually',
+          code: `const BASE = "${CANONICAL_ORIGIN}";
 const LEVEL = ${level};
 
 const fetchRes = await fetch(\`\${BASE}/api/challenge/\${LEVEL}\`);
@@ -252,17 +403,17 @@ console.log({
   promptMd: challenge.promptMd,
   taskJson: challenge.taskJson,
 });`,
-    },
-    {
-      title: 'Insert the final primaryText from your agent',
-      code: `const payload = {
+        },
+        {
+          title: 'Insert the final primaryText from your agent',
+          code: `const payload = {
   attemptToken,
   primaryText: "YOUR_AI_GENERATED_TEXT_HERE",
 };`,
-    },
-    {
-      title: 'Submit with the replayed cookie and a fresh Idempotency-Key',
-      code: `const submitRes = await fetch(\`\${BASE}/api/challenge/submit\`, {
+        },
+        {
+          title: 'Submit with the replayed cookie and a fresh Idempotency-Key',
+          code: `const submitRes = await fetch(\`\${BASE}/api/challenge/submit\`, {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
@@ -273,8 +424,8 @@ console.log({
 });
 
 console.log(submitRes.status, await submitRes.json());`,
-    },
-  ];
+        },
+      ];
 
   return {
     filename: 'solve.js',
@@ -306,8 +457,8 @@ function levelRuleLines(level: BetaPublicLevel) {
       ];
     case 3:
       return [
-        'Use exact Markdown headers in this order: ## Intro, ## Services, ## CTA.',
-        'Under ## Services, include exactly 3 service descriptions.',
+        'Follow the live brief first. A common high-quality shape is ## Intro, ## Services, ## CTA.',
+        'Make the services section concrete and grounded in the business facts from the brief.',
       ];
     case 4:
       return [
@@ -323,17 +474,17 @@ function levelRuleLines(level: BetaPublicLevel) {
     case 6:
       return [
         'This is competitive-tier one-page copy.',
-        'Use four fixed sections: Hero, About, Services, CTA.',
+        'A common high-quality shape is ## Hero, ## About, ## Services, ## CTA.',
       ];
     case 7:
       return [
-        'Return exactly 8 prompts, 2 style rules, and 2 forbidden mistakes.',
-        'Every prompt must include both a **Prompt:** line and a **Negative prompt:** line.',
+        'Follow the live brief counts and headings for the prompt pack.',
+        'A high-quality response usually includes prompt blocks, style rules, and forbidden mistakes in a clean reusable format.',
       ];
     case 8:
       return [
-        'Use three top-level sections in this order: ## One-Page Copy, ## Prompt Pack, ## WhatsApp Welcome.',
-        'Inside One-Page Copy use ### Hero / ### About / ### Services / ### CTA, and inside Prompt Pack reuse the L7 prompt skeleton.',
+        'Follow the live brief for the required top-level package sections.',
+        'A high-quality response usually separates the one-page copy, prompt pack, and WhatsApp welcome surfaces clearly.',
       ];
   }
 }
@@ -351,17 +502,17 @@ export function getLevelDeliveryInstruction(level: BetaPublicLevel) {
     case 2:
       return 'Use exact top-level headers for Google Maps Description and Instagram Bio, then embed the Instagram bio as a fenced json block with the exact five required keys.';
     case 3:
-      return 'Use exact Markdown headers ## Intro / ## Services / ## CTA, and include exactly 3 service descriptions under ## Services.';
+      return 'Follow the live brief and business facts closely. A common high-quality shape is ## Intro / ## Services / ## CTA.';
     case 4:
       return 'Read structured_brief.trip_days and return exactly that many ## Day N sections, each with Morning, Afternoon, Evening, Budget, and Tip lines.';
     case 5:
       return 'L5 requires a raw JSON object string with three keys: whatsapp_message, quick_facts, first_step_checklist.';
     case 6:
-      return 'Return one-page copy with four fixed sections: Hero, About, Services, CTA.';
+      return 'Return one-page copy that cleanly covers Hero, About, Services, and CTA.';
     case 7:
-      return 'Return the exact prompt-pack skeleton: 8 prompt blocks, 2 style rules, 2 forbidden mistakes, and one Negative prompt line per prompt.';
+      return 'Return a reusable prompt pack that follows the live brief counts and names.';
     case 8:
-      return 'Return one header-structured package with ## One-Page Copy, ## Prompt Pack, and ## WhatsApp Welcome; Prompt Pack reuses the L7 skeleton.';
+      return 'Return a complete package that clearly separates the one-page copy, prompt pack, and WhatsApp welcome surfaces.';
   }
 }
 
@@ -492,6 +643,10 @@ export function buildChallengeAgentBrief({
   const outputTemplate = getLevelOutputTemplate(level, taskJson);
   const rules = getLevelRuleSummary(level);
   const structuredBrief = extractStructuredBrief(taskJson);
+  const exactShapeLevels = new Set<BetaPublicLevel>([0, 1, 4, 5]);
+  const outputShapeLead = exactShapeLevels.has(level)
+    ? 'Use this exact shape when producing primaryText:'
+    : 'Use this as a strong starting shape. The live brief remains the source of truth if it is more specific:';
 
   return `You are producing a Kolk Arena submission.
 
@@ -508,7 +663,7 @@ Level: L${level} — ${levelName}
 ### SOURCE OF TRUTH
 - Follow the task description exactly.
 - Use the ${structuredBrief ? 'structured_brief JSON' : 'taskJson'} block as the machine-readable source of facts and fields.
-- If the brief contains both prose and structured fields, satisfy the level rules and required output shape exactly.
+- If the brief contains both prose and structured fields, satisfy the hard requirements first and use the suggested output shape to improve quality.
 
 ### REQUIRED FORMAT
 ${rules}
@@ -522,11 +677,11 @@ ${stringifyJson(structuredBrief ?? taskJson)}
 \`\`\`
 
 ### OUTPUT SHAPE
-Match this structure exactly:
+${outputShapeLead}
 ${outputTemplate}
 
 ### FINAL CHECK
-- Make sure every required section, key, or header is present exactly as requested.
+- Make sure every hard requirement from the live brief is present.
 - Make sure the output is complete and directly usable as primaryText.
 - Remove any draft notes, rationale, or extra wrapper text before returning the final answer.`;
 }
@@ -543,14 +698,14 @@ export function getNodeSubmitSnippet(level: BetaPublicLevel) {
   return getChallengeScriptBundle('node', level).code;
 }
 
-export function getCursorRules() {
+export function getAgentRules() {
   return `You are an AI Agent solving Kolk Arena challenges.
 When writing scripts to fetch or submit:
 - Always preserve session cookies if using cURL (use -c and -b).
 - Send requests to ${CANONICAL_ORIGIN}
 - Always include an 'Idempotency-Key: <uuid>' header in POST /api/challenge/submit.
 - attemptToken stays reusable for up to 24 hours until either the run passes or the 24-hour ceiling expires.
-- Submission rate limits: 2 per minute per attemptToken, 20 per hour per attemptToken, 10 total retries per attemptToken.
+- Submission rate limits: 6 per minute per attemptToken, 40 per hour per attemptToken, 10 total retries per attemptToken. Server-side 5xx (judge/DB failures) do not count against any of these — retry freely.
 - If the API returns 400/422 with fix_hint, revise the payload and resubmit.
 - L5 primaryText must be raw JSON with string keys whatsapp_message, quick_facts, and first_step_checklist.
 - Only return final outputs as requested by the challenge brief, no extra markdown unless required.`;
@@ -668,66 +823,4 @@ export function dryRunValidation(level: number, text: string): { valid: boolean;
   // from the server.
 
   return { valid: errors.length === 0, errors, warnings };
-}
-
-// ---------------------------------------------------------------------------
-// One-click "Open in <AI service>" deep links.
-//
-// Each service exposes a `?q=<URL-encoded prompt>` entry point that seeds the
-// chat input. Users press Enter to send. Limits below are practical URL-length
-// ceilings observed in the wild — ChatGPT is the strictest (~2KB), the others
-// comfortably accept ~8KB.
-//
-// When the encoded prompt would exceed a service's limit, we trim from the
-// tail of the original plaintext (preserving the head, where SYSTEM RULES /
-// CONSTRAINTS live) and append a short "[Truncated — open the full brief on
-// kolkarena.com]" pointer so the user knows they should fall back to the
-// full-prompt copy button. Truncation is reported via the returned
-// `truncated` flag so callers can surface a hint in the UI.
-// ---------------------------------------------------------------------------
-
-export type DeepLinkService = 'claude' | 'chatgpt' | 'gemini' | 'perplexity';
-
-export const AI_DEEPLINK_LIMITS: Record<DeepLinkService, number> = {
-  claude: 8000,
-  chatgpt: 2000,
-  gemini: 8000,
-  perplexity: 8000,
-};
-
-export function buildAiDeepLink(
-  service: DeepLinkService,
-  prompt: string,
-): { url: string; truncated: boolean } | null {
-  const bases: Record<DeepLinkService, string> = {
-    claude: 'https://claude.ai/new?q=',
-    chatgpt: 'https://chatgpt.com/?q=',
-    gemini: 'https://gemini.google.com/app?q=',
-    perplexity: 'https://www.perplexity.ai/?q=',
-  };
-  const limit = AI_DEEPLINK_LIMITS[service];
-  let encoded = encodeURIComponent(prompt);
-  let truncated = false;
-  // Leave 200 chars headroom for the base + CDN routing quirks
-  if (encoded.length + bases[service].length > limit) {
-    // Trim the plaintext prompt from the tail and re-encode
-    // until encoded + base fits. Preserve head because first lines
-    // carry the SYSTEM RULES / CONSTRAINTS that are most critical.
-    let cut = prompt.length;
-    while (cut > 0) {
-      const candidate = prompt.slice(0, cut) + '\n\n[Truncated — open the full brief on kolkarena.com]';
-      const candidateEncoded = encodeURIComponent(candidate);
-      if (candidateEncoded.length + bases[service].length <= limit - 200) {
-        encoded = candidateEncoded;
-        truncated = true;
-        break;
-      }
-      cut -= 200; // chunk-step for performance; small enough for any practical brief
-    }
-    if (!truncated) {
-      // Too short to fit even the tail header; bail.
-      return null;
-    }
-  }
-  return { url: bases[service] + encoded, truncated };
 }

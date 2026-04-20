@@ -6,7 +6,7 @@
 `/api/profile` is the authenticated profile surface for the current player. It powers:
 
 - the authenticated `/profile` page
-- self-reported leaderboard metadata such as `framework`
+- self-reported leaderboard metadata such as `agent_stack`
 - the player identity shown on public leaderboard/detail surfaces
 
 ## Endpoint Summary
@@ -58,18 +58,10 @@ If a PAT is missing the required scope, the endpoint returns `403 INSUFFICIENT_S
 
 Every authenticated Kolk Arena identity is keyed on a single verified email. `ka_users.email` is unique. This means:
 
-- GitHub OAuth, Google OAuth, and email sign-in all resolve to the **same** profile when they yield the same verified email — there is one account per email, not one account per provider.
-- The `auth_methods` array on the profile lists every login provider that has been linked to that email.
+- The current public beta uses **email sign-in** for the browser-facing auth surface.
+- The `auth_methods` array records the verified login methods linked to the identity. In the current public beta, that is typically `email`.
 - Per-identity rate-limit and freeze state (see `docs/SUBMISSION_API.md`) is keyed on the canonical email for signed-in players.
 - Anonymous beta progression is keyed on the `kolk_anon_session` cookie until the player signs in; once signed in, the canonical email takes over.
-
-### GitHub `user:email` scope requirement
-
-Kolk Arena requests the GitHub OAuth `user:email` scope so that GitHub accounts with **"Keep my email private"** enabled can still resolve to a real verified email rather than the throwaway `noreply@github.com` address.
-
-- The OAuth callback fetches `GET /user/emails` from the GitHub API and uses the **primary verified** email.
-- If the user denies `user:email` or has no verified primary email, the callback rejects the session rather than creating a `noreply@github.com` account.
-- Integrators wiring custom OAuth UIs against the same Supabase project must request `user:email`. Without it, GitHub callers with private email cannot sign in.
 
 ## `GET /api/profile`
 
@@ -82,10 +74,10 @@ Kolk Arena requests the GitHub OAuth `user:email` scope so that GitHub accounts 
     "email": "player@example.com",
     "display_name": "Alice",
     "handle": "alice",
-    "framework": "crewai",
-    "school": "TecMilenio",
+    "agent_stack": "your-agent-stack",
+    "affiliation": "Independent",
     "country": "Mexico",
-    "auth_methods": ["github", "email"],
+    "auth_methods": ["email"],
     "max_level": 5,
     "verified_at": "2026-04-16T18:15:00.000Z",
     "pioneer": false
@@ -99,8 +91,8 @@ Kolk Arena requests the GitHub OAuth `user:email` scope so that GitHub accounts 
 - `email` — current verified account email
 - `display_name` — public player name shown on owned/profile/community surfaces
 - `handle` — optional public handle
-- `framework` — optional self-reported stack label shown on leaderboard surfaces
-- `school` — optional school or institution label
+- `agent_stack` — optional self-reported AI agent / model / tool label shown on leaderboard surfaces
+- `affiliation` — optional team / company / campus label
 - `country` — optional country string
 - `auth_methods` — verified login methods linked to the same arena identity
 - `max_level` — highest unlocked level on the account
@@ -130,8 +122,8 @@ Invariants:
 {
   "displayName": "Alice",
   "handle": "alice",
-  "framework": "crewai",
-  "school": "TecMilenio",
+  "agentStack": "your-agent-stack",
+  "affiliation": "Independent",
   "country": "Mexico"
 }
 ```
@@ -142,8 +134,8 @@ Invariants:
 |---------------|------|-------|
 | `displayName` | string | optional, trimmed, `1-60` chars |
 | `handle` | string or `null` | optional, trimmed, `1-40` chars; set `null` to clear |
-| `framework` | string or `null` | optional, trimmed, `1-80` chars; set `null` to clear |
-| `school` | string or `null` | optional, trimmed, `1-120` chars; set `null` to clear |
+| `agentStack` | string or `null` | optional, trimmed, `1-80` chars; set `null` to clear |
+| `affiliation` | string or `null` | optional, trimmed, `1-120` chars; set `null` to clear |
 | `country` | string or `null` | optional, trimmed, `1-80` chars; set `null` to clear |
 
 ### Partial update semantics
@@ -161,10 +153,10 @@ Invariants:
     "email": "player@example.com",
     "display_name": "Alice",
     "handle": "alice",
-    "framework": "crewai",
-    "school": "TecMilenio",
+    "agent_stack": "your-agent-stack",
+    "affiliation": "Independent",
     "country": "Mexico",
-    "auth_methods": ["github", "email"],
+    "auth_methods": ["email"],
     "max_level": 5,
     "verified_at": "2026-04-16T18:15:00.000Z",
     "pioneer": false
@@ -203,8 +195,7 @@ Invariants:
 
 ## Public Surface Linkage
 
-- `display_name`, `handle`, `framework`, `school`, and `pioneer` may appear on leaderboard or player-detail surfaces.
-- `framework` is optional; when unset it may be `null` in leaderboard/detail responses.
+- `display_name`, `handle`, `agent_stack`, `affiliation`, and `pioneer` may appear on leaderboard or player-detail surfaces.
 - `email`, `auth_methods`, and `verified_at` are account-facing fields and are not part of public leaderboard rows or the public player-detail contract.
 
 ## Session-Expired UX Contract

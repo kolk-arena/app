@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { copy } from '@/i18n';
 import { formatClockSeconds, formatDateTime, formatNumber } from '@/i18n/format';
 import { getFlagEmoji } from '@/lib/frontend/flag';
+import { readPublicAgentFilters } from '@/lib/kolk/public-contract';
 import type { ActivityFeedEntry, LeaderboardResponse as SharedLeaderboardResponse } from '@/lib/kolk/types';
 import { LeaderboardTable } from './leaderboard-table';
 import { PlayerDetailPanel } from './player-detail-panel';
@@ -13,20 +14,19 @@ import { ActivityDetailPanel } from './activity-detail-panel';
 
 type LeaderboardEntry = SharedLeaderboardResponse['leaderboard'][number];
 
-type FrameworkStat = { framework: string; count: number; percentage: number };
+type AgentStackStat = { agent_stack: string; count: number; percentage: number };
 type ActiveFilter = {
-  key: 'framework' | 'school';
+  key: 'agent_stack' | 'affiliation';
   label: string;
   value: string;
 };
 
-type LeaderboardResponse = Omit<SharedLeaderboardResponse, 'framework_stats'> & {
+type LeaderboardResponse = Omit<SharedLeaderboardResponse, 'agent_stack_stats'> & {
   leaderboard: LeaderboardEntry[];
-  framework_stats?: FrameworkStat[];
+  agent_stack_stats?: AgentStackStat[];
 };
 
 const DEFAULT_LIMIT = 25;
-const QUICK_FRAMEWORKS = ['Claude Code', 'Cursor', 'Windsurf', 'OpenHands', 'LangGraph', 'Custom'];
 const LEADERBOARD_POLL_MS = 30_000;
 // Dropped from 15s to 5s so the live feed genuinely feels live.
 // Payload is bounded (100 rows × ~220 B ≈ 22 KB) and the feed endpoint has
@@ -89,57 +89,69 @@ export function LeaderboardClient() {
   const searchParams = useSearchParams();
 
   const page = readPositiveInt(searchParams.get('page'), 1);
-  const framework = searchParams.get('framework') ?? '';
-  const school = searchParams.get('school') ?? '';
+  const { agentStack, affiliation } = readPublicAgentFilters(searchParams);
   const limit = readPositiveInt(searchParams.get('limit'), DEFAULT_LIMIT);
-  const selectedPlayerId = asValidPlayerId(searchParams.get('player'));
+  const selectedPlayerParam = searchParams.get('player');
+  const selectedPlayerId = asValidPlayerId(selectedPlayerParam);
   // `?activity=<submissionId>` opens the anonymous-submission detail panel.
   // Mutually exclusive with `?player=` — `handleSelectAnonymous` clears the
   // player selection, and `handleSelectPlayer` clears the activity selection.
   const selectedActivityId = asValidPlayerId(searchParams.get('activity'));
   const activityDetailRegionId = useId();
 
-  const [data, setData] = useState<LeaderboardResponse | null>(null);
+  const currentQueryKey = JSON.stringify({
+    page,
+    limit,
+    agentStack: agentStack ?? null,
+    affiliation: affiliation ?? null,
+  });
+  const appliedFilterKey = JSON.stringify({
+    agentStack: agentStack ?? null,
+    affiliation: affiliation ?? null,
+  });
+  const [requestState, setRequestState] = useState<{
+    queryKey: string | null;
+    data: LeaderboardResponse | null;
+    error: string | null;
+  }>({
+    queryKey: null,
+    data: null,
+    error: null,
+  });
   const [feed, setFeed] = useState<ActivityFeedRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectionMessage, setSelectionMessage] = useState<string | null>(null);
   const [detailRetryNonce, setDetailRetryNonce] = useState(0);
-  const [frameworkInput, setFrameworkInput] = useState(framework);
-  const [schoolInput, setSchoolInput] = useState(school);
+  const [filterDraftState, setFilterDraftState] = useState({
+    appliedFilterKey,
+    agentStackInput: agentStack ?? '',
+    affiliationInput: affiliation ?? '',
+  });
   const [isPending, startTransition] = useTransition();
   const detailRegionId = useId();
-
-  useEffect(() => {
-    setFrameworkInput(framework);
-  }, [framework]);
-
-  useEffect(() => {
-    setSchoolInput(school);
-  }, [school]);
-
-  useEffect(() => {
-    const rawPlayerId = searchParams.get('player');
-    if (!rawPlayerId) {
-      setSelectionMessage(null);
-      return;
-    }
-    if (selectedPlayerId) return;
-    setSelectionMessage(copy.leaderboard.selectionInvalid);
-  }, [searchParams, selectedPlayerId]);
+  const agentStackInput =
+    filterDraftState.appliedFilterKey === appliedFilterKey
+      ? filterDraftState.agentStackInput
+      : (agentStack ?? '');
+  const affiliationInput =
+    filterDraftState.appliedFilterKey === appliedFilterKey
+      ? filterDraftState.affiliationInput
+      : (affiliation ?? '');
+  const loading = requestState.queryKey !== currentQueryKey;
+  const data = requestState.data;
+  const error = requestState.queryKey === currentQueryKey ? requestState.error : null;
+  const selectionMessage =
+    selectedPlayerParam && !selectedPlayerId
+      ? copy.leaderboard.selectionInvalid
+      : null;
 
   useEffect(() => {
     let active = true;
     const controller = new AbortController();
 
-    setLoading(true);
-    setError(null);
-
     const apiQuery = buildQueryString(new URLSearchParams(), {
       page: String(page),
       limit: String(limit),
-      framework: framework || null,
-      school: school || null,
+      agent_stack: agentStack || null,
+      affiliation: affiliation || null,
     });
 
     const fetchLeaderboard = () => {
@@ -154,15 +166,19 @@ export function LeaderboardClient() {
             throw new Error(payload.error ?? copy.leaderboard.failedToLoad);
           }
           if (!active) return;
-          setData(payload);
+          setRequestState({
+            queryKey: currentQueryKey,
+            data: payload,
+            error: null,
+          });
         })
         .catch((err: unknown) => {
           if (!active || controller.signal.aborted) return;
-          setError(err instanceof Error ? err.message : copy.leaderboard.failedToLoad);
-          setData(null);
-        })
-        .finally(() => {
-          if (active) setLoading(false);
+          setRequestState({
+            queryKey: currentQueryKey,
+            data: null,
+            error: err instanceof Error ? err.message : copy.leaderboard.failedToLoad,
+          });
         });
     };
 
@@ -183,7 +199,7 @@ export function LeaderboardClient() {
       controller.abort();
       clearInterval(interval);
     };
-  }, [page, framework, school, limit]);
+  }, [page, agentStack, affiliation, limit, currentQueryKey]);
 
   useEffect(() => {
     let active = true;
@@ -230,19 +246,19 @@ export function LeaderboardClient() {
   const lb = copy.leaderboard;
   const activeFilters: ActiveFilter[] = [];
 
-  if (framework) {
+  if (agentStack) {
     activeFilters.push({
-      key: 'framework',
-      label: lb.activeFilterFramework,
-      value: framework,
+      key: 'agent_stack',
+      label: lb.activeFilterAgentStack,
+      value: agentStack,
     });
   }
 
-  if (school) {
+  if (affiliation) {
     activeFilters.push({
-      key: 'school',
-      label: lb.activeFilterSchool,
-      value: school,
+      key: 'affiliation',
+      label: lb.activeFilterAffiliation,
+      value: affiliation,
     });
   }
 
@@ -255,27 +271,27 @@ export function LeaderboardClient() {
 
   function handleFilterSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSelectionMessage(null);
     navigate({
-      framework: frameworkInput.trim() || null,
-      school: schoolInput.trim() || null,
+      agent_stack: agentStackInput.trim() || null,
+      affiliation: affiliationInput.trim() || null,
       page: '1',
     });
   }
 
   function clearFilters() {
-    setFrameworkInput('');
-    setSchoolInput('');
-    setSelectionMessage(null);
+    setFilterDraftState({
+      appliedFilterKey,
+      agentStackInput: '',
+      affiliationInput: '',
+    });
     navigate({
-      framework: null,
-      school: null,
+      agent_stack: null,
+      affiliation: null,
       page: '1',
     });
   }
 
   function clearSelectedPlayer() {
-    setSelectionMessage(null);
     navigate({
       player: null,
     });
@@ -283,12 +299,10 @@ export function LeaderboardClient() {
 
   function retrySelectedPlayer() {
     if (!selectedPlayerId) return;
-    setSelectionMessage(null);
     setDetailRetryNonce((current) => current + 1);
   }
 
   function handleSelectAnonymous(submissionId: string) {
-    setSelectionMessage(null);
     navigate({
       activity: submissionId,
       player: null,
@@ -301,22 +315,32 @@ export function LeaderboardClient() {
     });
   }
 
-  function clearSingleFilter(filterKey: 'framework' | 'school') {
-    if (filterKey === 'framework') {
-      setFrameworkInput('');
-    } else {
-      setSchoolInput('');
+  function clearSingleFilter(filterKey: 'agent_stack' | 'affiliation') {
+    if (filterKey === 'agent_stack') {
+      setFilterDraftState({
+        appliedFilterKey,
+        agentStackInput: '',
+        affiliationInput,
+      });
+      navigate({
+        agent_stack: null,
+        page: '1',
+      });
+      return;
     }
 
-    setSelectionMessage(null);
+    setFilterDraftState({
+      appliedFilterKey,
+      agentStackInput,
+      affiliationInput: '',
+    });
     navigate({
-      [filterKey]: null,
+      affiliation: null,
       page: '1',
     });
   }
 
   function handleSelectPlayer(playerId: string) {
-    setSelectionMessage(null);
     if (window.matchMedia('(max-width: 1023px)').matches) {
       router.push(`/leaderboard/${playerId}`);
       return;
@@ -369,31 +393,31 @@ export function LeaderboardClient() {
                     : lb.currentLeaderEmpty}
                 </p>
               </div>
-              {data?.framework_stats && data.framework_stats.length > 0 ? (
+              {data?.agent_stack_stats && data.agent_stack_stats.length > 0 ? (
                 <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-4 sm:col-span-2">
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{lb.frameworkWars.title}</p>
                   </div>
                   <div className="flex h-4 w-full overflow-hidden border border-slate-200 bg-slate-200 shadow-sm">
-                    {data.framework_stats.map((stat, idx) => {
+                    {data.agent_stack_stats.map((stat, idx) => {
                       const bgColors = ['bg-emerald-500', 'bg-sky-500', 'bg-indigo-500', 'bg-amber-500', 'bg-rose-500'];
                       return (
                         <div
-                          key={stat.framework}
+                          key={stat.agent_stack}
                           style={{ width: `${stat.percentage}%` }}
                           className={`${bgColors[idx % bgColors.length]} transition-all duration-500`}
-                          title={`${stat.framework}: ${stat.count}`}
+                          title={`${stat.agent_stack}: ${stat.count}`}
                         />
                       );
                     })}
                   </div>
                   <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-slate-600">
-                    {data.framework_stats.map((stat, idx) => {
+                    {data.agent_stack_stats.map((stat, idx) => {
                       const textColors = ['text-emerald-700', 'text-sky-700', 'text-indigo-700', 'text-amber-700', 'text-rose-700'];
                       return (
-                        <div key={stat.framework} className="flex items-center gap-1.5">
+                        <div key={stat.agent_stack} className="flex items-center gap-1.5">
                           <span className={`h-2 w-2 rounded-md bg-current ${textColors[idx % textColors.length]}`} />
-                          <span className="font-medium">{stat.framework}</span>
+                          <span className="font-medium">{stat.agent_stack}</span>
                           <span className="text-slate-400">({lb.frameworkWars.legendPercent(stat.percentage)})</span>
                         </div>
                       )
@@ -419,21 +443,29 @@ export function LeaderboardClient() {
             <div className="space-y-3">
               <form onSubmit={handleFilterSubmit} className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
                 <label className="flex min-w-0 flex-1 flex-col gap-1.5">
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{lb.frameworkFilter}</span>
+                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{lb.agentStackFilter}</span>
                   <input
-                    value={frameworkInput}
-                    onChange={(event) => setFrameworkInput(event.target.value)}
-                    placeholder={lb.frameworkPlaceholder}
+                    value={agentStackInput}
+                    onChange={(event) => setFilterDraftState({
+                      appliedFilterKey,
+                      agentStackInput: event.target.value,
+                      affiliationInput,
+                    })}
+                    placeholder={lb.agentStackPlaceholder}
                     className="min-h-8 rounded-xl border border-slate-200 bg-white px-4 text-base text-slate-900 outline-none transition focus:ring-2 focus:ring-slate-900 sm:text-sm shadow-sm"
                   />
                 </label>
 
                 <label className="flex min-w-0 flex-1 flex-col gap-1.5">
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{lb.schoolFilter}</span>
+                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{lb.affiliationFilter}</span>
                   <input
-                    value={schoolInput}
-                    onChange={(event) => setSchoolInput(event.target.value)}
-                    placeholder={lb.schoolPlaceholder}
+                    value={affiliationInput}
+                    onChange={(event) => setFilterDraftState({
+                      appliedFilterKey,
+                      agentStackInput,
+                      affiliationInput: event.target.value,
+                    })}
+                    placeholder={lb.affiliationPlaceholder}
                     className="min-h-8 rounded-xl border border-slate-200 bg-white px-4 text-base text-slate-900 outline-none transition focus:ring-2 focus:ring-slate-900 sm:text-sm shadow-sm"
                   />
                 </label>
@@ -459,29 +491,15 @@ export function LeaderboardClient() {
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  onClick={() => navigate({ framework: null, page: '1' })}
+                  onClick={() => navigate({ agent_stack: null, page: '1' })}
                     className={`min-h-8 rounded-xl border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] transition ${
-                      framework
+                      agentStack
                         ? 'border-slate-200 bg-white shadow-sm text-slate-700 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-1'
                         : 'border-slate-900 bg-slate-900 text-white shadow-sm focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-1'
                   }`}
                 >
-                  {lb.allFrameworks}
+                  {lb.allAgentStacks}
                 </button>
-                {QUICK_FRAMEWORKS.map((candidate) => (
-                  <button
-                    key={candidate}
-                    type="button"
-                    onClick={() => navigate({ framework: candidate, page: '1' })}
-                    className={`min-h-8 rounded-xl border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] transition ${
-                      framework === candidate
-                        ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                        : 'border-slate-200 bg-white shadow-sm text-slate-700 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-1'
-                    }`}
-                  >
-                    {candidate}
-                  </button>
-                ))}
               </div>
 
               {activeFilters.length > 0 ? (
@@ -702,7 +720,7 @@ export function LeaderboardClient() {
  */
 type ActivityFeedRow = Pick<
   ActivityFeedEntry,
-  'id' | 'player_id' | 'display_name' | 'framework' | 'level' | 'unlocked' | 'submitted_at' | 'country_code'
+  'id' | 'player_id' | 'display_name' | 'agent_stack' | 'level' | 'unlocked' | 'submitted_at' | 'country_code'
 >;
 
 /**
@@ -742,10 +760,10 @@ function ActivityFeedItem({
         <span className="font-semibold text-slate-900">{row.display_name}</span>{' '}
         <span>{verb}</span>{' '}
         <span className="font-semibold text-slate-900 tabular-nums">L{row.level}</span>
-        {row.framework ? (
+        {row.agent_stack ? (
           <span className="text-slate-500">
-            {af.usingFrameworkPrefix}
-            {row.framework}
+            {af.usingAgentStackPrefix}
+            {row.agent_stack}
           </span>
         ) : null}
       </div>

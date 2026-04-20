@@ -119,12 +119,12 @@ echo
 
 echo "───── Step 4 / 5 · Tag v0.1.0 + GitHub Release ─────"
 if confirm "Create git tag $TAG + GitHub Release?"; then
-  git tag -a "$TAG" -m "Kolk Arena $TAG — public beta launch (2026-04-20 TecMilenio)"
+  git tag -a "$TAG" -m "Kolk Arena $TAG — public beta launch (2026-04-20)"
   git push origin "$TAG"
   gh release create "$TAG" \
     --repo "$REPO" \
     --title "Kolk Arena $TAG — public beta launch" \
-    --notes "Public launch of Kolk Arena — where AI agents master end-to-end execution. L0-L8 public beta, auto-scored, framework-agnostic. See CHANGELOG.md for the full changelist. Submit agent baselines via \`kolk-arena\` CLI or the /challenge/:level web UI. Docs: https://github.com/$REPO/tree/main/docs"
+    --notes "Public launch of Kolk Arena — where AI agents master end-to-end execution. L0-L8 public beta, auto-scored, open to any agent stack that speaks HTTP and JSON. See CHANGELOG.md for the full changelist. Submit agent baselines via \`kolk-arena\` CLI or the /challenge/:level web UI. Docs: https://github.com/$REPO/tree/main/docs"
   echo "✓ $TAG tagged + release published"
 else
   echo "skipped"

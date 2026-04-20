@@ -13,8 +13,8 @@ import {
   formatTimeOnly,
 } from '@/i18n/format';
 import type { BetaPublicLevel, ErrorCode, ScriptLang } from '@/i18n/types';
+import { APP_CONFIG } from '@/lib/frontend/app-config';
 import {
-  buildAiDeepLink,
   buildChallengeAgentBrief,
   extractStructuredBrief,
   getChallengeScriptBundle,
@@ -22,7 +22,7 @@ import {
   getLevelOutputTemplate,
   getStructuredBriefCopy,
   getSubmitContractSnippet,
-  getCursorRules,
+  getAgentRules,
   dryRunValidation,
 } from '@/lib/frontend/agent-handoff';
 import { usePublicTextAsset } from '@/lib/frontend/use-public-text-asset';
@@ -676,9 +676,10 @@ export function ChallengeClient({ level }: { level: number }) {
     promptMd: challenge.promptMd,
     taskJson: challenge.taskJson,
   });
+  const challengePageUrl = `${APP_CONFIG.canonicalOrigin}/challenge/${level}`;
   const outputTemplate = getLevelOutputTemplate(handoffLevel, challenge.taskJson);
   const structuredBriefCopy = getStructuredBriefCopy(challenge.taskJson);
-  const submitContractSnippet = getSubmitContractSnippet(challenge.attemptToken);
+  const submitContractSnippet = getSubmitContractSnippet(challenge.attemptToken, handoffLevel);
   const activeScriptLang = scriptTab as ScriptLang;
   const scriptBundle = getChallengeScriptBundle(activeScriptLang, handoffLevel);
 
@@ -729,14 +730,6 @@ export function ChallengeClient({ level }: { level: number }) {
   );
 
   const agentConsole = (
-    // Previous layout used a `2xl:grid-cols-[1.15fr_0.85fr]` split that
-    // crammed the agent instructions and the structured-brief card into
-    // ~25 %-of-page columns *inside* the already 58 %-wide right pane.
-    // Result: the brief JSON wrapped one value per line and the whole
-    // column looked unnaturally tall and narrow ("細長"). Stacked
-    // vertically each card now fills the full right-pane width at any
-    // viewport, and the user can drag the pane separator to widen
-    // whichever side they need more room on.
     <section className="space-y-4">
       <article className="min-w-0 rounded-md border border-slate-200 bg-white p-6 sm:p-8">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">
@@ -758,6 +751,9 @@ export function ChallengeClient({ level }: { level: number }) {
             </li>
           ))}
         </ol>
+        <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-6 text-amber-900">
+          {copy.challenge.agentPanel.browserModeNote}
+        </p>
 
         <section className="mt-6 rounded-md border border-slate-200 bg-slate-50 p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">
@@ -774,51 +770,13 @@ export function ChallengeClient({ level }: { level: number }) {
               failedLabel={copy.challenge.agentPanel.copyFailed}
               className="inline-flex w-full items-center justify-center rounded-md border border-slate-200 bg-slate-950 px-6 py-3 font-mono text-sm font-bold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950 sm:w-auto"
             />
-            {(['claude', 'chatgpt', 'gemini', 'perplexity'] as const).map((service) => {
-              const link = buildAiDeepLink(service, agentBrief);
-              if (!link) return null;
-              const icon = copy.challenge.agentPanel.openInIcon[service];
-              return (
-                <a
-                  key={service}
-                  href={link.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white sm:w-auto"
-                  title={link.truncated ? copy.challenge.agentPanel.openInTruncatedHint : undefined}
-                >
-                  {icon ? <span aria-hidden="true">{icon}</span> : null}
-                  <span>{copy.challenge.agentPanel.openInLabel[service]}</span>
-                </a>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="mt-4 rounded-md border border-slate-200 bg-white p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">
-            {copy.challenge.agentPanel.supportAssetsEyebrow}
-          </p>
-          <p className="mt-2 text-sm leading-6 text-slate-700">
-            {copy.challenge.agentPanel.supportAssetsBody}
-          </p>
-          <div className="mt-4 flex flex-wrap gap-3">
             <CopyButton
-              value={skillContent}
-              idleLabel={copy.homeInteractive.copySkill}
-              copiedLabel={copy.homeInteractive.copiedSkill}
-              failedLabel={copy.homeInteractive.copyFailed}
+              value={challengePageUrl}
+              idleLabel={copy.challenge.agentPanel.copyChallengeUrl}
+              copiedLabel={copy.challenge.agentPanel.copiedChallengeUrl}
+              failedLabel={copy.challenge.agentPanel.copyFailed}
               className="inline-flex w-full items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white sm:w-auto"
-              disabled={!skillContent}
             />
-            <button
-              type="button"
-              onClick={() => skillContent && downloadFile('kolk_arena.md', skillContent)}
-              disabled={!skillContent}
-              className="inline-flex w-full items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-            >
-              {copy.homeInteractive.downloadSkill}
-            </button>
             <a
               href="/kolk_arena.md"
               target="_blank"
@@ -827,6 +785,31 @@ export function ChallengeClient({ level }: { level: number }) {
             >
               {copy.homeInteractive.openSkill}
             </a>
+          </div>
+        </section>
+
+        <details className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3" open={Boolean(structuredBrief)}>
+          <summary className="cursor-pointer font-mono text-sm font-semibold text-emerald-950">
+            {structuredBrief ? copy.challenge.agentPanel.structuredBriefTitle : copy.challenge.agentPanel.taskJsonTitle}
+          </summary>
+          <p className="mt-3 text-sm leading-6 text-emerald-900">
+            {copy.challenge.agentPanel.challengeBriefBody}
+          </p>
+          <CodeBlock
+            code={structuredBriefCopy}
+            tone="dark"
+            className="mt-3"
+          />
+        </details>
+
+        <details className="mt-4 rounded-md border border-slate-200 bg-white px-4 py-3">
+          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">
+            {copy.challenge.agentPanel.supportAssetsEyebrow}
+          </summary>
+          <p className="mt-3 text-sm leading-6 text-slate-700">
+            {copy.challenge.agentPanel.supportAssetsBody}
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
             <CopyButton
               value={submitContractSnippet}
               idleLabel={copy.challenge.agentPanel.copySubmitContract}
@@ -850,44 +833,48 @@ export function ChallengeClient({ level }: { level: number }) {
             />
             <button
               type="button"
-              onClick={() => downloadFile(copy.challenge.agentPanel.cursorRulesFilename, getCursorRules())}
+              onClick={() => downloadFile(copy.challenge.agentPanel.agentRulesFilename, getAgentRules())}
               className="inline-flex w-full items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white sm:w-auto"
             >
-              {copy.challenge.agentPanel.downloadCursorRules}
+              {copy.challenge.agentPanel.downloadAgentRules}
+            </button>
+            <button
+              type="button"
+              onClick={() => skillContent && downloadFile('kolk_arena.md', skillContent)}
+              disabled={!skillContent}
+              className="inline-flex w-full items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+            >
+              {copy.homeInteractive.downloadSkill}
             </button>
           </div>
-        </section>
+        </details>
 
-        <section className="mt-4 overflow-hidden rounded-md border border-slate-200 bg-slate-50">
-          <div className="border-b border-slate-200 px-4 py-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">
-                  {copy.challenge.agentPanel.scriptToolkitEyebrow}
-                </p>
-                <p className="mt-2 text-sm leading-6 text-slate-700">
-                  {copy.challenge.agentPanel.scriptToolkitBody}
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <CopyButton
-                  value={scriptBundle.code}
-                  idleLabel={copy.challenge.agentPanel.copyScriptButton(activeScriptLang)}
-                  copiedLabel={copy.challenge.agentPanel.copiedScriptButton}
-                  failedLabel={copy.challenge.agentPanel.copyScriptFailed}
-                  className="inline-flex min-h-10 items-center rounded-md border border-slate-200 bg-white px-3 py-1.5 font-mono text-xs font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
-                />
-                <button
-                  type="button"
-                  onClick={() => downloadFile(scriptBundle.filename, scriptBundle.code)}
-                  className="inline-flex min-h-10 items-center rounded-md border border-slate-200 bg-white px-3 py-1.5 font-mono text-xs font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
-                >
-                  {copy.challenge.agentPanel.downloadScriptButton}
-                </button>
-              </div>
+        <details className="mt-4 overflow-hidden rounded-md border border-slate-200 bg-slate-50">
+          <summary className="cursor-pointer border-b border-slate-200 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">
+            {copy.challenge.agentPanel.scriptToolkitEyebrow}
+          </summary>
+          <div className="px-4 py-4">
+            <p className="text-sm leading-6 text-slate-700">
+              {copy.challenge.agentPanel.scriptToolkitBody}
+            </p>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <CopyButton
+                value={scriptBundle.code}
+                idleLabel={copy.challenge.agentPanel.copyScriptButton(activeScriptLang)}
+                copiedLabel={copy.challenge.agentPanel.copiedScriptButton}
+                failedLabel={copy.challenge.agentPanel.copyScriptFailed}
+                className="inline-flex min-h-10 items-center rounded-md border border-slate-200 bg-white px-3 py-1.5 font-mono text-xs font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+              />
+              <button
+                type="button"
+                onClick={() => downloadFile(scriptBundle.filename, scriptBundle.code)}
+                className="inline-flex min-h-10 items-center rounded-md border border-slate-200 bg-white px-3 py-1.5 font-mono text-xs font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+              >
+                {copy.challenge.agentPanel.downloadScriptButton}
+              </button>
             </div>
           </div>
-          <div className="border-b border-slate-200 bg-slate-100 p-2">
+          <div className="border-y border-slate-200 bg-slate-100 p-2">
             <div
               role="tablist"
               aria-label={copy.challenge.agentPanel.scriptTabListAriaLabel}
@@ -937,35 +924,8 @@ export function ChallengeClient({ level }: { level: number }) {
               />
             ))}
           </div>
-        </section>
-      </article>
-
-      <aside className="min-w-0 rounded-md border-2 border-emerald-700 bg-emerald-50 p-6 sm:p-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-800">
-          {copy.challenge.agentPanel.challengeBriefEyebrow}
-        </p>
-        <p className="mt-2 text-sm leading-7 text-emerald-900">
-          {copy.challenge.agentPanel.challengeBriefBody}
-        </p>
-
-        {/*
-          The outer <aside> keeps the emerald-700 accent (semantic signal
-          that the brief is the preferred agent-facing payload). The inner
-          <details> drops the second emerald border so we don't nest two
-          heavy borders — a thin slate-200 hairline is enough to delimit
-          the disclosure from the prose above it.
-        */}
-        <details className="mt-4 rounded-md border border-slate-200 bg-white px-4 py-3" open={Boolean(structuredBrief)}>
-          <summary className="cursor-pointer font-mono text-sm font-semibold text-emerald-950">
-            {structuredBrief ? copy.challenge.agentPanel.structuredBriefTitle : copy.challenge.agentPanel.taskJsonTitle}
-          </summary>
-          <CodeBlock
-            code={structuredBriefCopy}
-            tone="dark"
-            className="mt-3"
-          />
         </details>
-      </aside>
+      </article>
     </section>
   );
 

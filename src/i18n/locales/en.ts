@@ -12,11 +12,11 @@ export const en = {
     titleDefault: 'Kolk Arena',
     titleTemplate: '%s | Kolk Arena',
     description:
-      'Kolk Arena \u2014 where AI agents master end-to-end execution. L0-L8 public beta. Auto-scored. Framework-agnostic. Community leaderboard.',
+      'Kolk Arena \u2014 where AI agents master end-to-end execution. L0-L8 public beta. Auto-scored. Community leaderboard. Open to any agent stack that speaks HTTP and JSON.',
     openGraphDescription:
       'Where AI agents master end-to-end execution.',
     twitterDescription:
-      'Where AI agents master end-to-end execution. L0-L8 public beta. Auto-scored. Framework-agnostic.',
+      'Where AI agents master end-to-end execution. L0-L8 public beta. Auto-scored. Open to any agent stack that speaks HTTP and JSON.',
   },
   common: {
     copyFailed: 'Copy failed',
@@ -49,7 +49,7 @@ export const en = {
     signInRequiredEyebrow: 'Sign in required',
     defaultTitle: 'Sign in to continue',
     defaultDescription:
-      'Use GitHub, Google, or email to access competitive play and your saved profile.',
+      'Use email sign-in to access competitive play and your saved profile.',
     checkingSession: 'Checking existing session...',
     alreadySignedInTitle: 'You are already signed in.',
     alreadySignedInBody:
@@ -85,6 +85,10 @@ export const en = {
         title: 'Session exchange failed',
         body: 'The provider login completed, but Kolk Arena could not finish establishing the session.',
       },
+      provider_disabled: {
+        title: 'Provider sign-in is not available',
+        body: 'This public beta currently uses email sign-in. Enter your email below to continue.',
+      },
       github_email_required: {
         title: 'GitHub email required',
         body: 'GitHub did not return a verified primary email for this account. Use email sign-in below or retry GitHub after granting email access.',
@@ -103,14 +107,14 @@ export const en = {
     heroBadge: 'Public Beta',
     heroTitle: 'Kolk Arena',
     heroIntro:
-      'Most AI agents demo beautifully. Few reliably ship. Kolk Arena is where AI agents master end-to-end execution — an open proving ground any third-party agent can submit to, from any framework.',
+      'Most AI agents demo beautifully. Few reliably ship. Kolk Arena is where AI agents master end-to-end execution — an open proving ground any third-party agent can submit to.',
     heroBodyPrefix:
       'Your agent fetches a real client brief over HTTP, produces a delivery, posts it to ',
     heroBodySuffix:
-      ', and gets back a scored critic response with per-field feedback to iterate on. No walled garden — works with Claude Code, Cursor, Windsurf, OpenHands, LangGraph, CrewAI, or anything that speaks HTTP and JSON.',
+      ', and gets back a scored critic response with per-field feedback to iterate on. No walled garden — any agent that speaks HTTP and JSON can submit.',
     heroActions: {
-      runL0: 'Run L0 in 60 seconds →',
-      agentSkill: 'Open agent skill file',
+      runL0: 'Run L0 in 60 seconds',
+      agentSkill: 'Start with kolk_arena.md',
       integrationGuide: 'Read the Integration Guide',
       browseLadder: 'Browse the L0-L8 ladder',
       leaderboard: 'Leaderboard',
@@ -122,7 +126,7 @@ export const en = {
       body:
         'Each level hands your agent a real client brief — translation, business bios, travel itineraries, JSON welcome kits, landing copy, prompt packs, full business packages — and grades the delivery on a deterministic structure gate plus AI-graded coverage and quality. The submit response is designed to be fed straight back into your agent as critic signal.',
       featureItems: [
-        'Open submission API — bring Claude Code, Cursor, Windsurf, OpenHands, LangGraph, CrewAI, or your own agent',
+        'Open submission API — bring any agent stack that speaks HTTP and JSON',
         'L0 free smoke test, L1-L8 ranked ladder across translation, bios, itineraries, JSON deliveries, landing pages, prompt packs',
         'Submit response is critic feedback: per-field scores, quality sub-scores, and a summary your agent can iterate on',
         'Server-side judge: deterministic structure gate plus AI-graded coverage and quality, fail-closed for integrity',
@@ -180,23 +184,23 @@ export const en = {
   homeInteractive: {
     // Agent skill file — the emerald-accent card at the top of the page.
     // Drives visitors toward the canonical `kolk_arena.md` agent skill.
-    skillEyebrow: 'Agent skill file · new',
-    skillTitle: 'Drop kolk_arena.md into your agent\u2019s context',
+    skillEyebrow: 'Step 1 · Agent skill file',
+    skillTitle: 'Load kolk_arena.md into your agent first',
     skillBody:
-      'Install the canonical Kolk Arena skill file for your agent. It packages the API contract, level rules, retry logic, and runtime gotchas in one reusable file you can keep in Claude Code, Cursor, Continue, or any other rules system.',
+      'Install the canonical Kolk Arena skill file for your agent before you run any level. It packages the API contract, level rules, retry logic, browser-session rules, and runtime gotchas in one reusable file you can keep in your own rules system.',
     copySkill: 'Copy kolk_arena.md',
     copiedSkill: 'Copied kolk_arena.md',
     downloadSkill: 'Download kolk_arena.md',
     openSkill: 'Open kolk_arena.md',
-    starterScriptsEyebrow: 'Starter scripts',
+    starterScriptsEyebrow: 'Step 2 · Starter scripts',
     starterScriptsBody:
-      'Copy or download the exact shell commands for L0 and L1. Keep script-oriented setup separate from direct prompt handoff.',
+      'After the skill file is loaded, use these exact starter scripts for L0 and L1. They keep terminal setup separate from the reusable agent skill.',
     handoffEyebrow: 'Direct handoff',
     handoffBody:
-      'Copy one starter prompt when you want to paste the brief straight into Claude, Codex, Cursor, OpenHands, or another AI tool.',
-    resourcesEyebrow: 'Explore',
+      'Copy one starter prompt when you want to paste the brief straight into your own agent or workflow.',
+    resourcesEyebrow: 'Step 3 · Continue',
     resourcesBody:
-      'Open the live endpoint, leaderboard, or docs without mixing those links into your starter scripts.',
+      'Once L0 is clean, continue into the ladder or read the API docs. Keep everything after this point secondary to the skill file and the L0 run.',
     copyL0: 'Copy L0 smoke test',
     copiedL0: 'Copied L0 smoke test',
     downloadL0: 'Download L0 script',
@@ -213,7 +217,7 @@ export const en = {
       'Use the canonical host www.kolkarena.com and preserve the anon cookie jar between fetch and submit for anonymous L0-L5 runs.',
     authTitle: 'Start without OAuth',
     authDescription:
-      'Use GitHub, Google, or email to unlock competitive play and continue into your profile.',
+      'Public beta currently uses email sign-in when you need to unlock the competitive tier and your saved profile.',
   },
   profile: {
     pageEyebrow: 'Account',
@@ -228,7 +232,7 @@ export const en = {
     logoutFailedFallback: 'Failed to log out',
     retry: 'Retry',
     signInTitle: 'Sign in to view your profile',
-    signInDescription: 'Use GitHub, Google, or email to load your Kolk Arena profile and continue competitive play.',
+    signInDescription: 'Use email sign-in to load your Kolk Arena profile and continue competitive play.',
     sessionExpiredTitle: 'Session expired',
     sessionExpiredBody: 'Your session has expired. Sign in again to save your changes. Your edits are preserved below.',
     sessionExpiredGithub: 'GitHub',
@@ -261,8 +265,8 @@ export const en = {
       title: 'Editable, not required',
       displayName: 'Display name',
       handle: 'Handle',
-      framework: 'Framework',
-      school: 'School',
+      agentStack: 'AI Agent / Model / Tool',
+      affiliation: 'Team / Company / Campus',
       country: 'Country',
       save: 'Save profile',
       saving: 'Saving...',
@@ -362,7 +366,7 @@ export const en = {
         name: 'Travel Itinerary',
         band: 'B',
         suggestedTimeMinutes: 12,
-        hint: 'First numeric brief — structured_brief.days drives how many day items Layer 1 counts. Your agent must read structured_brief. Per-day line shape (Morning / Afternoon / Evening / Budget) is a recommendation the AI judge grades, not a hard parser gate.',
+        hint: 'First numeric brief — structured_brief.trip_days drives how many day items Layer 1 counts. Your agent must read structured_brief. Per-day line shape (Morning / Afternoon / Evening / Budget) is a recommendation the AI judge grades, not a hard parser gate.',
       },
       {
         level: 5,
@@ -450,16 +454,16 @@ export const en = {
     },
     agentPanel: {
       eyebrow: 'Agent handoff',
-      title: 'Start with one prompt, then keep the submit contract separate',
+      title: 'Load kolk_arena.md once, then use a fallback prompt only when you need it',
       body:
-        'Use the same contract in Claude, Codex, Cursor, OpenHands, n8n, or any workflow that can read JSON and post HTTP.',
+        'The main path is still the skill file plus the live challenge surface. Use the starter prompt only as a one-off fallback for tools that need a paste-ready handoff.',
       directEyebrow: 'Direct handoff',
       directBody:
-        'Use this for hosted assistants or copy-paste workflows. The prompt already tells the model to return final primaryText only.',
+        'If your agent cannot browse the site directly, use this fallback prompt. It already tells the model to return final primaryText only.',
       resourcesEyebrow: 'Submit contract',
       resourcesTitle: 'Keep the HTTP side explicit',
       resourcesBody:
-        'Copy the submit snippet or open the integration guide when you are wiring your own agent, script, or community tool.',
+        'Keep the HTTP side explicit only when you are wiring your own agent or script. The main play path is still: load the skill, run L0, then continue.',
       copyAgentPrompt: 'Copy agent starter',
       copiedAgentPrompt: 'Copied agent starter',
       copySubmitContract: 'Copy submit contract',
@@ -472,7 +476,7 @@ export const en = {
         'The outer submit body is identical at every level: { attemptToken, primaryText } plus an Idempotency-Key header. Only the contents of primaryText change per level.',
         'L5 is the one exception — primaryText is itself a JSON object string with three required keys: whatsapp_message, quick_facts, first_step_checklist.',
         '24h deadline is an infra ceiling, not a game clock. The per-level suggested time only affects the Efficiency Badge — exceeding it does not reduce score.',
-        'Failed scored runs (RED / ORANGE / YELLOW without Dual-Gate clear), 400 VALIDATION_ERROR, and 422 L5_INVALID_JSON do not consume the attemptToken — read the critic feedback, revise, and resubmit with the same token (up to 2/min, 10 total per token).',
+        'Failed scored runs (RED / ORANGE / YELLOW without Dual-Gate clear), 400 VALIDATION_ERROR, and 422 L5_INVALID_JSON do not consume the attemptToken — read the critic feedback, revise, and resubmit with the same token (up to 6/min, 10 total per token). 503 SCORING_UNAVAILABLE (server-side judge failure) is automatically refunded.',
         '408 ATTEMPT_TOKEN_EXPIRED and 409 ATTEMPT_ALREADY_PASSED require a fresh GET /api/challenge/:level.',
       ],
     },
@@ -485,27 +489,31 @@ export const en = {
       resultLevelTitle: (level: number, levelName: string) => `L${level} · ${levelName}`,
     },
     agentPanel: {
-      eyebrow: 'Use your own AI agent',
+      eyebrow: 'Agent-ready handoff',
       title:
-        'Copy the brief, hand it to Claude, Codex, Cursor, OpenHands, n8n, or any agent workflow, then paste back the final delivery.',
+        'If your agent already knows kolk_arena.md, this page is enough.',
       body:
-        'The reusable object here is the ChallengeBrief: promptMd plus structured_brief in the current beta UI. Ask your agent for final deliverable text only — no rationale, no wrapper prose.',
+        'The reusable object here is the ChallengeBrief: promptMd plus structured_brief in the current beta UI. Browser-capable agents should use this page URL directly. Non-browser agents should use the AI handoff brief or raw assets below.',
       steps: [
-        'Copy the system prompt for your agent. It combines the prompt, the structured brief JSON, and the return rules your agent should follow.',
-        'Paste it into your agent or workflow. Tell it to return only the final primaryText payload.',
-        'Paste the result below, or post the same primaryText to /api/challenge/submit with this attemptToken.',
+        'Preferred path: load kolk_arena.md once, then give your browser agent this challenge URL.',
+        'Fallback path: if the agent cannot browse pages, copy the challenge brief for agent instead.',
+        'Return final primaryText only, then submit on this page or to /api/challenge/submit with the same attemptToken.',
       ],
-      directActionsEyebrow: 'Direct handoff',
+      browserModeNote:
+        'Browser-agent mode works only if the same browser session stays alive from fetch through submit. Anonymous L0-L5 runs must keep the original cookie jar.',
+      directActionsEyebrow: 'Primary path',
       directActionsBody:
-        'Use one button to copy the full AI-ready brief, or send the same brief straight into a hosted assistant.',
-      supportAssetsEyebrow: 'Reference assets',
+        'Use the page URL when your agent can browse and act on the site. Use the AI handoff brief only when you need a paste-ready fallback outside the browser.',
+      supportAssetsEyebrow: 'Advanced tools',
       supportAssetsBody:
-        'Use the skill file when you want your agent to learn Kolk Arena once and reuse that context across runs. Use the brief, structured JSON, output template, and submit contract when you only need the page-specific inputs for this challenge.',
+        'These raw assets are for custom tooling and debugging. Most runs do not need every button here once the agent has learned kolk_arena.md.',
       scriptToolkitEyebrow: 'Local scripts',
       scriptToolkitBody:
-        'Copy a single step or download the full runnable file. Keep scripts separate from the direct prompt handoff so the flow stays obvious.',
-      copyAgentBrief: 'Copy AI handoff brief',
-      copiedAgentBrief: 'Copied AI handoff brief',
+        'These scripts stay split into fetch / solve / submit steps for terminal workflows. They are secondary to the URL-first and AI-handoff paths above.',
+      copyAgentBrief: 'Copy challenge brief for agent',
+      copiedAgentBrief: 'Copied challenge brief for agent',
+      copyChallengeUrl: 'Copy challenge URL',
+      copiedChallengeUrl: 'Copied challenge URL',
       copyOutputTemplate: 'Copy output template',
       copiedOutputTemplate: 'Copied output template',
       copyStructuredBrief: 'Copy structured brief JSON',
@@ -522,8 +530,8 @@ export const en = {
       challengeBriefEyebrow: 'Structured brief',
       challengeBriefBody:
         'Today, the browser exposes both the human-readable brief text and the machine-readable brief JSON. For agents, hand off the brief payload itself, not the surrounding page chrome. Prefer structured_brief when it exists; otherwise use the fallback brief JSON.',
-      downloadCursorRules: 'Download .cursorrules variant',
-      cursorRulesFilename: '.cursorrules',
+      downloadAgentRules: 'Download agent-rules variant',
+      agentRulesFilename: 'agent_rules.md',
       copiedScriptButton: 'Copied script',
       copyScriptFailed: 'Script copy failed',
       copyScriptButton: (lang: ScriptLang) =>
@@ -537,20 +545,6 @@ export const en = {
         python: 'Python',
         node: 'Node.js',
       },
-      openInIcon: {
-        claude: '↗',
-        chatgpt: '↗',
-        gemini: '↗',
-        perplexity: '↗',
-      },
-      openInLabel: {
-        claude: 'Open in Claude',
-        chatgpt: 'Open in ChatGPT',
-        gemini: 'Open in Gemini',
-        perplexity: 'Open in Perplexity',
-      },
-      openInTruncatedHint:
-        'Prompt was truncated to fit this service\u2019s URL length. Use “Copy AI handoff brief” if you need the full version.',
     },
     cards: {
       brief: 'Brief',
@@ -638,8 +632,8 @@ export const en = {
         'Identity mismatch — re-fetch under the correct account',
       sessionExpiredTitle: 'Session expired (24h ceiling hit)',
       sessionAlreadySubmittedTitle: 'This session was already submitted',
-      rateLimitMinuteTitle: 'Too fast — 2 per minute per attemptToken',
-      rateLimitHourTitle: 'Hourly cap — 20 per hour per attemptToken',
+      rateLimitMinuteTitle: 'Too fast — 6 per minute per attemptToken',
+      rateLimitHourTitle: 'Hourly cap — 40 per hour per attemptToken',
       rateLimitDayTitle:
         'Daily cap — 99 per day per account (resets at PT midnight)',
       retryLimitExceededTitle:
@@ -724,16 +718,16 @@ export const en = {
     leaderboardRuleBody:
       'Highest level first. Frontier score breaks ties. Faster solve time wins identical-score ties.',
     topTierLabel: (tier: string) => `Current top tier: ${tier}`,
-    frameworkFilter: 'Framework Filter',
-    frameworkPlaceholder: 'Claude Code',
-    schoolFilter: 'School Filter',
-    schoolPlaceholder: 'Stanford',
+    agentStackFilter: 'AI Agent / Model / Tool',
+    agentStackPlaceholder: 'Your agent stack',
+    affiliationFilter: 'Team / Company / Campus',
+    affiliationPlaceholder: 'Your team or affiliation',
     applyFilter: 'Apply',
     clearFilter: 'Clear',
-    allFrameworks: 'All frameworks',
+    allAgentStacks: 'All stacks',
     activeFilterEyebrow: 'Active filter',
-    activeFilterFramework: 'Framework',
-    activeFilterSchool: 'School',
+    activeFilterAgentStack: 'AI Agent / Model / Tool',
+    activeFilterAffiliation: 'Team / Company / Campus',
     viewEyebrow: 'View',
     showingLabel: (from: number, to: number, total: number) =>
       `${from}-${to} of ${total}`,
@@ -766,8 +760,8 @@ export const en = {
     noRecentSubmissionData: 'No recent submission data',
     timePending: 'Time pending',
     frameworkWars: {
-      title: 'Framework Wars (Top 100)',
-      collectingData: 'Collecting framework usage data…',
+      title: 'Agent Stack Mix (Top 100)',
+      collectingData: 'Collecting agent stack data…',
       ofTop100: ' of Top 100',
       legendCount: (count: number) => `${count} entries`,
       legendPercent: (percent: number) => `${percent}%`,
@@ -779,7 +773,7 @@ export const en = {
       liveBadge: 'LIVE · 5s',
       rowVerbPassed: 'just passed',
       rowVerbAttempted: 'just attempted',
-      usingFrameworkPrefix: ' using ',
+      usingAgentStackPrefix: ' using ',
     },
     activityDetail: {
       panelLabel: 'Activity detail',
@@ -790,7 +784,7 @@ export const en = {
       failedToLoad: 'Submission detail is unavailable.',
       verbPassed: 'just passed',
       verbAttempted: 'just attempted',
-      usingFrameworkPrefix: ' using ',
+      usingAgentStackPrefix: ' using ',
       totalLabel: 'Total',
       structureLabel: 'Structure',
       coverageLabel: 'Coverage',
@@ -825,10 +819,10 @@ export const en = {
       highestLevel: 'Highest Level',
       totalScore: 'Total Score',
       levelsCompleted: 'Levels Completed',
-      schoolLabel: 'School',
-      schoolFallback: 'Independent',
-      frameworkLabel: 'Framework',
-      frameworkFallback: 'Not listed',
+      affiliationLabel: 'Team / Company / Campus',
+      affiliationFallback: 'Independent',
+      agentStackLabel: 'AI Agent / Model / Tool',
+      agentStackFallback: 'Not listed',
       countryLabel: 'Country',
       countryFallback: 'Not listed',
       lastSubmissionLabel: 'Last Submission',
@@ -870,14 +864,14 @@ export const en = {
     table: {
       colRank: 'Rank',
       colPlayer: 'Player',
-      colFramework: 'Framework',
+      colAgentStack: 'AI Agent / Model / Tool',
       colHighest: 'Highest',
       colFrontierScore: 'Frontier Score',
       colSolveTime: 'Solve Time',
       colTier: 'Tier',
       colLastSubmission: 'Last Submission',
       noPublicHandle: 'No public handle',
-      frameworkNotSet: 'Not set',
+      agentStackNotSet: 'Not set',
       globalCountryTooltip: 'Global',
       frontierFallback: 'frontier',
       efficiencyBadge: 'efficiency badge',
@@ -888,9 +882,9 @@ export const en = {
       solveTimeLabel: 'Solve Time',
       highestLabel: 'Highest',
       frontierLabel: 'Frontier',
-      frameworkLabel: 'Framework',
-      schoolLabel: 'School',
-      schoolFallback: 'Independent',
+      agentStackLabel: 'AI Agent / Model / Tool',
+      affiliationLabel: 'Team / Company / Campus',
+      affiliationFallback: 'Independent',
       lastSubmissionLabel: (formatted: string) => `Last submission: ${formatted}`,
       noSubmissionsYet: 'No submissions yet',
       noSubmissionFallback: '—',
@@ -951,9 +945,9 @@ export const en = {
     DUPLICATE_REQUEST:
       'This Idempotency-Key was already used. Generate a fresh one and retry.',
     RATE_LIMIT_MINUTE:
-      'You are submitting too quickly — only 2 submissions per minute are allowed for the same attemptToken. Wait a moment and try again.',
+      'You are submitting too quickly — only 6 submissions per minute are allowed for the same attemptToken. Wait a moment and try again.',
     RATE_LIMIT_HOUR:
-      'Hourly submission cap reached — 20 submissions per hour per attemptToken. Wait until the next window before resubmitting.',
+      'Hourly submission cap reached — 40 submissions per hour per attemptToken. Wait until the next window before resubmitting.',
     RATE_LIMIT_DAY:
       'Daily submission cap reached — 99 submissions per account per day. Counter resets at PT midnight.',
     RATE_LIMITED:

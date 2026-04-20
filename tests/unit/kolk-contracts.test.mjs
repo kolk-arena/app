@@ -86,7 +86,7 @@ function makeSupabaseMock({ leaderboardRows, userRows }) {
           ilike(_column, pattern) {
             const needle = String(pattern).replace(/^%|%$/g, '').toLowerCase();
             return buildLeaderboardQuery(
-              rows.filter((row) => String(row.school ?? '').toLowerCase().includes(needle)),
+              rows.filter((row) => String(row.affiliation ?? '').toLowerCase().includes(needle)),
             );
           },
           in(_column, values) {
@@ -105,9 +105,9 @@ function makeSupabaseMock({ leaderboardRows, userRows }) {
       }
 
       if (table === 'ka_users') {
-        const filterByFramework = (pattern) => {
+        const filterByAgentStack = (pattern) => {
           const needle = String(pattern).replace(/^%|%$/g, '').toLowerCase();
-          return userRows.filter((row) => String(row.framework ?? '').toLowerCase().includes(needle));
+          return userRows.filter((row) => String(row.agent_stack ?? '').toLowerCase().includes(needle));
         };
 
         const query = {
@@ -118,7 +118,7 @@ function makeSupabaseMock({ leaderboardRows, userRows }) {
             return {
               range() {
                 return {
-                  data: filterByFramework(pattern),
+                  data: filterByAgentStack(pattern),
                   error: null,
                 };
               },
@@ -161,30 +161,30 @@ test('SubmissionInputSchema accepts legacy fetchToken but normalizes to attemptT
   }
 });
 
-test('LeaderboardQuerySchema normalizes public framework and school filter fields', () => {
+test('LeaderboardQuerySchema normalizes public agent_stack and affiliation filter fields', () => {
   const restore = installTsLoader();
   try {
     const { LeaderboardQuerySchema } = require(path.join(srcRoot, 'lib/kolk/types/index.ts'));
-    const parsed = LeaderboardQuerySchema.parse({ framework: ' Cursor ', school: ' Stanford ' });
+    const parsed = LeaderboardQuerySchema.parse({ agent_stack: ' stack-alpha ', affiliation: ' team-alpha ' });
 
     assert.equal(parsed.page, 1);
     assert.equal(parsed.limit, 50);
-    assert.equal(parsed.framework, 'Cursor');
-    assert.equal(parsed.school, 'Stanford');
+    assert.equal(parsed.agent_stack, 'stack-alpha');
+    assert.equal(parsed.affiliation, 'team-alpha');
   } finally {
     restore();
   }
 });
 
-test('fetchRankedLeaderboardRows filters against canonical user frameworks and keeps tie order deterministic', async () => {
+test('fetchRankedLeaderboardRows filters against canonical user agent stacks and keeps tie order deterministic', async () => {
   const restore = installTsLoader({
     dbMock: makeSupabaseMock({
       leaderboardRows: [
         {
           participant_id: '00000000-0000-4000-8000-000000000001',
           display_name: 'Ada Lovelace',
-          framework: 'Cursor',
-          school: 'Independent',
+          agent_stack: 'stack-alpha',
+          affiliation: 'Independent',
           highest_level: 7,
           best_score_on_highest: 96.5,
           best_color_band: 'BLUE',
@@ -201,8 +201,8 @@ test('fetchRankedLeaderboardRows filters against canonical user frameworks and k
         {
           participant_id: '00000000-0000-4000-8000-000000000002',
           display_name: 'Grace Hopper',
-          framework: 'OpenAI Agents',
-          school: 'Independent',
+          agent_stack: 'stack-beta',
+          affiliation: 'Independent',
           highest_level: 7,
           best_score_on_highest: 96.5,
           best_color_band: 'BLUE',
@@ -218,8 +218,8 @@ test('fetchRankedLeaderboardRows filters against canonical user frameworks and k
         },
       ],
       userRows: [
-        { id: '00000000-0000-4000-8000-000000000001', framework: 'Claude Code' },
-        { id: '00000000-0000-4000-8000-000000000002', framework: 'OpenAI Agents' },
+        { id: '00000000-0000-4000-8000-000000000001', agent_stack: 'stack-canonical' },
+        { id: '00000000-0000-4000-8000-000000000002', agent_stack: 'stack-beta' },
       ],
     }),
   });
@@ -235,20 +235,21 @@ test('fetchRankedLeaderboardRows filters against canonical user frameworks and k
         '00000000-0000-4000-8000-000000000002',
       ],
     );
-    assert.equal(allRows.rows[0].framework, 'Claude Code');
+    assert.equal(allRows.rows[0].agent_stack, 'stack-canonical');
+    assert.equal(allRows.rows[0].affiliation, 'Independent');
 
-    const canonicalFilter = await fetchRankedLeaderboardRows({ framework: 'Claude' });
+    const canonicalFilter = await fetchRankedLeaderboardRows({ agentStack: 'canonical' });
     assert.deepEqual(canonicalFilter.rows.map((row) => row.player_id), [
       '00000000-0000-4000-8000-000000000001',
     ]);
     assert.equal(canonicalFilter.total, 1);
 
-    const staleFilter = await fetchRankedLeaderboardRows({ framework: 'Cursor' });
+    const staleFilter = await fetchRankedLeaderboardRows({ agentStack: 'stack-alpha' });
     assert.equal(staleFilter.total, 0);
     assert.deepEqual(staleFilter.rows, []);
 
-    const schoolFilter = await fetchRankedLeaderboardRows({ school: 'Inde' });
-    assert.equal(schoolFilter.total, 2);
+    const affiliationFilter = await fetchRankedLeaderboardRows({ affiliation: 'Inde' });
+    assert.equal(affiliationFilter.total, 2);
   } finally {
     restore();
   }

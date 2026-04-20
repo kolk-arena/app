@@ -111,6 +111,7 @@ export interface FrontendCatalog {
       success: { title: string; body: string };
       missing_code: { title: string; body: string };
       exchange_failed: { title: string; body: string };
+      provider_disabled: { title: string; body: string };
       github_email_required: { title: string; body: string };
       unexpected: { title: string; body: string };
       fallback: { title: string; body: string };
@@ -248,8 +249,8 @@ export interface FrontendCatalog {
       title: string;
       displayName: string;
       handle: string;
-      framework: string;
-      school: string;
+      agentStack: string;
+      affiliation: string;
       country: string;
       save: string;
       saving: string;
@@ -387,6 +388,7 @@ export interface FrontendCatalog {
       title: string;
       body: string;
       steps: readonly string[];
+      browserModeNote: string;
       directActionsEyebrow: string;
       directActionsBody: string;
       supportAssetsEyebrow: string;
@@ -395,6 +397,8 @@ export interface FrontendCatalog {
       scriptToolkitBody: string;
       copyAgentBrief: string;
       copiedAgentBrief: string;
+      copyChallengeUrl: string;
+      copiedChallengeUrl: string;
       copyOutputTemplate: string;
       copiedOutputTemplate: string;
       copyStructuredBrief: string;
@@ -411,8 +415,8 @@ export interface FrontendCatalog {
       challengeBriefEyebrow: string;
       challengeBriefBody: string;
       // Wave-2 additions: agent-handoff panel buttons + script tabs
-      downloadCursorRules: string;
-      cursorRulesFilename: string;
+      downloadAgentRules: string;
+      agentRulesFilename: string;
       copiedScriptButton: string;
       copyScriptFailed: string;
       copyScriptButton: (lang: ScriptLang) => string;
@@ -424,22 +428,6 @@ export interface FrontendCatalog {
         python: string;
         node: string;
       };
-      // Pre-launch additions: one-click "Open in <AI service>" deep links
-      // alongside the manual-paste 🤖 Copy System Prompt button. See
-      // src/lib/frontend/agent-handoff.ts::buildAiDeepLink.
-      openInIcon: {
-        claude: string;
-        chatgpt: string;
-        gemini: string;
-        perplexity: string;
-      };
-      openInLabel: {
-        claude: string;
-        chatgpt: string;
-        gemini: string;
-        perplexity: string;
-      };
-      openInTruncatedHint: string;
     };
     cards: {
       brief: string;
@@ -598,16 +586,16 @@ export interface FrontendCatalog {
     leaderboardRuleEyebrow: string;
     leaderboardRuleBody: string;
     topTierLabel: (tier: string) => string;
-    frameworkFilter: string;
-    frameworkPlaceholder: string;
-    schoolFilter: string;
-    schoolPlaceholder: string;
+    agentStackFilter: string;
+    agentStackPlaceholder: string;
+    affiliationFilter: string;
+    affiliationPlaceholder: string;
     applyFilter: string;
     clearFilter: string;
-    allFrameworks: string;
+    allAgentStacks: string;
     activeFilterEyebrow: string;
-    activeFilterFramework: string;
-    activeFilterSchool: string;
+    activeFilterAgentStack: string;
+    activeFilterAffiliation: string;
     viewEyebrow: string;
     showingLabel: (from: number, to: number, total: number) => string;
     sortExplainer: string;
@@ -652,7 +640,7 @@ export interface FrontendCatalog {
       // re-order subject/verb/object cleanly.
       rowVerbPassed: string;
       rowVerbAttempted: string;
-      usingFrameworkPrefix: string;
+      usingAgentStackPrefix: string;
     };
     // Detail panel shown when an anonymous activity row is clicked. Named
     // `activityDetail` instead of `submissionDetail` because registered
@@ -667,7 +655,7 @@ export interface FrontendCatalog {
       failedToLoad: string;
       verbPassed: string;
       verbAttempted: string;
-      usingFrameworkPrefix: string;
+      usingAgentStackPrefix: string;
       totalLabel: string;
       structureLabel: string;
       coverageLabel: string;
@@ -701,10 +689,10 @@ export interface FrontendCatalog {
       highestLevel: string;
       totalScore: string;
       levelsCompleted: string;
-      schoolLabel: string;
-      schoolFallback: string;
-      frameworkLabel: string;
-      frameworkFallback: string;
+      affiliationLabel: string;
+      affiliationFallback: string;
+      agentStackLabel: string;
+      agentStackFallback: string;
       countryLabel: string;
       countryFallback: string;
       lastSubmissionLabel: string;
@@ -749,14 +737,14 @@ export interface FrontendCatalog {
     table: {
       colRank: string;
       colPlayer: string;
-      colFramework: string;
+      colAgentStack: string;
       colHighest: string;
       colFrontierScore: string;
       colSolveTime: string;
       colTier: string;
       colLastSubmission: string;
       noPublicHandle: string;
-      frameworkNotSet: string;
+      agentStackNotSet: string;
       globalCountryTooltip: string;
       frontierFallback: string;
       efficiencyBadge: string;
@@ -767,9 +755,9 @@ export interface FrontendCatalog {
       solveTimeLabel: string;
       highestLabel: string;
       frontierLabel: string;
-      frameworkLabel: string;
-      schoolLabel: string;
-      schoolFallback: string;
+      agentStackLabel: string;
+      affiliationLabel: string;
+      affiliationFallback: string;
       lastSubmissionLabel: (formatted: string) => string;
       noSubmissionsYet: string;
       noSubmissionFallback: string;

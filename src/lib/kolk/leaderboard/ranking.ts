@@ -4,14 +4,15 @@ import {
   getSuggestedTimeMinutes,
   scoreToColorBand,
 } from '@/lib/kolk/beta-contract';
+import { asOptionalPublicString, normalizeAgentStackStat, normalizePublicIdentity } from '@/lib/kolk/public-contract';
 
 export type PublicLeaderboardRow = {
   player_id: string;
   rank: number;
   display_name: string;
   handle: string | null;
-  framework: string | null;
-  school: string | null;
+  agent_stack: string | null;
+  affiliation: string | null;
   highest_level: number;
   best_score_on_highest: number;
   best_color_band: 'RED' | 'ORANGE' | 'YELLOW' | 'GREEN' | 'BLUE' | null;
@@ -33,11 +34,7 @@ function asFiniteNumber(value: unknown, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-function asOptionalString(value: unknown) {
-  if (typeof value !== 'string') return null;
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
-}
+const asOptionalString = asOptionalPublicString;
 
 function asIsoDateString(value: unknown) {
   const candidate = asOptionalString(value);
@@ -67,7 +64,7 @@ function resolveBestScoreOnHighest(entry: Record<string, unknown>, highestLevel:
 
 function normalizeLeaderboardRow(
   entry: Record<string, unknown>,
-  frameworkByParticipantId: Map<string, string | null>,
+  agentStackByParticipantId: Map<string, string | null>,
 ): PublicLeaderboardRow | null {
   const playerId = asOptionalString(entry.participant_id);
   if (!playerId) return null;
@@ -96,8 +93,10 @@ function normalizeLeaderboardRow(
     rank: 0,
     display_name: asOptionalString(entry.display_name) ?? 'Anonymous',
     handle: asOptionalString(entry.handle),
-    framework: frameworkByParticipantId.get(playerId) ?? asOptionalString(entry.framework),
-    school: asOptionalString(entry.school),
+    ...normalizePublicIdentity({
+      agent_stack: agentStackByParticipantId.get(playerId) ?? asOptionalString(entry.agent_stack),
+      affiliation: asOptionalString(entry.affiliation),
+    }),
     highest_level: highestLevel,
     best_score_on_highest: bestScoreOnHighest,
     best_color_band: bestColorBand,
@@ -149,32 +148,35 @@ export function rankLeaderboardRows(entries: PublicLeaderboardRow[]): PublicLead
   });
 }
 
-export async function fetchRankedLeaderboardRows(options?: { framework?: string | null; school?: string | null }) {
-  const frameworkNeedle = asOptionalString(options?.framework ?? null)?.toLowerCase() ?? null;
-  const schoolNeedle = asOptionalString(options?.school ?? null)?.toLowerCase() ?? null;
-  let matchedFrameworkUsers: Array<{ id: string; framework: string | null }> | null = null;
+export async function fetchRankedLeaderboardRows(options?: {
+  agentStack?: string | null;
+  affiliation?: string | null;
+}) {
+  const agentStackNeedle = asOptionalString(options?.agentStack)?.toLowerCase() ?? null;
+  const affiliationNeedle = asOptionalString(options?.affiliation)?.toLowerCase() ?? null;
+  let matchedAgentStackUsers: Array<{ id: string; agent_stack: string | null }> | null = null;
 
-  if (frameworkNeedle) {
-    const { data: frameworkUsers, error: frameworkError } = await supabaseAdmin
+  if (agentStackNeedle) {
+    const { data: agentStackUsers, error: agentStackError } = await supabaseAdmin
       .from('ka_users')
-      .select('id, framework')
-      .ilike('framework', `%${frameworkNeedle}%`)
+      .select('id, agent_stack')
+      .ilike('agent_stack', `%${agentStackNeedle}%`)
       .range(0, 9999);
 
-    if (frameworkError) throw frameworkError;
+    if (agentStackError) throw agentStackError;
 
-    matchedFrameworkUsers = (frameworkUsers ?? [])
+    matchedAgentStackUsers = (agentStackUsers ?? [])
       .map((user) => ({
         id: String(user.id),
-        framework: asOptionalString(user.framework),
+        agent_stack: asOptionalString(user.agent_stack),
       }))
       .filter((user) => user.id.length > 0);
 
-    if (matchedFrameworkUsers.length === 0) {
+    if (matchedAgentStackUsers.length === 0) {
       return {
         rows: [] as PublicLeaderboardRow[],
         total: 0,
-        frameworkStats: [] as Array<{ framework: string; count: number; percentage: number }>,
+        agentStackStats: [] as Array<{ agent_stack: string; count: number; percentage: number }>,
       };
     }
   }
@@ -183,14 +185,14 @@ export async function fetchRankedLeaderboardRows(options?: { framework?: string 
     .from('ka_leaderboard')
     .select('*', { count: 'exact' });
 
-  if (schoolNeedle) {
-    query = query.ilike('school', `%${schoolNeedle}%`);
+  if (affiliationNeedle) {
+    query = query.ilike('affiliation', `%${affiliationNeedle}%`);
   }
 
-  if (matchedFrameworkUsers) {
+  if (matchedAgentStackUsers) {
     query = query.in(
       'participant_id',
-      matchedFrameworkUsers.map((user) => user.id),
+      matchedAgentStackUsers.map((user) => user.id),
     );
   }
 
@@ -201,32 +203,32 @@ export async function fetchRankedLeaderboardRows(options?: { framework?: string 
     .map((entry) => asOptionalString((entry as Record<string, unknown>).participant_id))
     .filter((value): value is string => Boolean(value));
 
-  const frameworkByParticipantId = new Map<string, string | null>();
+  const agentStackByParticipantId = new Map<string, string | null>();
 
-  if (matchedFrameworkUsers) {
-    for (const user of matchedFrameworkUsers) {
-      frameworkByParticipantId.set(user.id, user.framework);
+  if (matchedAgentStackUsers) {
+    for (const user of matchedAgentStackUsers) {
+      agentStackByParticipantId.set(user.id, user.agent_stack);
     }
   } else if (participantIds.length > 0) {
     const { data: users } = await supabaseAdmin
       .from('ka_users')
-      .select('id, framework')
+      .select('id, agent_stack')
       .in('id', participantIds);
 
     for (const user of users ?? []) {
-      frameworkByParticipantId.set(user.id as string, asOptionalString(user.framework));
+      agentStackByParticipantId.set(user.id as string, asOptionalString(user.agent_stack));
     }
   }
 
   const normalized = (rawRows ?? [])
-    .map((entry) => normalizeLeaderboardRow(entry as Record<string, unknown>, frameworkByParticipantId))
+    .map((entry) => normalizeLeaderboardRow(entry as Record<string, unknown>, agentStackByParticipantId))
     .filter((entry): entry is PublicLeaderboardRow => entry !== null);
 
   const filtered = normalized.filter((row) => {
-    if (frameworkNeedle && !(row.framework?.toLowerCase().includes(frameworkNeedle))) {
+    if (agentStackNeedle && !(row.agent_stack?.toLowerCase().includes(agentStackNeedle))) {
       return false;
     }
-    if (schoolNeedle && !(row.school?.toLowerCase().includes(schoolNeedle))) {
+    if (affiliationNeedle && !(row.affiliation?.toLowerCase().includes(affiliationNeedle))) {
       return false;
     }
     return true;
@@ -235,26 +237,26 @@ export async function fetchRankedLeaderboardRows(options?: { framework?: string 
   const ranked = rankLeaderboardRows(filtered);
 
   const top100 = ranked.slice(0, 100);
-  const frameworkCounts = new Map<string, number>();
+  const agentStackCounts = new Map<string, number>();
   let statCount = 0;
   for (const row of top100) {
-    if (row.framework) {
-      frameworkCounts.set(row.framework, (frameworkCounts.get(row.framework) ?? 0) + 1);
+    if (row.agent_stack) {
+      agentStackCounts.set(row.agent_stack, (agentStackCounts.get(row.agent_stack) ?? 0) + 1);
       statCount++;
     }
   }
   
-  const frameworkStats = Array.from(frameworkCounts.entries())
-    .map(([framework, count]) => ({
-      framework,
+  const agentStackStats = Array.from(agentStackCounts.entries())
+    .map(([agent_stack, count]) => normalizeAgentStackStat({
+      agent_stack,
       count,
       percentage: Math.round((count / Math.max(1, statCount)) * 100),
     }))
-    .sort((a, b) => b.count - a.count || a.framework.localeCompare(b.framework));
+    .sort((a, b) => b.count - a.count || a.agent_stack.localeCompare(b.agent_stack));
 
   return {
     rows: ranked,
-    total: frameworkNeedle || schoolNeedle ? ranked.length : (count ?? ranked.length),
-    frameworkStats,
+    total: agentStackNeedle || affiliationNeedle ? ranked.length : (count ?? ranked.length),
+    agentStackStats,
   };
 }

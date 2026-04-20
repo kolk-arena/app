@@ -40,40 +40,13 @@ export function inferAuthMethodFromUser(user: User): ArenaAuthMethod {
   );
 }
 
-/** Detect school from email domain */
-export function detectSchool(email: string): string | null {
-  const domain = normalizeEmail(email).split('@')[1];
-  if (!domain) return null;
-
-  // Mexican university detection
-  if (domain.endsWith('.edu.mx')) {
-    // Extract institution name from domain
-    // e.g., "alumno.tecmilenio.edu.mx" → "TecMilenio"
-    const parts = domain.replace('.edu.mx', '').split('.');
-    const institution = parts[parts.length - 1];
-    const schoolMap: Record<string, string> = {
-      'tecmilenio': 'TecMilenio',
-      'tec': 'Tec de Monterrey',
-      'itesm': 'Tec de Monterrey',
-      'unam': 'UNAM',
-      'ipn': 'IPN',
-      'uag': 'UAG',
-      'udg': 'UdG',
-      'ibero': 'Ibero',
-      'anahuac': 'Anáhuac',
-      'lasalle': 'La Salle',
-      'up': 'UP',
-      'itam': 'ITAM',
-    };
-    return schoolMap[institution] ?? institution.toUpperCase();
-  }
-
-  // US/other .edu domains
-  if (domain.endsWith('.edu')) {
-    const parts = domain.replace('.edu', '').split('.');
-    return parts[parts.length - 1].toUpperCase();
-  }
-
+/**
+ * Affiliation is player-self-reported via `PATCH /api/profile`. The product
+ * never infers or hard-codes specific institutions, schools, or companies
+ * from the email domain. This shim exists only so callers that still import the
+ * function continue to compile; it always returns null.
+ */
+export function detectAffiliation(_email: string): string | null {
   return null;
 }
 

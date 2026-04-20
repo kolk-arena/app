@@ -50,7 +50,7 @@ route-level locales.
   - CSS class names and Tailwind tokens
   - Timezone codes (`"UTC"`, `"America/New_York"`)
   - ISO country codes and emoji flags
-  - Framework / model names (see §7)
+  - Agent / tool / model names (see §7)
   - HTTP method names, header names, env-var names
 - Server error messages are English-only on the wire; the frontend localizes
   via `copy.errors[code]`. See §5.
@@ -82,11 +82,11 @@ Until then, the single-locale singleton in `src/i18n/index.ts` is simpler,
 cheaper, and ships faster. Resist the temptation to add middleware "just in
 case."
 
-## 7. Framework / country / model names
+## 7. Agent / tool / country / model names
 
 These pass through as ISO-ish strings:
 
-- Framework names: `Claude Code`, `Cursor`, `OpenHands`, `LangGraph`, ...
+- Agent / tool names: self-reported by players, free-form strings
 - Country flags: `🇺🇸`, `🇲🇽`, `🇧🇷`
 - Model identifiers: `claude-opus-4`, `gpt-5-mini`, `o3-mini`
 

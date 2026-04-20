@@ -60,8 +60,8 @@ async function mockAuthenticatedProfile(page: Page) {
     email: string;
     display_name: string;
     handle: string | null;
-    framework: string | null;
-    school: string | null;
+    agent_stack: string | null;
+    affiliation: string | null;
     country: string | null;
     auth_methods: string[];
     max_level: number;
@@ -73,8 +73,8 @@ async function mockAuthenticatedProfile(page: Page) {
     email: 'ada@example.com',
     display_name: 'Ada Lovelace',
     handle: 'ada',
-    framework: 'OpenAI Agents',
-    school: 'Independent',
+    agent_stack: 'OpenAI Agents',
+    affiliation: 'Independent',
     country: 'UK',
     auth_methods: ['github'],
     max_level: 7,
@@ -97,8 +97,8 @@ async function mockAuthenticatedProfile(page: Page) {
       const body = route.request().postDataJSON() as {
         displayName?: string;
         handle?: string | null;
-        framework?: string | null;
-        school?: string | null;
+        agentStack?: string | null;
+        affiliation?: string | null;
         country?: string | null;
       };
 
@@ -106,8 +106,8 @@ async function mockAuthenticatedProfile(page: Page) {
         ...profile,
         display_name: body.displayName ?? profile.display_name,
         handle: body.handle ?? null,
-        framework: body.framework ?? null,
-        school: body.school ?? null,
+        agent_stack: body.agentStack ?? null,
+        affiliation: body.affiliation ?? null,
         country: body.country ?? null,
       };
 
@@ -124,13 +124,14 @@ async function mockAuthenticatedProfile(page: Page) {
 }
 
 async function mockProfileSessionExpiresOnSave(page: Page) {
+  let sessionExpired = false;
   const profile: {
     id: string;
     email: string;
     display_name: string;
     handle: string | null;
-    framework: string | null;
-    school: string | null;
+    agent_stack: string | null;
+    affiliation: string | null;
     country: string | null;
     auth_methods: string[];
     max_level: number;
@@ -140,10 +141,10 @@ async function mockProfileSessionExpiresOnSave(page: Page) {
     email: 'ada@example.com',
     display_name: 'Ada Lovelace',
     handle: 'ada',
-    framework: 'OpenAI Agents',
-    school: 'Independent',
+    agent_stack: 'OpenAI Agents',
+    affiliation: 'Independent',
     country: 'UK',
-    auth_methods: ['github'],
+    auth_methods: ['email'],
     max_level: 7,
     verified_at: '2026-04-16T00:00:00.000Z',
   };
@@ -152,6 +153,15 @@ async function mockProfileSessionExpiresOnSave(page: Page) {
     const method = route.request().method();
 
     if (method === 'GET') {
+      if (sessionExpired) {
+        await route.fulfill({
+          status: 401,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'Authentication required', code: 'UNAUTHORIZED' }),
+        });
+        return;
+      }
+
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -161,6 +171,7 @@ async function mockProfileSessionExpiresOnSave(page: Page) {
     }
 
     if (method === 'PATCH') {
+      sessionExpired = true;
       await route.fulfill({
         status: 401,
         contentType: 'application/json',
@@ -213,8 +224,8 @@ async function mockLeaderboard(page: Page) {
         rank: 1,
         display_name: 'Ada Lovelace',
         handle: 'ada',
-        framework: 'OpenAI Agents',
-        school: 'Independent',
+        agent_stack: 'OpenAI Agents',
+        affiliation: 'Independent',
         highest_level: 7,
         best_score_on_highest: 96.5,
         best_color_band: 'BLUE',
@@ -233,8 +244,8 @@ async function mockLeaderboard(page: Page) {
         rank: 2,
         display_name: 'Grace Hopper',
         handle: 'grace',
-        framework: 'Cursor',
-        school: 'Independent',
+        agent_stack: 'test-stack',
+        affiliation: 'Independent',
         highest_level: 6,
         best_score_on_highest: 90,
         best_color_band: 'GREEN',
@@ -250,17 +261,18 @@ async function mockLeaderboard(page: Page) {
       },
     ];
     const url = new URL(route.request().url());
-    const framework = url.searchParams.get('framework')?.toLowerCase() ?? '';
-    const school = url.searchParams.get('school')?.toLowerCase() ?? '';
+    const agentStack = (url.searchParams.get('agent_stack') ?? '').toLowerCase();
+    const affiliation = (url.searchParams.get('affiliation') ?? '').toLowerCase();
     const filteredEntries = entries.filter((entry) => {
-      const matchesFramework = !framework || (entry.framework ?? '').toLowerCase().includes(framework);
-      const matchesSchool = !school || (entry.school ?? '').toLowerCase().includes(school);
-      return matchesFramework && matchesSchool;
+      const matchesAgentStack = !agentStack || (entry.agent_stack ?? '').toLowerCase().includes(agentStack);
+      const matchesAffiliation = !affiliation || (entry.affiliation ?? '').toLowerCase().includes(affiliation);
+      return matchesAgentStack && matchesAffiliation;
     });
-    const frameworkCounts = new Map<string, number>();
+    const agentStackCounts = new Map<string, number>();
     for (const entry of filteredEntries) {
-      if (!entry.framework) continue;
-      frameworkCounts.set(entry.framework, (frameworkCounts.get(entry.framework) ?? 0) + 1);
+      const name = entry.agent_stack;
+      if (!name) continue;
+      agentStackCounts.set(name, (agentStackCounts.get(name) ?? 0) + 1);
     }
 
     await route.fulfill({
@@ -271,8 +283,8 @@ async function mockLeaderboard(page: Page) {
         total: filteredEntries.length,
         page: 1,
         limit: 25,
-        framework_stats: Array.from(frameworkCounts.entries()).map(([name, count]) => ({
-          framework: name,
+        agent_stack_stats: Array.from(agentStackCounts.entries()).map(([name, count]) => ({
+          agent_stack: name,
           count,
           percentage: Math.round((count / Math.max(filteredEntries.length, 1)) * 100),
         })),
@@ -291,7 +303,7 @@ async function mockLeaderboard(page: Page) {
             player_id: PLAYER_ID,
             level: 7,
             display_name: 'Ada Lovelace',
-            framework: 'OpenAI Agents',
+            agent_stack: 'OpenAI Agents',
             total_score: 96.5,
             color_band: 'BLUE',
             quality_label: 'Exceptional',
@@ -304,7 +316,7 @@ async function mockLeaderboard(page: Page) {
             player_id: '22222222-2222-4222-8222-222222222222',
             level: 6,
             display_name: 'Grace Hopper',
-            framework: 'Cursor',
+            agent_stack: 'test-stack',
             total_score: 90,
             color_band: 'GREEN',
             quality_label: 'Strong',
@@ -340,8 +352,8 @@ function playerDetailPayload() {
       id: PLAYER_ID,
       display_name: 'Ada Lovelace',
       handle: 'ada',
-      framework: 'OpenAI Agents',
-      school: 'Independent',
+      agent_stack: 'OpenAI Agents',
+      affiliation: 'Independent',
       country: 'UK',
       max_level: 7,
       verified_at: '2026-04-16T00:00:00.000Z',
@@ -391,8 +403,9 @@ test.describe('frontend UI regression', () => {
     await mockAnonymousSession(page);
     await mockEmailRegister(page);
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: /Drop kolk_arena\.md into your agent/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Copy kolk_arena.md' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Load kolk_arena\.md into your agent first/i })).toBeVisible();
+    await expect(page.locator('summary').filter({ hasText: 'Preview kolk_arena.md' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Copy kolk_arena.md' }).first()).toBeVisible();
     await expect(page.getByRole('button', { name: 'Download kolk_arena.md' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Open kolk_arena.md' })).toBeVisible();
   });
@@ -406,7 +419,8 @@ test.describe('frontend UI regression', () => {
     await expect(page.getByRole('heading', { name: 'Kolk Arena' })).toBeVisible();
     const emailSignInSection = page.locator('#email-sign-in');
     await expect(emailSignInSection.getByText('Sign in required')).toBeVisible();
-    await expect(emailSignInSection.getByRole('link', { name: 'Sign in with GitHub' })).toBeVisible();
+    await expect(emailSignInSection.getByRole('link', { name: 'Sign in with GitHub' })).toHaveCount(0);
+    await expect(emailSignInSection.getByRole('link', { name: 'Sign in with Google' })).toHaveCount(0);
 
     const submitButton = emailSignInSection.getByRole('button', { name: 'Send sign-in link' });
     await expect(submitButton).toBeDisabled();
@@ -419,7 +433,7 @@ test.describe('frontend UI regression', () => {
     await expect(emailSignInSection.getByText('Check your email for the verification code or sign-in link.')).toBeVisible();
   });
 
-  test('home exposes copyable quick-start and agent-starter buttons', async ({ page }) => {
+  test('home exposes copyable quick-start and skill-first onboarding controls', async ({ page }) => {
     await mockAnonymousSession(page);
     await mockEmailRegister(page);
     await mockClipboard(page);
@@ -437,8 +451,9 @@ test.describe('frontend UI regression', () => {
     await page.getByRole('button', { name: 'Copy this step #1' }).first().click();
     await expect.poll(() => readClipboard(page)).toContain('ATTEMPT="$(jq -r \'.challenge.attemptToken\' /tmp/kolk_l0.json)"');
 
-    await page.getByRole('button', { name: 'Copy agent starter' }).first().click();
-    await expect.poll(() => readClipboard(page)).toContain('Produce only the final primaryText I should submit.');
+    await expect(page.getByText('# Kolk Arena')).toBeVisible();
+    await page.getByRole('button', { name: 'Copy kolk_arena.md' }).first().click();
+    await expect.poll(() => readClipboard(page)).toContain('# Kolk Arena');
   });
 
   test('device auth page preserves the pending code through sign-in', async ({ page }) => {
@@ -448,8 +463,8 @@ test.describe('frontend UI regression', () => {
     await page.goto('/device?code=ABCD-1234');
 
     await expect(page.getByRole('heading', { name: 'Sign in to authorize your CLI' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Sign in with GitHub' })).toHaveAttribute('href', /next=%2Fdevice%3Fcode%3DABCD-1234/);
-    await expect(page.getByRole('link', { name: 'Sign in with Google' })).toHaveAttribute('href', /next=%2Fdevice%3Fcode%3DABCD-1234/);
+    await expect(page.getByRole('link', { name: 'Sign in with GitHub' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Sign in with Google' })).toHaveCount(0);
 
     await page.getByLabel('Email').fill('ada@example.com');
     await page.getByLabel('Display name').fill('Ada Lovelace');
@@ -493,8 +508,10 @@ test.describe('frontend UI regression', () => {
         { exact: true },
       ),
     ).toBeVisible();
-    await expect(page.getByLabel('Display name')).toHaveValue('Ada Byron');
-    await expect(page.getByRole('main').getByRole('link', { name: 'GitHub' })).toBeVisible();
+    const profileForm = page.locator('form').filter({ has: page.getByRole('button', { name: 'Save profile' }) });
+    await expect(profileForm.getByLabel('Display name')).toHaveValue('Ada Byron');
+    await expect(page.getByRole('main').getByRole('button', { name: 'Send sign-in link' })).toBeVisible();
+    await expect(page.getByRole('main').getByRole('link', { name: 'Sign in with GitHub' })).toHaveCount(0);
   });
 
   test('play hub restores anonymous progression from browser-session state', async ({ page }) => {
@@ -673,30 +690,28 @@ test.describe('frontend UI regression', () => {
 
     await page.goto('/challenge/1', { waitUntil: 'domcontentloaded' });
 
-    await expect(page.getByRole('button', { name: 'Copy AI handoff brief' }).filter({ visible: true }).first()).toBeVisible({
+    await expect(page.getByRole('button', { name: 'Copy challenge brief for agent' }).filter({ visible: true }).first()).toBeVisible({
       timeout: 60_000,
     });
-    await expect(page.getByRole('button', { name: 'Copy structured brief JSON' }).filter({ visible: true }).first()).toBeVisible({
+    await expect(page.getByRole('button', { name: 'Copy challenge URL' }).filter({ visible: true }).first()).toBeVisible({
       timeout: 60_000,
     });
     await expect(page.locator('summary:visible').filter({ hasText: 'View structured brief JSON' })).toBeVisible({
       timeout: 60_000,
     });
 
-    await page.getByRole('button', { name: 'Copy AI handoff brief' }).filter({ visible: true }).first().click();
+    await page.getByRole('button', { name: 'Copy challenge brief for agent' }).filter({ visible: true }).first().click();
     await expect.poll(() => readClipboard(page)).toContain('Level: L1 — Quick Translate');
     await expect.poll(() => readClipboard(page)).toContain('structured_brief JSON');
 
+    await page.locator('summary:visible').filter({ hasText: 'Advanced tools' }).click();
+    await expect(page.getByRole('button', { name: 'Copy structured brief JSON' }).filter({ visible: true }).first()).toBeVisible();
     await page.getByRole('button', { name: 'Copy submit contract' }).filter({ visible: true }).first().click();
     await expect.poll(() => readClipboard(page)).toContain('"attemptToken": "attempt-token-copy-tools"');
 
-    const skillButton = page.getByRole('button', { name: 'Copy kolk_arena.md' }).filter({ visible: true }).first();
-    await expect(skillButton).toBeVisible();
-    await expect(skillButton).toBeEnabled({ timeout: 60_000 });
     await expect(page.getByRole('link', { name: 'Open kolk_arena.md' }).filter({ visible: true }).first()).toBeVisible();
-    await skillButton.click();
-    await expect.poll(() => readClipboard(page)).toContain('# Kolk Arena — Agent Skill');
 
+    await page.locator('summary:visible').filter({ hasText: 'Local scripts' }).click();
     await page.getByRole('tab', { name: 'Python' }).filter({ visible: true }).first().click();
     await expect(
       page.locator('p:visible', { hasText: '#1 · Fetch the challenge with a persistent requests session' }).first(),
@@ -748,7 +763,7 @@ test.describe('frontend UI regression', () => {
     await page.route(`**/api/leaderboard/${PLAYER_ID}`, async (route) => {
       detailRequests += 1;
 
-      if (detailRequests <= 2) {
+      if (detailRequests === 1) {
         await route.fulfill({
           status: 500,
           contentType: 'application/json',
@@ -804,10 +819,10 @@ test.describe('frontend UI regression', () => {
     await expect(page).toHaveURL(new RegExp(`\\/leaderboard\\?player=${PLAYER_ID}`));
     await expect(page.getByText('Strong structured delivery with clear coverage.')).toBeVisible();
 
-    await page.getByLabel('Framework Filter').fill('Cursor');
+    await page.getByLabel('AI Agent / Model / Tool').fill('test-stack');
     await page.getByRole('button', { name: 'Apply' }).click();
 
-    await expect(page).toHaveURL(new RegExp(`\\/leaderboard\\?.*player=${PLAYER_ID}.*framework=Cursor|\\/leaderboard\\?.*framework=Cursor.*player=${PLAYER_ID}`));
+    await expect(page).toHaveURL(new RegExp(`\\/leaderboard\\?.*player=${PLAYER_ID}.*agent_stack=test-stack|\\/leaderboard\\?.*agent_stack=test-stack.*player=${PLAYER_ID}`));
     await expect(page.getByText('Selected player is outside the current list view.')).toBeVisible();
     await expect(page.getByText('Strong structured delivery with clear coverage.')).toBeVisible();
   });

@@ -7,24 +7,15 @@ body:
     attributes:
       value: |
         Thanks for taking the time to file a bug report. The more specific you can be about the
-        framework, level, and `submissionId`, the faster we can reproduce the issue.
-  - type: dropdown
-    id: framework
+        agent stack, level, and `submissionId`, the faster we can reproduce the issue.
+  - type: input
+    id: agent_stack
     attributes:
-      label: Agent framework
-      description: Which framework (if any) was your agent using?
-      options:
-        - CrewAI
-        - LangChain
-        - LlamaIndex
-        - AutoGen
-        - OpenAI Assistants / Agents SDK
-        - Anthropic Claude Agent SDK
-        - Custom / plain HTTP
-        - Other (mention in description)
-        - Not applicable (docs / UI bug)
+      label: Agent stack (optional)
+      description: Free-form — e.g. "custom HTTP", a framework name, an IDE assistant, or leave blank for docs / UI bugs.
+      placeholder: "your agent stack"
     validations:
-      required: true
+      required: false
   - type: dropdown
     id: level
     attributes:
@@ -72,10 +63,10 @@ body:
     id: environment
     attributes:
       label: Environment
-      description: OS, Node version, agent framework version, browser (for UI bugs).
+      description: OS, Node / runtime version, browser (for UI bugs), agent-stack version if relevant.
       placeholder: |
         - OS: macOS 14.5
         - Node: 20.11.1
-        - Framework: CrewAI 0.x
+        - Agent stack version: (if relevant)
     validations:
       required: true

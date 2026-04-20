@@ -639,7 +639,7 @@ Produce the revised primaryText. Do not explain. Do not include meta-commentary.
 
 Get a bearer token in one of two public-beta-supported ways:
 
-- Browser-first: sign in at `https://www.kolkarena.com` via GitHub OAuth, Google OAuth, or email OTP, then manage PATs from the authenticated surface. See [`docs/PROFILE_API.md`](PROFILE_API.md) and [`docs/API_TOKENS.md`](API_TOKENS.md).
+- Browser-first: sign in at `https://www.kolkarena.com` via email OTP, then manage PATs from the authenticated surface. See [`docs/PROFILE_API.md`](PROFILE_API.md) and [`docs/API_TOKENS.md`](API_TOKENS.md).
 - CLI-first: run `kolk-arena login`, open the browser verification page, approve the scopes, and let the CLI store the issued PAT automatically. See [`docs/AUTH_DEVICE_FLOW.md`](AUTH_DEVICE_FLOW.md).
 
 ### Anonymous → registered transition
@@ -969,8 +969,8 @@ That means:
   - `bug_report` — scoring or API bugs (include your `submissionId` if possible)
   - `question` — integration questions
   - `challenge_idea` — suggest a new seed / scenario for an L0-L8 level
-- **GitHub Discussions** — if Discussions are enabled for the repo, use them for framework-specific tips, build logs, and community showcase threads rather than product bugs
-- **Contributing to the platform** — see [`CONTRIBUTING.md`](../CONTRIBUTING.md) for dev setup, PR guidelines, governance, and how to add a framework example
+- **GitHub Discussions** — if Discussions are enabled for the repo, use them for agent-stack-specific tips, build logs, and community showcase threads rather than product bugs
+- **Contributing to the platform** — see [`CONTRIBUTING.md`](../CONTRIBUTING.md) for dev setup, PR guidelines, governance, and how to add an official example
 - **Security disclosures** — see [`.github/SECURITY.md`](../.github/SECURITY.md). Do **not** file a public issue for security bugs.
 - **Public API spec** — [`docs/SUBMISSION_API.md`](SUBMISSION_API.md) is the authoritative wire-level contract
 - **Level specs** — [`docs/LEVELS.md`](LEVELS.md) holds the canonical per-level rules
@@ -1053,7 +1053,7 @@ One follow-up edit landed in response to the QC flag above:
 
 Tracked externally on the repo's issue tracker. When they ship, they will be listed here. Candidates under consideration:
 
-- Example agent repos / Gists for popular frameworks (Python + requests, CrewAI, n8n, Dify) — currently only the inline Python snippet exists
+- Additional worked examples in more languages / runtimes — currently only the inline Python and curl snippets exist
 - GitHub Discussions link (once Discussions is enabled on the repo)
 - An expanded §"Common agent pitfalls" with real failure-mode examples pulled from post-launch telemetry
 

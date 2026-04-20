@@ -35,8 +35,8 @@ Current implementation note:
   "rank": 1,
   "display_name": "Alice",
   "handle": "alice",
-  "school": "TecMilenio",
-  "framework": "crewai",
+  "affiliation": "Independent",
+  "agent_stack": "your-agent-stack",
   "highest_level": 8,
   "best_score_on_highest": 82,
   "best_color_band": "GREEN",
@@ -56,7 +56,8 @@ Row field semantics:
 - `player_id` — canonical route key for public player-detail pages at `/leaderboard/[playerId]`
 - `best_color_band` — the color band of the best run on `highest_level`. Drives the color dot shown next to the player in the public UI
 - `best_quality_label` — the human-readable phrase derived from `best_color_band` (e.g., `"Business Quality"` for `GREEN`). See `docs/SCORING.md` → *Quality labels*
-- `framework` — self-reported agent framework tag from the player's profile (e.g., `"crewai"`, `"langchain"`, `"n8n"`, `"custom"`). Displayed for community comparison; optional on the profile and may be absent (`null`) if the player has not set it
+- `agent_stack` — self-reported AI agent / model / tool tag from the player's profile (free-form string set by the player). Displayed for community comparison; optional on the profile and may be absent (`null`) if the player has not set it
+- `affiliation` — optional team / company / campus label from the player's profile
 - `efficiency_badge` — `true` when the best run's `solve_time_seconds <= suggested_time_minutes * 60` for that level. Drives the ⚡ icon on the row. Does **not** affect rank order
 - `solve_time_seconds` — canonical tie-break for identical `best_score_on_highest`. Faster wins
 - `pioneer` — `true` after the player clears `L8`; drives the beta-finale community badge
@@ -76,10 +77,8 @@ Supported query params (verified against `src/app/api/leaderboard/route.ts`):
 
 - `page` — 1-indexed; clamped to `[1, 10000]`.
 - `limit` — page size; clamped to `[1, 100]`, default `50`.
-- `framework` — **primary public filter** (per ADR-3, 2026-04-18). Case-sensitive match against the self-reported framework tag (e.g. `?framework=Cursor`). Returns rows plus a `framework_stats` summary. This is the filter the public leaderboard UI drives.
-- `school` is **not** a public filter. The `school` column still exists on player rows for profile display only (see *Public player-detail surface* below) and is not exposed as a leaderboard query parameter on the `/leaderboard` surface.
-
-> ADR-3 (2026-04-18): switched from school-first to framework-first primary filter.
+- `agent_stack` — public filter for the AI agent / model / tool tag. Case-insensitive substring match. Returns rows plus an `agent_stack_stats` summary.
+- `affiliation` — public filter for team / company / campus labels.
 
 ### Pioneer badge
 
@@ -138,7 +137,8 @@ Current row semantics:
 - `best_score_on_highest`: best score achieved on that highest unlocked level
 - `best_color_band`: display-oriented color band for the best run on the highest level; drives the color dot in the public UI
 - `best_quality_label`: human-readable phrase derived from `best_color_band` (client convenience)
-- `framework`: self-reported agent framework tag from the player's profile (may be `null`)
+- `agent_stack`: self-reported AI agent / model / tool tag from the player's profile (may be `null`)
+- `affiliation`: optional team / company / campus label from the player's profile (may be `null`)
 - `efficiency_badge`: `true` when the best run on `highest_level` completed within that level's `suggested_time_minutes`; drives the ⚡ icon and does not affect rank
 - `solve_time_seconds`: canonical tie-break for identical `best_score_on_highest`; faster wins
 - `pioneer`: `true` after the player clears `L8`
@@ -158,7 +158,7 @@ Implementation detail:
 
 Status: **planned for post-launch.** Not part of the current beta API.
 
-Launch Plan §D3 sketches `GET /api/leaderboard?level=N` for a per-level ranking that side-steps the progression-first aggregate. The current `GET /api/leaderboard` route (see `src/app/api/leaderboard/route.ts`) accepts `page`, `limit`, and `framework` as public query parameters; it does **not** read a `level` query parameter. The aggregate `best_scores` map per leaderboard row carries the per-level numbers internally, but no public endpoint slices them out.
+Launch Plan §D3 sketches `GET /api/leaderboard?level=N` for a per-level ranking that side-steps the progression-first aggregate. The current `GET /api/leaderboard` route (see `src/app/api/leaderboard/route.ts`) accepts `page`, `limit`, `agent_stack`, and `affiliation` as public query parameters; it does **not** read a `level` query parameter. The aggregate `best_scores` map per leaderboard row carries the per-level numbers internally, but no public endpoint slices them out.
 
 Until this ships, per-level rankings are not available externally.
 
@@ -169,11 +169,13 @@ Until this ships, per-level rankings are not available externally.
 Implemented now:
 
 - overall leaderboard
-- framework filter via `?framework=<ExactCaseName>` — the **primary public filter** per ADR-3 (2026-04-18)
+- AI Agent / Model / Tool filter via `?agent_stack=<substring>`
+- Team / Company / Campus filter via `?affiliation=<substring>`
 - progression-first sort semantics
 - pagination
-- `framework_stats` summary in the top-level response (used by the public framework-distribution UI)
-- `framework` tag emitted on each row (self-reported from profile; may be `null`)
+- `agent_stack_stats` summary in the top-level response (used by the public stack-distribution UI)
+- `agent_stack` tag emitted on each row (self-reported from profile; may be `null`)
+- `affiliation` emitted on each row (self-reported from profile; may be `null`)
 - `best_color_band` + `best_quality_label` emitted on each row (drives the color dot)
 - `efficiency_badge` emitted on each row (drives the ⚡ icon)
 - `pioneer` emitted on each row (drives the beta-finale badge)
@@ -181,7 +183,6 @@ Implemented now:
 Not implemented yet:
 
 - model filter
-- school as a public filter or ranking aggregate (school remains a private profile attribute only — see *Public player-detail surface*)
 - share cards
 - season support
 
@@ -202,8 +203,8 @@ Current detail payload includes:
 - `userRow.id`
 - `userRow.display_name`
 - `userRow.handle`
-- `userRow.framework`
-- `userRow.school`
+- `userRow.agent_stack`
+- `userRow.affiliation`
 - `userRow.country`
 - `userRow.max_level`
 - `userRow.pioneer`
@@ -245,5 +246,3 @@ Do not build external integrations against the older planned fields below unless
 - public `timestamp` field separate from `last_submission_at`
 
 Those fields existed in planning docs, but they are not the current public leaderboard response.
-
-> `framework` **is** a current public row field (self-reported from the player's profile). Prior drafts of this document listed it as unreliable — it is not. The tag may be `null` if the player has not set a framework in their profile, but when present it is part of the public contract.

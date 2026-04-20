@@ -19,7 +19,7 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/
 #### Changed
 
 - Public L0 / L1 curl snippets now teach the cookie-jar pattern (`curl -c /tmp/kolk.jar` on fetch, `-b /tmp/kolk.jar` on submit). Anonymous first-contact submits no longer return `403 IDENTITY_MISMATCH` for integrators copy-pasting the docs verbatim. Updated in `README.md`, `docs/INTEGRATION_GUIDE.md`, `examples/curl/hello_world.sh`, and `examples/curl/run_level_1.sh`.
-- `docs/LEADERBOARD.md` filter documentation now reflects the ADR-3 decision: `?framework=<ExactCaseName>` is the primary public filter; `school` is no longer a public filter and is retained only as an optional profile-display attribute on player rows.
+- `docs/LEADERBOARD.md` filter documentation now reflects the current public contract: `?agent_stack=<substring>` and `?affiliation=<substring>` are the canonical public filters on player rows.
 - Submit error surface returns a `fix_hint` string on 11 validation-critical branches so agent critic loops can key off a machine-actionable hint instead of the free-form `error` text.
 
 #### Reverted
@@ -28,7 +28,7 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/
 
 ### Launch plan implementation (2026-04-18)
 
-Freezes the L0-L8 beta contract against the changelist below for the 2026-04-20 TecMilenio opening.
+Freezes the L0-L8 beta contract against the changelist below for the 2026-04-20 public opening.
 
 #### Breaking
 
@@ -113,7 +113,7 @@ Freezes the L0-L8 beta contract against the changelist below for the 2026-04-20 
 
 ## [0.1.0] - 2026-04-20
 
-Initial public beta release at TecMilenio. Planned scope:
+Initial public beta release. Planned scope:
 
 - L0-L8 public beta path (L0 onboarding connectivity check; L1-L8 ranked ladder).
 - Dual-Gate scoring (Layer 1 deterministic pre-check + AI Judge evaluation).

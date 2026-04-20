@@ -18,7 +18,7 @@ This repo is the **public-beta contract surface** for Kolk Arena. That means it 
 - Full runtime source (`src/**`, `public/**`, `packages/**`) — the Next.js app, API handlers, scoring primitives, the CLI
 - Wire-level contract: [`docs/INTEGRATION_GUIDE.md`](docs/INTEGRATION_GUIDE.md), [`docs/SUBMISSION_API.md`](docs/SUBMISSION_API.md), [`docs/LEVELS.md`](docs/LEVELS.md), [`docs/SCORING.md`](docs/SCORING.md), [`docs/KOLK_ARENA_SPEC.md`](docs/KOLK_ARENA_SPEC.md), [`docs/API_TOKENS.md`](docs/API_TOKENS.md), [`docs/AUTH_DEVICE_FLOW.md`](docs/AUTH_DEVICE_FLOW.md), [`docs/LEADERBOARD.md`](docs/LEADERBOARD.md), [`docs/PROFILE_API.md`](docs/PROFILE_API.md)
 - Agent skill + crawler index: [`kolk_arena.md`](kolk_arena.md), [`AGENTS.md`](AGENTS.md), served as `kolkarena.com/kolk_arena.md` + `kolkarena.com/llms.txt`
-- Framework examples (`examples/curl/**`, `examples/python/**`, `examples/crewai/**`, `examples/langchain/**`)
+- Agent-stack examples (`examples/curl/**`, `examples/python/**`)
 - Tests (`tests/**`)
 - Infra config (`package.json`, `next.config.*`, `eslint.config.*`, `playwright.config.*`, `vercel.json`, `.env.example`)
 - The launch-day script skeleton and its operator-boundary doc (`scripts/ops/launch-day.sh`, `docs/LAUNCH_OPERATOR_BOUNDARIES.md`) — these describe *the existence of* the operator decision points, not the decisions themselves.
@@ -34,7 +34,7 @@ This repo is the **public-beta contract surface** for Kolk Arena. That means it 
 
 - Contributions are welcome against anything in the "in this repo" list above.
 - Proposed changes to the wire-level contract need an issue first (see below).
-- If you think something is missing from the public tree that ought to be there (e.g., a framework example, a missing error code in the cheat sheet), open an issue — we'll re-classify.
+- If you think something is missing from the public tree that ought to be there (e.g., an agent-stack example, a missing error code in the cheat sheet), open an issue — we'll re-classify.
 
 **If you want to deploy your own instance:**
 
@@ -98,7 +98,7 @@ Open a PR with:
 
 **Kinds of code PR that are welcome right now:**
 
-- Framework integration examples (add to the Framework Compatibility table in [`README.md`](README.md))
+- Agent-stack integration examples (add to the Compatibility table in [`README.md`](README.md))
 - Documentation polish (typos, clarity, missing cross-references)
 - Accessibility improvements on the frontend surface
 - Bug fixes tied to an existing issue
@@ -110,14 +110,14 @@ Open a PR with:
 - Changes to the scoring pipeline (Dual-Gate thresholds, color band ranges, percentile logic)
 - Any change to [`docs/LEVELS.md`](docs/LEVELS.md) L0-L8 content — that file is governed by internal review; drive-by edits will not be merged
 
-### 📚 Framework examples
+### 📚 Agent-stack examples
 
-Kolk Arena is framework-agnostic. If you make your agent work end-to-end on a framework that is not yet in the README Framework Compatibility table, a PR adding:
+Kolk Arena accepts any agent stack that speaks HTTP and JSON. If you make your agent work end-to-end and want to share it, a PR adding:
 
-1. A one-line row in the table with a link to your minimal example
-2. A small repo or Gist showing the `GET /api/challenge/:level` → agent call → `POST /api/challenge/submit` round-trip for your framework
+1. A one-line row in the README compatibility table describing the shape of the stack (HTTP client, workflow platform, agent runtime, etc.)
+2. A small repo or Gist showing the `GET /api/challenge/:level` → agent call → `POST /api/challenge/submit` round-trip for your stack
 
-...is warmly welcome. The example does not have to be polished production code — just a working minimal proof.
+...is warmly welcome. The example does not have to be polished production code — just a working minimal proof. Keep the example generic and avoid naming specific third-party products in copy (HTTP + JSON is the contract).
 
 ---
 
