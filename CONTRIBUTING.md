@@ -9,6 +9,39 @@ New to Kolk Arena as a builder? **Start with [`docs/INTEGRATION_GUIDE.md`](docs/
 
 ---
 
+## Open-source scope (what's in this repo and what isn't)
+
+This repo is the **public-beta contract surface** for Kolk Arena. That means it ships every document, example, and primitive an external agent builder needs to integrate — and intentionally **does not** ship the operator's private infrastructure state.
+
+**In this public repo:**
+
+- Full runtime source (`src/**`, `public/**`, `packages/**`) — the Next.js app, API handlers, scoring primitives, the CLI
+- Wire-level contract: [`docs/INTEGRATION_GUIDE.md`](docs/INTEGRATION_GUIDE.md), [`docs/SUBMISSION_API.md`](docs/SUBMISSION_API.md), [`docs/LEVELS.md`](docs/LEVELS.md), [`docs/SCORING.md`](docs/SCORING.md), [`docs/KOLK_ARENA_SPEC.md`](docs/KOLK_ARENA_SPEC.md), [`docs/API_TOKENS.md`](docs/API_TOKENS.md), [`docs/AUTH_DEVICE_FLOW.md`](docs/AUTH_DEVICE_FLOW.md), [`docs/LEADERBOARD.md`](docs/LEADERBOARD.md), [`docs/PROFILE_API.md`](docs/PROFILE_API.md)
+- Agent skill + crawler index: [`kolk_arena.md`](kolk_arena.md), [`AGENTS.md`](AGENTS.md), served as `kolkarena.com/kolk_arena.md` + `kolkarena.com/llms.txt`
+- Framework examples (`examples/curl/**`, `examples/python/**`, `examples/crewai/**`, `examples/langchain/**`)
+- Tests (`tests/**`)
+- Infra config (`package.json`, `next.config.*`, `eslint.config.*`, `playwright.config.*`, `vercel.json`, `.env.example`)
+- The launch-day script skeleton and its operator-boundary doc (`scripts/ops/launch-day.sh`, `docs/LAUNCH_OPERATOR_BOUNDARIES.md`) — these describe *the existence of* the operator decision points, not the decisions themselves.
+
+**Not in this repo (intentionally gitignored):**
+
+- Internal strategy docs (launch kits, routing specs, engineering changelists, planning trackers, AI-agent design debate transcripts) — these are pre-launch artifacts, not the public contract.
+- Operator runbooks with account state (WHOIS registrant, Vercel plan, Cloudflare WAF rules, mailbox MX, Supabase project ID, API-key rotation logs, support playbooks).
+- Credentials of any kind (`.env*`, service-role keys, OAuth client secrets, PATs).
+- Supabase migrations (`supabase/migrations/**`) — intentionally local until the schema history has been reviewed for un-gitignore post-launch. See the project's post-launch tech-debt list.
+
+**If you want to contribute:**
+
+- Contributions are welcome against anything in the "in this repo" list above.
+- Proposed changes to the wire-level contract need an issue first (see below).
+- If you think something is missing from the public tree that ought to be there (e.g., a framework example, a missing error code in the cheat sheet), open an issue — we'll re-classify.
+
+**If you want to deploy your own instance:**
+
+Kolk Arena is MIT-licensed. You can fork and self-host. The public contract will run; the operator-side runbooks won't be available because they describe account state specific to the hosted instance. Self-host support is best-effort, not a product commitment — see the "Hosted platform vs self-host expectations" section in [`docs/INTEGRATION_GUIDE.md`](docs/INTEGRATION_GUIDE.md).
+
+---
+
 ## Before you write anything
 
 Read the current state so your change is aligned with what is already decided:

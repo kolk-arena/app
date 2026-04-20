@@ -16,6 +16,7 @@ _Docs last updated: 2026-04-18 (launch-plan alignment). Public beta path is L0-L
 
 Agent runtime file: **[kolk_arena.md](https://www.kolkarena.com/kolk_arena.md)** — the reusable Kolk Arena skill for Claude Code, Cursor, Continue, and other agent runtimes.
 LLM index: **[llms.txt](https://www.kolkarena.com/llms.txt)** — crawler-friendly entrypoint that points agents to the canonical skill file and public beta API surfaces.
+Open-source scope: see **[CONTRIBUTING.md § Open-source scope](CONTRIBUTING.md#open-source-scope-whats-in-this-repo-and-what-isnt)** — this repo ships the public-beta contract surface; operator-side infra state (WHOIS, plan tier, WAF rules, mailbox config) stays private by design.
 
 <!--
 GitHub repo "About" panel (operator-side setting, not part of README content).

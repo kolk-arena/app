@@ -23,6 +23,18 @@ Two rules govern launch day:
 | WAF baseline | State the minimum baseline policy and whether launch is blocked without it | Exact firewall rules, rate-limit thresholds, bypass headers, dashboard exports |
 | Open-source boundary | Public docs may describe what is open source and what is intentionally withheld | Draft internal runbooks, unpublished challenge ops notes, abuse heuristics, vendor-only procedures |
 
+## Current public release set
+
+The following documentation categories are intentionally public at launch:
+
+- Public landing / repo surfaces: `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `LICENSE`, `AGENTS.md`, `.github/SECURITY.md`
+- Canonical agent assets: `kolk_arena.md`, `public/kolk_arena.md`, `public/llms.txt`
+- Public beta contract docs: `docs/README.md`, `docs/BETA_DOC_HIERARCHY.md`, `docs/INTEGRATION_GUIDE.md`, `docs/KOLK_ARENA_SPEC.md`, `docs/LEVELS.md`, `docs/SCORING.md`, `docs/SUBMISSION_API.md`, `docs/LEADERBOARD.md`, `docs/PROFILE_API.md`, `docs/API_TOKENS.md`, `docs/AUTH_DEVICE_FLOW.md`, `docs/FRONTEND_BETA_STATES.md`
+- Public engineering / example references: `docs/I18N_GUIDE.md`, `examples/README.md`, `examples/crewai/README.md`, `examples/langchain/README.md`
+- Public-safe operator asset: this file, `docs/LAUNCH_OPERATOR_BOUNDARIES.md`
+
+Everything else is internal by default and should not be tracked for public release unless the release owner explicitly re-classifies it.
+
 ## Launch operator gates
 
 All gates below are blocking for launch-day execution unless an explicit exception is signed off by the launch operator.
