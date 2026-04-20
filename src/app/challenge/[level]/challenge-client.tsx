@@ -194,7 +194,7 @@ function bandColor(band: SubmitResponse['colorBand']): string {
     case 'YELLOW': return 'border-2 border-amber-700 bg-amber-50 text-amber-800';
     case 'GREEN': return 'border-2 border-emerald-700 bg-emerald-50 text-emerald-800';
     case 'BLUE': return 'border-2 border-sky-700 bg-sky-50 text-sky-800';
-    default: return 'border-2 border-slate-950 bg-slate-50 text-slate-800';
+    default: return 'border border-slate-200 bg-slate-50 text-slate-800';
   }
 }
 
@@ -691,7 +691,7 @@ export function ChallengeClient({ level }: { level: number }) {
   const timerCards = (
     <div className="grid gap-3 sm:grid-cols-2">
       <div className={`rounded-md border-2 p-4 ${suggestedRemaining && suggestedRemaining.isOver ? 'border-amber-700 bg-amber-50' : 'border-slate-950 bg-white'}`}>
-        <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-700">{copy.challenge.cards.suggestedTime}</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-700">{copy.challenge.cards.suggestedTime}</p>
         <p className="mt-2 font-mono tabular-nums text-2xl font-semibold text-slate-950">
           {suggestedRemaining ? formatSeconds(suggestedRemaining.remainingSeconds) : '—'}
         </p>
@@ -701,8 +701,8 @@ export function ChallengeClient({ level }: { level: number }) {
             : copy.challenge.time.suggestedBadge(challenge.suggestedTimeMinutes ?? level_info.suggested_time_minutes)}
         </p>
       </div>
-      <div className="rounded-md border-2 border-slate-950 bg-white p-4">
-        <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-700">{copy.challenge.cards.sessionDeadline}</p>
+      <div className="rounded-md border border-slate-200 bg-white p-4">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-700">{copy.challenge.cards.sessionDeadline}</p>
         <p className="mt-2 font-mono tabular-nums text-2xl font-semibold text-slate-950">
           {deadlineRemaining != null ? formatSeconds(deadlineRemaining) : '—'}
         </p>
@@ -727,8 +727,8 @@ export function ChallengeClient({ level }: { level: number }) {
 
   const agentConsole = (
     <section className="grid gap-4 2xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-      <article className="min-w-0 rounded-md border-2 border-slate-950 bg-white p-6 sm:p-8">
-        <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">
+      <article className="min-w-0 rounded-md border border-slate-200 bg-white p-6 sm:p-8">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">
           {copy.challenge.agentPanel.eyebrow}
         </p>
         <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">
@@ -740,7 +740,7 @@ export function ChallengeClient({ level }: { level: number }) {
         <ol className="mt-4 space-y-2 text-sm leading-6 text-slate-800">
           {copy.challenge.agentPanel.steps.map((step, index) => (
             <li key={step} className="flex gap-3">
-              <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 border-slate-950 bg-slate-950 font-mono text-xs font-semibold text-white">
+              <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-950 font-mono text-xs font-semibold text-white">
                 {index + 1}
               </span>
               <span>{step}</span>
@@ -748,8 +748,8 @@ export function ChallengeClient({ level }: { level: number }) {
           ))}
         </ol>
 
-        <section className="mt-6 rounded-md border-2 border-slate-950 bg-slate-50 p-4">
-          <p className="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">
+        <section className="mt-6 rounded-md border border-slate-200 bg-slate-50 p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">
             {copy.challenge.agentPanel.directActionsEyebrow}
           </p>
           <p className="mt-2 text-sm leading-6 text-slate-700">
@@ -761,7 +761,7 @@ export function ChallengeClient({ level }: { level: number }) {
               idleLabel={copy.challenge.agentPanel.copyAgentBrief}
               copiedLabel={copy.challenge.agentPanel.copiedAgentBrief}
               failedLabel={copy.challenge.agentPanel.copyFailed}
-              className="inline-flex w-full items-center justify-center rounded-md border-2 border-slate-950 bg-slate-950 px-6 py-3 font-mono text-sm font-bold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950 sm:w-auto"
+              className="inline-flex w-full items-center justify-center rounded-md border border-slate-200 bg-slate-950 px-6 py-3 font-mono text-sm font-bold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950 sm:w-auto"
             />
             {(['claude', 'chatgpt', 'gemini', 'perplexity'] as const).map((service) => {
               const link = buildAiDeepLink(service, agentBrief);
@@ -773,7 +773,7 @@ export function ChallengeClient({ level }: { level: number }) {
                   href={link.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex w-full items-center justify-center gap-1.5 rounded-md border-2 border-slate-950 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white sm:w-auto"
+                  className="inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white sm:w-auto"
                   title={link.truncated ? copy.challenge.agentPanel.openInTruncatedHint : undefined}
                 >
                   {icon ? <span aria-hidden="true">{icon}</span> : null}
@@ -784,8 +784,8 @@ export function ChallengeClient({ level }: { level: number }) {
           </div>
         </section>
 
-        <section className="mt-4 rounded-md border-2 border-slate-950 bg-white p-4">
-          <p className="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">
+        <section className="mt-4 rounded-md border border-slate-200 bg-white p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">
             {copy.challenge.agentPanel.supportAssetsEyebrow}
           </p>
           <p className="mt-2 text-sm leading-6 text-slate-700">
@@ -797,21 +797,21 @@ export function ChallengeClient({ level }: { level: number }) {
               idleLabel={copy.challenge.agentPanel.copySubmitContract}
               copiedLabel={copy.challenge.agentPanel.copiedSubmitContract}
               failedLabel={copy.challenge.agentPanel.copyFailed}
-              className="inline-flex w-full items-center justify-center rounded-md border-2 border-slate-950 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white sm:w-auto"
+              className="inline-flex w-full items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white sm:w-auto"
             />
             <CopyButton
               value={outputTemplate}
               idleLabel={copy.challenge.agentPanel.copyOutputTemplate}
               copiedLabel={copy.challenge.agentPanel.copiedOutputTemplate}
               failedLabel={copy.challenge.agentPanel.copyFailed}
-              className="inline-flex w-full items-center justify-center rounded-md border-2 border-slate-950 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white sm:w-auto"
+              className="inline-flex w-full items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white sm:w-auto"
             />
             <CopyButton
               value={structuredBriefCopy}
               idleLabel={structuredBrief ? copy.challenge.agentPanel.copyStructuredBrief : copy.challenge.agentPanel.copyTaskJson}
               copiedLabel={structuredBrief ? copy.challenge.agentPanel.copiedStructuredBrief : copy.challenge.agentPanel.copiedTaskJson}
               failedLabel={copy.challenge.agentPanel.copyFailed}
-              className="inline-flex w-full items-center justify-center rounded-md border-2 border-slate-950 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white sm:w-auto"
+              className="inline-flex w-full items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white sm:w-auto"
             />
             <button
               type="button"
@@ -823,11 +823,11 @@ export function ChallengeClient({ level }: { level: number }) {
           </div>
         </section>
 
-        <section className="mt-4 overflow-hidden rounded-md border-2 border-slate-950 bg-slate-50">
-          <div className="border-b-2 border-slate-950 px-4 py-4">
+        <section className="mt-4 overflow-hidden rounded-md border border-slate-200 bg-slate-50">
+          <div className="border-b border-slate-200 px-4 py-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">
                   {copy.challenge.agentPanel.scriptToolkitEyebrow}
                 </p>
                 <p className="mt-2 text-sm leading-6 text-slate-700">
@@ -840,19 +840,19 @@ export function ChallengeClient({ level }: { level: number }) {
                   idleLabel={copy.challenge.agentPanel.copyScriptButton(activeScriptLang)}
                   copiedLabel={copy.challenge.agentPanel.copiedScriptButton}
                   failedLabel={copy.challenge.agentPanel.copyScriptFailed}
-                  className="inline-flex min-h-10 items-center rounded-md border-2 border-slate-950 bg-white px-3 py-1.5 font-mono text-xs font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+                  className="inline-flex min-h-10 items-center rounded-md border border-slate-200 bg-white px-3 py-1.5 font-mono text-xs font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
                 />
                 <button
                   type="button"
                   onClick={() => downloadFile(scriptBundle.filename, scriptBundle.code)}
-                  className="inline-flex min-h-10 items-center rounded-md border-2 border-slate-950 bg-white px-3 py-1.5 font-mono text-xs font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+                  className="inline-flex min-h-10 items-center rounded-md border border-slate-200 bg-white px-3 py-1.5 font-mono text-xs font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
                 >
                   {copy.challenge.agentPanel.downloadScriptButton}
                 </button>
               </div>
             </div>
           </div>
-          <div className="border-b-2 border-slate-950 bg-slate-100 p-2">
+          <div className="border-b border-slate-200 bg-slate-100 p-2">
             <div
               role="tablist"
               aria-label={copy.challenge.agentPanel.scriptTabListAriaLabel}
@@ -863,7 +863,7 @@ export function ChallengeClient({ level }: { level: number }) {
                 role="tab"
                 aria-selected={scriptTab === 'curl'}
                 onClick={() => setScriptTab('curl')}
-                className={`rounded-md border-2 border-slate-950 px-3 py-1.5 font-mono text-xs font-semibold uppercase tracking-[0.1em] transition-colors duration-150 ${scriptTab === 'curl' ? 'bg-slate-950 text-white' : 'bg-white text-slate-950 hover:bg-slate-950 hover:text-white'}`}
+                className={`rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.1em] transition-colors duration-150 ${scriptTab === 'curl' ? 'bg-slate-950 text-white' : 'bg-white text-slate-950 hover:bg-slate-950 hover:text-white'}`}
               >
                 {copy.challenge.agentPanel.scriptTabs.curl}
               </button>
@@ -872,7 +872,7 @@ export function ChallengeClient({ level }: { level: number }) {
                 role="tab"
                 aria-selected={scriptTab === 'python'}
                 onClick={() => setScriptTab('python')}
-                className={`rounded-md border-2 border-slate-950 px-3 py-1.5 font-mono text-xs font-semibold uppercase tracking-[0.1em] transition-colors duration-150 ${scriptTab === 'python' ? 'bg-slate-950 text-white' : 'bg-white text-slate-950 hover:bg-slate-950 hover:text-white'}`}
+                className={`rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.1em] transition-colors duration-150 ${scriptTab === 'python' ? 'bg-slate-950 text-white' : 'bg-white text-slate-950 hover:bg-slate-950 hover:text-white'}`}
               >
                 {copy.challenge.agentPanel.scriptTabs.python}
               </button>
@@ -881,7 +881,7 @@ export function ChallengeClient({ level }: { level: number }) {
                 role="tab"
                 aria-selected={scriptTab === 'node'}
                 onClick={() => setScriptTab('node')}
-                className={`rounded-md border-2 border-slate-950 px-3 py-1.5 font-mono text-xs font-semibold uppercase tracking-[0.1em] transition-colors duration-150 ${scriptTab === 'node' ? 'bg-slate-950 text-white' : 'bg-white text-slate-950 hover:bg-slate-950 hover:text-white'}`}
+                className={`rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.1em] transition-colors duration-150 ${scriptTab === 'node' ? 'bg-slate-950 text-white' : 'bg-white text-slate-950 hover:bg-slate-950 hover:text-white'}`}
               >
                 {copy.challenge.agentPanel.scriptTabs.node}
               </button>
@@ -906,7 +906,7 @@ export function ChallengeClient({ level }: { level: number }) {
       </article>
 
       <aside className="min-w-0 rounded-md border-2 border-emerald-700 bg-emerald-50 p-6 sm:p-8">
-        <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-emerald-800">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-800">
           {copy.challenge.agentPanel.challengeBriefEyebrow}
         </p>
         <p className="mt-2 text-sm leading-7 text-emerald-900">
@@ -928,12 +928,12 @@ export function ChallengeClient({ level }: { level: number }) {
   );
 
   const submitCard = (
-    <form onSubmit={handleSubmit} className="space-y-4 rounded-md border-2 border-slate-950 bg-white p-6 sm:p-8">
+    <form onSubmit={handleSubmit} className="space-y-4 rounded-md border border-slate-200 bg-white p-6 sm:p-8">
       <SubmitErrorBanner status={submitStatus} level={level} onRefetch={requestFreshChallenge} />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">{copy.challenge.cards.yourDelivery}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">{copy.challenge.cards.yourDelivery}</p>
           <p className="mt-1 text-sm font-medium text-slate-900">
             {deliveryRule}
           </p>
@@ -946,7 +946,7 @@ export function ChallengeClient({ level }: { level: number }) {
         onChange={(e) => setPrimaryText(e.target.value)}
         rows={level === 5 ? 14 : 18}
         spellCheck={level !== 5}
-        className="w-full rounded-md border-2 border-slate-950 bg-slate-950 p-4 font-mono tabular-nums text-slate-100 outline-none transition focus:ring-2 focus:ring-emerald-500"
+        className="w-full rounded-md border border-slate-200 bg-slate-950 p-4 font-mono tabular-nums text-slate-100 outline-none transition focus:ring-2 focus:ring-emerald-500"
         placeholder={deliveryPlaceholder}
       />
 
@@ -987,34 +987,34 @@ export function ChallengeClient({ level }: { level: number }) {
         <button
           type="button"
           onClick={handleDryRun}
-          className="inline-flex items-center rounded-md border-2 border-slate-950 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+          className="inline-flex items-center rounded-md border border-slate-200 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
         >
           {copy.challenge.dryRun.validateButton}
         </button>
         <button
           type="submit"
           disabled={submitStatus.kind === 'submitting' || primaryText.trim().length === 0}
-          className="inline-flex items-center rounded-md border-2 border-slate-950 bg-slate-950 px-6 py-3 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-slate-950 disabled:hover:text-white"
+          className="inline-flex items-center rounded-md border border-slate-200 bg-slate-950 px-6 py-3 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-slate-950 disabled:hover:text-white"
         >
           {submitStatus.kind === 'submitting' ? copy.challenge.deliveryRules.scoring : copy.challenge.deliveryRules.submit}
         </button>
         <button
           type="button"
           onClick={requestFreshChallenge}
-          className="inline-flex items-center rounded-md border-2 border-slate-950 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+          className="inline-flex items-center rounded-md border border-slate-200 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
         >
           {copy.challenge.deliveryRules.refetch}
         </button>
         <Link
           href="/play"
-          className="inline-flex items-center rounded-md border-2 border-slate-950 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+          className="inline-flex items-center rounded-md border border-slate-200 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
         >
           {copy.challenge.deliveryRules.backToPlay}
         </Link>
       </div>
       <p className="font-mono text-xs leading-5 text-slate-700">
-        {copy.challenge.cards.attemptTokenFingerprint}: <code className="rounded-md border-2 border-slate-950 bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-950">{challenge.attemptToken.slice(0, 12)}…</code>
-        {' '}· {copy.challenge.cards.challengeId}: <code className="rounded-md border-2 border-slate-950 bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-950">{challenge.challengeId.slice(0, 8)}…</code>
+        {copy.challenge.cards.attemptTokenFingerprint}: <code className="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-950">{challenge.attemptToken.slice(0, 12)}…</code>
+        {' '}· {copy.challenge.cards.challengeId}: <code className="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-950">{challenge.challengeId.slice(0, 8)}…</code>
       </p>
     </form>
   );
@@ -1039,15 +1039,15 @@ export function ChallengeClient({ level }: { level: number }) {
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href="/play"
-              className="inline-flex items-center rounded-md border-2 border-slate-950 bg-white px-3 py-1 font-mono text-xs font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+              className="inline-flex items-center rounded-md border border-slate-200 bg-white px-3 py-1 font-mono text-xs font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
             >
               {copy.challenge.header.backToPlay}
             </Link>
-            <span className="inline-flex items-center rounded-md border-2 border-slate-950 bg-slate-100 px-3 py-1 font-mono text-[10px] tabular-nums font-semibold uppercase tracking-[0.2em] text-slate-950">
+            <span className="inline-flex items-center rounded-md border border-slate-200 bg-slate-100 px-3 py-1 text-[10px] tabular-nums font-semibold uppercase tracking-[0.2em] text-slate-950">
               {copy.challenge.header.levelBand(level, level_info.band)}
             </span>
             {level_info.is_boss ? (
-              <span className="inline-flex items-center rounded-md border-2 border-rose-700 bg-rose-50 px-3 py-1 font-mono text-[10px] tabular-nums font-semibold uppercase tracking-[0.2em] text-rose-800">
+              <span className="inline-flex items-center rounded-md border-2 border-rose-700 bg-rose-50 px-3 py-1 text-[10px] tabular-nums font-semibold uppercase tracking-[0.2em] text-rose-800">
                 {copy.challenge.header.bossLevel}
               </span>
             ) : null}
@@ -1074,7 +1074,7 @@ export function ChallengeClient({ level }: { level: number }) {
             orientation="horizontal"
             defaultLayout={defaultLayout}
             onLayoutChanged={onLayoutChanged}
-            className="min-h-[820px] rounded-md border-2 border-slate-950 bg-white"
+            className="min-h-[820px] rounded-md border border-slate-200 bg-white"
           >
             <Panel id="challenge-brief-pane" defaultSize={42} minSize={30}>
               <div className="h-full min-w-0 overflow-y-auto bg-slate-50 p-6 xl:p-8 space-y-6">
@@ -1106,14 +1106,14 @@ function LoadingShell({ level }: { level: number }) {
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
       <section className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
-        <div className="h-8 w-56 animate-pulse rounded-md border-2 border-slate-950 bg-slate-200" />
-        <div className="h-12 w-80 animate-pulse rounded-md border-2 border-slate-950 bg-slate-200" />
+        <div className="h-8 w-56 animate-pulse rounded-md border border-slate-200 bg-slate-200" />
+        <div className="h-12 w-80 animate-pulse rounded-md border border-slate-200 bg-slate-200" />
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="h-24 animate-pulse rounded-md border-2 border-slate-950 bg-slate-200" />
-          <div className="h-24 animate-pulse rounded-md border-2 border-slate-950 bg-slate-200" />
+          <div className="h-24 animate-pulse rounded-md border border-slate-200 bg-slate-200" />
+          <div className="h-24 animate-pulse rounded-md border border-slate-200 bg-slate-200" />
         </div>
-        <div className="h-56 animate-pulse rounded-md border-2 border-slate-950 bg-slate-200" />
-        <div className="h-40 animate-pulse rounded-md border-2 border-slate-950 bg-slate-200" />
+        <div className="h-56 animate-pulse rounded-md border border-slate-200 bg-slate-200" />
+        <div className="h-40 animate-pulse rounded-md border border-slate-200 bg-slate-200" />
         <p className="font-mono text-xs text-slate-700">{copy.challenge.errorStates.fetchingChallenge(level)}</p>
       </section>
     </main>
@@ -1150,14 +1150,14 @@ function ErrorShell({
                 <button
                   type="button"
                   onClick={primary.onClick}
-                  className="inline-flex items-center rounded-md border-2 border-slate-950 bg-slate-950 px-5 py-3 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
+                  className="inline-flex items-center rounded-md border border-slate-200 bg-slate-950 px-5 py-3 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
                 >
                   {primary.label}
                 </button>
               ) : primary.href ? (
                 <Link
                   href={primary.href}
-                  className="inline-flex items-center rounded-md border-2 border-slate-950 bg-slate-950 px-5 py-3 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
+                  className="inline-flex items-center rounded-md border border-slate-200 bg-slate-950 px-5 py-3 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
                 >
                   {primary.label}
                 </Link>
@@ -1168,14 +1168,14 @@ function ErrorShell({
                 <button
                   type="button"
                   onClick={secondary.onClick}
-                  className="inline-flex items-center rounded-md border-2 border-slate-950 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+                  className="inline-flex items-center rounded-md border border-slate-200 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
                 >
                   {secondary.label}
                 </button>
               ) : secondary.href ? (
                 <Link
                   href={secondary.href}
-                  className="inline-flex items-center rounded-md border-2 border-slate-950 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+                  className="inline-flex items-center rounded-md border border-slate-200 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
                 >
                   {secondary.label}
                 </Link>
@@ -1304,14 +1304,14 @@ function SubmitErrorBanner({
           <button
             type="button"
             onClick={onRefetch}
-            className="inline-flex items-center rounded-md border-2 border-slate-950 bg-slate-950 px-4 py-2 font-mono text-xs font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
+            className="inline-flex items-center rounded-md border border-slate-200 bg-slate-950 px-4 py-2 font-mono text-xs font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
           >
             {sb.fetchNewChallenge}
           </button>
           {status.kind === 'auth_required' || status.kind === 'identity_mismatch' ? (
             <Link
               href="/profile"
-              className="inline-flex items-center rounded-md border-2 border-slate-950 bg-white px-4 py-2 font-mono text-xs font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+              className="inline-flex items-center rounded-md border border-slate-200 bg-white px-4 py-2 font-mono text-xs font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
             >
               {sb.signIn}
             </Link>
@@ -1412,25 +1412,25 @@ function ResultCard({
         <header className="flex flex-wrap items-center gap-2">
           <Link
             href="/play"
-            className="inline-flex items-center rounded-md border-2 border-slate-950 bg-white px-3 py-1 font-mono text-xs font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+            className="inline-flex items-center rounded-md border border-slate-200 bg-white px-3 py-1 font-mono text-xs font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
           >
             {copy.challenge.header.backToPlay}
           </Link>
-          <span className="inline-flex items-center rounded-md border-2 border-slate-950 bg-slate-100 px-3 py-1 font-mono text-[10px] tabular-nums font-semibold uppercase tracking-[0.2em] text-slate-950">
+          <span className="inline-flex items-center rounded-md border border-slate-200 bg-slate-100 px-3 py-1 text-[10px] tabular-nums font-semibold uppercase tracking-[0.2em] text-slate-950">
             {copy.challenge.header.resultLevelTitle(result.level, levelName)}
           </span>
         </header>
 
-        <div className="rounded-md border-2 border-slate-950 bg-white p-6 sm:p-10">
+        <div className="rounded-md border border-slate-200 bg-white p-6 sm:p-10">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">{r.eyebrow}</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">{r.eyebrow}</p>
               <p className="mt-1 text-5xl font-black tracking-tight text-slate-950">{Math.round(result.totalScore)}<span className="font-mono text-lg font-semibold text-slate-700">{r.scoreOutOf(100)}</span></p>
               <p className="mt-2 text-sm font-medium text-slate-800">{result.summary}</p>
             </div>
             <div className="flex flex-col items-end gap-2">
               {band ? (
-                <span className={`inline-flex items-center rounded-md px-3 py-1 font-mono text-xs font-semibold uppercase tracking-[0.16em] ${bandColor(band)}`}>
+                <span className={`inline-flex items-center rounded-md px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] ${bandColor(band)}`}>
                   {band}{result.qualityLabel ? ` · ${result.qualityLabel}` : ''}
                 </span>
               ) : null}
@@ -1449,7 +1449,7 @@ function ResultCard({
               </>
             ) : (
               <div className="rounded-md border-2 border-emerald-700 bg-emerald-50 p-4 font-mono tabular-nums text-emerald-800 sm:col-span-3">
-                <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-800">{r.onboardingEyebrow}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-800">{r.onboardingEyebrow}</p>
                 <p className="mt-2 text-sm font-medium text-emerald-950">{r.onboardingBody}</p>
               </div>
             )}
@@ -1487,10 +1487,10 @@ function ResultCard({
 
           {hasFieldFeedback && !isOnboarding ? (
             <div className="mt-5">
-                <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">{r.fieldFeedbackHeading}</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">{r.fieldFeedbackHeading}</p>
               <ul className="mt-2 space-y-2">
                 {(result.fieldScores ?? []).map((f) => (
-                  <li key={f.field} className="rounded-md border-2 border-slate-950 bg-slate-50 px-4 py-3">
+                  <li key={f.field} className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3">
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-sm font-semibold text-slate-950">{f.field}</p>
                       <p className="font-mono text-xs font-semibold text-slate-800">{f.score}{r.pointsSuffix}</p>
@@ -1506,7 +1506,7 @@ function ResultCard({
             {unlocked && nextLevel ? (
               <Link
                 href={`/challenge/${nextLevel}`}
-                className="inline-flex items-center rounded-md border-2 border-slate-950 bg-slate-950 px-5 py-3 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
+                className="inline-flex items-center rounded-md border border-slate-200 bg-slate-950 px-5 py-3 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
               >
                 {r.tryNextLevel(nextLevel)}
               </Link>
@@ -1514,19 +1514,19 @@ function ResultCard({
             <button
               type="button"
               onClick={onRetry}
-              className="inline-flex items-center rounded-md border-2 border-slate-950 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+              className="inline-flex items-center rounded-md border border-slate-200 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
             >
               {r.retryLevel(result.level)}
             </button>
             <Link
               href="/play"
-              className="inline-flex items-center rounded-md border-2 border-slate-950 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+              className="inline-flex items-center rounded-md border border-slate-200 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
             >
               {r.backToPlay}
             </Link>
             <Link
               href="/leaderboard"
-              className="inline-flex items-center rounded-md border-2 border-slate-950 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+              className="inline-flex items-center rounded-md border border-slate-200 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
             >
               {r.leaderboard}
             </Link>
@@ -1535,7 +1535,7 @@ function ResultCard({
 
         {result.replayUnlocked && result.nextSteps ? (
           <div className="rounded-md border-2 border-emerald-700 bg-emerald-50 p-6">
-            <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-emerald-800">{r.replayEyebrow}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-800">{r.replayEyebrow}</p>
             <h2 className="mt-2 text-xl font-black tracking-tight text-emerald-950">{r.replayTitle}</h2>
             <p className="mt-2 text-sm leading-6 text-emerald-900">{result.nextSteps.replay}</p>
             <div className="mt-4 flex flex-wrap gap-3">
@@ -1543,7 +1543,7 @@ function ResultCard({
                 href={result.nextSteps.discord}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center rounded-md border-2 border-slate-950 bg-slate-950 px-5 py-3 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
+                className="inline-flex items-center rounded-md border border-slate-200 bg-slate-950 px-5 py-3 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
               >
                 {r.joinDiscord}
               </a>
@@ -1551,7 +1551,7 @@ function ResultCard({
                 href={result.nextSteps.share}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center rounded-md border-2 border-slate-950 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+                className="inline-flex items-center rounded-md border border-slate-200 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
               >
                 {r.shareResult}
               </a>
@@ -1561,13 +1561,13 @@ function ResultCard({
 
         {registerPromptOpen ? (
           <div role="dialog" aria-modal="true" className="rounded-md border-2 border-emerald-700 bg-emerald-50 p-6">
-            <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-emerald-800">{r.registerEyebrow}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-800">{r.registerEyebrow}</p>
             <h2 className="mt-2 text-xl font-black tracking-tight text-emerald-950">{r.registerTitle}</h2>
             <p className="mt-2 text-sm leading-6 text-emerald-900">{r.registerBody}</p>
             <div className="mt-4 flex flex-wrap gap-3">
               <Link
                 href="/profile"
-                className="inline-flex items-center rounded-md border-2 border-slate-950 bg-slate-950 px-5 py-3 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
+                className="inline-flex items-center rounded-md border border-slate-200 bg-slate-950 px-5 py-3 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
               >
                 {r.registerCta}
               </Link>
@@ -1589,12 +1589,12 @@ function ResultCard({
 function ScoreTile({ label, value, max }: { label: string; value: number; max: number }) {
   const pct = max > 0 ? Math.min(100, Math.max(0, (value / max) * 100)) : 0;
   return (
-    <div className="rounded-md border-2 border-slate-950 bg-white p-4">
-      <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-700">{label}</p>
+    <div className="rounded-md border border-slate-200 bg-white p-4">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-700">{label}</p>
       <p className="mt-1 text-xl font-bold text-slate-950">
         {Math.round(value * 10) / 10}<span className="font-mono text-xs font-semibold text-slate-700"> / {max}</span>
       </p>
-      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-md border-2 border-slate-950 bg-slate-100">
+      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-md border border-slate-200 bg-slate-100">
         <div className="h-full bg-slate-950 transition-all" style={{ width: `${pct}%` }} />
       </div>
     </div>

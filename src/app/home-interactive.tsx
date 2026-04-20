@@ -28,22 +28,22 @@ export function HomeInteractive() {
   }, []);
 
   const actionButtonClass =
-    'inline-flex w-full items-center justify-center rounded-none border-2 border-slate-950 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition hover:bg-slate-950 hover:text-white sm:w-auto';
+    'inline-flex w-full items-center justify-center rounded-none border border-slate-200 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition hover:bg-slate-950 hover:text-white sm:w-auto';
   const primaryButtonClass =
-    'inline-flex w-full items-center justify-center rounded-none border-2 border-slate-950 bg-slate-950 px-4 py-2.5 font-mono text-sm font-semibold text-white transition hover:bg-white hover:text-slate-950 sm:w-auto';
+    'inline-flex w-full items-center justify-center rounded-none border border-slate-200 bg-slate-950 px-4 py-2.5 font-mono text-sm font-semibold text-white transition hover:bg-white hover:text-slate-950 sm:w-auto';
 
   return (
     <>
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-        <section className="min-w-0 rounded-none border-2 border-slate-950 bg-slate-50 p-5 sm:p-6">
-          <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">
+        <section className="min-w-0 rounded-none border border-slate-200 bg-slate-50 p-5 sm:p-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">
             {copy.homeInteractive.starterScriptsEyebrow}
           </p>
           <p className="mt-2 text-sm leading-7 text-slate-700">
             {copy.homeInteractive.starterScriptsBody}
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-none border-2 border-slate-950 bg-white p-4">
+            <div className="rounded-none border border-slate-200 bg-white p-4">
               <div className="flex flex-col gap-2">
                 <CopyButton
                   value={l0Bundle.code}
@@ -61,7 +61,7 @@ export function HomeInteractive() {
                 </button>
               </div>
             </div>
-            <div className="rounded-none border-2 border-slate-950 bg-white p-4">
+            <div className="rounded-none border border-slate-200 bg-white p-4">
               <div className="flex flex-col gap-2">
                 <CopyButton
                   value={l1Bundle.code}
@@ -83,8 +83,8 @@ export function HomeInteractive() {
         </section>
 
         <div className="grid min-w-0 gap-4">
-          <section className="rounded-none border-2 border-slate-950 bg-white p-5 sm:p-6">
-            <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">
+          <section className="rounded-none border border-slate-200 bg-white p-5 sm:p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">
               {copy.homeInteractive.handoffEyebrow}
             </p>
             <p className="mt-2 text-sm leading-7 text-slate-700">
@@ -101,8 +101,8 @@ export function HomeInteractive() {
             </div>
           </section>
 
-          <section className="rounded-none border-2 border-slate-950 bg-white p-5 sm:p-6">
-            <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">
+          <section className="rounded-none border border-slate-200 bg-white p-5 sm:p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">
               {copy.homeInteractive.resourcesEyebrow}
             </p>
             <p className="mt-2 text-sm leading-7 text-slate-700">

@@ -16,7 +16,7 @@ export function Nav() {
   const pathname = usePathname();
 
   return (
-    <header className="border-b-2 border-slate-950 bg-white">
+    <header className="border-b border-slate-200 bg-white">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
         <Link href="/" className="font-mono text-base font-bold tracking-tight text-slate-950">
           {APP_CONFIG.name}
@@ -29,7 +29,7 @@ export function Nav() {
               <Link
                 key={href}
                 href={href}
-                className={`font-mono rounded-none px-3 py-2 text-sm font-semibold uppercase tracking-[0.14em] transition ${
+                className={`rounded-none px-3 py-2 text-sm font-semibold uppercase tracking-[0.14em] transition ${
                   active
                     ? 'bg-slate-950 text-white'
                     : 'text-slate-700 hover:bg-slate-950 hover:text-white'
@@ -43,7 +43,7 @@ export function Nav() {
             href={APP_CONFIG.githubUrl}
             target="_blank"
             rel="noreferrer"
-            className="ml-2 font-mono rounded-none px-3 py-2 text-sm font-semibold uppercase tracking-[0.14em] text-slate-700 transition hover:bg-slate-950 hover:text-white"
+            className="ml-2 rounded-none px-3 py-2 text-sm font-semibold uppercase tracking-[0.14em] text-slate-700 transition hover:bg-slate-950 hover:text-white"
           >
             {copy.nav.github}
           </a>

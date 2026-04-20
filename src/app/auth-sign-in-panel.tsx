@@ -147,10 +147,10 @@ export function AuthSignInPanel({
   const encodedNext = encodeURIComponent(nextPath);
 
   return (
-    <div className="rounded-md border-2 border-slate-950 bg-amber-50 p-4 sm:p-6 lg:p-8">
+    <div className="rounded-md border border-slate-200 bg-amber-50 p-4 sm:p-6 lg:p-8">
       <div className="space-y-6">
         <div className="space-y-2">
-          <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-amber-800">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-800">
             {copy.auth.signInRequiredEyebrow}
           </p>
           <h2 className="text-2xl font-black tracking-tight text-slate-950">
@@ -175,7 +175,7 @@ export function AuthSignInPanel({
         ) : null}
 
         {sessionState === 'checking' ? (
-          <div className="rounded-md border-2 border-slate-950 bg-white px-4 py-3 text-sm text-slate-700">
+          <div className="rounded-md border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
             {copy.auth.checkingSession}
           </div>
         ) : null}
@@ -189,13 +189,13 @@ export function AuthSignInPanel({
             <div className="mt-4 flex flex-wrap gap-3">
               <Link
                 href={nextPath}
-                className="inline-flex items-center rounded-md border-2 border-slate-950 bg-slate-950 px-5 py-3 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
+                className="inline-flex items-center rounded-md border border-slate-200 bg-slate-950 px-5 py-3 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
               >
                 {copy.auth.continue}
               </Link>
               <Link
                 href="/profile"
-                className="inline-flex items-center rounded-md border-2 border-slate-950 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+                className="inline-flex items-center rounded-md border border-slate-200 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
               >
                 {copy.auth.openProfile}
               </Link>
@@ -204,7 +204,7 @@ export function AuthSignInPanel({
         ) : null}
 
         {sessionError && sessionState !== 'authenticated' ? (
-          <div className="rounded-md border-2 border-slate-950 bg-white px-4 py-3 text-sm text-slate-700">
+          <div className="rounded-md border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
             {copy.auth.sessionCheckFailed(sessionError)}
           </div>
         ) : null}
@@ -214,22 +214,22 @@ export function AuthSignInPanel({
         <div className="grid gap-3 sm:grid-cols-2">
           <a
             href={`/api/auth/oauth/github?next=${encodedNext}`}
-            className="inline-flex min-h-12 w-full items-center justify-center rounded-md border-2 border-slate-950 bg-slate-950 px-5 py-3 text-center font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
+            className="inline-flex min-h-12 w-full items-center justify-center rounded-md border border-slate-200 bg-slate-950 px-5 py-3 text-center font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
           >
             {copy.auth.oauthGitHub}
           </a>
           <a
             href={`/api/auth/oauth/google?next=${encodedNext}`}
-            className="inline-flex min-h-12 w-full items-center justify-center rounded-md border-2 border-slate-950 bg-white px-5 py-3 text-center font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+            className="inline-flex min-h-12 w-full items-center justify-center rounded-md border border-slate-200 bg-white px-5 py-3 text-center font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
           >
             {copy.auth.oauthGoogle}
           </a>
         </div>
 
-        <div className="rounded-md border-2 border-slate-950 bg-white p-4 sm:p-5">
+        <div className="rounded-md border border-slate-200 bg-white p-4 sm:p-5">
           <div className="space-y-4">
             <div>
-              <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">
                 {copy.auth.emailSignInEyebrow}
               </p>
               <p className="mt-2 text-sm leading-7 text-slate-700">
@@ -239,7 +239,7 @@ export function AuthSignInPanel({
 
             <form onSubmit={handleEmailSignIn} className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
               <label className="space-y-2 text-sm text-slate-800">
-                <span className="font-mono font-semibold uppercase tracking-[0.14em] text-slate-700">{copy.auth.emailLabel}</span>
+                <span className="font-semibold uppercase tracking-[0.14em] text-slate-700">{copy.auth.emailLabel}</span>
                 <input
                   type="email"
                   required
@@ -248,19 +248,19 @@ export function AuthSignInPanel({
                   autoComplete="email"
                   inputMode="email"
                   spellCheck={false}
-                  className="min-h-12 w-full rounded-md border-2 border-slate-950 bg-white px-4 py-3 text-base text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950 sm:text-sm"
+                  className="min-h-12 w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-base text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950 sm:text-sm"
                   placeholder={copy.auth.emailPlaceholder}
                 />
               </label>
               <label className="space-y-2 text-sm text-slate-800">
-                <span className="font-mono font-semibold uppercase tracking-[0.14em] text-slate-700">{copy.auth.displayNameLabel}</span>
+                <span className="font-semibold uppercase tracking-[0.14em] text-slate-700">{copy.auth.displayNameLabel}</span>
                 <input
                   type="text"
                   value={displayName}
                   onChange={(event) => setDisplayName(event.target.value)}
                   autoComplete="nickname"
                   maxLength={60}
-                  className="min-h-12 w-full rounded-md border-2 border-slate-950 bg-white px-4 py-3 text-base text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950 sm:text-sm"
+                  className="min-h-12 w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-base text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950 sm:text-sm"
                   placeholder={copy.auth.displayNamePlaceholder}
                 />
               </label>
@@ -268,7 +268,7 @@ export function AuthSignInPanel({
                 <button
                   type="submit"
                   disabled={emailState === 'submitting' || email.trim().length === 0}
-                  className="inline-flex min-h-12 w-full items-center justify-center rounded-md border-2 border-slate-950 bg-slate-950 px-5 py-3 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950 disabled:opacity-60 disabled:hover:bg-slate-950 disabled:hover:text-white lg:w-auto"
+                  className="inline-flex min-h-12 w-full items-center justify-center rounded-md border border-slate-200 bg-slate-950 px-5 py-3 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950 disabled:opacity-60 disabled:hover:bg-slate-950 disabled:hover:text-white lg:w-auto"
                 >
                   {emailState === 'submitting' ? copy.auth.sending : copy.auth.sendSignInLink}
                 </button>

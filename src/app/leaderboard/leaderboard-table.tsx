@@ -187,7 +187,7 @@ function LeaderboardMobileRow({
         </div>
         <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
           <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{t.frontierLabel}</dt>
-          <dd className="mt-1 flex items-center gap-2 font-medium text-slate-900">
+          <dd className="mt-1 flex items-center gap-2 font-medium text-slate-900 tabular-nums">
             <span
               aria-hidden="true"
               className={`inline-flex h-2.5 w-2.5 rounded-md ${bandDotClasses(entry.best_color_band ?? null)}`}
@@ -197,7 +197,7 @@ function LeaderboardMobileRow({
         </div>
         <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
           <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{t.solveTimeLabel}</dt>
-          <dd className="mt-1 font-medium text-slate-900">
+          <dd className="mt-1 font-medium text-slate-900 tabular-nums">
             {formatSolveTime(entry.solve_time_seconds)}
             {entry.efficiency_badge ? ' ⚡' : ''}
           </dd>
@@ -285,7 +285,7 @@ function LeaderboardDesktopRow({
       </td>
       <td className="border-b border-slate-100 px-2 py-1.5 font-medium text-slate-900">
         <div className="flex flex-col gap-1">
-          <span>{formatScore(entry.best_score_on_highest)}</span>
+          <span className="tabular-nums">{formatScore(entry.best_score_on_highest)}</span>
           <span className="flex items-center gap-1 text-xs text-slate-400">
             <span
               aria-hidden="true"
@@ -297,7 +297,7 @@ function LeaderboardDesktopRow({
       </td>
       <td className="border-b border-slate-100 px-2 py-1.5 font-medium text-slate-900">
         <div className="flex flex-col gap-1">
-          <span>{formatSolveTime(entry.solve_time_seconds)}</span>
+          <span className="tabular-nums">{formatSolveTime(entry.solve_time_seconds)}</span>
           <span className="text-xs text-slate-400">
             {entry.efficiency_badge ? t.efficiencyBadge : t.timeTieBreak}
           </span>

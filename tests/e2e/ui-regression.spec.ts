@@ -401,7 +401,7 @@ test.describe('frontend UI regression', () => {
 
     await page.getByRole('button', { name: 'Copy L0 smoke test' }).first().click();
     await expect(page.getByRole('button', { name: 'Copied L0 smoke test' }).first()).toBeVisible();
-    await expect.poll(() => readClipboard(page)).toContain('https://kolkarena.com/api/challenge/0');
+    await expect.poll(() => readClipboard(page)).toContain('https://www.kolkarena.com/api/challenge/0');
     await expect(page.getByText('#1 · Fetch L0 and preserve the anonymous session cookie')).toBeVisible();
     await expect(page.getByText('#2 · Submit with the same cookie jar and attemptToken')).toBeVisible();
     await page.getByRole('button', { name: 'Copy this step #1' }).first().click();

@@ -127,15 +127,15 @@ export function PlayClient() {
     <main className="min-h-screen bg-slate-50 text-slate-950">
       <section className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
         <header className="space-y-3">
-          <div className="inline-flex w-fit items-center rounded-md border-2 border-emerald-700 bg-emerald-50 px-3 py-1 font-mono text-xs font-semibold uppercase tracking-[0.2em] text-emerald-800">
+          <div className="inline-flex w-fit items-center rounded-md border-2 border-emerald-700 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-800">
             {copy.play.badge}
           </div>
           <h1 className="text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">{copy.play.title}</h1>
           <p className="max-w-3xl text-base leading-7 text-slate-700">
             {copy.play.bodyPrefix}
-            <code className="rounded-md border-2 border-slate-950 bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-950">summary</code>,{' '}
-            <code className="rounded-md border-2 border-slate-950 bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-950">fieldScores</code>, and{' '}
-            <code className="rounded-md border-2 border-slate-950 bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-950">qualitySubscores</code>
+            <code className="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-950">summary</code>,{' '}
+            <code className="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-950">fieldScores</code>, and{' '}
+            <code className="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-950">qualitySubscores</code>
             {copy.play.bodySuffix}
           </p>
           <p className="text-sm text-slate-700" aria-live="polite">
@@ -170,20 +170,20 @@ export function PlayClient() {
             {primaryAction ? (
               <Link
                 href={primaryAction.href}
-                className="inline-flex items-center rounded-md border-2 border-slate-950 bg-slate-950 px-5 py-3 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
+                className="inline-flex items-center rounded-md border border-slate-200 bg-slate-950 px-5 py-3 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
               >
                 {primaryAction.label}
               </Link>
             ) : null}
             <Link
               href="/leaderboard"
-              className="inline-flex items-center rounded-md border-2 border-slate-950 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+              className="inline-flex items-center rounded-md border border-slate-200 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
             >
               {actions.openLeaderboard}
             </Link>
             <Link
               href="/profile"
-              className="inline-flex items-center rounded-md border-2 border-slate-950 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+              className="inline-flex items-center rounded-md border border-slate-200 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
             >
               {actions.openProfile}
             </Link>
@@ -191,8 +191,8 @@ export function PlayClient() {
         </header>
 
         <section className="grid gap-4 sm:grid-cols-3">
-          <article className="rounded-md border-2 border-slate-950 bg-white p-5">
-            <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">{summary.modeLabel}</p>
+          <article className="rounded-md border border-slate-200 bg-white p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">{summary.modeLabel}</p>
             <p className="mt-2 text-xl font-black tracking-tight text-slate-950">
               {auth.status === 'loading' ? summary.loadingValue : signedIn ? summary.signedInMode : summary.anonymousMode}
             </p>
@@ -200,8 +200,8 @@ export function PlayClient() {
               {signedIn ? summary.signedInUnlockHint : summary.anonymousUnlockHint}
             </p>
           </article>
-          <article className="rounded-md border-2 border-slate-950 bg-white p-5">
-            <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">{summary.progressLabel}</p>
+          <article className="rounded-md border border-slate-200 bg-white p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">{summary.progressLabel}</p>
             <p className="mt-2 text-xl font-black tracking-tight text-slate-950">
               {auth.status === 'loading' ? summary.loadingValue : summary.progressValue(maxLevel)}
             </p>
@@ -209,8 +209,8 @@ export function PlayClient() {
               {signedIn ? summary.signedInUnlockHint : summary.anonymousUnlockHint}
             </p>
           </article>
-          <article className="rounded-md border-2 border-slate-950 bg-white p-5">
-            <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">{summary.nextLabel}</p>
+          <article className="rounded-md border border-slate-200 bg-white p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">{summary.nextLabel}</p>
             <p className="mt-2 text-xl font-black tracking-tight text-slate-950">
               {auth.status === 'loading'
                 ? summary.loadingValue
@@ -233,8 +233,8 @@ export function PlayClient() {
         </section>
 
         <section className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-          <article className="min-w-0 rounded-md border-2 border-slate-950 bg-white p-6">
-            <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">
+          <article className="min-w-0 rounded-md border border-slate-200 bg-white p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">
               {copy.play.agentPanel.eyebrow}
             </p>
             <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">
@@ -243,8 +243,8 @@ export function PlayClient() {
             <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-700">
               {copy.play.agentPanel.body}
             </p>
-            <div className="mt-5 rounded-md border-2 border-slate-950 bg-slate-50 p-4">
-              <p className="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">
+            <div className="mt-5 rounded-md border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">
                 {copy.play.agentPanel.directEyebrow}
               </p>
               <p className="mt-2 text-sm leading-6 text-slate-700">
@@ -255,7 +255,7 @@ export function PlayClient() {
                   value={agentStarterPrompt}
                   idleLabel={copy.play.agentPanel.copyAgentPrompt}
                   copiedLabel={copy.play.agentPanel.copiedAgentPrompt}
-                  className="inline-flex w-full items-center justify-center rounded-md border-2 border-slate-950 bg-slate-950 px-4 py-2.5 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950 sm:w-auto"
+                  className="inline-flex w-full items-center justify-center rounded-md border border-slate-200 bg-slate-950 px-4 py-2.5 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950 sm:w-auto"
                 />
                 {(['claude', 'chatgpt', 'gemini', 'perplexity'] as const).map((service) => {
                   const link = buildAiDeepLink(service, agentStarterPrompt);
@@ -267,7 +267,7 @@ export function PlayClient() {
                       href={link.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex w-full items-center justify-center gap-1.5 rounded-md border-2 border-slate-950 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white sm:w-auto"
+                      className="inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white sm:w-auto"
                       title={link.truncated ? copy.challenge.agentPanel.openInTruncatedHint : undefined}
                     >
                       {icon ? <span aria-hidden="true">{icon}</span> : null}
@@ -279,8 +279,8 @@ export function PlayClient() {
             </div>
           </article>
 
-          <aside className="min-w-0 rounded-md border-2 border-slate-950 bg-white p-6">
-            <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">
+          <aside className="min-w-0 rounded-md border border-slate-200 bg-white p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">
               {copy.play.agentPanel.resourcesEyebrow}
             </p>
             <h3 className="mt-2 text-lg font-black tracking-tight text-slate-950">
@@ -294,13 +294,13 @@ export function PlayClient() {
                 value={submitContractSnippet}
                 idleLabel={copy.play.agentPanel.copySubmitContract}
                 copiedLabel={copy.play.agentPanel.copiedSubmitContract}
-                className="inline-flex w-full items-center justify-center rounded-md border-2 border-slate-950 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white sm:w-auto"
+                className="inline-flex w-full items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white sm:w-auto"
               />
               <a
                 href="https://github.com/kolk-arena/app/blob/main/docs/INTEGRATION_GUIDE.md"
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex w-full items-center justify-center rounded-md border-2 border-slate-950 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white sm:w-auto"
+                className="inline-flex w-full items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white sm:w-auto"
               >
                 {copy.play.agentPanel.guideCta}
               </a>
@@ -322,13 +322,13 @@ export function PlayClient() {
             return (
               <article
                 key={card.level}
-                className={`flex flex-col gap-3 rounded-md border-2 bg-white p-5 sm:p-6 ${
-                  isRecommended ? 'border-slate-950 ring-2 ring-emerald-600 ring-offset-2' : 'border-slate-950'
+                className={`flex flex-col gap-3 rounded-md border border-slate-200 bg-white p-5 sm:p-6 ${
+                  isRecommended ? 'ring-2 ring-emerald-600 ring-offset-2' : ''
                 }`}
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-md border-2 border-slate-950 bg-slate-950 font-mono text-sm font-black text-white">
+                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 bg-slate-950 font-mono text-sm font-black text-white">
                       L{card.level}
                     </span>
                     <div>
@@ -336,28 +336,28 @@ export function PlayClient() {
                       <p className="font-mono text-xs font-medium text-slate-700">{playUi.suggestedTime(card.suggestedTimeMinutes)}</p>
                     </div>
                   </div>
-                  <span className={`rounded-md border-2 px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] ${bandBadge(card.band)}`}>
+                  <span className={`rounded-md border-2 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${bandBadge(card.band)}`}>
                     {playUi.bandLabel(card.band)}
                   </span>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
                   {isRecommended ? (
-                    <span className="inline-flex items-center rounded-md border-2 border-slate-950 bg-slate-950 px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-white">
+                    <span className="inline-flex items-center rounded-md border border-slate-200 bg-slate-950 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white">
                       {playUi.recommendedBadge}
                     </span>
                   ) : null}
                   {isCleared ? (
-                    <span className="inline-flex items-center rounded-md border-2 border-emerald-700 bg-emerald-50 px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-800">
+                    <span className="inline-flex items-center rounded-md border-2 border-emerald-700 bg-emerald-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-800">
                       {playUi.clearedBadge}
                     </span>
                   ) : !isLocked && !isBlockedByProgression ? (
-                    <span className="inline-flex items-center rounded-md border-2 border-sky-700 bg-sky-50 px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-800">
+                    <span className="inline-flex items-center rounded-md border-2 border-sky-700 bg-sky-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-800">
                       {playUi.availableBadge}
                     </span>
                   ) : null}
                   <span
-                    className={`inline-flex items-center rounded-md border-2 px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] ${
+                    className={`inline-flex items-center rounded-md border-2 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${
                       requiresAuth
                         ? 'border-rose-700 bg-rose-50 text-rose-800'
                         : 'border-slate-950 bg-slate-50 text-slate-800'
@@ -372,36 +372,36 @@ export function PlayClient() {
                 <div className="mt-auto flex flex-wrap items-center gap-2 pt-2">
                   {isL0 ? (
                     <>
-                      <span className="inline-flex items-center rounded-md border-2 border-slate-950 bg-slate-50 px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-700">
+                      <span className="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-700">
                         {playUi.smokeTestBadge}
                       </span>
                       <Link
                         href="/challenge/0"
-                        className="inline-flex items-center rounded-md border-2 border-slate-950 bg-white px-4 py-2 font-mono text-xs font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+                        className="inline-flex items-center rounded-md border border-slate-200 bg-white px-4 py-2 font-mono text-xs font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
                       >
                         {playUi.runLevel0}
                       </Link>
                     </>
                   ) : isLocked ? (
                     <>
-                      <span className="inline-flex items-center rounded-md border-2 border-rose-700 bg-rose-50 px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-rose-800">
+                      <span className="inline-flex items-center rounded-md border-2 border-rose-700 bg-rose-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-rose-800">
                         {playUi.signInRequiredBadge}
                       </span>
                       <Link
                         href="/profile"
-                        className="inline-flex items-center rounded-md border-2 border-slate-950 bg-slate-950 px-4 py-2 font-mono text-xs font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
+                        className="inline-flex items-center rounded-md border border-slate-200 bg-slate-950 px-4 py-2 font-mono text-xs font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
                       >
                         {playUi.signInUnlockLevels}
                       </Link>
                     </>
                   ) : isBlockedByProgression ? (
                     <>
-                      <span className="inline-flex items-center rounded-md border-2 border-amber-700 bg-amber-50 px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-800">
+                      <span className="inline-flex items-center rounded-md border-2 border-amber-700 bg-amber-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-800">
                         {playUi.progressionLocked(card.level - 1)}
                       </span>
                       <Link
                         href={`/challenge/${card.level - 1}`}
-                        className="inline-flex items-center rounded-md border-2 border-slate-950 bg-white px-4 py-2 font-mono text-xs font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+                        className="inline-flex items-center rounded-md border border-slate-200 bg-white px-4 py-2 font-mono text-xs font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
                       >
                         {playUi.goToLevel(card.level - 1)}
                       </Link>
@@ -409,7 +409,7 @@ export function PlayClient() {
                   ) : (
                     <Link
                       href={`/challenge/${card.level}`}
-                      className="inline-flex items-center rounded-md border-2 border-slate-950 bg-slate-950 px-4 py-2 font-mono text-xs font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
+                      className="inline-flex items-center rounded-md border border-slate-200 bg-slate-950 px-4 py-2 font-mono text-xs font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
                     >
                       {playUi.startLevel(card.level)}
                     </Link>
@@ -420,8 +420,8 @@ export function PlayClient() {
           })}
         </div>
 
-        <aside className="rounded-md border-2 border-slate-950 bg-white p-6 text-sm leading-7 text-slate-700">
-          <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">{copy.play.contract.eyebrow}</p>
+        <aside className="rounded-md border border-slate-200 bg-white p-6 text-sm leading-7 text-slate-700">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">{copy.play.contract.eyebrow}</p>
           <ul className="mt-2 list-inside list-disc space-y-1">
             {copy.play.contract.bullets.map((bullet) => (
               <li key={bullet}>{bullet}</li>

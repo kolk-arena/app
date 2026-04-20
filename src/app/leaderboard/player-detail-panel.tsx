@@ -131,7 +131,7 @@ export function PlayerDetailPanel({
     return (
       <aside
         id={panelId}
-        className="rounded-none border-2 border-slate-900 bg-white shadow-[8px_8px_0px_0px_#0f172a]"
+        className="rounded-none border border-slate-200 bg-white shadow-[8px_8px_0px_0px_#0f172a]"
         aria-live="polite"
       >
         <div className="border-b border-slate-200 px-4 py-4 sm:px-5">
@@ -149,7 +149,7 @@ export function PlayerDetailPanel({
     return (
       <aside
         id={panelId}
-        className="rounded-none border-2 border-slate-900 bg-white shadow-[8px_8px_0px_0px_#0f172a]"
+        className="rounded-none border border-slate-200 bg-white shadow-[8px_8px_0px_0px_#0f172a]"
         aria-live="polite"
         aria-busy="true"
       >
@@ -162,7 +162,7 @@ export function PlayerDetailPanel({
     return (
       <aside
         id={panelId}
-        className="rounded-none border-2 border-slate-900 bg-rose-50 shadow-[8px_8px_0px_0px_#0f172a]"
+        className="rounded-none border border-slate-200 bg-rose-50 shadow-[8px_8px_0px_0px_#0f172a]"
         aria-live="polite"
       >
         <div className="px-4 py-6 text-sm text-rose-900 sm:px-5">
@@ -173,14 +173,14 @@ export function PlayerDetailPanel({
               <button
                 type="button"
                 onClick={onRetry}
-                className="inline-flex min-h-11 items-center rounded-md border-2 border-rose-700 bg-white px-3 py-2 font-mono text-xs font-semibold uppercase tracking-[0.12em] text-rose-800 transition-colors duration-150 hover:bg-rose-700 hover:text-white"
+                className="inline-flex min-h-11 items-center rounded-md border-2 border-rose-700 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-rose-800 transition-colors duration-150 hover:bg-rose-700 hover:text-white"
               >
                 {pd.retry}
               </button>
               <button
                 type="button"
                 onClick={onClear}
-                className="inline-flex min-h-11 items-center rounded-md border-2 border-rose-700 bg-white px-3 py-2 font-mono text-xs font-semibold uppercase tracking-[0.12em] text-rose-800 transition-colors duration-150 hover:bg-rose-700 hover:text-white"
+                className="inline-flex min-h-11 items-center rounded-md border-2 border-rose-700 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-rose-800 transition-colors duration-150 hover:bg-rose-700 hover:text-white"
               >
                 {pd.clearSelection}
               </button>
@@ -225,7 +225,7 @@ export function PlayerDetailPanel({
   return (
     <aside
       id={panelId}
-      className="overflow-hidden rounded-none border-2 border-slate-900 bg-white shadow-[8px_8px_0px_0px_#0f172a]"
+      className="overflow-hidden rounded-none border border-slate-200 bg-white shadow-[8px_8px_0px_0px_#0f172a]"
       aria-live="polite"
     >
       <div className="border-b border-slate-200 px-4 py-4 sm:px-5">
@@ -239,7 +239,7 @@ export function PlayerDetailPanel({
               {detail.userRow.handle ? `@${detail.userRow.handle}` : pd.noPublicHandle}
             </p>
             {detail.userRow.pioneer === true ? (
-              <p className="mt-2 inline-flex rounded-none border-2 border-slate-900 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-800">
+              <p className="mt-2 inline-flex rounded-none border border-slate-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-800">
                 {pd.betaPioneerBadge}
               </p>
             ) : null}
@@ -257,12 +257,12 @@ export function PlayerDetailPanel({
               value={publicProfileUrl}
               idleLabel={pd.copyProfileLink}
               copiedLabel={pd.copiedProfileLink}
-              className="inline-flex min-h-11 items-center rounded-md border-2 border-slate-950 bg-white px-3 py-2 font-mono text-xs font-semibold uppercase tracking-[0.12em] text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+              className="inline-flex min-h-11 items-center rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
             />
             <button
               type="button"
               onClick={onClear}
-              className="inline-flex min-h-11 items-center rounded-md border-2 border-slate-950 bg-white px-3 py-2 font-mono text-xs font-semibold uppercase tracking-[0.12em] text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+              className="inline-flex min-h-11 items-center rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
             >
               {pd.clearShort}
             </button>
@@ -272,40 +272,40 @@ export function PlayerDetailPanel({
 
       <div className="space-y-4 px-4 py-4 sm:px-5">
         <div className="grid gap-3 sm:grid-cols-3">
-          <div className="rounded-none border-2 border-slate-900 bg-slate-50 px-4 py-3">
+          <div className="rounded-none border border-slate-200 bg-slate-50 px-4 py-3">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.highestLevel}</p>
-            <p className="mt-2 text-2xl font-semibold text-slate-950">L{highestLevel}</p>
+            <p className="mt-2 text-2xl font-semibold text-slate-950 tabular-nums">L{highestLevel}</p>
           </div>
-          <div className="rounded-none border-2 border-slate-900 bg-slate-50 px-4 py-3">
+          <div className="rounded-none border border-slate-200 bg-slate-50 px-4 py-3">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.totalScore}</p>
-            <p className="mt-2 text-2xl font-semibold text-slate-950">{formatScore(totalScore)}</p>
+            <p className="mt-2 text-2xl font-semibold text-slate-950 tabular-nums">{formatScore(totalScore)}</p>
           </div>
-          <div className="rounded-none border-2 border-slate-900 bg-slate-50 px-4 py-3">
+          <div className="rounded-none border border-slate-200 bg-slate-50 px-4 py-3">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.levelsCompleted}</p>
-            <p className="mt-2 text-2xl font-semibold text-slate-950">{levelsCompleted}</p>
+            <p className="mt-2 text-2xl font-semibold text-slate-950 tabular-nums">{levelsCompleted}</p>
           </div>
         </div>
 
         <dl className="grid gap-3 text-sm sm:grid-cols-2">
-          <div className="rounded-none border-2 border-slate-900 px-4 py-3">
+          <div className="rounded-none border border-slate-200 px-4 py-3">
             <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.schoolLabel}</dt>
             <dd className="mt-2 break-words font-medium text-slate-900">{detail.userRow.school ?? pd.schoolFallback}</dd>
           </div>
-          <div className="rounded-none border-2 border-slate-900 px-4 py-3">
+          <div className="rounded-none border border-slate-200 px-4 py-3">
             <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.frameworkLabel}</dt>
             <dd className="mt-2 break-words font-medium text-slate-900">{detail.userRow.framework ?? pd.frameworkFallback}</dd>
           </div>
-          <div className="rounded-none border-2 border-slate-900 px-4 py-3">
+          <div className="rounded-none border border-slate-200 px-4 py-3">
             <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.countryLabel}</dt>
             <dd className="mt-2 font-medium text-slate-900">{detail.userRow.country ?? pd.countryFallback}</dd>
           </div>
-          <div className="rounded-none border-2 border-slate-900 px-4 py-3">
+          <div className="rounded-none border border-slate-200 px-4 py-3">
             <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.lastSubmissionLabel}</dt>
             <dd className="mt-2 font-medium text-slate-900">{formatDate(lastSubmissionAt)}</dd>
           </div>
         </dl>
 
-        <div className="rounded-none border-2 border-slate-900 bg-slate-50 px-4 py-4">
+        <div className="rounded-none border border-slate-200 bg-slate-50 px-4 py-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.bestScoresHeading}</p>
@@ -313,7 +313,7 @@ export function PlayerDetailPanel({
             </div>
             <Link
               href={fullPageHref}
-              className="inline-flex min-h-11 items-center rounded-md border-2 border-slate-950 bg-white px-3 py-2 font-mono text-xs font-semibold uppercase tracking-[0.12em] text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+              className="inline-flex min-h-11 items-center rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
             >
               {pd.openPage}
             </Link>
@@ -324,11 +324,11 @@ export function PlayerDetailPanel({
               levelCards.map((entry) => (
                 <span
                   key={entry.level}
-                  className="inline-flex items-center gap-2 rounded-none border-2 border-slate-900 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700"
+                  className="inline-flex items-center gap-2 rounded-none border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700"
                 >
-                  <span>L{entry.level}</span>
+                  <span className="tabular-nums">L{entry.level}</span>
                   <span className="text-slate-400">·</span>
-                  <span>{formatScore(entry.score)}</span>
+                  <span className="tabular-nums">{formatScore(entry.score)}</span>
                 </span>
               ))
             ) : (
@@ -338,7 +338,7 @@ export function PlayerDetailPanel({
         </div>
 
         {sidebarBadge ? (
-          <div className="rounded-none border-2 border-slate-900 bg-slate-50 px-4 py-4">
+          <div className="rounded-none border border-slate-200 bg-slate-50 px-4 py-4">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
               {badgeCopy.sidebarEyebrow}
             </p>
@@ -350,13 +350,13 @@ export function PlayerDetailPanel({
                 idleLabel={badgeCopy.sidebarCopyButton}
                 copiedLabel={badgeCopy.sidebarCopiedButton}
                 failedLabel={badgeCopy.copyFailed}
-                className="inline-flex min-h-11 items-center rounded-md border-2 border-slate-950 bg-white px-3 py-2 font-mono text-xs font-semibold uppercase tracking-[0.12em] text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+                className="inline-flex min-h-11 items-center rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
               />
             </div>
           </div>
         ) : null}
 
-        <div className="rounded-none border-2 border-slate-900">
+        <div className="rounded-none border border-slate-200">
           <div className="border-b border-slate-200 px-4 py-3">
             <h3 className="text-sm font-semibold text-slate-950">{pd.recentSubmissionsHeading}</h3>
             <p className="mt-1 text-sm text-slate-500">{pd.recentSubmissionsSubtitle}</p>
@@ -369,10 +369,10 @@ export function PlayerDetailPanel({
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="inline-flex rounded-md border-2 border-slate-950 bg-slate-50 px-2.5 py-1 font-mono text-xs font-semibold uppercase tracking-[0.12em] text-slate-950">
+                        <span className="inline-flex rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-950">
                           {pd.levelLabel(submission.level)}
                         </span>
-                        <span className="text-sm font-semibold text-slate-950">{formatScore(submission.total_score)}</span>
+                        <span className="text-sm font-semibold text-slate-950 tabular-nums">{formatScore(submission.total_score)}</span>
                         <span className="text-sm text-slate-400">{pd.totalSuffix}</span>
                       </div>
                       <p className="mt-2 break-words text-sm leading-6 text-slate-600">
@@ -385,17 +385,17 @@ export function PlayerDetailPanel({
                   </div>
 
                   <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                    <div className="rounded-none border-2 border-slate-900 bg-slate-50 px-3 py-3">
+                    <div className="rounded-none border border-slate-200 bg-slate-50 px-3 py-3">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.structureLabel}</p>
-                      <p className="mt-2 text-base font-semibold text-slate-950">{formatScore(submission.structure_score)}</p>
+                      <p className="mt-2 text-base font-semibold text-slate-950 tabular-nums">{formatScore(submission.structure_score)}</p>
                     </div>
-                    <div className="rounded-none border-2 border-slate-900 bg-slate-50 px-3 py-3">
+                    <div className="rounded-none border border-slate-200 bg-slate-50 px-3 py-3">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.coverageLabel}</p>
-                      <p className="mt-2 text-base font-semibold text-slate-950">{formatScore(submission.coverage_score)}</p>
+                      <p className="mt-2 text-base font-semibold text-slate-950 tabular-nums">{formatScore(submission.coverage_score)}</p>
                     </div>
-                    <div className="rounded-none border-2 border-slate-900 bg-slate-50 px-3 py-3">
+                    <div className="rounded-none border border-slate-200 bg-slate-50 px-3 py-3">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{pd.qualityLabel}</p>
-                      <p className="mt-2 text-base font-semibold text-slate-950">{formatScore(submission.quality_score)}</p>
+                      <p className="mt-2 text-base font-semibold text-slate-950 tabular-nums">{formatScore(submission.quality_score)}</p>
                     </div>
                   </div>
 
@@ -405,20 +405,20 @@ export function PlayerDetailPanel({
                         href={submission.repo_url}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center rounded-none border-2 border-slate-900 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                        className="inline-flex items-center rounded-none border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
                       >
                         {pd.viewRepo}
                       </a>
                     ) : null}
                     {submission.commit_hash ? (
-                      <code className="max-w-full overflow-x-auto rounded-none border-2 border-slate-900 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">
+                      <code className="max-w-full overflow-x-auto rounded-none border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">
                         {submission.commit_hash}
                       </code>
                     ) : null}
                     {normalizeFlags(submission.flags).map((flag) => (
                       <span
                         key={flag}
-                        className="inline-flex items-center rounded-none border-2 border-slate-900 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700"
+                        className="inline-flex items-center rounded-none border border-slate-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700"
                       >
                         {flag}
                       </span>
