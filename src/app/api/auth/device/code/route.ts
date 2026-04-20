@@ -11,13 +11,27 @@ import {
   generateUserCode,
 } from '@/lib/kolk/device-flow';
 import { normalizeScopes } from '@/lib/kolk/tokens';
+import { createIpRateLimiter, getClientIp } from '@/lib/kolk/rate-limit';
 
 const DeviceCodeRequestSchema = z.object({
   client_id: z.string().trim().min(1),
   scopes: z.array(z.string().trim().min(1)).optional(),
 });
 
+// RFC 8628 device flow is unauthenticated by design. Without this guard a
+// single IP could flood `ka_device_codes` with orphaned rows. 10/min/IP
+// fits legitimate CLI retries (plus the poll loop) comfortably.
+const RATE_LIMITER = createIpRateLimiter({ windowMs: 60_000, maxPerWindow: 10 });
+
 export async function POST(request: NextRequest) {
+  if (!RATE_LIMITER.check(getClientIp(request))) {
+    return NextResponse.json(
+      { error: 'Too many device-code requests from this IP. Try again in a minute.', code: 'RATE_LIMITED' },
+      { status: 429 },
+    );
+  }
+
+
   let body: unknown;
   try {
     body = await request.json();

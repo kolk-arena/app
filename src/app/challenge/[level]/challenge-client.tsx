@@ -25,6 +25,7 @@ import {
   getCursorRules,
   dryRunValidation,
 } from '@/lib/frontend/agent-handoff';
+import { MAX_PRIMARY_TEXT_CHARS } from '@/lib/kolk/constants';
 
 /**
  * Map a server-emitted error code → localized UI message. The wire-side
@@ -961,6 +962,11 @@ export function ChallengeClient({ level }: { level: number }) {
         onChange={(e) => setPrimaryText(e.target.value)}
         rows={level === 5 ? 14 : 18}
         spellCheck={level !== 5}
+        // Matches the server cap in `src/lib/kolk/constants/index.ts`. The
+        // submit route still hard-enforces via HTTP 422 TEXT_TOO_LONG, but
+        // stopping over-long pastes at the input saves the round-trip and
+        // makes the failure mode legible to the user.
+        maxLength={MAX_PRIMARY_TEXT_CHARS}
         className="w-full rounded-md border border-slate-200 bg-slate-950 p-4 font-mono tabular-nums text-slate-100 outline-none transition focus:ring-2 focus:ring-emerald-500"
         placeholder={deliveryPlaceholder}
       />

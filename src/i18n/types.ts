@@ -70,6 +70,12 @@ export interface FrontendCatalog {
     profile: string;
     github: string;
   };
+  footer: {
+    copyright: string;
+    contactLabel: string;
+    contactEmail: string;
+    github: string;
+  };
   notFound: {
     code: string;
     title: string;

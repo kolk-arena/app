@@ -7,8 +7,23 @@ import { createRouteHandlerSupabaseClient } from '@/lib/kolk/db';
 import { VerifyInputSchema } from '@/lib/kolk/types';
 import { syncArenaIdentityFromSupabaseUser } from '@/lib/kolk/auth/server';
 import { normalizeEmail } from '@/lib/kolk/auth';
+import { createIpRateLimiter, getClientIp } from '@/lib/kolk/rate-limit';
+
+// 6-digit OTP brute-force defence. 10/min/IP is large enough for a user
+// mistyping the code twice, small enough that even ~1k legitimate attempts
+// are needed to randomly guess a 10^6 space. Supabase's own OTP TTL caps
+// the attack window separately.
+const RATE_LIMITER = createIpRateLimiter({ windowMs: 60_000, maxPerWindow: 10 });
 
 export async function POST(request: NextRequest) {
+  if (!RATE_LIMITER.check(getClientIp(request))) {
+    return NextResponse.json(
+      { error: 'Too many verification attempts from this IP. Try again in a minute.', code: 'RATE_LIMITED' },
+      { status: 429 },
+    );
+  }
+
+
   let body: unknown;
   try {
     body = await request.json();

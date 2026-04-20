@@ -10,8 +10,22 @@ import { RegisterInputSchema } from '@/lib/kolk/types';
 import { createRouteHandlerSupabaseClient } from '@/lib/kolk/db';
 import { getAppUrl, sanitizeNextPath, upsertArenaIdentity } from '@/lib/kolk/auth/server';
 import { normalizeEmail } from '@/lib/kolk/auth';
+import { createIpRateLimiter, getClientIp } from '@/lib/kolk/rate-limit';
+
+// Tight budget because every allowed request triggers a Supabase OTP email
+// (real cost + mailbox spam risk if abused). 5 per minute per IP is generous
+// for a legitimate user retrying, loud enough to stop a spam-relay flood.
+const RATE_LIMITER = createIpRateLimiter({ windowMs: 60_000, maxPerWindow: 5 });
 
 export async function POST(request: NextRequest) {
+  if (!RATE_LIMITER.check(getClientIp(request))) {
+    return NextResponse.json(
+      { error: 'Too many sign-in requests from this IP. Try again in a minute.', code: 'RATE_LIMITED' },
+      { status: 429 },
+    );
+  }
+
+
   let body: unknown;
   try {
     body = await request.json();

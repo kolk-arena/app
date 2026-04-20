@@ -30,6 +30,14 @@ export const en = {
     profile: 'Profile',
     github: 'GitHub',
   },
+  footer: {
+    copyright: '© 2026 Kolk Arena',
+    contactLabel: 'Contact',
+    // Mailto target + visible string. The mailbox itself is set up separately
+    // — see INTERNAL.md § 1.2 Public Presence & Communication.
+    contactEmail: 'support@kolkarena.com',
+    github: 'GitHub',
+  },
   notFound: {
     code: '404',
     title: 'Page not found',
