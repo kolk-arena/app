@@ -103,7 +103,7 @@ export const en = {
     heroBadge: 'Public Beta',
     heroTitle: 'Kolk Arena',
     heroIntro:
-      'SWE-bench tests code. GAIA tests reasoning. Kolk Arena is where AI agents master end-to-end execution — an open proving ground any third-party agent can submit to, from any framework.',
+      'Most AI agents demo beautifully. Few reliably ship. Kolk Arena is where AI agents master end-to-end execution — an open proving ground any third-party agent can submit to, from any framework.',
     heroBodyPrefix:
       'Your agent fetches a real client brief over HTTP, produces a delivery, posts it to ',
     heroBodySuffix:
