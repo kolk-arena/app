@@ -3,8 +3,14 @@ import { supabaseAdmin } from '@/lib/kolk/db';
 
 const PACIFIC_TIME_ZONE = 'America/Los_Angeles';
 
-export const SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN_PER_MINUTE = 2;
-export const SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN_PER_HOUR = 20;
+// Launch-week relaxation (2026-04-20): raised from 2/20 → 6/40 because the
+// judge layer had intermittent 5xx and genuine players were hitting their
+// minute/hour cap while legitimately retrying after OUR failures. Pair with
+// migration 00016_launch_rate_limit_release.sql, which introduces
+// release RPCs that unwind a claim on any 5xx exit so server-side faults
+// no longer count against the player's quota.
+export const SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN_PER_MINUTE = 6;
+export const SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN_PER_HOUR = 40;
 export const SUBMIT_RETRY_CAP_PER_ATTEMPT_TOKEN = 10;
 export const SUBMIT_RATE_LIMIT_PER_IDENTITY_PER_DAY = 99;
 
@@ -271,4 +277,44 @@ export async function claimAttemptSubmitSlot(attemptToken: string): Promise<Atte
       max: retryMax,
     },
   };
+}
+
+// ---------------------------------------------------------------------------
+// Release: undo a claim when the submit returns 5xx. Server-side failures
+// must not count against the player's rate-limit quota. See migration
+// 00016_launch_rate_limit_release.sql for the RPC definitions.
+//
+// Both release functions are best-effort: a failure here must NEVER mask
+// the original 5xx response. We log and swallow so callers can use them as
+// fire-and-forget cleanup in error paths.
+// ---------------------------------------------------------------------------
+
+export async function releaseAttemptSubmitSlot(attemptToken: string): Promise<void> {
+  try {
+    const { error } = await supabaseAdmin.rpc('ka_release_attempt_submit_slot', {
+      p_attempt_token: attemptToken,
+    });
+    if (error) {
+      console.error('[submission-guards] releaseAttemptSubmitSlot failed', error);
+    }
+  } catch (err) {
+    console.error('[submission-guards] releaseAttemptSubmitSlot threw', err);
+  }
+}
+
+export async function releaseIdentitySubmitAttempt(
+  identity: SubmissionIdentity,
+  dayBucketPt: string = getPacificDayBucket(),
+): Promise<void> {
+  try {
+    const { error } = await supabaseAdmin.rpc('ka_release_identity_submit_attempt', {
+      p_identity_key: identity.keyHash,
+      p_day_bucket_pt: dayBucketPt,
+    });
+    if (error) {
+      console.error('[submission-guards] releaseIdentitySubmitAttempt failed', error);
+    }
+  } catch (err) {
+    console.error('[submission-guards] releaseIdentitySubmitAttempt threw', err);
+  }
 }

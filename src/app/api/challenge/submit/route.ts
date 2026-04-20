@@ -9,7 +9,7 @@
  * 5. Reject if already consumed by a prior passing submission (409 ATTEMPT_ALREADY_PASSED)
  * 6. Enforce 24h deadline (408 ATTEMPT_TOKEN_EXPIRED)
  * 7. Identity-bind: session owner must match caller
- * 8. Rate-limit per attemptToken (2/min) — not per account
+ * 8. Rate-limit per attemptToken (6/min, 40/hour) — not per account; 5xx refund via releaseClaimsOnServerFailure
  * 9. Run scoring (L0 deterministic check or Layer 1 -> AI judge)
  * 10. Persist submission (multiple submissions per session allowed)
  * 11. Mark consumed_at only if Dual-Gate cleared
@@ -43,6 +43,9 @@ import {
   buildSubmissionIdentity,
   claimAttemptSubmitSlot,
   claimIdentitySubmitAttempt,
+  releaseAttemptSubmitSlot,
+  releaseIdentitySubmitAttempt,
+  type SubmissionIdentity,
 } from '@/lib/kolk/submission-guards';
 
 function parseL5Json(text: string): { ok: true } | { ok: false; message: string; parserPosition?: string } {
@@ -293,6 +296,25 @@ function computeTier(highestLevel: number, levelsCompleted: number): string {
 
 export async function POST(request: NextRequest) {
   let keyHash: string = '';
+  // Launch-week policy (2026-04-20): any 5xx exit AFTER we've claimed a
+  // rate-limit slot must unwind the claim — server-side failures like
+  // judge 503s or DB insert errors are NOT the player's fault and must
+  // not eat their minute/hour/day quota. Paired with migration 00016.
+  let claimedAttemptToken: string | null = null;
+  let claimedIdentity: SubmissionIdentity | null = null;
+  const releaseClaimsOnServerFailure = async () => {
+    const pendingAttempt = claimedAttemptToken
+      ? releaseAttemptSubmitSlot(claimedAttemptToken)
+      : Promise.resolve();
+    const pendingIdentity = claimedIdentity
+      ? releaseIdentitySubmitAttempt(claimedIdentity)
+      : Promise.resolve();
+    // Clear BEFORE awaiting so a duplicate call (e.g. from the outer
+    // catch firing after an inner release already ran) is a no-op.
+    claimedAttemptToken = null;
+    claimedIdentity = null;
+    await Promise.allSettled([pendingAttempt, pendingIdentity]);
+  };
 
   try {
     try {
@@ -613,7 +635,7 @@ export async function POST(request: NextRequest) {
 
       const code = attemptGuard.code;
       const message = code === 'RATE_LIMIT_HOUR'
-        ? `20 submissions per hour for this challenge. Try again in ${attemptGuard.retryAfterSeconds} seconds. Warning: continued rapid attempts may result in a 5-hour account freeze.`
+        ? `${attemptGuard.hour.max} submissions per hour for this challenge. Try again in ${attemptGuard.retryAfterSeconds} seconds. Warning: continued rapid attempts may result in a 5-hour account freeze.`
         : `Submit rate limit exceeded. Maximum ${attemptGuard.minute.max} submissions per minute per attemptToken. Retry after ${attemptGuard.retryAfterSeconds}s.`;
 
       return errorResponse({
@@ -636,6 +658,11 @@ export async function POST(request: NextRequest) {
         },
       });
     }
+
+    // Both rate-limit slots are now claimed. Track them so any subsequent
+    // 5xx (SCORING_UNAVAILABLE, SUBMISSION_FAILED, uncaught) can release.
+    claimedAttemptToken = attemptToken;
+    claimedIdentity = submissionIdentity;
 
     if (challenge.level === 5) {
       const l5Json = parseL5Json(primaryText);
@@ -719,7 +746,12 @@ export async function POST(request: NextRequest) {
         const budgetTotal = structuredBrief.budget_total as number | undefined;
         if (budgetTotal != null) layer1Config.mathTotal = budgetTotal;
 
-        const expectedCount = (structuredBrief.item_count ?? structuredBrief.prompt_count ?? structuredBrief.days) as number | undefined;
+        const expectedCount = (
+          structuredBrief.item_count ??
+          structuredBrief.prompt_count ??
+          structuredBrief.trip_days ??
+          structuredBrief.days
+        ) as number | undefined;
         if (expectedCount != null) {
           layer1Config.itemExpected = {
             count: expectedCount,
@@ -751,6 +783,7 @@ export async function POST(request: NextRequest) {
       if (structureScore >= 25) {
         const aiReadiness = getAiReadinessSummary();
         if (!aiReadiness.scoringReady) {
+          await releaseClaimsOnServerFailure();
           return errorResponse({
             keyHash,
             status: 503,
@@ -769,6 +802,7 @@ export async function POST(request: NextRequest) {
           .single();
 
         if (!rubricRow?.rubric_json) {
+          await releaseClaimsOnServerFailure();
           return errorResponse({
             keyHash,
             status: 503,
@@ -799,6 +833,7 @@ export async function POST(request: NextRequest) {
           attemptToken,
         );
         if (judgeResult.error) {
+          await releaseClaimsOnServerFailure();
           return errorResponse({
             keyHash,
             status: 503,
@@ -883,6 +918,9 @@ export async function POST(request: NextRequest) {
       // here is therefore not expected and indicates a different unique index
       // violation — treat as a generic failure.
       void supabaseAdmin.from('ka_idempotency_keys').delete().eq('key_hash', keyHash);
+      // Server-side DB failure — unwind the rate-limit claim so the
+      // player isn't punished for our infra problem.
+      await releaseClaimsOnServerFailure();
       return NextResponse.json(
         { error: 'Failed to save submission', code: 'SUBMISSION_FAILED' },
         { status: 500 },
@@ -966,6 +1004,9 @@ export async function POST(request: NextRequest) {
     if (typeof keyHash === 'string') {
       void supabaseAdmin.from('ka_idempotency_keys').delete().eq('key_hash', keyHash);
     }
+    // Uncaught failures are server-side by definition — if a claim was
+    // in flight, unwind it so the player keeps their minute/hour/day quota.
+    await releaseClaimsOnServerFailure();
     return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   }
 }

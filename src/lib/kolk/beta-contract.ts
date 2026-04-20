@@ -10,8 +10,11 @@ export const COVERAGE_QUALITY_GATE = 15;
 
 // Submit rate limit is scoped to the attemptToken (not the account).
 // See docs/SUBMISSION_API.md §Rate Limiting + §Anti-farming for rationale.
+// Launch-week relaxation (2026-04-20): raised 2 → 6. Canonical source of
+// truth is SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN_PER_MINUTE in
+// src/lib/kolk/submission-guards.ts; keep this in sync.
 export const SUBMIT_RATE_LIMIT_WINDOW_MS = 60_000;
-export const SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN = 2;
+export const SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN = 6;
 // Legacy alias for one minor release — new code should reference
 // SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN directly.
 /** @deprecated use SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN */
