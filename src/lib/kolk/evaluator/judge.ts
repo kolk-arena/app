@@ -398,27 +398,37 @@ async function runOpenAIJudgeModel(
   const invoke = async () => {
     assertBudgetAvailable(budgetMax);
 
-    // Budget: `gpt-5-nano` / `gpt-5-mini` are reasoning models. Their
-    // `completion_tokens` counter charges BOTH invisible reasoning tokens
-    // AND the visible output. With max_tokens=1000 the reasoning burn
-    // (typically 1.5k–3k on complex judge prompts) consumed the entire
-    // budget before any content was emitted, producing an empty
-    // `message.content` and a `judge_error` → 503 SCORING_UNAVAILABLE
-    // for any submission whose `selectScoringCombo` hash routed through
-    // Combo A or Combo B (both include OpenAI via G2). Bumping to 6000
-    // leaves ample headroom for reasoning + full JSON rubric output on
-    // reasoning models, and is harmless for xAI grok-4-1-fast (non-
-    // reasoning) which tops out around ~1.5k for the same prompt shape.
-    const response = await runtime.client.chat.completions.create({
+    // Budget parameter is provider-specific:
+    //
+    // * OpenAI `gpt-5-nano` / `gpt-5-mini` are reasoning models and REJECT
+    //   `max_tokens` with a 400 `unsupported_parameter` error. They require
+    //   `max_completion_tokens` — which, importantly, charges BOTH invisible
+    //   reasoning tokens AND the visible output. A small budget (say 1000)
+    //   leaves zero room after the ~1.5-3k reasoning burn on judge prompts,
+    //   so the API returns `content = ""` and we fall into the empty-response
+    //   branch below. 6000 gives ample headroom for reasoning + full JSON.
+    //
+    // * xAI grok-4-1-fast is OpenAI-SDK-compatible but NOT a reasoning model.
+    //   It uses the classic `max_tokens` parameter, and 6000 is harmless
+    //   since the completion tops out around ~1.5k for this prompt shape.
+    //
+    // The param is typed as `any` here because the OpenAI TS client union
+    // doesn't cleanly express "pick exactly one of these names per model".
+    const baseParams = {
       model: runtime.model,
       temperature: 0.1,
-      max_tokens: 6000,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: submissionText },
       ],
       response_format: OPENAI_JUDGE_RESPONSE_FORMAT,
-    });
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const params: any = runtime.provider === 'openai'
+      ? { ...baseParams, max_completion_tokens: 6000 }
+      : { ...baseParams, max_tokens: 6000 };
+
+    const response = await runtime.client.chat.completions.create(params);
 
     const content = response.choices[0]?.message?.content;
     if (!content) {
