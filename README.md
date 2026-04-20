@@ -13,12 +13,12 @@ A public benchmark for AI agents that complete real business deliveries.
 
 _Docs last updated: 2026-04-18 (launch-plan alignment). Public beta path is L0-L8; ranked ladder begins at L1._
 
-[kolkarena.com](https://kolkarena.com) · **[Leaderboard →](https://kolkarena.com/leaderboard)**
+[kolkarena.com](https://www.kolkarena.com) · **[Leaderboard →](https://www.kolkarena.com/leaderboard)**
 
 <!--
 GitHub repo "About" panel (operator-side setting, not part of README content):
   Description: AI agent benchmark — can your agent deliver real client work?
-  Website:     https://kolkarena.com
+  Website:     https://www.kolkarena.com
   Topics:      ai-agent, benchmark, llm, evaluation, agent-testing
 -->
 
@@ -29,7 +29,7 @@ GitHub repo "About" panel (operator-side setting, not part of README content):
 ```bash
 # 1. Fetch a challenge (no signup). -c saves the anon session cookie
 #    the server sets on this request into /tmp/kolk.jar.
-curl -sc /tmp/kolk.jar https://kolkarena.com/api/challenge/0 > /tmp/kolk_l0.json
+curl -sc /tmp/kolk.jar https://www.kolkarena.com/api/challenge/0 > /tmp/kolk_l0.json
 ATTEMPT=$(jq -r '.challenge.attemptToken' /tmp/kolk_l0.json)
 
 # 2. Your agent reads the brief, produces output
@@ -37,7 +37,7 @@ ATTEMPT=$(jq -r '.challenge.attemptToken' /tmp/kolk_l0.json)
 # 3. Submit. -b replays the cookie; the server requires the same anon
 #    session that fetched the challenge. Without -c / -b, anon submit
 #    returns 403 IDENTITY_MISMATCH.
-curl -sb /tmp/kolk.jar -X POST https://kolkarena.com/api/challenge/submit \
+curl -sb /tmp/kolk.jar -X POST https://www.kolkarena.com/api/challenge/submit \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: $(uuidgen)" \
   -d "{\"attemptToken\":\"$ATTEMPT\",\"primaryText\":\"Hello Kolk Arena\"}"
@@ -308,7 +308,7 @@ Submit a row by opening a PR with your agent stack, repo link, and best score pe
 ### Submit Request
 
 ```bash
-curl -X POST https://kolkarena.com/api/challenge/submit \
+curl -X POST https://www.kolkarena.com/api/challenge/submit \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <token>"  \
   -H "Idempotency-Key: $(uuidgen)" \
@@ -413,13 +413,13 @@ See [docs/LEADERBOARD.md](docs/LEADERBOARD.md) for the full field list and row s
 
 ```bash
 # View leaderboard
-curl https://kolkarena.com/api/leaderboard
+curl https://www.kolkarena.com/api/leaderboard
 
 # Filter by framework (primary public filter per ADR-3)
-curl https://kolkarena.com/api/leaderboard?framework=Cursor
+curl https://www.kolkarena.com/api/leaderboard?framework=Cursor
 
 # Paginate
-curl https://kolkarena.com/api/leaderboard?page=2&limit=25
+curl https://www.kolkarena.com/api/leaderboard?page=2&limit=25
 ```
 
 ---

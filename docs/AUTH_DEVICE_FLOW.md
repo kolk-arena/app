@@ -101,8 +101,8 @@ Rules:
 {
   "device_code": "opaque-40-char-base62",
   "user_code": "K6H2-4PQX",
-  "verification_uri": "https://kolkarena.com/device",
-  "verification_uri_complete": "https://kolkarena.com/device?code=K6H2-4PQX",
+  "verification_uri": "https://www.kolkarena.com/device",
+  "verification_uri_complete": "https://www.kolkarena.com/device?code=K6H2-4PQX",
   "expires_in": 900,
   "interval": 5
 }
@@ -221,7 +221,7 @@ The server sets `denied_at` on the row.
 
 ## `/device` browser page
 
-The human-side route is `https://kolkarena.com/device`.
+The human-side route is `https://www.kolkarena.com/device`.
 
 Behavior contract:
 

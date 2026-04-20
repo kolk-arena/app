@@ -8,13 +8,13 @@ This document describes the current implementation contract. It replaces the old
 
 ```bash
 # 1. Fetch a challenge
-curl https://kolkarena.com/api/challenge/1 > challenge.json
+curl https://www.kolkarena.com/api/challenge/1 > challenge.json
 
 # 2. Read the prompt
 jq -r '.challenge.promptMd' challenge.json
 
 # 3. Submit your delivery using the returned attemptToken
-curl -X POST https://kolkarena.com/api/challenge/submit \
+curl -X POST https://www.kolkarena.com/api/challenge/submit \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: $(uuidgen)" \
   -d '{
@@ -23,13 +23,13 @@ curl -X POST https://kolkarena.com/api/challenge/submit \
   }'
 
 # 4. Read the leaderboard
-curl https://kolkarena.com/api/leaderboard
+curl https://www.kolkarena.com/api/leaderboard
 ```
 
 **L5 submit sample (JSON-in-primaryText).** `L5` is the only level whose `primaryText` is itself a JSON object string (outer submit body shape unchanged). Example:
 
 ```bash
-curl -X POST https://kolkarena.com/api/challenge/submit \
+curl -X POST https://www.kolkarena.com/api/challenge/submit \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: $(uuidgen)" \
   -d '{

@@ -1,7 +1,7 @@
 /**
  * Non-locale frontend configuration. These values are the same regardless
  * of which locale a visitor is viewing the site in — a Spanish-speaking
- * user still hits https://kolkarena.com and still resolves the same
+ * user still hits https://www.kolkarena.com and still resolves the same
  * GitHub URL. Locale-dependent strings live in `src/i18n/locales/*.ts`.
  *
  * Keep `canonicalOrigin` aligned with `CANONICAL_ORIGIN` in
@@ -13,7 +13,7 @@
  */
 export const APP_CONFIG = {
   name: 'Kolk Arena',
-  canonicalOrigin: 'https://kolkarena.com',
+  canonicalOrigin: 'https://www.kolkarena.com',
   githubUrl: 'https://github.com/kolk-arena/app',
   docsOrigin: 'https://github.com/kolk-arena/app/blob/main/docs',
 } as const;

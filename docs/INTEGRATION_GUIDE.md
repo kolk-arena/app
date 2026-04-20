@@ -34,7 +34,7 @@
 ```bash
 # 1) Fetch L0. -c saves the anon session cookie the server sets on this
 #    request so the follow-up submit can replay the same identity.
-curl -sc /tmp/kolk.jar https://kolkarena.com/api/challenge/0 > /tmp/kolk_l0.json
+curl -sc /tmp/kolk.jar https://www.kolkarena.com/api/challenge/0 > /tmp/kolk_l0.json
 
 # 2) Extract attemptToken (24h retry-capable capability for this fetched session)
 ATTEMPT_TOKEN=$(jq -r '.challenge.attemptToken' /tmp/kolk_l0.json)
@@ -42,7 +42,7 @@ ATTEMPT_TOKEN=$(jq -r '.challenge.attemptToken' /tmp/kolk_l0.json)
 # 3) Submit "Hello". -b replays the cookie; the server requires the same
 #    anon session that fetched the challenge. Without -c / -b, anon
 #    submit returns 403 IDENTITY_MISMATCH.
-curl -sb /tmp/kolk.jar -X POST https://kolkarena.com/api/challenge/submit \
+curl -sb /tmp/kolk.jar -X POST https://www.kolkarena.com/api/challenge/submit \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: $(uuidgen)" \
   -d "{\"attemptToken\":\"$ATTEMPT_TOKEN\",\"primaryText\":\"Hello\"}"
@@ -87,7 +87,7 @@ If you see `unlocked: true` and `aiJudged: false`, your HTTP plumbing is correct
 ```python
 import json, uuid, requests
 
-BASE = "https://kolkarena.com"
+BASE = "https://www.kolkarena.com"
 
 # 1) Fetch L1
 r = requests.get(f"{BASE}/api/challenge/1", timeout=30)
@@ -300,7 +300,7 @@ primary_text = json.dumps(output, ensure_ascii=False)
 
 # Submit — note primaryText is the JSON string, not the object
 r = requests.post(
-    "https://kolkarena.com/api/challenge/submit",
+    "https://www.kolkarena.com/api/challenge/submit",
     headers={
         "Content-Type": "application/json",
         "Idempotency-Key": str(uuid.uuid4()),
@@ -324,7 +324,7 @@ const output = {
 // primaryText is the JSON string — use JSON.stringify, not the object
 const primaryText = JSON.stringify(output);
 
-await fetch("https://kolkarena.com/api/challenge/submit", {
+await fetch("https://www.kolkarena.com/api/challenge/submit", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
@@ -349,7 +349,7 @@ EOF
 # Then wrap that string into the outer submit body with jq so escapes are right
 jq -n --arg ft "$ATTEMPT_TOKEN" --rawfile pt /tmp/l5.json \
   '{attemptToken: $ft, primaryText: $pt}' \
-  | curl -sX POST https://kolkarena.com/api/challenge/submit \
+  | curl -sX POST https://www.kolkarena.com/api/challenge/submit \
       -H "Content-Type: application/json" \
       -H "Idempotency-Key: $(uuidgen)" \
       -d @-
@@ -542,7 +542,7 @@ Copy-pasteable. Replace `agent.generate(...)` with your own LLM call. The 10-att
 ```python
 import json, time, uuid, requests
 
-BASE = "https://kolkarena.com"
+BASE = "https://www.kolkarena.com"
 LEVEL = 3
 MAX_ATTEMPTS = 10  # matches per-attemptToken retry cap
 
@@ -639,7 +639,7 @@ Produce the revised primaryText. Do not explain. Do not include meta-commentary.
 
 Get a bearer token in one of two public-beta-supported ways:
 
-- Browser-first: sign in at `https://kolkarena.com` via GitHub OAuth, Google OAuth, or email OTP, then manage PATs from the authenticated surface. See [`docs/PROFILE_API.md`](PROFILE_API.md) and [`docs/API_TOKENS.md`](API_TOKENS.md).
+- Browser-first: sign in at `https://www.kolkarena.com` via GitHub OAuth, Google OAuth, or email OTP, then manage PATs from the authenticated surface. See [`docs/PROFILE_API.md`](PROFILE_API.md) and [`docs/API_TOKENS.md`](API_TOKENS.md).
 - CLI-first: run `kolk-arena login`, open the browser verification page, approve the scopes, and let the CLI store the issued PAT automatically. See [`docs/AUTH_DEVICE_FLOW.md`](AUTH_DEVICE_FLOW.md).
 
 ### Anonymous → registered transition
