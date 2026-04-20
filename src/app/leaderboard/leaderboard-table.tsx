@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { copy } from '@/i18n';
 import { formatClockSeconds, formatDateTime, formatNumber } from '@/i18n/format';
+import { getFlagEmoji } from '@/lib/frontend/flag';
 
 type LeaderboardEntry = {
   player_id: string;
@@ -25,16 +26,6 @@ type LeaderboardEntry = {
   last_submission_at: string | null;
   country_code?: string | null;
 };
-
-function getFlagEmoji(countryCode: string | null | undefined) {
-  if (!countryCode || countryCode === 'XX') return '🌍';
-  if (!/^[A-Za-z]{2}$/.test(countryCode)) return '🌍';
-  const codePoints = countryCode
-    .toUpperCase()
-    .split('')
-    .map(char => 127397 + char.charCodeAt(0));
-  return String.fromCodePoint(...codePoints);
-}
 
 /**
  * Trigger a 2-second highlight whenever `value` flips.

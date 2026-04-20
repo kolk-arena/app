@@ -80,13 +80,19 @@ export async function GET(request: NextRequest) {
     // Show recent level attempts and passes at L1+.
     // L0 is intentionally excluded because it is a high-volume connectivity
     // check and would drown out real activity.
+    //
+    // Limit: 100. The UI renders this inside a `max-h-[600px] overflow-y-auto`
+    // scroll container so the payload is bounded + scrollable. Each row is
+    // ~220 bytes serialized → ~22 KB per poll. With the 5-second poll in
+    // leaderboard-client this is ~4 KB/s per active tab, comfortable inside
+    // Supabase's read budget.
     const { data: rows, error } = await supabaseAdmin
       .from('ka_submissions')
-      .select('id, participant_id, level, total_score, color_band, solve_time_seconds, submitted_at, unlocked')
+      .select('id, participant_id, level, total_score, color_band, solve_time_seconds, submitted_at, unlocked, country_code')
       .gte('level', 1)
       .order('submitted_at', { ascending: false })
       .order('id', { ascending: false })
-      .limit(12);
+      .limit(100);
 
     if (error) {
       throw error;
@@ -129,6 +135,7 @@ export async function GET(request: NextRequest) {
         solve_time_seconds: Number.isFinite(solveTimeRaw) ? Math.max(0, Math.trunc(solveTimeRaw)) : null,
         submitted_at: asIsoDateString(row.submitted_at),
         unlocked: row.unlocked === true,
+        country_code: asOptionalString(row.country_code),
       };
     });
 

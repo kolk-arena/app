@@ -630,12 +630,42 @@ export interface FrontendCatalog {
       title: string;
       filterAllTiers: string;
       listeningSubmissions: string;
+      // Small "LIVE · 5s" badge shown in the activity card header. Keeps the
+      // refresh cadence self-documenting without a tooltip.
+      liveBadge: string;
       // Render helper for an activity row. Returns the conjugated, localized
       // verb tense rather than concatenating strings, so other locales can
       // re-order subject/verb/object cleanly.
       rowVerbPassed: string;
       rowVerbAttempted: string;
       usingFrameworkPrefix: string;
+    };
+    // Detail panel shown when an anonymous activity row is clicked. Named
+    // `activityDetail` instead of `submissionDetail` because registered
+    // rows still link out to `/leaderboard/:playerId` — this panel only
+    // appears for the anon path where we have no player page to link to.
+    activityDetail: {
+      panelLabel: string;
+      eyebrow: string;
+      title: string;
+      close: string;
+      loading: string;
+      failedToLoad: string;
+      verbPassed: string;
+      verbAttempted: string;
+      usingFrameworkPrefix: string;
+      totalLabel: string;
+      structureLabel: string;
+      coverageLabel: string;
+      qualityLabel: string;
+      solveTimeLabel: string;
+      countryLabel: string;
+      submittedLabel: string;
+      tierLabel: string;
+      judgeSummaryLabel: string;
+      notAvailable: string;
+      anonymousNote: string;
+      openFullProfile: string;
     };
     // Wave-2 additions: detail panel + dedicated /leaderboard/[playerId] page.
     playerDetail: {

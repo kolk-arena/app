@@ -273,6 +273,38 @@ export interface ActivityFeedEntry {
   solve_time_seconds: number | null;
   submitted_at: string | null;
   unlocked: boolean;
+  /**
+   * ISO-3166-1 alpha-2 country code captured at submit time from the Vercel
+   * edge `x-vercel-ip-country` header. `null` when the header was absent or
+   * when the submission predates migration 00015.
+   */
+  country_code: string | null;
+}
+
+/**
+ * Public-safe shape returned by `/api/activity/submission/[id]` for the
+ * anonymous-row detail view. Scores + judge summary are exposed; any
+ * identity-bearing fields (anon_token, IP, participant_id, auth user id)
+ * are intentionally omitted.
+ */
+export interface ActivitySubmissionDetail {
+  id: string;
+  level: number;
+  player_id: string | null;
+  display_name: string;
+  framework: string | null;
+  country_code: string | null;
+  total_score: number;
+  structure_score: number | null;
+  coverage_score: number | null;
+  quality_score: number | null;
+  color_band: 'RED' | 'ORANGE' | 'YELLOW' | 'GREEN' | 'BLUE' | null;
+  quality_label: string | null;
+  solve_time_seconds: number | null;
+  submitted_at: string | null;
+  unlocked: boolean;
+  judge_summary: string | null;
+  efficiency_badge: boolean;
 }
 
 // ============================================================================

@@ -5,9 +5,11 @@ import { useEffect, useId, useState, useTransition } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { copy } from '@/i18n';
 import { formatClockSeconds, formatDateTime, formatNumber } from '@/i18n/format';
+import { getFlagEmoji } from '@/lib/frontend/flag';
 import type { ActivityFeedEntry, LeaderboardResponse as SharedLeaderboardResponse } from '@/lib/kolk/types';
 import { LeaderboardTable } from './leaderboard-table';
 import { PlayerDetailPanel } from './player-detail-panel';
+import { ActivityDetailPanel } from './activity-detail-panel';
 
 type LeaderboardEntry = SharedLeaderboardResponse['leaderboard'][number];
 
@@ -26,9 +28,17 @@ type LeaderboardResponse = Omit<SharedLeaderboardResponse, 'framework_stats'> & 
 const DEFAULT_LIMIT = 25;
 const QUICK_FRAMEWORKS = ['Claude Code', 'Cursor', 'Windsurf', 'OpenHands', 'LangGraph', 'Custom'];
 const LEADERBOARD_POLL_MS = 30_000;
-const ACTIVITY_FEED_POLL_MS = 15_000;
+// Dropped from 15s to 5s so the live feed genuinely feels live.
+// Payload is bounded (100 rows × ~220 B ≈ 22 KB) and the feed endpoint has
+// an in-memory IP rate limit (30 requests/minute per IP) as a second line
+// of defense against abuse.
+const ACTIVITY_FEED_POLL_MS = 5_000;
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+// Submission ids are uuidv4 minted at insert time (`gen_random_uuid()`), which
+// always lands in the v4/variant range matched by UUID_RE above. Activity
+// rows predating that guarantee are rare but possible, so the detail-panel
+// loader gracefully surfaces a "not found" instead of silently breaking.
 
 function readPositiveInt(value: string | null, fallback: number) {
   const parsed = Number.parseInt(value ?? '', 10);
@@ -83,6 +93,11 @@ export function LeaderboardClient() {
   const school = searchParams.get('school') ?? '';
   const limit = readPositiveInt(searchParams.get('limit'), DEFAULT_LIMIT);
   const selectedPlayerId = asValidPlayerId(searchParams.get('player'));
+  // `?activity=<submissionId>` opens the anonymous-submission detail panel.
+  // Mutually exclusive with `?player=` — `handleSelectAnonymous` clears the
+  // player selection, and `handleSelectPlayer` clears the activity selection.
+  const selectedActivityId = asValidPlayerId(searchParams.get('activity'));
+  const activityDetailRegionId = useId();
 
   const [data, setData] = useState<LeaderboardResponse | null>(null);
   const [feed, setFeed] = useState<ActivityFeedRow[]>([]);
@@ -272,6 +287,20 @@ export function LeaderboardClient() {
     setDetailRetryNonce((current) => current + 1);
   }
 
+  function handleSelectAnonymous(submissionId: string) {
+    setSelectionMessage(null);
+    navigate({
+      activity: submissionId,
+      player: null,
+    });
+  }
+
+  function clearSelectedActivity() {
+    navigate({
+      activity: null,
+    });
+  }
+
   function clearSingleFilter(filterKey: 'framework' | 'school') {
     if (filterKey === 'framework') {
       setFrameworkInput('');
@@ -295,6 +324,7 @@ export function LeaderboardClient() {
 
     navigate({
       player: playerId,
+      activity: null,
     });
   }
 
@@ -614,23 +644,40 @@ export function LeaderboardClient() {
               detailPageSearch={detailPageSearch}
             />
 
+            {selectedActivityId && !selectedPlayerId ? (
+              <ActivityDetailPanel
+                submissionId={selectedActivityId}
+                onClear={clearSelectedActivity}
+                panelId={activityDetailRegionId}
+                detailPageSearch={detailPageSearch}
+              />
+            ) : null}
+
             <section
               aria-label={lb.activityFeed.title}
-              className="rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col max-h-80"
+              className="rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col max-h-[600px]"
             >
               <div className="border-b border-slate-200 px-3 py-2 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-md bg-emerald-500 animate-pulse" />
                   <h3 className="text-sm font-semibold text-slate-900">{lb.activityFeed.title}</h3>
+                  <span className="text-[10px] uppercase tracking-wider text-slate-400 tabular-nums">
+                    {lb.activityFeed.liveBadge}
+                  </span>
                 </div>
                 <span className="text-[10px] uppercase tracking-wider text-slate-500">{lb.activityFeed.filterAllTiers}</span>
               </div>
               <div className="flex-1 overflow-y-auto p-4">
                 {feed.length > 0 ? (
-                  <ul aria-live="polite" className="space-y-4">
+                  <ul aria-live="polite" className="space-y-2">
                     {feed.map((f: ActivityFeedRow) => (
                       <li key={f.id}>
-                        <ActivityFeedItem row={f} detailPageSearch={detailPageSearch} />
+                        <ActivityFeedItem
+                          row={f}
+                          detailPageSearch={detailPageSearch}
+                          onSelectAnonymous={handleSelectAnonymous}
+                          isSelected={f.id === selectedActivityId}
+                        />
                       </li>
                     ))}
                   </ul>
@@ -655,7 +702,7 @@ export function LeaderboardClient() {
  */
 type ActivityFeedRow = Pick<
   ActivityFeedEntry,
-  'id' | 'player_id' | 'display_name' | 'framework' | 'level' | 'unlocked' | 'submitted_at'
+  'id' | 'player_id' | 'display_name' | 'framework' | 'level' | 'unlocked' | 'submitted_at' | 'country_code'
 >;
 
 /**
@@ -669,33 +716,63 @@ type ActivityFeedRow = Pick<
 function ActivityFeedItem({
   row,
   detailPageSearch,
+  onSelectAnonymous,
+  isSelected,
 }: {
   row: ActivityFeedRow;
   detailPageSearch: string;
+  onSelectAnonymous: (submissionId: string) => void;
+  isSelected: boolean;
 }) {
   const af = copy.leaderboard.activityFeed;
   const verb = row.unlocked ? af.rowVerbPassed : af.rowVerbAttempted;
+  const flag = row.country_code ? (
+    <span
+      aria-hidden="true"
+      className="mr-1 text-base leading-none"
+      title={row.country_code}
+    >
+      {getFlagEmoji(row.country_code)}
+    </span>
+  ) : null;
   const content = (
     <>
-      <span className="font-semibold text-slate-900">{row.display_name}</span> {verb}{' '}
-      <span className="font-semibold text-slate-900">L{row.level}</span>
-      {row.framework ? (
-        <span>
-          {af.usingFrameworkPrefix}
-          {row.framework}
-        </span>
-      ) : null}
-      <div className="text-[10px] text-slate-400 mt-0.5">{formatUpdatedLabel(row.submitted_at)}</div>
+      <div className="flex flex-wrap items-baseline gap-x-1">
+        {flag}
+        <span className="font-semibold text-slate-900">{row.display_name}</span>{' '}
+        <span>{verb}</span>{' '}
+        <span className="font-semibold text-slate-900 tabular-nums">L{row.level}</span>
+        {row.framework ? (
+          <span className="text-slate-500">
+            {af.usingFrameworkPrefix}
+            {row.framework}
+          </span>
+        ) : null}
+      </div>
+      <div className="text-[10px] text-slate-400 mt-0.5 tabular-nums">
+        {formatUpdatedLabel(row.submitted_at)}
+      </div>
     </>
   );
 
+  // Anonymous rows open the inline ActivityDetailPanel via `?activity=<id>`.
+  // Registered rows link out to the full player page as before.
   if (!row.player_id) {
     return (
-      <div
-        className={`border-l-2 pl-3 py-0.5 text-sm text-slate-600 ${row.unlocked ? 'border-emerald-200' : 'border-slate-200'}`}
+      <button
+        type="button"
+        onClick={() => onSelectAnonymous(row.id)}
+        aria-pressed={isSelected}
+        className={`block w-full rounded-md border px-3 py-2 text-left text-sm text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 ${
+          isSelected
+            ? 'border-emerald-300 bg-emerald-50/60'
+            : row.unlocked
+            ? 'border-slate-200 border-l-2 border-l-emerald-300 bg-white'
+            : 'border-slate-200 bg-white'
+        }`}
       >
         {content}
-      </div>
+      </button>
     );
   }
 
@@ -703,7 +780,7 @@ function ActivityFeedItem({
     <Link
       href={`/leaderboard/${row.player_id}${detailPageSearch}`}
       className={`block rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 transition hover:border-slate-300 hover:bg-white ${
-        row.unlocked ? 'border-emerald-200' : ''
+        row.unlocked ? 'border-l-2 border-l-emerald-300' : ''
       }`}
     >
       {content}

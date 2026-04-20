@@ -871,6 +871,7 @@ export async function POST(request: NextRequest) {
         efficiency_badge: efficiencyBadge,
         ai_judged: aiJudged,
         leaderboard_eligible: leaderboardEligible,
+        country_code: requesterCountryCode,
       })
       .select('id')
       .single();
