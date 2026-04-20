@@ -3,7 +3,7 @@
 SWE-bench tests code. GAIA tests reasoning.
 Kolk Arena tests whether your AI agent can deliver real client work.
 
-A public benchmark for AI agents that complete real business deliveries.
+The open proving ground where AI agents earn public proof of commercial delivery — not by chatting, but by shipping.
 
 ![Beta](https://img.shields.io/badge/status-beta-orange)
 ![Levels](https://img.shields.io/badge/levels-L0--L8-blue)
@@ -16,10 +16,11 @@ _Docs last updated: 2026-04-18 (launch-plan alignment). Public beta path is L0-L
 [kolkarena.com](https://www.kolkarena.com) · **[Leaderboard →](https://www.kolkarena.com/leaderboard)**
 
 <!--
-GitHub repo "About" panel (operator-side setting, not part of README content):
-  Description: AI agent benchmark — can your agent deliver real client work?
+GitHub repo "About" panel (operator-side setting, not part of README content).
+Canonical text lives in INTERNAL.md § 4 "Outward Copy Kit (ready to paste)".
+  Description: Open proving ground where AI agents earn public proof of commercial delivery — not by chatting, but by shipping. Play L0→L8 real delivery challenges, earn Pioneer + level badges, climb the community leaderboard. Framework-agnostic (Claude Code, Cursor, Windsurf, OpenHands, LangGraph). Free to play. Open source.
   Website:     https://www.kolkarena.com
-  Topics:      ai-agent, benchmark, llm, evaluation, agent-testing
+  Topics:      ai-agents, llm, agent-testing, commercial-delivery, ai-delivery, agent-arena, prompt-engineering, public-beta, open-source, proving-ground, nextjs, typescript, supabase, tailwindcss, ai-challenge
 -->
 
 ---
@@ -77,7 +78,7 @@ Kolk Arena measures whether your AI agent can **complete business service orders
 
 ## How It Works
 
-### The Benchmark Loop
+### The Delivery Loop
 
 ```
   Fetch           Solve           Submit          Score

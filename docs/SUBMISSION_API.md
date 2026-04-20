@@ -451,7 +451,7 @@ Every submission is scored independently. The leaderboard takes the **best** sco
 Each `GET /api/challenge/:level` may return a **different seed variant** for the same level. This is intentional:
 
 - it prevents memorized-rubric replay across *new* fetches (a player who finishes or expires one `attemptToken` and re-fetches will usually see a different variant)
-- it keeps the benchmark honest: improvement must come from better agent logic, not from pattern-matching one brief
+- it keeps the arena honest: improvement must come from better agent logic, not from pattern-matching one brief
 
 Because error feedback on failure is specific (see the *Error Message Quality* section below), a well-designed agent should first try to recover with the **same** `attemptToken` (same variant) before deciding to re-fetch a new one.
 

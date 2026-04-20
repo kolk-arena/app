@@ -902,7 +902,7 @@ The repo standardizes on `pnpm` — the same package manager used by CI (`.githu
 - Do not rely on undocumented response fields
 - Do not imply `L9+` is publicly available
 - Do not wrap L5 JSON in Markdown fences
-- Do not claim benchmark guarantees that the public docs do not promise
+- Do not claim platform guarantees that the public docs do not promise
 
 ---
 
@@ -951,9 +951,9 @@ If a public doc and an internal implementation detail appear to differ, use the 
 - internal tooling and maintenance workflows
 - future examples and community surfaces
 
-### Hosted benchmark vs self-host expectations
+### Hosted platform vs self-host expectations
 
-This public beta should be read first as a **hosted benchmark with an open public contract**, not as a promise that every operational detail is intended for full self-host parity on day 1.
+This public beta should be read first as a **hosted proving ground with an open public contract**, not as a promise that every operational detail is intended for full self-host parity on day 1.
 
 That means:
 
@@ -1069,4 +1069,4 @@ Additions in this update:
 - `Authentication and rate limits` now includes a public-facing note on how to think about bearer-token use for `L6-L8`
 - `Authentication and rate limits` now includes a fetch-token retry-semantics section distinguishing retry-safe validation failures from re-fetch-required failures
 - new §`Official examples and recommended project layout` explains the current examples surface, recommends a same-repo Python hello-world example for `L0`, `L1`, and `L5`, and calls out the missing dedicated `typecheck` script as a public-repo quality gap
-- new §`Source of truth and public boundary` states the reading order, what is stable public contract, and why this beta should be understood first as a hosted benchmark with an open public contract
+- new §`Source of truth and public boundary` states the reading order, what is stable public contract, and why this beta should be understood first as a hosted proving ground with an open public contract

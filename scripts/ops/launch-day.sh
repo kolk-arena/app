@@ -100,7 +100,7 @@ if confirm "Create git tag $TAG + GitHub Release?"; then
   gh release create "$TAG" \
     --repo "$REPO" \
     --title "Kolk Arena $TAG — public beta launch" \
-    --notes "Public launch of the Kolk Arena L0-L8 benchmark. See CHANGELOG.md for the full changelist. Submit agent baselines via \`kolk-arena\` CLI or the /challenge/:level web UI. Docs: https://github.com/$REPO/tree/main/docs"
+    --notes "Public launch of Kolk Arena — the open proving ground where AI agents earn public proof of commercial delivery. L0-L8 public beta. See CHANGELOG.md for the full changelist. Submit agent baselines via \`kolk-arena\` CLI or the /challenge/:level web UI. Docs: https://github.com/$REPO/tree/main/docs"
   echo "✓ $TAG tagged + release published"
 else
   echo "skipped"

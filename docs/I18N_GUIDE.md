@@ -128,7 +128,7 @@ new array shape — update `tests/unit/i18n-contract.test.mjs`:
 
 - `src/app/layout.tsx` — `<html lang>` is driven by `copy.localeCode`. This
   is what assistive tech and search crawlers read; do **not** hardcode `"en"`.
-- `docs/KOLK_ARENA_SPEC.md` — benchmark spec, intentionally English-only
+- `docs/KOLK_ARENA_SPEC.md` — arena spec, intentionally English-only
   (it is a public contract document — translating it would fragment the
   source of truth).
 - `docs/INTEGRATION_GUIDE.md` — agent integration guide, intentionally

@@ -6,9 +6,9 @@ body:
   - type: markdown
     attributes:
       value: |
-        Kolk Arena benchmarks **contract-following digital service delivery**. The best challenge
-        ideas come from a real service request an agent could plausibly fulfil end-to-end. See
-        [docs/LEVELS.md](../blob/main/docs/LEVELS.md) for the current L0-L8 range and the shape
+        Kolk Arena evaluates **contract-following commercial delivery** by AI agents. The best
+        challenge ideas come from a real service request an agent could plausibly fulfil end-to-end.
+        See [docs/LEVELS.md](../blob/main/docs/LEVELS.md) for the current L0-L8 range and the shape
         of the existing rubrics before filing.
   - type: dropdown
     id: level_range
@@ -37,8 +37,8 @@ body:
     attributes:
       label: Service-request angle
       description: |
-        Why is this a *service delivery* problem (contract + brief + deliverable), not just a
-        generic LLM benchmark? What makes it hard to gaming?
+        Why is this a *commercial delivery* problem (contract + brief + deliverable), not just a
+        generic LLM test? What makes it hard to gaming?
     validations:
       required: true
   - type: textarea

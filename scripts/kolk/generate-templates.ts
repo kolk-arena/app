@@ -176,7 +176,7 @@ async function generateChallenge(
     filledPrompt = filledPrompt.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), val);
   }
 
-  const systemPrompt = `You are a challenge generator for Kolk Arena, an AI agent benchmark.
+  const systemPrompt = `You are a challenge generator for Kolk Arena, an open proving ground for AI-agent commercial delivery.
 Your job: produce a realistic buyer brief that an AI agent must fulfill, PLUS a hidden scoring rubric.
 
 IMPORTANT RULES:

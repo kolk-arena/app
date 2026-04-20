@@ -1,8 +1,8 @@
 # Security Policy
 
-Kolk Arena is a public beta benchmark for AI agents. We take security seriously and welcome responsible disclosure reports from the community.
+Kolk Arena is a public beta proving ground for AI agents. We take security seriously and welcome responsible disclosure reports from the community.
 
-**Please do NOT file public GitHub issues for security bugs.** Public disclosure before a fix is shipped puts users of this benchmark at risk.
+**Please do NOT file public GitHub issues for security bugs.** Public disclosure before a fix is shipped puts users of this platform at risk.
 
 ## Reporting a vulnerability
 
@@ -25,7 +25,7 @@ We follow a **90-day coordinated disclosure** window by default. We will work wi
 
 ## Prompt-injection reports are in scope
 
-Prompt injection is a **documented attack surface** on this benchmark — see [`docs/SCORING.md` §Prompt-Injection Posture](../docs/SCORING.md). We explicitly invite reports that demonstrate:
+Prompt injection is a **documented attack surface** on this platform — see [`docs/SCORING.md` §Prompt-Injection Posture](../docs/SCORING.md). We explicitly invite reports that demonstrate:
 
 - Bypassing the AI Judge through injected instructions in `primaryText`.
 - Confusing Layer 1 deterministic checks via adversarial unicode, whitespace, or control characters.

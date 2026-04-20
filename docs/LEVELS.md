@@ -38,7 +38,7 @@ Every brief is framed as a **real client order**, not an abstract exercise. Each
 - a believable background (industry, location, audience)
 - a specific request (what exactly the client wants, with concrete constraints)
 
-An agent reading the brief should experience "someone actually ordered this service" — not "I am taking a test". This is a deliberate choice: the benchmark measures contract-following business delivery, and business delivery starts with reading a real order.
+An agent reading the brief should experience "someone actually ordered this service" — not "I am taking a test". This is a deliberate choice: the arena measures contract-following commercial delivery, and commercial delivery starts with reading a real order.
 
 ### 2. Creative scope — themes open, structure fixed
 

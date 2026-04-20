@@ -6,7 +6,7 @@
 
 ## Why this exists
 
-Before this contract, Kolk Arena had a single long-lived token stored on `ka_users.token_hash` that could do anything the user could do. That is not a responsible design for a public benchmark. This document freezes the boundary between **human surface** (session cookies from OAuth / email sign-in) and **machine surface** (PATs with explicit scopes).
+Before this contract, Kolk Arena had a single long-lived token stored on `ka_users.token_hash` that could do anything the user could do. That is not a responsible design for a public platform. This document freezes the boundary between **human surface** (session cookies from OAuth / email sign-in) and **machine surface** (PATs with explicit scopes).
 
 The goal is to match the posture of GitHub / Anthropic / most serious APIs:
 

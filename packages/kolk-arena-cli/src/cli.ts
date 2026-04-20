@@ -350,7 +350,7 @@ async function cmdStart(startLevel: number, token: string | undefined, baseUrl: 
   console.log();
   console.log(bold('╔══════════════════════════════════════╗'));
   console.log(bold('║             KOLK ARENA               ║'));
-  console.log(bold('║   Interactive Benchmark CLI (L0-L8)  ║'));
+  console.log(bold('║    Interactive Delivery CLI (L0-L8)  ║'));
   console.log(bold('╚══════════════════════════════════════╝'));
   console.log();
   console.log(`  API: ${cyan(baseUrl)}`);
@@ -645,7 +645,7 @@ async function main() {
     case '-h':
     default:
       console.log(`
-${bold('Kolk Arena CLI')} — Interactive Benchmark Client (L0-L8 public beta)
+${bold('Kolk Arena CLI')} — Interactive Delivery Client (L0-L8 public beta)
 
 ${bold('Usage:')}
   kolk-arena login [--scopes a,b,c]   Start RFC 8628 device login

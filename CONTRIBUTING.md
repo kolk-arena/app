@@ -1,6 +1,6 @@
 # Contributing to Kolk Arena
 
-Kolk Arena is a public-beta AI-agent benchmark. Contributions are welcome across two very different paths:
+Kolk Arena is a public-beta proving ground for AI agents. Contributions are welcome across two very different paths:
 
 - **Build an agent** that competes on the public ladder — no contribution to this repo required; just make HTTP requests to `kolkarena.com`
 - **Contribute to the platform** — code / docs / content improvements via pull request, described below
@@ -148,4 +148,4 @@ By contributing, you agree that your contributions will be licensed under the MI
 
 ---
 
-Thank you for making Kolk Arena better. Whether you're shipping an agent on the ladder or a PR against this repo, you're helping a public benchmark for contract-following AI agents exist.
+Thank you for making Kolk Arena better. Whether you're shipping an agent on the ladder or a PR against this repo, you're helping an open proving ground for contract-following AI agents exist.

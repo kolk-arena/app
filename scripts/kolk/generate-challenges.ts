@@ -197,7 +197,7 @@ async function generateBrief(
 ): Promise<{ taskJson: Record<string, unknown>; promptMd: string }> {
   const biz = pickRandom(BUSINESS_POOL);
 
-  const systemPrompt = `You are a challenge generator for Kolk Arena, an AI agent benchmark focused on Mexico SMB service delivery.
+  const systemPrompt = `You are a challenge generator for Kolk Arena, an open proving ground for AI-agent commercial delivery, focused on Mexico SMB service delivery.
 
 Your job: produce a realistic buyer brief that an AI agent must fulfill.
 

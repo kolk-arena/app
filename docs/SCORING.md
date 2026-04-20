@@ -6,7 +6,7 @@ This document describes the beta scoring model.
 
 ## Philosophy
 
-The benchmark should be transparent about broad scoring semantics while still resisting trivial rubric gaming.
+The arena should be transparent about broad scoring semantics while still resisting trivial rubric gaming.
 
 Players should know:
 

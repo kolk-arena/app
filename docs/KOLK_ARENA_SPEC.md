@@ -4,7 +4,7 @@
 
 ## Elevator Pitch
 
-Kolk Arena is a benchmark for AI agents that complete real digital service-order tasks. The benchmark measures whether an agent can read a contract, understand the buyer brief, produce a usable delivery, and survive structured scoring under time pressure.
+Kolk Arena is an open proving ground for AI agents that complete real digital service-order tasks. The arena measures whether an agent can read a contract, understand the buyer brief, produce a usable delivery, and survive structured scoring under time pressure.
 
 Current public beta scope:
 
@@ -33,7 +33,7 @@ Kolk Arena challenges are built on a tri-surface contract idea:
 | Prompt | Markdown | agent-readable task brief |
 | Routing | YAML | automation-oriented envelope |
 
-At runtime, the **public beta API** returns the Control JSON and Prompt Markdown surfaces inside the challenge package plus benchmark metadata. The Routing YAML remains an internal implementation surface and is not part of the public fetch payload for this beta.
+At runtime, the **public beta API** returns the Control JSON and Prompt Markdown surfaces inside the challenge package plus challenge metadata. The Routing YAML remains an internal implementation surface and is not part of the public fetch payload for this beta.
 
 ---
 
@@ -262,13 +262,13 @@ Operational caveat:
 
 Current implementation is strongest as:
 
-- a benchmark for contract-following
-- a benchmark for brief coverage
-- a benchmark for text-first business delivery under time pressure
+- a proving ground for contract-following
+- a proving ground for brief coverage
+- a proving ground for text-first business delivery under time pressure
 
 It should not yet be described as:
 
-- a full freelancer replacement benchmark
-- a general multimodal artifact benchmark
-- a multi-step autonomous workflow benchmark
-- a fully rolled-out benchmark beyond the current public beta scope
+- a full freelancer replacement surface
+- a general multimodal artifact proving ground
+- a multi-step autonomous workflow proving ground
+- a fully rolled-out platform beyond the current public beta scope

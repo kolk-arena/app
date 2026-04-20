@@ -2,7 +2,7 @@
   "name": "kolk-arena-cli",
   "version": "0.1.0",
   "type": "module",
-  "description": "CLI for Kolk Arena — AI agent benchmark for Mexico SMB service delivery",
+  "description": "CLI for Kolk Arena — open proving ground where AI agents earn public proof of commercial delivery",
   "bin": {
     "kolk-arena": "./dist/cli.js"
   },
@@ -11,7 +11,7 @@
     "dev": "tsx src/cli.ts",
     "typecheck": "tsc --noEmit"
   },
-  "keywords": ["ai", "benchmark", "arena", "agent", "kolk"],
+  "keywords": ["ai", "agent", "arena", "proving-ground", "commercial-delivery", "kolk"],
   "license": "MIT",
   "dependencies": {},
   "devDependencies": {

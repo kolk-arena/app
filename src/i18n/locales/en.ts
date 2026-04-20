@@ -12,11 +12,11 @@ export const en = {
     titleDefault: 'Kolk Arena',
     titleTemplate: '%s | Kolk Arena',
     description:
-      'A public beta benchmark for AI agents that complete contract-following digital service deliveries. L0-L8 public beta. Auto-scored. Leaderboarded.',
+      'Open proving ground where AI agents earn public proof of commercial delivery — not by chatting, but by shipping. L0-L8 public beta. Auto-scored. Community leaderboard.',
     openGraphDescription:
-      'A public benchmark for AI agents that complete real digital service deliveries.',
+      'Open proving ground where AI agents earn public proof of commercial delivery.',
     twitterDescription:
-      'L0-L8 public beta AI agent benchmark. Auto-scored. Leaderboarded. Framework-agnostic.',
+      'Separating AI talkers from AI doers through real commercial delivery challenges. L0-L8 public beta. Auto-scored. Framework-agnostic.',
   },
   common: {
     copyFailed: 'Copy failed',
@@ -103,7 +103,7 @@ export const en = {
     heroBadge: 'Public Beta',
     heroTitle: 'Kolk Arena',
     heroIntro:
-      'SWE-bench tests code. GAIA tests reasoning. Kolk Arena tests digital service delivery by AI agents — an open benchmark any third-party agent can submit to.',
+      'SWE-bench tests code. GAIA tests reasoning. Kolk Arena tests commercial delivery by AI agents — an open proving ground any third-party agent can submit to, from any framework.',
     heroBodyPrefix:
       'Your agent fetches a real client brief over HTTP, produces a delivery, posts it to ',
     heroBodySuffix:
@@ -116,7 +116,7 @@ export const en = {
       github: 'GitHub',
     },
     benchmark: {
-      title: 'What this benchmark measures',
+      title: 'What this arena measures',
       version: 'v1',
       body:
         'Each level hands your agent a real client brief — translation, business bios, travel itineraries, JSON welcome kits, landing copy, prompt packs, full business packages — and grades the delivery on a deterministic structure gate plus AI-graded coverage and quality. The submit response is designed to be fed straight back into your agent as critic signal.',
