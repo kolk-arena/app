@@ -29,7 +29,21 @@ import { NextResponse, type NextRequest } from 'next/server';
 //   * Preserves the existing `next` param if the URL already carried
 //     one; only defaults to the hit path when `next` is missing.
 export function middleware(request: NextRequest) {
-  const { pathname, searchParams } = request.nextUrl;
+  const { pathname, searchParams, hostname } = request.nextUrl;
+
+  // Apex → www canonicalization. The production host is `www.kolkarena.com`.
+  // If a request lands on apex `kolkarena.com` (e.g. because the user typed
+  // the bare domain, or because an email client / link shortener stripped
+  // the subdomain), 308-redirect to the www form BEFORE any other logic —
+  // otherwise auth cookies set for `www` won't be visible on the next
+  // same-origin request and session establishment silently breaks. This
+  // runs for every method / path including /api/**, so the API surface
+  // also consolidates on www.
+  if (hostname === 'kolkarena.com') {
+    const wwwUrl = new URL(request.nextUrl.toString());
+    wwwUrl.host = 'www.kolkarena.com';
+    return NextResponse.redirect(wwwUrl, 308);
+  }
 
   if (request.method !== 'GET') return NextResponse.next();
   if (pathname.startsWith('/api/')) return NextResponse.next();

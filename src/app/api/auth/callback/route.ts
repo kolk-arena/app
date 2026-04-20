@@ -69,6 +69,15 @@ export async function GET(request: NextRequest) {
   // Always create the SSR client so applyCookies is available in all paths
   const { supabase, applyCookies } = createRouteHandlerSupabaseClient(request);
 
+  console.log('[auth/callback] invoked', {
+    host: request.nextUrl.host,
+    hasCode: !!code,
+    hasTokenHash: !!tokenHash,
+    typeParam,
+    nextPath,
+    cookieNames: request.cookies.getAll().map((c) => c.name),
+  });
+
   if (!code && !tokenHash) {
     console.warn('[auth/callback] missing both code and token_hash', {
       search: Object.fromEntries(request.nextUrl.searchParams.entries()),
@@ -79,33 +88,67 @@ export async function GET(request: NextRequest) {
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let data: any;
+    let data: any = null;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let error: any;
+    let error: any = null;
+    let tried: 'pkce' | 'otp' | 'pkce+otp' = tokenHash ? 'otp' : 'pkce';
 
     if (tokenHash) {
-      // Legacy / cross-device magic-link flow. `type` defaults to
-      // 'magiclink' if the email template didn't include it (Supabase's
-      // default sign-in templates emit the type explicitly so this is
-      // mostly a safety net).
-      const type = (typeParam as 'magiclink' | 'signup' | 'recovery' | 'invite' | 'email_change' | null) ?? 'magiclink';
-      const result = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
-      data = result.data;
-      error = result.error;
-      if (error) {
-        console.warn('[auth/callback] verifyOtp failed', { type, message: error?.message, status: error?.status });
+      // Cross-device magic-link / signup flow. Try the type from the
+      // email template first; if Supabase rejects it, fall through to
+      // a small set of sensible candidates. Different email templates
+      // emit `.Type` as `signup`, `magiclink`, `email`, etc.
+      const candidates: Array<'signup' | 'magiclink' | 'email' | 'invite' | 'recovery' | 'email_change'> = [];
+      const typeRaw = typeParam?.toLowerCase() ?? '';
+      if (typeRaw === 'signup' || typeRaw === 'magiclink' || typeRaw === 'email' || typeRaw === 'invite' || typeRaw === 'recovery' || typeRaw === 'email_change') {
+        candidates.push(typeRaw);
+      }
+      for (const t of ['signup', 'magiclink', 'email'] as const) {
+        if (!candidates.includes(t)) candidates.push(t);
+      }
+      for (const type of candidates) {
+        const result = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
+        data = result.data;
+        error = result.error;
+        if (!error && result.data?.user) {
+          console.log('[auth/callback] verifyOtp ok', { type });
+          break;
+        }
+        console.warn('[auth/callback] verifyOtp failed', {
+          tried_type: type,
+          typeParam,
+          message: error?.message,
+          status: error?.status,
+        });
       }
     } else {
       const result = await supabase.auth.exchangeCodeForSession(code!);
       data = result.data;
       error = result.error;
       if (error) {
-        console.warn('[auth/callback] exchangeCodeForSession failed', { message: error?.message, status: error?.status });
+        console.warn('[auth/callback] exchangeCodeForSession failed', {
+          message: error?.message,
+          status: error?.status,
+        });
+        // PKCE exchange failed — code is probably not a PKCE UUID but
+        // a token_hash coming through as ?code=. Try verifyOtp as a
+        // last-ditch fallback before giving up.
+        for (const t of ['signup', 'magiclink', 'email'] as const) {
+          const otpResult = await supabase.auth.verifyOtp({ token_hash: code!, type: t });
+          if (!otpResult.error && otpResult.data?.user) {
+            data = otpResult.data;
+            error = null;
+            tried = 'pkce+otp';
+            console.log('[auth/callback] fallback verifyOtp ok after PKCE failure', { type: t });
+            break;
+          }
+        }
       }
     }
 
     if (error || !data?.user) {
-      redirectUrl.searchParams.set('auth_error', 'exchange_failed');
+      console.warn('[auth/callback] all exchange attempts failed', { tried });
+      redirectUrl.searchParams.set('auth_error', `exchange_failed_${tried}`);
       return applyCookies(NextResponse.redirect(redirectUrl));
     }
 
