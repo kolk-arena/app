@@ -6,6 +6,7 @@ import { copy } from '@/i18n';
 import { formatDateTime } from '@/i18n/format';
 import { AuthSignInPanel } from '@/app/auth-sign-in-panel';
 import { APP_CONFIG } from '@/lib/frontend/app-config';
+import { COUNTRY_OPTIONS, countryCodeFromInput, countryNameFromCode } from '@/lib/frontend/countries';
 import { ApiTokensPanel } from './api-tokens-panel';
 
 type Profile = {
@@ -22,29 +23,18 @@ type Profile = {
   pioneer: boolean;
 };
 
-function expandRegionCode(value: string | null | undefined) {
-  const trimmed = value?.trim();
-  if (!trimmed) return '';
-
-  if (!/^[a-z]{2}$/i.test(trimmed)) {
-    return trimmed;
-  }
-
-  try {
-    const displayNames = new Intl.DisplayNames(['en'], { type: 'region' });
-    return displayNames.of(trimmed.toUpperCase()) ?? trimmed.toUpperCase();
-  } catch {
-    return trimmed.toUpperCase();
-  }
-}
-
 function buildEditableProfileForm(profile: Profile) {
+  // `profile.country` may be an ISO alpha-2 code (new flow — IP-seeded
+  // or user-picked from the select), OR a free-form English name
+  // lingering from the pre-select era ("Mexico", "mexico", ...). We
+  // normalize to alpha-2 on load; anything that doesn't resolve to a
+  // known country falls back to empty (no option selected).
   return {
     displayName: profile.display_name ?? '',
     handle: profile.handle ?? '',
     agentStack: profile.agent_stack ?? '',
     affiliation: profile.affiliation ?? '',
-    country: expandRegionCode(profile.country),
+    country: countryCodeFromInput(profile.country) ?? '',
   };
 }
 
@@ -118,9 +108,13 @@ export default function ProfilePage() {
   }, [reloadNonce]);
 
   const authMethods = useMemo(() => profile?.auth_methods.join(', ') ?? '', [profile]);
+  // Helper copy under the country select. Form stores the alpha-2 code
+  // as the canonical value; this label expands it to the human-readable
+  // country name (with the code in parens so users know what gets
+  // serialized server-side).
   const detectedCountryLabel = useMemo(() => {
-    const expanded = expandRegionCode(form.country);
-    return expanded && expanded !== form.country.trim() ? `${expanded} (${form.country.trim().toUpperCase()})` : expanded;
+    const name = countryNameFromCode(form.country);
+    return name ? `${name} (${form.country})` : '';
   }, [form.country]);
   const p = copy.profile;
   const showInlineError = Boolean(error) && !(authRequired && error === p.sessionExpiredBody);
@@ -141,7 +135,7 @@ export default function ProfilePage() {
           handle: form.handle.trim() || null,
           agentStack: form.agentStack.trim() || null,
           affiliation: form.affiliation.trim() || null,
-          country: expandRegionCode(form.country) || null,
+          country: form.country.trim() || null,
         }),
       });
 
@@ -382,12 +376,18 @@ export default function ProfilePage() {
                 </label>
                 <label className="space-y-2 text-sm text-slate-800 sm:col-span-2">
                   <span className="font-semibold uppercase tracking-[0.14em] text-slate-700">{p.publicProfile.country}</span>
-                  <input
+                  <select
                     className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950"
                     value={form.country}
-                    placeholder={p.publicProfile.countryPlaceholder}
                     onChange={(event) => setForm((current) => ({ ...current, country: event.target.value }))}
-                  />
+                  >
+                    <option value="">{p.publicProfile.countryPlaceholder}</option>
+                    {COUNTRY_OPTIONS.map((option) => (
+                      <option key={option.code} value={option.code}>
+                        {option.name} ({option.code})
+                      </option>
+                    ))}
+                  </select>
                   <p className="text-xs leading-5 text-slate-500">
                     {detectedCountryLabel
                       ? p.publicProfile.countryHelpDetected(detectedCountryLabel)
