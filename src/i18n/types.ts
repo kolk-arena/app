@@ -1,5 +1,5 @@
-export type FrontendLocale = 'en' | 'es-mx';
-export type FrontendLocaleCode = 'en-US' | 'es-MX';
+export type FrontendLocale = 'en' | 'es-mx' | 'zh-tw';
+export type FrontendLocaleCode = 'en-US' | 'es-MX' | 'zh-TW';
 
 export type BetaPublicLevel = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 

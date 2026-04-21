@@ -74,6 +74,7 @@ test.after(() => restore());
 
 const enModulePath = path.join(srcRoot, 'i18n/locales/en.ts');
 const esMxModulePath = path.join(srcRoot, 'i18n/locales/es-mx.ts');
+const zhTwModulePath = path.join(srcRoot, 'i18n/locales/zh-tw.ts');
 const enMod = require(enModulePath);
 const enCatalog = enMod.en;
 
@@ -225,6 +226,43 @@ test('es-mx (if present) has the same key paths as en', () => {
     extraInEs.length,
     0,
     `es-mx has ${extraInEs.length} keys not present in en:\n  ${extraInEs.join('\n  ')}`,
+  );
+});
+
+// ---------------------------------------------------------------------------
+// Forward-compat: same parity check for zh-tw (Traditional Chinese, Taiwan).
+// Resilient to the file not existing yet.
+// ---------------------------------------------------------------------------
+
+test('zh-tw (if present) has the same key paths as en', () => {
+  if (!existsSync(zhTwModulePath)) {
+    return;
+  }
+  let zhMod;
+  try {
+    zhMod = require(zhTwModulePath);
+  } catch (err) {
+    assert.fail(`zh-tw locale file exists but failed to load: ${err.message}`);
+    return;
+  }
+  const zhCatalog = zhMod['zhTw'] ?? zhMod['zh_tw'] ?? zhMod['zhTW'] ?? zhMod['default'];
+  assert.ok(
+    zhCatalog,
+    'expected src/i18n/locales/zh-tw.ts to export a zh-tw catalog (named export `zhTw` or default)',
+  );
+  const zhKeySet = new Set(collectLeaves(zhCatalog).map((l) => l.path));
+
+  const missingInZh = [...enKeySet].filter((k) => !zhKeySet.has(k));
+  const extraInZh = [...zhKeySet].filter((k) => !enKeySet.has(k));
+  assert.equal(
+    missingInZh.length,
+    0,
+    `zh-tw is missing ${missingInZh.length} keys present in en:\n  ${missingInZh.join('\n  ')}`,
+  );
+  assert.equal(
+    extraInZh.length,
+    0,
+    `zh-tw has ${extraInZh.length} keys not present in en:\n  ${extraInZh.join('\n  ')}`,
   );
 });
 
