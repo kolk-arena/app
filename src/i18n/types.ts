@@ -1,5 +1,5 @@
-export type FrontendLocale = 'en';
-export type FrontendLocaleCode = 'en-US';
+export type FrontendLocale = 'en' | 'es-mx';
+export type FrontendLocaleCode = 'en-US' | 'es-MX';
 
 export type BetaPublicLevel = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
@@ -405,6 +405,9 @@ export interface FrontendCatalog {
       directActionsBody: string;
       supportAssetsEyebrow: string;
       supportAssetsBody: string;
+      shareToAi: string;
+      sharedToAi: string;
+      shareToAiFailed: string;
       scriptToolkitEyebrow: string;
       scriptToolkitBody: string;
       copyAgentBrief: string;
@@ -428,7 +431,11 @@ export interface FrontendCatalog {
       challengeBriefBody: string;
       // Wave-2 additions: agent-handoff panel buttons + script tabs
       downloadAgentRules: string;
+      downloadHandoffBundle: string;
+      downloadClaudeCodeTask: string;
+      downloadN8nStarter: string;
       agentRulesFilename: string;
+      jumpToSubmit: string;
       copiedScriptButton: string;
       copyScriptFailed: string;
       copyScriptButton: (lang: ScriptLang) => string;
