@@ -1,6 +1,7 @@
 import { copy } from '@/i18n';
 import { APP_CONFIG } from '@/lib/frontend/app-config';
 import type { BetaPublicLevel, ScriptLang } from '@/i18n/types';
+import type { CodeBlockLanguage } from '@/components/ui/code-block';
 
 type ChallengeHandoffArgs = {
   level: BetaPublicLevel;
@@ -24,6 +25,19 @@ export type ScriptBundle = {
   code: string;
   steps: readonly ScriptStep[];
 };
+
+export const CHALLENGE_SCRIPT_LANGS: readonly ScriptLang[] = ['curl', 'python', 'node'] as const;
+
+export function getScriptCodeLanguage(lang: ScriptLang): CodeBlockLanguage {
+  switch (lang) {
+    case 'curl':
+      return 'bash';
+    case 'python':
+      return 'python';
+    case 'node':
+      return 'javascript';
+  }
+}
 
 function stringifyJson(value: unknown) {
   return JSON.stringify(value, null, 2);
@@ -130,6 +144,10 @@ Return rules:
 
 function isCompetitiveLevel(level: BetaPublicLevel) {
   return level >= 6;
+}
+
+function getIdentityMode(level: BetaPublicLevel) {
+  return isCompetitiveLevel(level) ? 'bearer_token' : 'browser_session_cookie';
 }
 
 export function getSubmitContractSnippet(
@@ -684,6 +702,167 @@ ${outputTemplate}
 - Make sure every hard requirement from the live brief is present.
 - Make sure the output is complete and directly usable as primaryText.
 - Remove any draft notes, rationale, or extra wrapper text before returning the final answer.`;
+}
+
+export function getChallengeHandoffBundle({
+  level,
+  levelName,
+  promptMd,
+  taskJson,
+  attemptToken,
+}: ChallengeHandoffArgs) {
+  const challengeUrl = `${CANONICAL_ORIGIN}/challenge/${level}`;
+  const structuredBrief = extractStructuredBrief(taskJson);
+  const identityMode = getIdentityMode(level);
+
+  return stringifyJson({
+    arena: 'Kolk Arena',
+    version: 'beta-v1',
+    challenge: {
+      level,
+      levelName,
+      challengeUrl,
+      attemptToken: attemptToken ?? '<attemptToken>',
+      promptMd,
+      taskJson,
+      structuredBrief: structuredBrief ?? null,
+      outputTemplate: getLevelOutputTemplate(level, taskJson),
+    },
+    submit: {
+      url: `${CANONICAL_ORIGIN}/api/challenge/submit`,
+      method: 'POST',
+      identityMode,
+      headers:
+        identityMode === 'bearer_token'
+          ? {
+              'Content-Type': 'application/json',
+              'Idempotency-Key': '<uuid>',
+              Authorization: 'Bearer <token>',
+            }
+          : {
+              'Content-Type': 'application/json',
+              'Idempotency-Key': '<uuid>',
+              Cookie: '<same browser session or cookie jar used for fetch>',
+            },
+      body: {
+        attemptToken: attemptToken ?? '<attemptToken>',
+        primaryText: '<final delivery text only>',
+      },
+    },
+    retryPolicy: {
+      attemptTokenTtlHours: 24,
+      maxRetriesPerAttemptToken: 10,
+      perMinuteLimit: 6,
+      perHourLimit: 40,
+      consumeOn: ['unlock_pass', '24h_expiry'],
+    },
+    rules: {
+      returnOnlyFinalPrimaryText: true,
+      noReasoningOrWrapperText: true,
+      preserveSameIdentityBetweenFetchAndSubmit: true,
+      l5JsonOnly:
+        level === 5
+          ? ['whatsapp_message', 'quick_facts', 'first_step_checklist']
+          : null,
+    },
+  });
+}
+
+export function getClaudeCodeTaskBundle({
+  level,
+  levelName,
+  promptMd,
+  taskJson,
+  attemptToken,
+}: ChallengeHandoffArgs) {
+  const structuredBrief = extractStructuredBrief(taskJson);
+
+  return `# Kolk Arena task for Claude Code
+
+Use this file inside a Claude Code session that already knows \`kolk_arena.md\`.
+
+## Goal
+- Solve Kolk Arena L${level} — ${levelName}
+- Return only the final \`primaryText\`
+- No reasoning, no wrapper prose, no Markdown fences unless the brief requires them
+
+## Challenge URL
+${CANONICAL_ORIGIN}/challenge/${level}
+
+## attemptToken
+${attemptToken ?? '<attemptToken>'}
+
+## Human-readable brief
+${promptMd}
+
+## Machine-readable brief JSON
+\`\`\`json
+${stringifyJson(structuredBrief ?? taskJson)}
+\`\`\`
+
+## Suggested output shape
+${getLevelOutputTemplate(level, taskJson)}
+
+## Submit contract
+${getSubmitContractSnippet(attemptToken ?? '<attemptToken>', level)}
+
+## Critical reminders
+- Anonymous L0-L5 runs must preserve the same cookie jar between fetch and submit.
+- Signed-in L6-L8 runs must use \`Authorization: Bearer <token>\`.
+- Regenerate \`Idempotency-Key\` for each new submit attempt.
+- If the server returns \`fix_hint\`, repair the payload and retry with the same attemptToken.
+${level === 5 ? '- L5 must be raw JSON object text with string keys: whatsapp_message, quick_facts, first_step_checklist.' : ''}`;
+}
+
+export function getN8nStarterBundle({
+  level,
+  levelName,
+  promptMd,
+  taskJson,
+  attemptToken,
+}: ChallengeHandoffArgs) {
+  const structuredBrief = extractStructuredBrief(taskJson);
+  const identityMode = getIdentityMode(level);
+
+  return stringifyJson({
+    name: `Kolk Arena L${level} starter`,
+    description: 'Starter payload for n8n / workflow tools. Map these fields into your own HTTP + AI nodes.',
+    identityMode,
+    fetchStep: {
+      url: `${CANONICAL_ORIGIN}/challenge/${level}`,
+      note:
+        identityMode === 'browser_session_cookie'
+          ? 'Persist the same session cookie from fetch through submit.'
+          : 'Use a personal access token in the Authorization header.',
+    },
+    aiStep: {
+      instruction: 'Give promptMd plus structuredBrief/taskJson to the AI node and require final primaryText only.',
+      promptMd,
+      structuredBrief: structuredBrief ?? taskJson,
+      outputTemplate: getLevelOutputTemplate(level, taskJson),
+    },
+    submitStep: {
+      url: `${CANONICAL_ORIGIN}/api/challenge/submit`,
+      method: 'POST',
+      bodyTemplate: {
+        attemptToken: attemptToken ?? '<attemptToken>',
+        primaryText: '<AI node output>',
+      },
+      requiredHeaders: [
+        'Content-Type: application/json',
+        'Idempotency-Key: <uuid>',
+        identityMode === 'bearer_token'
+          ? 'Authorization: Bearer <token>'
+          : 'Cookie: <same cookie jar as fetch>',
+      ],
+    },
+    validation: {
+      level,
+      levelName,
+      ruleSummary: getLevelRuleSummary(level),
+      deliveryInstruction: getLevelDeliveryInstruction(level),
+    },
+  });
 }
 
 export function getStructuredBriefCopy(taskJson: JsonRecord) {

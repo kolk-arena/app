@@ -39,6 +39,116 @@
     background-color: var(--accent-memory-soft);
     color: var(--accent-memory-foreground);
   }
+
+  .code-block-shell .code-block-content .token.comment,
+  .code-block-shell .code-block-content .token.prolog,
+  .code-block-shell .code-block-content .token.doctype,
+  .code-block-shell .code-block-content .token.cdata {
+    color: #64748b;
+  }
+
+  .code-block-shell .code-block-content .token.punctuation {
+    color: #94a3b8;
+  }
+
+  .code-block-shell .code-block-content .token.property,
+  .code-block-shell .code-block-content .token.tag,
+  .code-block-shell .code-block-content .token.boolean,
+  .code-block-shell .code-block-content .token.number,
+  .code-block-shell .code-block-content .token.constant,
+  .code-block-shell .code-block-content .token.symbol,
+  .code-block-shell .code-block-content .token.deleted {
+    color: #f97316;
+  }
+
+  .code-block-shell .code-block-content .token.selector,
+  .code-block-shell .code-block-content .token.attr-name,
+  .code-block-shell .code-block-content .token.string,
+  .code-block-shell .code-block-content .token.char,
+  .code-block-shell .code-block-content .token.builtin,
+  .code-block-shell .code-block-content .token.inserted {
+    color: #16a34a;
+  }
+
+  .code-block-shell .code-block-content .token.operator,
+  .code-block-shell .code-block-content .token.entity,
+  .code-block-shell .code-block-content .token.url,
+  .code-block-shell .code-block-content .language-css .token.string,
+  .code-block-shell .code-block-content .style .token.string {
+    color: #0f766e;
+  }
+
+  .code-block-shell .code-block-content .token.atrule,
+  .code-block-shell .code-block-content .token.attr-value,
+  .code-block-shell .code-block-content .token.keyword {
+    color: #2563eb;
+  }
+
+  .code-block-shell .code-block-content .token.function,
+  .code-block-shell .code-block-content .token.class-name {
+    color: #7c3aed;
+  }
+
+  .code-block-shell .code-block-content .token.regex,
+  .code-block-shell .code-block-content .token.important,
+  .code-block-shell .code-block-content .token.variable {
+    color: #be123c;
+  }
+
+  .code-block-shell-dark .code-block-content .token.comment,
+  .code-block-shell-dark .code-block-content .token.prolog,
+  .code-block-shell-dark .code-block-content .token.doctype,
+  .code-block-shell-dark .code-block-content .token.cdata {
+    color: #94a3b8;
+  }
+
+  .code-block-shell-dark .code-block-content .token.punctuation {
+    color: #cbd5e1;
+  }
+
+  .code-block-shell-dark .code-block-content .token.property,
+  .code-block-shell-dark .code-block-content .token.tag,
+  .code-block-shell-dark .code-block-content .token.boolean,
+  .code-block-shell-dark .code-block-content .token.number,
+  .code-block-shell-dark .code-block-content .token.constant,
+  .code-block-shell-dark .code-block-content .token.symbol,
+  .code-block-shell-dark .code-block-content .token.deleted {
+    color: #fb923c;
+  }
+
+  .code-block-shell-dark .code-block-content .token.selector,
+  .code-block-shell-dark .code-block-content .token.attr-name,
+  .code-block-shell-dark .code-block-content .token.string,
+  .code-block-shell-dark .code-block-content .token.char,
+  .code-block-shell-dark .code-block-content .token.builtin,
+  .code-block-shell-dark .code-block-content .token.inserted {
+    color: #4ade80;
+  }
+
+  .code-block-shell-dark .code-block-content .token.operator,
+  .code-block-shell-dark .code-block-content .token.entity,
+  .code-block-shell-dark .code-block-content .token.url,
+  .code-block-shell-dark .code-block-content .language-css .token.string,
+  .code-block-shell-dark .code-block-content .style .token.string {
+    color: #5eead4;
+  }
+
+  .code-block-shell-dark .code-block-content .token.atrule,
+  .code-block-shell-dark .code-block-content .token.attr-value,
+  .code-block-shell-dark .code-block-content .token.keyword {
+    color: #60a5fa;
+  }
+
+  .code-block-shell-dark .code-block-content .token.function,
+  .code-block-shell-dark .code-block-content .token.class-name {
+    color: #c084fc;
+  }
+
+  .code-block-shell-dark .code-block-content .token.regex,
+  .code-block-shell-dark .code-block-content .token.important,
+  .code-block-shell-dark .code-block-content .token.variable {
+    color: #f472b6;
+  }
 }
 
 html {
@@ -50,7 +160,17 @@ body {
   overflow-x: hidden;
   color: var(--foreground);
   background: var(--background);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family:
+    var(--font-geist-sans),
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    "PingFang TC",
+    "Microsoft JhengHei",
+    "Noto Sans TC",
+    Arial,
+    Helvetica,
+    sans-serif;
 }
 
 ::selection {

@@ -2,9 +2,11 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { CopyButton } from '@/components/ui/copy-button';
+import { LocalizedDateTimeText } from '@/components/time/localized-time';
 import { copy } from '@/i18n';
-import { formatDateTime, formatNumber } from '@/i18n/format';
+import { formatNumber } from '@/i18n/format';
 import { buildPlayerBadge } from '@/lib/frontend/badge';
+import { countryCodeFromInput, countryNameFromCode } from '@/lib/frontend/countries';
 import { fetchLeaderboardPlayerDetail, type LeaderboardPlayerSubmission } from '@/lib/kolk/leaderboard/player-detail';
 
 type PlayerPageProps = {
@@ -32,19 +34,14 @@ function formatScore(value: number | null) {
   });
 }
 
-function formatDate(value: string | null) {
-  if (!value) return copy.leaderboard.playerDetail.lastSubmissionFallback;
-  return formatDateTime(value, value);
-}
-
 function tierClasses(tier: string) {
   switch (tier) {
     case 'champion':
-      return 'border border-slate-200 bg-amber-50 text-amber-800';
+      return 'border border-slate-900 bg-slate-900 text-white';
     case 'specialist':
-      return 'border border-slate-200 bg-sky-50 text-sky-800';
+      return 'border border-slate-300 bg-slate-100 text-slate-800';
     case 'builder':
-      return 'border border-slate-200 bg-emerald-50 text-emerald-800';
+      return 'border border-slate-200 bg-slate-50 text-slate-700';
     default:
       return 'border border-slate-200 bg-slate-100 text-slate-800';
   }
@@ -53,6 +50,12 @@ function tierClasses(tier: string) {
 function normalizeFlags(value: unknown) {
   if (!Array.isArray(value)) return [] as string[];
   return value.filter((flag): flag is string => typeof flag === 'string' && flag.trim().length > 0);
+}
+
+function formatCountryLabel(value: string | null | undefined) {
+  const code = countryCodeFromInput(value);
+  if (!code) return value?.trim() || null;
+  return countryNameFromCode(code) ?? code;
 }
 
 function buildBackHref(searchParams: { [key: string]: string | string[] | undefined } | undefined) {
@@ -129,10 +132,10 @@ export default async function PlayerDetailPage({ params, searchParams }: PlayerP
       <section className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-6 sm:gap-6 sm:px-6 sm:py-8 lg:px-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-2">
-            <div className="inline-flex items-center rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-700">
+            <div className="inline-flex items-center rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600">
               {pd.eyebrow}
             </div>
-            <h1 className="text-3xl font-black tracking-tight text-slate-950">
+            <h1 className="text-3xl font-bold tracking-tight text-slate-950">
               {userRow.display_name ?? pd.profilePlayerFallback}
             </h1>
             <p className="text-sm text-slate-700">
@@ -142,7 +145,7 @@ export default async function PlayerDetailPage({ params, searchParams }: PlayerP
 
           <Link
             href={backHref}
-            className="inline-flex min-h-11 items-center rounded-md border border-slate-200 bg-white px-4 py-2 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+            className="inline-flex min-h-11 items-center rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950"
           >
             {pd.backToLeaderboard}
           </Link>
@@ -154,13 +157,13 @@ export default async function PlayerDetailPage({ params, searchParams }: PlayerP
               <div className="border-b border-slate-200 px-4 py-4 sm:px-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-700">{pd.eyebrow}</p>
+                    <p className="text-xs font-medium text-slate-500">{pd.eyebrow}</p>
                     <p className="mt-2 text-xl font-semibold text-slate-950">{userRow.display_name ?? pd.profilePlayerFallback}</p>
                     <p className="mt-1 text-sm text-slate-700">
                       {userRow.handle ? `@${userRow.handle}` : pd.noPublicHandle}
                     </p>
                   </div>
-                  <span className={`inline-flex rounded-md px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] ${tierClasses(tier)}`}>
+                  <span className={`inline-flex rounded-md px-2.5 py-1 text-xs font-medium ${tierClasses(tier)}`}>
                     {tier}
                   </span>
                 </div>
@@ -169,35 +172,42 @@ export default async function PlayerDetailPage({ params, searchParams }: PlayerP
               <div className="grid gap-4 px-4 py-4 sm:px-5">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-700">{pd.highestLevel}</p>
+                    <p className="text-xs font-medium text-slate-500">{pd.highestLevel}</p>
                     <p className="mt-2 text-2xl font-semibold text-slate-950 tabular-nums">L{highestLevel}</p>
                   </div>
                   <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-700">{pd.totalScore}</p>
+                    <p className="text-xs font-medium text-slate-500">{pd.totalScore}</p>
                     <p className="mt-2 text-2xl font-semibold text-slate-950 tabular-nums">{formatScore(totalScore)}</p>
                   </div>
                 </div>
 
                 <dl className="space-y-3 text-sm">
                   <div className="flex items-start justify-between gap-3">
-                    <dt className="font-mono text-slate-700">{pd.affiliationLabel}</dt>
+                    <dt className="text-xs font-medium text-slate-500">{pd.affiliationLabel}</dt>
                     <dd className="max-w-[55%] break-words text-right font-medium text-slate-950">{affiliation ?? pd.affiliationFallback}</dd>
                   </div>
                   <div className="flex items-start justify-between gap-3">
-                    <dt className="font-mono text-slate-700">{pd.agentStackLabel}</dt>
+                    <dt className="text-xs font-medium text-slate-500">{pd.agentStackLabel}</dt>
                     <dd className="max-w-[55%] break-words text-right font-medium text-slate-950">{agentStack ?? pd.agentStackFallback}</dd>
                   </div>
                   <div className="flex items-start justify-between gap-3">
-                    <dt className="font-mono text-slate-700">{pd.countryLabel}</dt>
-                    <dd className="max-w-[55%] break-words text-right font-medium text-slate-950">{userRow.country ?? pd.countryFallback}</dd>
+                    <dt className="text-xs font-medium text-slate-500">{pd.countryLabel}</dt>
+                    <dd className="max-w-[55%] break-words text-right font-medium text-slate-950">
+                      {formatCountryLabel(userRow.country) ?? pd.countryFallback}
+                    </dd>
                   </div>
                   <div className="flex items-center justify-between gap-3">
-                    <dt className="font-mono text-slate-700">{pd.levelsCompleted}</dt>
+                    <dt className="text-xs font-medium text-slate-500">{pd.levelsCompleted}</dt>
                     <dd className="font-medium text-slate-950">{levelsCompleted}</dd>
                   </div>
                   <div className="flex items-center justify-between gap-3">
-                    <dt className="font-mono text-slate-700">{pd.lastSubmissionLabel}</dt>
-                    <dd className="text-right font-medium text-slate-950">{formatDate(lastSubmissionAt)}</dd>
+                    <dt className="text-xs font-medium text-slate-500">{pd.lastSubmissionLabel}</dt>
+                    <dd className="text-right font-medium text-slate-950">
+                      <LocalizedDateTimeText
+                        value={lastSubmissionAt}
+                        fallback={pd.lastSubmissionFallback}
+                      />
+                    </dd>
                   </div>
                 </dl>
               </div>
@@ -205,14 +215,14 @@ export default async function PlayerDetailPage({ params, searchParams }: PlayerP
 
             <div className="rounded-md border border-slate-200 bg-white">
               <div className="border-b border-slate-200 px-4 py-4 sm:px-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-700">{pd.bestScoresHeading}</p>
+                <p className="text-xs font-medium text-slate-500">{pd.bestScoresHeading}</p>
               </div>
               <div className="flex flex-wrap gap-2 px-4 py-4 sm:px-5">
                 {levelCards.length > 0 ? (
                   levelCards.map((entry) => (
                     <span
                       key={entry.level}
-                      className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 font-mono text-xs font-semibold text-slate-950"
+                      className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700"
                     >
                       <span className="tabular-nums">L{entry.level}</span>
                       <span className="text-slate-500">·</span>
@@ -232,7 +242,7 @@ export default async function PlayerDetailPage({ params, searchParams }: PlayerP
                 aria-label={badgeCopy.sectionTitle}
                 className="rounded-md border border-slate-200 bg-white p-6 sm:p-8"
               >
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">
+                <p className="text-xs font-medium text-slate-500">
                   {badgeCopy.sectionEyebrow}
                 </p>
                 <h2 className="mt-2 text-xl font-bold tracking-tight text-slate-950">
@@ -251,7 +261,7 @@ export default async function PlayerDetailPage({ params, searchParams }: PlayerP
                 </div>
 
                 <div className="mt-4 flex flex-col gap-2">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-700">
+                  <p className="text-xs font-medium text-slate-500">
                     {badgeCopy.markdownLabel}
                   </p>
                   <pre className="overflow-x-auto rounded-md border border-slate-200 bg-slate-950 p-4 font-mono text-xs text-slate-200 leading-6">
@@ -263,14 +273,14 @@ export default async function PlayerDetailPage({ params, searchParams }: PlayerP
                       idleLabel={badgeCopy.copyMarkdown}
                       copiedLabel={badgeCopy.copiedMarkdown}
                       failedLabel={badgeCopy.copyFailed}
-                      className="inline-flex items-center rounded-md border border-slate-200 bg-slate-950 px-4 py-2 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
+                      className="inline-flex items-center rounded-md border border-slate-200 bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition-colors duration-150 hover:bg-slate-800"
                     />
                     <CopyButton
                       value={badge.html}
                       idleLabel={badgeCopy.copyHtml}
                       copiedLabel={badgeCopy.copiedHtml}
                       failedLabel={badgeCopy.copyFailed}
-                      className="inline-flex items-center rounded-md border border-slate-200 bg-white px-4 py-2 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+                      className="inline-flex items-center rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950"
                     />
                   </div>
                 </div>
@@ -291,8 +301,8 @@ export default async function PlayerDetailPage({ params, searchParams }: PlayerP
                     <article key={submission.id} className="px-4 py-4 sm:px-5">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="min-w-0 flex-1 space-y-2">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="inline-flex rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-950">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className="inline-flex rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700">
                               {pd.levelLabel(submission.level)}
                             </span>
                             <span className="text-sm font-semibold text-slate-950 tabular-nums">
@@ -304,22 +314,25 @@ export default async function PlayerDetailPage({ params, searchParams }: PlayerP
                             {submission.judge_summary ?? pd.noSummary}
                           </p>
                         </div>
-                        <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
-                          {formatDate(typeof submission.submitted_at === 'string' ? submission.submitted_at : null)}
+                        <p className="text-xs font-medium text-slate-500">
+                          <LocalizedDateTimeText
+                            value={typeof submission.submitted_at === 'string' ? submission.submitted_at : null}
+                            fallback={pd.lastSubmissionFallback}
+                          />
                         </p>
                       </div>
 
                       <div className="mt-4 grid gap-3 sm:grid-cols-3">
                         <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-700">{pd.structureLabel}</p>
+                          <p className="text-xs font-medium text-slate-500">{pd.structureLabel}</p>
                           <p className="mt-2 text-lg font-semibold text-slate-950 tabular-nums">{formatScore(submission.structure_score)}</p>
                         </div>
                         <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-700">{pd.coverageLabel}</p>
+                          <p className="text-xs font-medium text-slate-500">{pd.coverageLabel}</p>
                           <p className="mt-2 text-lg font-semibold text-slate-950 tabular-nums">{formatScore(submission.coverage_score)}</p>
                         </div>
                         <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-700">{pd.qualityLabel}</p>
+                          <p className="text-xs font-medium text-slate-500">{pd.qualityLabel}</p>
                           <p className="mt-2 text-lg font-semibold text-slate-950 tabular-nums">{formatScore(submission.quality_score)}</p>
                         </div>
                       </div>
@@ -330,7 +343,7 @@ export default async function PlayerDetailPage({ params, searchParams }: PlayerP
                             href={submission.repo_url}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center rounded-md border border-slate-200 bg-white px-3 py-1.5 font-mono text-xs font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+                            className="inline-flex items-center rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950"
                           >
                             {pd.viewRepo}
                           </a>
@@ -343,7 +356,7 @@ export default async function PlayerDetailPage({ params, searchParams }: PlayerP
                         {normalizeFlags(submission.flags).map((flag) => (
                           <span
                             key={flag}
-                            className="inline-flex items-center rounded-md border-2 border-rose-700 bg-rose-50 px-3 py-1.5 font-mono text-xs font-semibold text-rose-800"
+                            className="inline-flex items-center rounded-md border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-800"
                           >
                             {flag}
                           </span>

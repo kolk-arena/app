@@ -1,7 +1,26 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import Prism from 'prismjs';
+import 'prismjs/components/prism-bash';
+import 'prismjs/components/prism-javascript';
+import 'prismjs/components/prism-json';
+import 'prismjs/components/prism-markdown';
+import 'prismjs/components/prism-python';
+import 'prismjs/components/prism-typescript';
+import 'prismjs/components/prism-yaml';
+import { useMemo, type ReactNode } from 'react';
 import { CopyButton } from '@/components/ui/copy-button';
+import { getQuickActionButtonClassName } from '@/components/ui/quick-action-button';
+
+export type CodeBlockLanguage =
+  | 'text'
+  | 'bash'
+  | 'javascript'
+  | 'json'
+  | 'markdown'
+  | 'python'
+  | 'typescript'
+  | 'yaml';
 
 type CodeBlockProps = {
   code: string;
@@ -15,7 +34,13 @@ type CodeBlockProps = {
   tone?: 'dark' | 'light';
   wrap?: boolean;
   className?: string;
+  language?: CodeBlockLanguage;
 };
+
+function resolveLanguage(language: CodeBlockLanguage): Exclude<CodeBlockLanguage, 'text'> | null {
+  if (language === 'text') return null;
+  return language;
+}
 
 export function CodeBlock({
   code,
@@ -29,6 +54,7 @@ export function CodeBlock({
   tone = 'dark',
   wrap = true,
   className = '',
+  language = 'text',
 }: CodeBlockProps) {
   const containerClasses =
     tone === 'dark'
@@ -36,14 +62,34 @@ export function CodeBlock({
       : 'border border-slate-200 bg-slate-50 text-slate-900';
   const mutedClasses = tone === 'dark' ? 'text-slate-300' : 'text-slate-600';
   const preClasses = tone === 'dark' ? 'text-slate-100' : 'text-slate-800';
-  const buttonClasses =
-    tone === 'dark'
-      ? 'inline-flex min-h-9 items-center rounded-md border-2 border-white/30 bg-white/10 px-3 py-1.5 text-xs font-mono font-semibold text-slate-100 transition-colors duration-150 hover:bg-white hover:text-slate-950'
-      : 'inline-flex min-h-9 items-center rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-mono font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white';
+  const buttonClasses = getQuickActionButtonClassName({
+    variant: tone === 'dark' ? 'secondary' : 'secondary',
+    tone: 'mono',
+    size: 'sm',
+    width: 'auto',
+    className:
+      tone === 'dark'
+        ? 'border-white/30 bg-white/10 text-slate-100 hover:bg-white hover:text-slate-950'
+        : '',
+  });
   const headerBorderClasses = tone === 'dark' ? 'border-b border-white/20' : 'border-b border-slate-200';
+  const resolvedLanguage = resolveLanguage(language);
+  const highlightedCode = useMemo(() => {
+    if (!resolvedLanguage) {
+      return Prism.util.encode(code).toString();
+    }
+
+    const grammar = (Prism.languages as Record<string, unknown>)[resolvedLanguage];
+    if (!grammar) {
+      return Prism.util.encode(code).toString();
+    }
+
+    return Prism.highlight(code, grammar as Prism.Grammar, resolvedLanguage);
+  }, [code, resolvedLanguage]);
+  const languageClassName = resolvedLanguage ? `language-${resolvedLanguage}` : 'language-text';
 
   return (
-    <div className={`overflow-hidden rounded-md ${containerClasses} ${className}`}>
+    <div className={`code-block-shell overflow-hidden rounded-md ${tone === 'dark' ? 'code-block-shell-dark' : 'code-block-shell-light'} ${containerClasses} ${className}`}>
       {title || eyebrow || actions || copyValue ? (
         <div className={`flex flex-wrap items-start justify-between gap-3 px-4 py-3 sm:px-5 ${headerBorderClasses}`}>
           <div className="min-w-0">
@@ -70,11 +116,18 @@ export function CodeBlock({
       ) : null}
 
       <pre
+        tabIndex={0}
+        aria-label="Code block"
+        suppressHydrationWarning
         className={`overflow-x-auto px-4 py-4 font-mono text-[12px] leading-6 sm:px-5 sm:py-5 sm:text-[13px] ${preClasses} ${
           wrap ? 'whitespace-pre-wrap break-words' : 'whitespace-pre'
         }`}
       >
-        {code}
+        <code
+          className={`code-block-content block ${languageClassName}`}
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: highlightedCode }}
+        />
       </pre>
     </div>
   );

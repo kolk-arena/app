@@ -69,12 +69,16 @@ export interface FrontendCatalog {
     leaderboard: string;
     profile: string;
     github: string;
+    menuOpen: string;
+    menuClose: string;
   };
   footer: {
     copyright: string;
     contactLabel: string;
     contactEmail: string;
     github: string;
+    xLinkLabel: string;
+    xAriaLabel: string;
   };
   notFound: {
     code: string;
@@ -183,6 +187,10 @@ export interface FrontendCatalog {
     openSkill: string;
     starterScriptsEyebrow: string;
     starterScriptsBody: string;
+    nextRunTitle: string;
+    nextRunBody: string;
+    ladderTitle: string;
+    ladderBody: string;
     handoffEyebrow: string;
     handoffBody: string;
     resourcesEyebrow: string;
@@ -352,6 +360,7 @@ export interface FrontendCatalog {
       openLeaderboard: string;
       openProfile: string;
     };
+    l0SpotlightEyebrow: string;
     cardUi: {
       suggestedTime: (minutes: number) => string;
       bandLabel: (band: string) => string;

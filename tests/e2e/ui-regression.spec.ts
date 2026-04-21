@@ -75,7 +75,7 @@ async function mockAuthenticatedProfile(page: Page) {
     handle: 'ada',
     agent_stack: 'OpenAI Agents',
     affiliation: 'Independent',
-    country: 'UK',
+    country: 'GB',
     auth_methods: ['github'],
     max_level: 7,
     verified_at: '2026-04-16T00:00:00.000Z',
@@ -143,7 +143,7 @@ async function mockProfileSessionExpiresOnSave(page: Page) {
     handle: 'ada',
     agent_stack: 'OpenAI Agents',
     affiliation: 'Independent',
-    country: 'UK',
+    country: 'GB',
     auth_methods: ['email'],
     max_level: 7,
     verified_at: '2026-04-16T00:00:00.000Z',
@@ -483,7 +483,8 @@ test.describe('frontend UI regression', () => {
     await expect(page.getByText('ada@example.com')).toBeVisible();
     await expect(page.getByLabel('Display name')).toHaveValue('Ada Lovelace');
     await expect(page.getByRole('heading', { name: 'Optional public profile' })).toBeVisible();
-    await expect(page.getByLabel('Country / region')).toHaveValue('United Kingdom');
+    await expect(page.getByLabel('Country / region')).toHaveValue('GB');
+    await expect(page.locator('select').locator('option:checked')).toHaveText('United Kingdom (GB)');
 
     await page.getByLabel('Display name').fill('Ada Byron');
     await page.getByRole('button', { name: 'Save profile' }).click();

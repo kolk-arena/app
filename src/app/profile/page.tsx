@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { useLocalizedDateTimeFormatter } from '@/components/time/localized-time';
 import { copy } from '@/i18n';
-import { formatDateTime } from '@/i18n/format';
 import { AuthSignInPanel } from '@/app/auth-sign-in-panel';
 import { APP_CONFIG } from '@/lib/frontend/app-config';
 import { COUNTRY_OPTIONS, countryCodeFromInput, countryNameFromCode } from '@/lib/frontend/countries';
@@ -39,6 +39,7 @@ function buildEditableProfileForm(profile: Profile) {
 }
 
 export default function ProfilePage() {
+  const formatLocalDateTime = useLocalizedDateTimeFormatter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [authRequired, setAuthRequired] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -190,21 +191,21 @@ export default function ProfilePage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-6 py-12 text-slate-950 sm:px-10">
-      <section className="mx-auto max-w-3xl space-y-6">
+    <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-950 sm:px-6 sm:py-12">
+      <section className="mx-auto max-w-4xl space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">
+            <p className="text-xs font-medium text-slate-500">
               {p.pageEyebrow}
             </p>
-            <h1 className="mt-2 text-4xl font-black tracking-tight">{p.pageTitle}</h1>
+            <h1 className="mt-2 text-4xl font-bold tracking-tight">{p.pageTitle}</h1>
           </div>
           {profile ? (
             <button
               type="button"
               onClick={handleLogout}
               disabled={loggingOut}
-              className="rounded-md border border-slate-200 bg-white px-4 py-2 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white disabled:opacity-60"
+              className="rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950 disabled:opacity-60"
             >
               {loggingOut ? p.loggingOut : p.logOut}
             </button>
@@ -218,14 +219,14 @@ export default function ProfilePage() {
         ) : null}
 
         {!loading && !profile && error ? (
-          <div className="rounded-md border-2 border-rose-700 bg-rose-50 p-6 text-sm leading-7 text-rose-900">
+          <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm leading-7 text-rose-900">
             <p className="font-semibold">{p.loadFailedTitle}</p>
             <p className="mt-2">{error}</p>
             <p className="mt-2 text-rose-800">{p.loadFailedHint}</p>
             <button
               type="button"
               onClick={() => setReloadNonce((current) => current + 1)}
-              className="mt-4 rounded-md border-2 border-rose-700 bg-white px-4 py-2 font-mono text-sm font-semibold text-rose-800 transition-colors duration-150 hover:bg-rose-700 hover:text-white"
+              className="mt-4 rounded-md border border-rose-200 bg-white px-4 py-2.5 text-sm font-medium text-rose-800 transition-colors duration-150 hover:bg-rose-100"
             >
               {p.retry}
             </button>
@@ -243,7 +244,7 @@ export default function ProfilePage() {
         {profile ? (
           <>
             {authRequired ? (
-              <div className="rounded-md border-2 border-amber-700 bg-amber-50 p-6">
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-6">
                 <p className="text-sm font-semibold text-amber-900">{p.sessionExpiredTitle}</p>
                 <p className="mt-1 text-sm text-amber-800">
                   {p.sessionExpiredBody}
@@ -264,63 +265,67 @@ export default function ProfilePage() {
               />
             ) : null}
 
-            <div className="grid gap-4 rounded-md border border-slate-200 bg-white p-6 sm:grid-cols-2">
+            <div className="grid gap-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:grid-cols-2">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">{p.summary.canonicalEmail}</p>
+                <p className="text-xs font-medium text-slate-500">{p.summary.canonicalEmail}</p>
                 <p className="mt-2 text-sm font-medium text-slate-950">{profile.email}</p>
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">{p.summary.loginMethods}</p>
+                <p className="text-xs font-medium text-slate-500">{p.summary.loginMethods}</p>
                 <p className="mt-2 text-sm font-medium capitalize text-slate-950">{authMethods || p.summary.emailFallback}</p>
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">{p.summary.highestUnlockedLevel}</p>
+                <p className="text-xs font-medium text-slate-500">{p.summary.highestUnlockedLevel}</p>
                 <p className="mt-2 text-sm font-medium text-slate-950">L{profile.max_level}</p>
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">{p.summary.betaPioneer}</p>
+                <p className="text-xs font-medium text-slate-500">{p.summary.betaPioneer}</p>
                 <p className="mt-2 text-sm font-medium text-slate-950">{profile.pioneer ? p.summary.pioneerYes : p.summary.pioneerNo}</p>
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">{p.summary.verifiedAt}</p>
-                <p className="mt-2 text-sm font-medium text-slate-950">{profile.verified_at ? formatDateTime(profile.verified_at, profile.verified_at) : p.summary.notSet}</p>
+                <p className="text-xs font-medium text-slate-500">{p.summary.verifiedAt}</p>
+                <p className="mt-2 text-sm font-medium text-slate-950">
+                  {profile.verified_at
+                    ? formatLocalDateTime(profile.verified_at, profile.verified_at)
+                    : p.summary.notSet}
+                </p>
               </div>
             </div>
 
-            <div className="rounded-md border border-slate-200 bg-white p-6">
+            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">{p.progression.eyebrow}</p>
+                  <p className="text-xs font-medium text-slate-500">{p.progression.eyebrow}</p>
                   <h2 className="mt-1 text-lg font-bold text-slate-950">{p.progression.title}</h2>
                 </div>
                 <Link
                   href={`/leaderboard?player=${profile.id}`}
-                  className="rounded-md border border-slate-200 bg-white px-4 py-2 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+                  className="rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950"
                 >
                   {p.progression.viewOnLeaderboard}
                 </Link>
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-700">{p.progression.highestLevel}</p>
+                  <p className="text-xs font-medium text-slate-500">{p.progression.highestLevel}</p>
                   <p className="mt-2 text-2xl font-bold text-slate-950">L{profile.max_level}</p>
                 </div>
                 <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-700">{p.progression.publicBetaProgress}</p>
+                  <p className="text-xs font-medium text-slate-500">{p.progression.publicBetaProgress}</p>
                   <div className="mt-2 h-2 w-full overflow-hidden rounded-md border border-slate-200 bg-slate-200">
-                    <div className="h-full bg-emerald-600 transition-all" style={{ width: `${Math.min(100, (profile.max_level / 8) * 100)}%` }} />
+                    <div className="h-full bg-slate-900 transition-all" style={{ width: `${Math.min(100, (profile.max_level / 8) * 100)}%` }} />
                   </div>
-                  <p className="mt-1 font-mono text-xs text-slate-700">{p.progression.betaLevels(Math.min(profile.max_level, 8), 8)}</p>
+                  <p className="mt-1 text-xs text-slate-600">{p.progression.betaLevels(Math.min(profile.max_level, 8), 8)}</p>
                 </div>
                 <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-700">{p.progression.nextStep}</p>
+                  <p className="text-xs font-medium text-slate-500">{p.progression.nextStep}</p>
                   <p className="mt-2 text-sm font-medium text-slate-950">
                     {profile.max_level >= 8 ? p.progression.nextStepComplete : p.progression.nextStepAttempt(profile.max_level + 1)}
                   </p>
                 </div>
               </div>
               {profile.pioneer ? (
-                <div className="mt-4 rounded-md border-2 border-emerald-700 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900">
+                <div className="mt-4 rounded-lg border px-4 py-3 text-sm font-medium memory-accent-chip">
                   {p.progression.pioneerUnlocked}
                 </div>
               ) : null}
@@ -328,17 +333,17 @@ export default function ProfilePage() {
 
             <form
               onSubmit={handleSave}
-              className="space-y-5 rounded-md border border-slate-200 bg-white p-6"
+              className="space-y-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
             >
               <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">{p.publicProfile.eyebrow}</p>
+                <p className="text-xs font-medium text-slate-500">{p.publicProfile.eyebrow}</p>
                 <h2 className="text-2xl font-bold tracking-tight text-slate-950">{p.publicProfile.title}</h2>
                 <p className="max-w-2xl text-sm leading-6 text-slate-600">{p.publicProfile.body}</p>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="space-y-2 text-sm text-slate-800">
-                  <span className="font-semibold uppercase tracking-[0.14em] text-slate-700">{p.publicProfile.displayName}</span>
+                  <span className="text-xs font-medium text-slate-600">{p.publicProfile.displayName}</span>
                   <input
                     className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950"
                     value={form.displayName}
@@ -348,7 +353,7 @@ export default function ProfilePage() {
                   <p className="text-xs leading-5 text-slate-500">{p.publicProfile.displayNameHelp}</p>
                 </label>
                 <label className="space-y-2 text-sm text-slate-800">
-                  <span className="font-semibold uppercase tracking-[0.14em] text-slate-700">{p.publicProfile.handle}</span>
+                  <span className="text-xs font-medium text-slate-600">{p.publicProfile.handle}</span>
                   <input
                     className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950"
                     value={form.handle}
@@ -357,7 +362,7 @@ export default function ProfilePage() {
                   />
                 </label>
                 <label className="space-y-2 text-sm text-slate-800">
-                  <span className="font-semibold uppercase tracking-[0.14em] text-slate-700">{p.publicProfile.agentStack}</span>
+                  <span className="text-xs font-medium text-slate-600">{p.publicProfile.agentStack}</span>
                   <input
                     className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950"
                     value={form.agentStack}
@@ -366,7 +371,7 @@ export default function ProfilePage() {
                   />
                 </label>
                 <label className="space-y-2 text-sm text-slate-800">
-                  <span className="font-semibold uppercase tracking-[0.14em] text-slate-700">{p.publicProfile.affiliation}</span>
+                  <span className="text-xs font-medium text-slate-600">{p.publicProfile.affiliation}</span>
                   <input
                     className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950"
                     value={form.affiliation}
@@ -375,7 +380,7 @@ export default function ProfilePage() {
                   />
                 </label>
                 <label className="space-y-2 text-sm text-slate-800 sm:col-span-2">
-                  <span className="font-semibold uppercase tracking-[0.14em] text-slate-700">{p.publicProfile.country}</span>
+                  <span className="text-xs font-medium text-slate-600">{p.publicProfile.country}</span>
                   <select
                     className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950"
                     value={form.country}
@@ -397,13 +402,13 @@ export default function ProfilePage() {
               </div>
 
               {showInlineError ? (
-                <div className="rounded-md border-2 border-rose-700 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+                <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
                   {error}
                 </div>
               ) : null}
 
               {saveSuccess ? (
-                <div className="rounded-md border-2 border-emerald-700 bg-emerald-50 px-4 py-3 text-sm text-emerald-900" aria-live="polite">
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900" aria-live="polite">
                   {p.publicProfile.success}
                 </div>
               ) : null}
@@ -411,7 +416,7 @@ export default function ProfilePage() {
               <button
                 type="submit"
                 disabled={saving || authRequired}
-                className="rounded-md border border-slate-200 bg-slate-950 px-5 py-3 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950 disabled:opacity-60 disabled:hover:bg-slate-950 disabled:hover:text-white"
+                className="memory-accent-button rounded-md border px-5 py-3 text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2 disabled:opacity-60"
               >
                 {saving ? p.publicProfile.saving : saveSuccess ? p.publicProfile.saved : p.publicProfile.save}
               </button>

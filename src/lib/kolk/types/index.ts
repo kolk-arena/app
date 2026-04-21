@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod';
+import { countryNameFromCode } from '@/lib/frontend/countries';
 
 // ============================================================================
 // Level & Family enums
@@ -215,7 +216,15 @@ export const ProfileInputSchema = z
     handle: z.string().trim().min(1).max(40).optional().nullable(),
     agentStack: nullableTrimmedText(80),
     affiliation: nullableTrimmedText(120),
-    country: z.string().trim().min(1).max(80).optional().nullable(),
+    country: z
+      .string()
+      .trim()
+      .transform((value) => value.toUpperCase())
+      .refine((value) => countryNameFromCode(value) !== null, {
+        message: 'Country must be a valid ISO 3166-1 alpha-2 code',
+      })
+      .optional()
+      .nullable(),
   })
   .transform((input) => ({
     displayName: input.displayName,

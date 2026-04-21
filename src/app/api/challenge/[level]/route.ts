@@ -241,6 +241,7 @@ async function buildSessionAndRespond(
 
   const response: Record<string, unknown> = {
     challenge: pkg,
+    serverNowUtc: startedAt.toISOString(),
     level_info: {
       name: levelDef.name,
       family: levelDef.family,

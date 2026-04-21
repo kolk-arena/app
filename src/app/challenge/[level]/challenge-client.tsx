@@ -1,31 +1,39 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { Group, Panel, Separator, useDefaultLayout } from 'react-resizable-panels';
 import { CodeBlock } from '@/components/ui/code-block';
 import { CopyButton } from '@/components/ui/copy-button';
+import { QuickActionButton, getQuickActionButtonClassName } from '@/components/ui/quick-action-button';
+import {
+  useLocalizedDateTimeFormatter,
+  useLocalizedTimeFormatter,
+  useServerNow,
+} from '@/components/time/localized-time';
 import { copy } from '@/i18n';
 import {
   formatClockSeconds,
-  formatDateTime,
   formatNumber,
-  formatTimeOnly,
 } from '@/i18n/format';
 import type { BetaPublicLevel, ErrorCode, ScriptLang } from '@/i18n/types';
 import { APP_CONFIG } from '@/lib/frontend/app-config';
 import {
   buildChallengeAgentBrief,
+  CHALLENGE_SCRIPT_LANGS,
   extractStructuredBrief,
+  getChallengeHandoffBundle,
   getChallengeScriptBundle,
+  getClaudeCodeTaskBundle,
+  getScriptCodeLanguage,
   getLevelDeliveryInstruction,
   getLevelOutputTemplate,
+  getN8nStarterBundle,
   getStructuredBriefCopy,
   getSubmitContractSnippet,
   getAgentRules,
   dryRunValidation,
 } from '@/lib/frontend/agent-handoff';
-import { usePublicTextAsset } from '@/lib/frontend/use-public-text-asset';
 import { MAX_PRIMARY_TEXT_CHARS } from '@/lib/kolk/constants';
 
 /**
@@ -80,6 +88,7 @@ type LevelInfo = {
 
 type FetchResponse = {
   challenge: ChallengePackage;
+  serverNowUtc?: string;
   level_info: LevelInfo;
   replayAvailable?: boolean;
   replay?: boolean;
@@ -191,11 +200,11 @@ function formatSeconds(total: number): string {
 
 function bandColor(band: SubmitResponse['colorBand']): string {
   switch (band) {
-    case 'RED': return 'border-2 border-rose-700 bg-rose-50 text-rose-800';
-    case 'ORANGE': return 'border-2 border-orange-700 bg-orange-50 text-orange-800';
-    case 'YELLOW': return 'border-2 border-amber-700 bg-amber-50 text-amber-800';
-    case 'GREEN': return 'border-2 border-emerald-700 bg-emerald-50 text-emerald-800';
-    case 'BLUE': return 'border-2 border-sky-700 bg-sky-50 text-sky-800';
+    case 'RED': return 'border border-rose-200 bg-rose-50 text-rose-800';
+    case 'ORANGE': return 'border border-orange-200 bg-orange-50 text-orange-800';
+    case 'YELLOW': return 'border border-amber-200 bg-amber-50 text-amber-800';
+    case 'GREEN': return 'border border-emerald-200 bg-emerald-50 text-emerald-800';
+    case 'BLUE': return 'border border-sky-200 bg-sky-50 text-sky-800';
     default: return 'border border-slate-200 bg-slate-50 text-slate-800';
   }
 }
@@ -237,18 +246,24 @@ export function ChallengeClient({ level }: { level: number }) {
   const [fetchState, setFetchState] = useState<FetchState>({ kind: 'loading' });
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>({ kind: 'idle' });
   const [primaryText, setPrimaryText] = useState(level === 0 ? 'Hello, Kolk Arena!' : '');
-  const [now, setNow] = useState<number>(() => Date.now());
   const [registerPromptOpen, setRegisterPromptOpen] = useState(false);
   const [refreshNonce, setRefreshNonce] = useState(0);
-  const [scriptTab, setScriptTab] = useState<'curl'|'python'|'node'>('curl');
+  const [scriptTab, setScriptTab] = useState<ScriptLang>('curl');
   const [dryRunResult, setDryRunResult] = useState<{valid: boolean; errors: string[]; warnings: string[]} | null>(null);
-  const skillContent = usePublicTextAsset('/kolk_arena.md');
+  const [shareStatus, setShareStatus] = useState<'idle' | 'shared' | 'failed'>('idle');
   const idempotencyKeyRef = useRef<string>('');
+  const submitFormRef = useRef<HTMLFormElement | null>(null);
+  const scriptTabRefs = useRef<Record<ScriptLang, HTMLButtonElement | null>>({
+    curl: null,
+    python: null,
+    node: null,
+  });
   const { defaultLayout, onLayoutChanged } = useDefaultLayout({
     id: `challenge-layout-l${level}`,
     panelIds: ['challenge-brief-pane', 'challenge-console-pane'],
     storage: panelLayoutStorage,
   });
+  const formatLocalDateTime = useLocalizedDateTimeFormatter();
 
   const handleDryRun = useCallback(() => {
     const result = dryRunValidation(level, primaryText);
@@ -273,9 +288,32 @@ export function ChallengeClient({ level }: { level: number }) {
     setRegisterPromptOpen(false);
     setPrimaryText(level === 0 ? 'Hello, Kolk Arena!' : '');
     setDryRunResult(null);
+    setShareStatus('idle');
     idempotencyKeyRef.current = randomIdempotencyKey();
     setRefreshNonce((current) => current + 1);
   }, [level]);
+
+  const scrollToSubmitCard = useCallback(() => {
+    submitFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    submitFormRef.current?.querySelector('textarea')?.focus();
+  }, []);
+
+  const handleScriptTabKeyDown = useCallback((event: KeyboardEvent<HTMLButtonElement>) => {
+    const currentIndex = CHALLENGE_SCRIPT_LANGS.indexOf(scriptTab);
+    if (currentIndex === -1) return;
+
+    let nextIndex: number | null = null;
+    if (event.key === 'ArrowRight') nextIndex = (currentIndex + 1) % CHALLENGE_SCRIPT_LANGS.length;
+    if (event.key === 'ArrowLeft') nextIndex = (currentIndex - 1 + CHALLENGE_SCRIPT_LANGS.length) % CHALLENGE_SCRIPT_LANGS.length;
+    if (event.key === 'Home') nextIndex = 0;
+    if (event.key === 'End') nextIndex = CHALLENGE_SCRIPT_LANGS.length - 1;
+
+    if (nextIndex == null) return;
+    event.preventDefault();
+    const nextLang = CHALLENGE_SCRIPT_LANGS[nextIndex];
+    setScriptTab(nextLang);
+    scriptTabRefs.current[nextLang]?.focus();
+  }, [scriptTab]);
 
   // ── Fetch challenge on mount / refetch ──
   useEffect(() => {
@@ -347,12 +385,11 @@ export function ChallengeClient({ level }: { level: number }) {
     };
   }, [level, refreshNonce]);
 
-  // ── Timer tick (1s) while ready ──
-  useEffect(() => {
-    if (fetchState.kind !== 'ready') return;
-    const id = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(id);
-  }, [fetchState.kind]);
+  const now = useServerNow(
+    fetchState.kind === 'ready'
+      ? (fetchState.data.serverNowUtc ?? fetchState.data.challenge.challengeStartedAt)
+      : undefined,
+  );
 
   // ── Submit handler ──
   const handleSubmit = useCallback(
@@ -680,8 +717,51 @@ export function ChallengeClient({ level }: { level: number }) {
   const outputTemplate = getLevelOutputTemplate(handoffLevel, challenge.taskJson);
   const structuredBriefCopy = getStructuredBriefCopy(challenge.taskJson);
   const submitContractSnippet = getSubmitContractSnippet(challenge.attemptToken, handoffLevel);
-  const activeScriptLang = scriptTab as ScriptLang;
+  const handoffBundle = getChallengeHandoffBundle({
+    level: handoffLevel,
+    levelName: level_info.name,
+    promptMd: challenge.promptMd,
+    taskJson: challenge.taskJson,
+    attemptToken: challenge.attemptToken,
+  });
+  const claudeCodeTask = getClaudeCodeTaskBundle({
+    level: handoffLevel,
+    levelName: level_info.name,
+    promptMd: challenge.promptMd,
+    taskJson: challenge.taskJson,
+    attemptToken: challenge.attemptToken,
+  });
+  const n8nStarterBundle = getN8nStarterBundle({
+    level: handoffLevel,
+    levelName: level_info.name,
+    promptMd: challenge.promptMd,
+    taskJson: challenge.taskJson,
+    attemptToken: challenge.attemptToken,
+  });
+  const activeScriptLang = scriptTab;
   const scriptBundle = getChallengeScriptBundle(activeScriptLang, handoffLevel);
+  const scriptTabPanelId = `challenge-script-panel-l${level}`;
+  const secondaryActionButtonClass = getQuickActionButtonClassName({
+    variant: 'secondary',
+    tone: 'sans',
+    size: 'md',
+    width: 'stack',
+  });
+  const compactActionButtonClass = getQuickActionButtonClassName({
+    variant: 'secondary',
+    tone: 'sans',
+    size: 'sm',
+    width: 'auto',
+  });
+  const primaryActionButtonClass = getQuickActionButtonClassName({
+    variant: 'primary',
+    tone: 'sans',
+    size: 'md',
+    width: 'stack',
+    className: 'memory-accent-button',
+  });
+  const scriptTabButtonClass = (lang: ScriptLang) =>
+    `${compactActionButtonClass} ${scriptTab === lang ? 'bg-slate-950 text-white' : 'bg-white text-slate-950 hover:bg-slate-950 hover:text-white'}`;
 
   const deliveryRule = getLevelDeliveryInstruction(handoffLevel);
 
@@ -691,27 +771,76 @@ export function ChallengeClient({ level }: { level: number }) {
       : level === 5
       ? copy.challenge.deliveryRules.placeholderLevel5
       : copy.challenge.deliveryRules.placeholderDefault;
+  const hasNativeShare =
+    typeof navigator !== 'undefined' &&
+    typeof navigator.share === 'function' &&
+    typeof navigator.canShare === 'function'
+      ? navigator.canShare({ url: challengePageUrl })
+      : typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+  const sharePrimaryLabel =
+    shareStatus === 'shared'
+      ? hasNativeShare
+        ? copy.challenge.agentPanel.sharedToAi
+        : copy.challenge.agentPanel.copiedChallengeUrl
+      : shareStatus === 'failed'
+      ? hasNativeShare
+        ? copy.challenge.agentPanel.shareToAiFailed
+        : copy.challenge.agentPanel.copyFailed
+      : hasNativeShare
+      ? copy.challenge.agentPanel.shareToAi
+      : copy.challenge.agentPanel.copyChallengeUrl;
+
+  async function handleShareToAi() {
+    const browserAgentMessage =
+      `Open this Kolk Arena challenge page in the same browser session and work from the visible brief.\n${challengePageUrl}`;
+    try {
+      if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+        await navigator.share({
+          title: `${APP_CONFIG.name} · L${level}`,
+          text: browserAgentMessage,
+          url: challengePageUrl,
+        });
+      } else if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(browserAgentMessage);
+      } else {
+        throw new Error('share_unavailable');
+      }
+
+      setShareStatus('shared');
+      window.setTimeout(() => setShareStatus('idle'), 2000);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return;
+      }
+      setShareStatus('failed');
+      window.setTimeout(() => setShareStatus('idle'), 2000);
+    }
+  }
 
   const timerCards = (
     <div className="grid gap-3 sm:grid-cols-2">
-      <div className={`rounded-md border-2 p-4 ${suggestedRemaining && suggestedRemaining.isOver ? 'border-amber-700 bg-amber-50' : 'border-slate-950 bg-white'}`}>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-700">{copy.challenge.cards.suggestedTime}</p>
+      <div className="rounded-md border border-slate-200 bg-white p-4">
+        <p className="text-xs font-medium text-slate-500">{copy.challenge.cards.suggestedTime}</p>
         <p className="mt-2 font-mono tabular-nums text-2xl font-semibold text-slate-950">
           {suggestedRemaining ? formatSeconds(suggestedRemaining.remainingSeconds) : '—'}
         </p>
-        <p className="mt-1 font-mono text-xs text-slate-700">
+        <p className={`mt-1 text-xs ${suggestedRemaining?.isOver ? 'text-amber-800' : 'text-slate-600'}`}>
           {suggestedRemaining?.isOver
             ? copy.challenge.time.suggestedPastDue
             : copy.challenge.time.suggestedBadge(challenge.suggestedTimeMinutes ?? level_info.suggested_time_minutes)}
         </p>
       </div>
       <div className="rounded-md border border-slate-200 bg-white p-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-700">{copy.challenge.cards.sessionDeadline}</p>
+        <p className="text-xs font-medium text-slate-500">{copy.challenge.cards.sessionDeadline}</p>
         <p className="mt-2 font-mono tabular-nums text-2xl font-semibold text-slate-950">
           {deadlineRemaining != null ? formatSeconds(deadlineRemaining) : '—'}
         </p>
-        <p className="mt-1 font-mono text-xs text-slate-700">
-          {challenge.deadlineUtc ? copy.challenge.time.expiresAt(formatDateTime(challenge.deadlineUtc)) : ''}
+        <p className="mt-1 text-xs text-slate-600">
+          {challenge.deadlineUtc
+            ? copy.challenge.time.expiresAt(
+                formatLocalDateTime(challenge.deadlineUtc, challenge.deadlineUtc),
+              )
+            : ''}
         </p>
       </div>
     </div>
@@ -721,6 +850,7 @@ export function ChallengeClient({ level }: { level: number }) {
     <CodeBlock
       eyebrow={copy.challenge.cards.brief}
       code={challenge.promptMd}
+      language="markdown"
       copyValue={challenge.promptMd}
       copyLabel={copy.challenge.agentPanel.copyBriefText}
       copiedLabel={copy.challenge.agentPanel.copiedBriefText}
@@ -729,247 +859,264 @@ export function ChallengeClient({ level }: { level: number }) {
     />
   );
 
-  const agentConsole = (
+  const handoffCard = (
+    <article className="min-w-0 rounded-md border border-slate-200 bg-white p-6 sm:p-8">
+      <p className="text-xs font-medium text-slate-500">
+        {copy.challenge.agentPanel.eyebrow}
+      </p>
+      <h2 className="mt-2 text-xl font-bold tracking-tight text-slate-950">
+        {copy.challenge.agentPanel.title}
+      </h2>
+      <p className="mt-2 text-sm leading-7 text-slate-700">
+        {copy.challenge.agentPanel.body}
+      </p>
+      <ol className="mt-4 space-y-2 text-sm leading-6 text-slate-800">
+        {copy.challenge.agentPanel.steps.map((step, index) => (
+          <li key={step} className="flex gap-3">
+            <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-100 text-xs font-medium text-slate-700">
+              {index + 1}
+            </span>
+            <span>{step}</span>
+          </li>
+        ))}
+      </ol>
+
+      <section className="mt-6 rounded-md border border-slate-200 bg-slate-50 p-4">
+        <p className="text-xs font-medium text-slate-500">
+          {copy.challenge.agentPanel.directActionsEyebrow}
+        </p>
+        <p className="mt-2 text-sm leading-6 text-slate-700">
+          {copy.challenge.agentPanel.directActionsBody}
+        </p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <CopyButton
+            value={agentBrief}
+            idleLabel={copy.challenge.agentPanel.copyAgentBrief}
+            copiedLabel={copy.challenge.agentPanel.copiedAgentBrief}
+            failedLabel={copy.challenge.agentPanel.copyFailed}
+            className={primaryActionButtonClass}
+          />
+          <QuickActionButton
+            type="button"
+            onClick={handleShareToAi}
+            className={secondaryActionButtonClass}
+          >
+            {sharePrimaryLabel}
+          </QuickActionButton>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs leading-6 text-slate-600">
+          <a
+            href="/kolk_arena.md"
+            target="_blank"
+            rel="noreferrer"
+            className="font-medium text-slate-700 underline decoration-slate-300 underline-offset-2 transition-colors duration-150 hover:text-slate-950 hover:decoration-slate-500"
+            aria-label={copy.homeInteractive.openSkill}
+          >
+            {copy.homeInteractive.openSkill}
+          </a>
+          <span>
+            {copy.challenge.agentPanel.browserModeNote}
+          </span>
+        </div>
+      </section>
+    </article>
+  );
+
+  const advancedToolsCard = (
     <section className="space-y-4">
-      <article className="min-w-0 rounded-md border border-slate-200 bg-white p-6 sm:p-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">
-          {copy.challenge.agentPanel.eyebrow}
-        </p>
-        <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">
-          {copy.challenge.agentPanel.title}
-        </h2>
-        <p className="mt-2 text-sm leading-7 text-slate-700">
-          {copy.challenge.agentPanel.body}
-        </p>
-        <ol className="mt-4 space-y-2 text-sm leading-6 text-slate-800">
-          {copy.challenge.agentPanel.steps.map((step, index) => (
-            <li key={step} className="flex gap-3">
-              <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-950 font-mono text-xs font-semibold text-white">
-                {index + 1}
-              </span>
-              <span>{step}</span>
-            </li>
-          ))}
-        </ol>
-        <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-6 text-amber-900">
-          {copy.challenge.agentPanel.browserModeNote}
-        </p>
-
-        <section className="mt-6 rounded-md border border-slate-200 bg-slate-50 p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">
-            {copy.challenge.agentPanel.directActionsEyebrow}
-          </p>
-          <p className="mt-2 text-sm leading-6 text-slate-700">
-            {copy.challenge.agentPanel.directActionsBody}
-          </p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <CopyButton
-              value={agentBrief}
-              idleLabel={copy.challenge.agentPanel.copyAgentBrief}
-              copiedLabel={copy.challenge.agentPanel.copiedAgentBrief}
-              failedLabel={copy.challenge.agentPanel.copyFailed}
-              className="inline-flex w-full items-center justify-center rounded-md border border-slate-200 bg-slate-950 px-6 py-3 font-mono text-sm font-bold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950 sm:w-auto"
-            />
-            <CopyButton
-              value={challengePageUrl}
-              idleLabel={copy.challenge.agentPanel.copyChallengeUrl}
-              copiedLabel={copy.challenge.agentPanel.copiedChallengeUrl}
-              failedLabel={copy.challenge.agentPanel.copyFailed}
-              className="inline-flex w-full items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white sm:w-auto"
-            />
-            <a
-              href="/kolk_arena.md"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex w-full items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white sm:w-auto"
-            >
-              {copy.homeInteractive.openSkill}
-            </a>
-          </div>
-        </section>
-
-        <details className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3" open={Boolean(structuredBrief)}>
-          <summary className="cursor-pointer font-mono text-sm font-semibold text-emerald-950">
-            {structuredBrief ? copy.challenge.agentPanel.structuredBriefTitle : copy.challenge.agentPanel.taskJsonTitle}
-          </summary>
-          <p className="mt-3 text-sm leading-6 text-emerald-900">
+      <details className="rounded-md border border-slate-200 bg-white">
+        <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-slate-900">
+          {structuredBrief ? copy.challenge.agentPanel.structuredBriefTitle : copy.challenge.agentPanel.taskJsonTitle}
+        </summary>
+        <div className="border-t border-slate-200 px-4 py-4">
+          <p className="text-sm leading-6 text-slate-700">
             {copy.challenge.agentPanel.challengeBriefBody}
           </p>
           <CodeBlock
             code={structuredBriefCopy}
+            language="json"
             tone="dark"
+            copyValue={structuredBriefCopy}
+            copyLabel={structuredBrief ? copy.challenge.agentPanel.copyStructuredBrief : copy.challenge.agentPanel.copyTaskJson}
+            copiedLabel={structuredBrief ? copy.challenge.agentPanel.copiedStructuredBrief : copy.challenge.agentPanel.copiedTaskJson}
+            failedLabel={copy.challenge.agentPanel.copyFailed}
             className="mt-3"
           />
-        </details>
+        </div>
+      </details>
 
-        <details className="mt-4 rounded-md border border-slate-200 bg-white px-4 py-3">
-          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">
-            {copy.challenge.agentPanel.supportAssetsEyebrow}
-          </summary>
-          <p className="mt-3 text-sm leading-6 text-slate-700">
+      <details className="rounded-md border border-slate-200 bg-white">
+        <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-slate-900">
+          {copy.challenge.agentPanel.supportAssetsEyebrow}
+        </summary>
+        <div className="border-t border-slate-200 px-4 py-4">
+          <p className="text-sm leading-6 text-slate-700">
             {copy.challenge.agentPanel.supportAssetsBody}
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
+            <QuickActionButton
+              type="button"
+              onClick={() => downloadFile(`kolk-l${level}-handoff.json`, handoffBundle)}
+              className={secondaryActionButtonClass}
+            >
+              {copy.challenge.agentPanel.downloadHandoffBundle}
+            </QuickActionButton>
+            <QuickActionButton
+              type="button"
+              onClick={() => downloadFile(`kolk-l${level}-claude-code.md`, claudeCodeTask)}
+              className={secondaryActionButtonClass}
+            >
+              {copy.challenge.agentPanel.downloadClaudeCodeTask}
+            </QuickActionButton>
+            <QuickActionButton
+              type="button"
+              onClick={() => downloadFile(`kolk-l${level}-n8n-starter.json`, n8nStarterBundle)}
+              className={secondaryActionButtonClass}
+            >
+              {copy.challenge.agentPanel.downloadN8nStarter}
+            </QuickActionButton>
             <CopyButton
               value={submitContractSnippet}
               idleLabel={copy.challenge.agentPanel.copySubmitContract}
               copiedLabel={copy.challenge.agentPanel.copiedSubmitContract}
               failedLabel={copy.challenge.agentPanel.copyFailed}
-              className="inline-flex w-full items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white sm:w-auto"
+              className={secondaryActionButtonClass}
             />
             <CopyButton
               value={outputTemplate}
               idleLabel={copy.challenge.agentPanel.copyOutputTemplate}
               copiedLabel={copy.challenge.agentPanel.copiedOutputTemplate}
               failedLabel={copy.challenge.agentPanel.copyFailed}
-              className="inline-flex w-full items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white sm:w-auto"
+              className={secondaryActionButtonClass}
             />
+          </div>
+        </div>
+      </details>
+
+      <details className="overflow-hidden rounded-md border border-slate-200 bg-white">
+        <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-slate-900">
+          {copy.challenge.agentPanel.scriptToolkitEyebrow}
+        </summary>
+        <div className="border-t border-slate-200 px-4 py-4">
+          <p className="text-sm leading-6 text-slate-700">
+            {copy.challenge.agentPanel.scriptToolkitBody}
+          </p>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
             <CopyButton
-              value={structuredBriefCopy}
-              idleLabel={structuredBrief ? copy.challenge.agentPanel.copyStructuredBrief : copy.challenge.agentPanel.copyTaskJson}
-              copiedLabel={structuredBrief ? copy.challenge.agentPanel.copiedStructuredBrief : copy.challenge.agentPanel.copiedTaskJson}
-              failedLabel={copy.challenge.agentPanel.copyFailed}
-              className="inline-flex w-full items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white sm:w-auto"
+              value={scriptBundle.code}
+              idleLabel={copy.challenge.agentPanel.copyScriptButton(activeScriptLang)}
+              copiedLabel={copy.challenge.agentPanel.copiedScriptButton}
+              failedLabel={copy.challenge.agentPanel.copyScriptFailed}
+              className={compactActionButtonClass}
             />
-            <button
+            <QuickActionButton
+              type="button"
+              onClick={() => downloadFile(scriptBundle.filename, scriptBundle.code)}
+              className={compactActionButtonClass}
+              size="sm"
+              width="auto"
+            >
+              {copy.challenge.agentPanel.downloadScriptButton}
+            </QuickActionButton>
+            <QuickActionButton
               type="button"
               onClick={() => downloadFile(copy.challenge.agentPanel.agentRulesFilename, getAgentRules())}
-              className="inline-flex w-full items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white sm:w-auto"
+              className={compactActionButtonClass}
+              size="sm"
+              width="auto"
             >
               {copy.challenge.agentPanel.downloadAgentRules}
-            </button>
-            <button
-              type="button"
-              onClick={() => skillContent && downloadFile('kolk_arena.md', skillContent)}
-              disabled={!skillContent}
-              className="inline-flex w-full items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-            >
-              {copy.homeInteractive.downloadSkill}
-            </button>
+            </QuickActionButton>
           </div>
-        </details>
-
-        <details className="mt-4 overflow-hidden rounded-md border border-slate-200 bg-slate-50">
-          <summary className="cursor-pointer border-b border-slate-200 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">
-            {copy.challenge.agentPanel.scriptToolkitEyebrow}
-          </summary>
-          <div className="px-4 py-4">
-            <p className="text-sm leading-6 text-slate-700">
-              {copy.challenge.agentPanel.scriptToolkitBody}
-            </p>
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <CopyButton
-                value={scriptBundle.code}
-                idleLabel={copy.challenge.agentPanel.copyScriptButton(activeScriptLang)}
-                copiedLabel={copy.challenge.agentPanel.copiedScriptButton}
-                failedLabel={copy.challenge.agentPanel.copyScriptFailed}
-                className="inline-flex min-h-10 items-center rounded-md border border-slate-200 bg-white px-3 py-1.5 font-mono text-xs font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
-              />
+        </div>
+        <div className="border-y border-slate-200 bg-slate-100 p-2">
+          <div
+            role="tablist"
+            aria-label={copy.challenge.agentPanel.scriptTabListAriaLabel}
+            className="flex flex-wrap gap-2"
+          >
+            {CHALLENGE_SCRIPT_LANGS.map((lang) => (
               <button
-                type="button"
-                onClick={() => downloadFile(scriptBundle.filename, scriptBundle.code)}
-                className="inline-flex min-h-10 items-center rounded-md border border-slate-200 bg-white px-3 py-1.5 font-mono text-xs font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
-              >
-                {copy.challenge.agentPanel.downloadScriptButton}
-              </button>
-            </div>
-          </div>
-          <div className="border-y border-slate-200 bg-slate-100 p-2">
-            <div
-              role="tablist"
-              aria-label={copy.challenge.agentPanel.scriptTabListAriaLabel}
-              className="flex flex-wrap gap-2"
-            >
-              <button
+                key={lang}
+                ref={(node) => {
+                  scriptTabRefs.current[lang] = node;
+                }}
                 type="button"
                 role="tab"
-                aria-selected={scriptTab === 'curl'}
-                onClick={() => setScriptTab('curl')}
-                className={`rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.1em] transition-colors duration-150 ${scriptTab === 'curl' ? 'bg-slate-950 text-white' : 'bg-white text-slate-950 hover:bg-slate-950 hover:text-white'}`}
+                id={`challenge-script-tab-${lang}`}
+                aria-controls={scriptTabPanelId}
+                aria-selected={scriptTab === lang}
+                tabIndex={scriptTab === lang ? 0 : -1}
+                onClick={() => setScriptTab(lang)}
+                onKeyDown={handleScriptTabKeyDown}
+                className={scriptTabButtonClass(lang)}
               >
-                {copy.challenge.agentPanel.scriptTabs.curl}
+                {copy.challenge.agentPanel.scriptTabs[lang]}
               </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={scriptTab === 'python'}
-                onClick={() => setScriptTab('python')}
-                className={`rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.1em] transition-colors duration-150 ${scriptTab === 'python' ? 'bg-slate-950 text-white' : 'bg-white text-slate-950 hover:bg-slate-950 hover:text-white'}`}
-              >
-                {copy.challenge.agentPanel.scriptTabs.python}
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={scriptTab === 'node'}
-                onClick={() => setScriptTab('node')}
-                className={`rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.1em] transition-colors duration-150 ${scriptTab === 'node' ? 'bg-slate-950 text-white' : 'bg-white text-slate-950 hover:bg-slate-950 hover:text-white'}`}
-              >
-                {copy.challenge.agentPanel.scriptTabs.node}
-              </button>
-            </div>
-          </div>
-          <div className="min-w-0 space-y-4 p-4">
-            {scriptBundle.steps.map((step, index) => (
-              <CodeBlock
-                key={`${scriptTab}-${step.title}`}
-                title={`#${index + 1} · ${step.title}`}
-                code={step.code}
-                copyValue={step.code}
-                copyLabel={`${copy.common.copyThisStep} #${index + 1}`}
-                copiedLabel={copy.common.copied}
-                failedLabel={copy.common.copyFailed}
-                tone="light"
-                wrap={false}
-              />
             ))}
           </div>
-        </details>
-      </article>
+        </div>
+        <div id={scriptTabPanelId} role="tabpanel" aria-labelledby={`challenge-script-tab-${scriptTab}`} className="min-w-0 space-y-4 p-4">
+          {scriptBundle.steps.map((step, index) => (
+            <CodeBlock
+              key={`${scriptTab}-${step.title}`}
+              title={`#${index + 1} · ${step.title}`}
+              code={step.code}
+              language={getScriptCodeLanguage(activeScriptLang)}
+              copyValue={step.code}
+              copyLabel={`${copy.common.copyThisStep} #${index + 1}`}
+              copiedLabel={copy.common.copied}
+              failedLabel={copy.common.copyFailed}
+              tone="light"
+              wrap={false}
+            />
+          ))}
+        </div>
+      </details>
     </section>
   );
 
   const submitCard = (
-    <form onSubmit={handleSubmit} className="space-y-4 rounded-md border border-slate-200 bg-white p-6 sm:p-8">
+    <form ref={submitFormRef} onSubmit={handleSubmit} className="space-y-4 rounded-md border border-slate-200 bg-white p-6 sm:p-8">
       <SubmitErrorBanner status={submitStatus} level={level} onRefetch={requestFreshChallenge} />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">{copy.challenge.cards.yourDelivery}</p>
+          <p className="text-xs font-medium text-slate-500">{copy.challenge.cards.yourDelivery}</p>
           <p className="mt-1 text-sm font-medium text-slate-900">
             {deliveryRule}
           </p>
         </div>
-        <span className="font-mono text-xs font-medium text-slate-700">{copy.challenge.deliveryRules.chars(formatNumber(primaryText.length))}</span>
+        <span className="text-xs font-medium text-slate-600">{copy.challenge.deliveryRules.chars(formatNumber(primaryText.length))}</span>
       </div>
 
       <textarea
         value={primaryText}
         onChange={(e) => setPrimaryText(e.target.value)}
-        rows={level === 5 ? 14 : 18}
+        rows={level === 5 ? 12 : 14}
         spellCheck={level !== 5}
         // Matches the server cap in `src/lib/kolk/constants/index.ts`. The
         // submit route still hard-enforces via HTTP 422 TEXT_TOO_LONG, but
         // stopping over-long pastes at the input saves the round-trip and
         // makes the failure mode legible to the user.
         maxLength={MAX_PRIMARY_TEXT_CHARS}
-        className="w-full rounded-md border border-slate-200 bg-slate-950 p-4 font-mono tabular-nums text-slate-100 outline-none transition focus:ring-2 focus:ring-emerald-500"
+        className="w-full rounded-md border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950"
         placeholder={deliveryPlaceholder}
       />
 
       {level === 5 && l5LocalValidation && !l5LocalValidation.ok ? (
-        <p className="rounded-md border-2 border-amber-700 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-900">
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-900">
           {copy.challenge.deliveryRules.localJsonInvalid(l5LocalValidation.message)}
         </p>
       ) : null}
       {level === 5 && l5LocalValidation && l5LocalValidation.ok ? (
-        <p className="rounded-md border-2 border-emerald-700 bg-emerald-50 px-4 py-3 font-mono text-xs font-medium text-emerald-800">
+        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800">
           {copy.challenge.deliveryRules.localJsonValid}
         </p>
       ) : null}
 
       {dryRunResult && !dryRunResult.valid && (
-        <div className="rounded-md border-2 border-amber-700 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-900">
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-900">
           <p className="font-semibold">{copy.challenge.dryRun.failedHeading}</p>
           <ul className="mt-1 list-inside list-disc space-y-0.5">
             {dryRunResult.errors.map(err => <li key={err}>{err}</li>)}
@@ -977,7 +1124,7 @@ export function ChallengeClient({ level }: { level: number }) {
         </div>
       )}
       {dryRunResult?.warnings.length ? (
-        <div className="rounded-md border-2 border-sky-700 bg-sky-50 px-4 py-3 text-xs font-medium text-sky-900">
+        <div className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-xs font-medium text-sky-900">
           <p className="font-semibold">{copy.challenge.dryRun.warningHeading}</p>
           <ul className="mt-1 list-inside list-disc space-y-0.5">
             {dryRunResult.warnings.map((warning) => <li key={warning}>{warning}</li>)}
@@ -985,41 +1132,35 @@ export function ChallengeClient({ level }: { level: number }) {
         </div>
       ) : null}
       {dryRunResult && dryRunResult.valid && dryRunResult.warnings.length === 0 && (
-        <p className="rounded-md border-2 border-emerald-700 bg-emerald-50 px-4 py-3 font-mono text-xs font-medium text-emerald-800">
+        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800">
           {copy.challenge.dryRun.passedMessage}
         </p>
       )}
 
       <div className="flex flex-wrap items-center gap-3">
-        <button
+        <QuickActionButton
           type="button"
           onClick={handleDryRun}
-          className="inline-flex items-center rounded-md border border-slate-200 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+          className={secondaryActionButtonClass}
         >
           {copy.challenge.dryRun.validateButton}
-        </button>
+        </QuickActionButton>
         <button
           type="submit"
           disabled={submitStatus.kind === 'submitting' || primaryText.trim().length === 0}
-          className="memory-accent-button inline-flex items-center rounded-md border px-6 py-3 font-mono text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+          className="memory-accent-button inline-flex items-center rounded-md border px-6 py-3 text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitStatus.kind === 'submitting' ? copy.challenge.deliveryRules.scoring : copy.challenge.deliveryRules.submit}
         </button>
-        <button
+        <QuickActionButton
           type="button"
           onClick={requestFreshChallenge}
-          className="inline-flex items-center rounded-md border border-slate-200 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+          className={secondaryActionButtonClass}
         >
           {copy.challenge.deliveryRules.refetch}
-        </button>
-        <Link
-          href="/play"
-          className="inline-flex items-center rounded-md border border-slate-200 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
-        >
-          {copy.challenge.deliveryRules.backToPlay}
-        </Link>
+        </QuickActionButton>
       </div>
-      <p className="font-mono text-xs leading-5 text-slate-700">
+      <p className="text-xs leading-5 text-slate-600">
         {copy.challenge.cards.attemptTokenFingerprint}: <code className="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-950">{challenge.attemptToken.slice(0, 12)}…</code>
         {' '}· {copy.challenge.cards.challengeId}: <code className="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-950">{challenge.challengeId.slice(0, 8)}…</code>
       </p>
@@ -1046,20 +1187,20 @@ export function ChallengeClient({ level }: { level: number }) {
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href="/play"
-              className="inline-flex items-center rounded-md border border-slate-200 bg-white px-3 py-1 font-mono text-xs font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+              className="inline-flex items-center rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950"
             >
               {copy.challenge.header.backToPlay}
             </Link>
-            <span className="inline-flex items-center rounded-md border border-slate-200 bg-slate-100 px-3 py-1 text-[10px] tabular-nums font-semibold uppercase tracking-[0.2em] text-slate-950">
+            <span className="inline-flex items-center rounded-md border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
               {copy.challenge.header.levelBand(level, level_info.band)}
             </span>
             {level_info.is_boss ? (
-              <span className="inline-flex items-center rounded-md border-2 border-rose-700 bg-rose-50 px-3 py-1 text-[10px] tabular-nums font-semibold uppercase tracking-[0.2em] text-rose-800">
+              <span className="inline-flex items-center rounded-md border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-medium text-rose-800">
                 {copy.challenge.header.bossLevel}
               </span>
             ) : null}
           </div>
-          <h1 className="text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">{level_info.name}</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">{level_info.name}</h1>
           {boss_hint ? (
             <p className="text-sm leading-6 text-rose-800">{boss_hint}</p>
           ) : null}
@@ -1071,8 +1212,9 @@ export function ChallengeClient({ level }: { level: number }) {
         <div className="min-w-0 space-y-6 xl:hidden">
           {timerCards}
           {briefCard}
-          {agentConsole}
+          {handoffCard}
           {submitCard}
+          {advancedToolsCard}
         </div>
 
         <div className="hidden xl:block">
@@ -1083,8 +1225,8 @@ export function ChallengeClient({ level }: { level: number }) {
             onLayoutChanged={onLayoutChanged}
             className="min-h-[820px] rounded-md border border-slate-200 bg-white"
           >
-            <Panel id="challenge-brief-pane" defaultSize={42} minSize={30}>
-              <div className="h-full min-w-0 overflow-y-auto bg-slate-50 p-6 xl:p-8 space-y-6">
+            <Panel id="challenge-brief-pane" defaultSize={48} minSize={36}>
+              <div className="h-full min-w-0 overflow-y-auto bg-white p-6 xl:p-8 space-y-6">
                 {timerCards}
                 {briefCard}
               </div>
@@ -1101,15 +1243,43 @@ export function ChallengeClient({ level }: { level: number }) {
             <Separator className="group relative flex w-2 cursor-col-resize items-stretch justify-center bg-transparent">
               <div className="w-px bg-slate-200 transition-colors group-hover:bg-slate-400" />
             </Separator>
-            <Panel id="challenge-console-pane" defaultSize={58} minSize={34}>
-              <div className="h-full min-w-0 overflow-y-auto bg-white p-6 xl:p-8 space-y-6">
-                {agentConsole}
+            <Panel id="challenge-console-pane" defaultSize={52} minSize={36}>
+              <div className="h-full min-w-0 overflow-y-auto bg-slate-50 p-6 xl:p-8 space-y-6">
+                {handoffCard}
                 {submitCard}
+                {advancedToolsCard}
               </div>
             </Panel>
           </Group>
         </div>
       </section>
+      <div className="xl:hidden">
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur-sm">
+          <div className="mx-auto flex max-w-7xl flex-col gap-2 sm:flex-row">
+            <QuickActionButton
+              type="button"
+              onClick={handleShareToAi}
+              variant="primary"
+              tone="sans"
+              size="md"
+              width="full"
+            >
+              {sharePrimaryLabel}
+            </QuickActionButton>
+            <QuickActionButton
+              type="button"
+              onClick={scrollToSubmitCard}
+              variant="secondary"
+              tone="sans"
+              size="md"
+              width="full"
+            >
+              {copy.challenge.agentPanel.jumpToSubmit}
+            </QuickActionButton>
+          </div>
+        </div>
+        <div className="h-28 sm:h-20" aria-hidden="true" />
+      </div>
     </main>
   );
 }
@@ -1130,7 +1300,7 @@ function LoadingShell({ level }: { level: number }) {
         </div>
         <div className="h-56 animate-pulse rounded-md border border-slate-200 bg-slate-200" />
         <div className="h-40 animate-pulse rounded-md border border-slate-200 bg-slate-200" />
-        <p className="font-mono text-xs text-slate-700">{copy.challenge.errorStates.fetchingChallenge(level)}</p>
+        <p className="text-xs text-slate-600">{copy.challenge.errorStates.fetchingChallenge(level)}</p>
       </section>
     </main>
   );
@@ -1150,51 +1320,58 @@ function ErrorShell({
   secondary?: { href?: string; label: string; onClick?: () => void };
 }) {
   const accentMap = {
-    rose: 'border-rose-700 bg-rose-50 text-rose-800',
-    amber: 'border-amber-700 bg-amber-50 text-amber-800',
-    slate: 'border-slate-950 bg-slate-50 text-slate-800',
+    rose: 'border border-rose-200 bg-rose-50 text-rose-800',
+    amber: 'border border-amber-200 bg-amber-50 text-amber-800',
+    slate: 'border border-slate-200 bg-slate-50 text-slate-800',
   };
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
       <section className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-16 sm:px-6 lg:px-8">
-        <div className={`rounded-md border-2 p-8 ${accentMap[accent]}`}>
-          <h1 className="text-2xl font-black tracking-tight sm:text-3xl">{title}</h1>
+        <div className={`rounded-xl p-8 shadow-sm ${accentMap[accent]}`}>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{title}</h1>
           <p className="mt-3 text-sm leading-6">{message}</p>
           <div className="mt-5 flex flex-wrap gap-3">
             {primary ? (
               primary.onClick ? (
-                <button
+                <QuickActionButton
                   type="button"
                   onClick={primary.onClick}
-                  className="memory-accent-button inline-flex items-center rounded-md border px-5 py-3 font-mono text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2"
+                  className="memory-accent-button"
                 >
                   {primary.label}
-                </button>
+                </QuickActionButton>
               ) : primary.href ? (
-                <Link
+                <QuickActionButton
                   href={primary.href}
-                  className="memory-accent-button inline-flex items-center rounded-md border px-5 py-3 font-mono text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2"
+                  tone="sans"
+                  className="memory-accent-button"
                 >
                   {primary.label}
-                </Link>
+                </QuickActionButton>
               ) : null
             ) : null}
             {secondary ? (
               secondary.onClick ? (
-                <button
+                <QuickActionButton
                   type="button"
                   onClick={secondary.onClick}
-                  className="inline-flex items-center rounded-md border border-slate-200 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+                  variant="secondary"
+                  tone="sans"
+                  size="lg"
+                  width="stack"
                 >
                   {secondary.label}
-                </button>
+                </QuickActionButton>
               ) : secondary.href ? (
-                <Link
+                <QuickActionButton
                   href={secondary.href}
-                  className="inline-flex items-center rounded-md border border-slate-200 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+                  variant="secondary"
+                  tone="sans"
+                  size="lg"
+                  width="stack"
                 >
                   {secondary.label}
-                </Link>
+                </QuickActionButton>
               ) : null
             ) : null}
           </div>
@@ -1207,7 +1384,7 @@ function ErrorShell({
 function LimitCounter({ label, used, max }: { label: string; used?: number; max?: number }) {
   if (typeof used !== 'number' || typeof max !== 'number') return null;
   return (
-    <span className="inline-flex items-center rounded-md border-2 border-current bg-white px-2 py-0.5 font-mono text-[11px] tabular-nums font-semibold">
+    <span className="inline-flex items-center rounded-md border border-current bg-white px-2 py-0.5 font-mono text-[11px] tabular-nums font-semibold">
       {label} {used}/{max}
     </span>
   );
@@ -1245,12 +1422,12 @@ function SubmitErrorBanner({
 
   const tone =
     status.kind === 'validation_error'
-      ? 'border-amber-700 bg-amber-50 text-amber-900'
+      ? 'border border-amber-200 bg-amber-50 text-amber-900'
       : isCooldown
-      ? 'border-orange-700 bg-orange-50 text-orange-900'
+      ? 'border border-orange-200 bg-orange-50 text-orange-900'
       : status.kind === 'retry_limit_exceeded'
-      ? 'border-rose-700 bg-rose-50 text-rose-900'
-      : 'border-rose-700 bg-rose-50 text-rose-900';
+      ? 'border border-rose-200 bg-rose-50 text-rose-900'
+      : 'border border-rose-200 bg-rose-50 text-rose-900';
 
   const sb = copy.challenge.submitBanner;
   const title =
@@ -1281,12 +1458,12 @@ function SubmitErrorBanner({
   const limits = isCooldown || status.kind === 'retry_limit_exceeded' ? status.limits : undefined;
 
   return (
-    <div role="alert" className={`rounded-md border-2 px-5 py-4 ${tone}`}>
+    <div role="alert" className={`rounded-xl px-5 py-4 shadow-sm ${tone}`}>
       <p className="text-sm font-semibold">{title}</p>
       <p className="mt-1 text-sm leading-6">{status.message}</p>
 
       {isL5Json ? (
-        <div className="mt-2 rounded-md border-2 border-amber-700 bg-white px-3 py-2 text-xs text-amber-900">
+        <div className="mt-2 rounded-md border border-amber-200 bg-white px-3 py-2 text-xs text-amber-900">
           <p className="font-semibold">{sb.l5ReminderHeading}</p>
           <ul className="mt-1 list-inside list-disc space-y-0.5">
             <li>{sb.l5ReminderNoFences}</li>
@@ -1309,7 +1486,7 @@ function SubmitErrorBanner({
       ) : null}
 
       {isCooldown && status.retryAfterSeconds != null ? (
-        <p className="mt-2 font-mono text-xs">
+        <p className="mt-2 text-xs font-medium">
           {sb.retryAfter(status.retryAfterSeconds)}
           {status.kind === 'rate_limit_hour' ? sb.hourFreezeWarning : ''}
         </p>
@@ -1320,14 +1497,14 @@ function SubmitErrorBanner({
           <button
             type="button"
             onClick={onRefetch}
-            className="inline-flex items-center rounded-md border border-slate-200 bg-slate-950 px-4 py-2 font-mono text-xs font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
+            className="memory-accent-button inline-flex items-center rounded-md border px-4 py-2 text-xs font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2"
           >
             {sb.fetchNewChallenge}
           </button>
           {status.kind === 'auth_required' || status.kind === 'identity_mismatch' ? (
             <Link
               href="/profile"
-              className="inline-flex items-center rounded-md border border-slate-200 bg-white px-4 py-2 font-mono text-xs font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+              className="inline-flex items-center rounded-md border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950"
             >
               {sb.signIn}
             </Link>
@@ -1350,30 +1527,37 @@ function AccountFrozenScreen({
 }: {
   status: Extract<SubmitStatus, { kind: 'account_frozen' }>;
 }) {
-  const [remaining, setRemaining] = useState<number | null>(() => {
-    if (!status.frozenUntil) return null;
-    const diff = new Date(status.frozenUntil).getTime() - Date.now();
-    return Number.isFinite(diff) ? Math.max(0, Math.floor(diff / 1000)) : null;
-  });
+  const initialRemaining = useMemo(
+    () =>
+      typeof status.retryAfterSeconds === 'number' && Number.isFinite(status.retryAfterSeconds)
+        ? Math.max(0, Math.floor(status.retryAfterSeconds))
+        : null,
+    [status.retryAfterSeconds],
+  );
+  const [tick, setTick] = useState(0);
+  const formatLocalTime = useLocalizedTimeFormatter();
 
   useEffect(() => {
-    if (!status.frozenUntil) return;
-    const tick = () => {
-      const diff = new Date(status.frozenUntil!).getTime() - Date.now();
-      setRemaining(Number.isFinite(diff) ? Math.max(0, Math.floor(diff / 1000)) : null);
-    };
-    tick();
-    const id = window.setInterval(tick, 1000);
+    if (initialRemaining == null) return;
+    const id = window.setInterval(() => {
+      setTick((current) => current + 1);
+    }, 1000);
     return () => window.clearInterval(id);
-  }, [status.frozenUntil]);
+  }, [initialRemaining]);
+  const remaining =
+    initialRemaining == null
+      ? null
+      : Math.max(0, initialRemaining - tick);
 
-  const localTime = status.frozenUntil ? formatTimeOnly(status.frozenUntil) : null;
+  const localTime = status.frozenUntil
+    ? formatLocalTime(status.frozenUntil, status.frozenUntil)
+    : null;
 
   const af = copy.challenge.accountFrozen;
   const sb = copy.challenge.submitBanner;
   return (
-    <div role="alert" className="rounded-md border-2 border-rose-700 bg-rose-50 px-6 py-8 text-rose-900">
-      <p className="text-xl font-black tracking-tight">{af.title}</p>
+    <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-6 py-8 text-rose-900 shadow-sm">
+      <p className="text-xl font-bold tracking-tight">{af.title}</p>
       <p className="mt-2 text-sm leading-6">{af.body}</p>
       {localTime ? (
         <p className="mt-3 font-mono text-sm">{af.unpauseAt(localTime)}</p>
@@ -1428,11 +1612,11 @@ function ResultCard({
         <header className="flex flex-wrap items-center gap-2">
           <Link
             href="/play"
-            className="inline-flex items-center rounded-md border border-slate-200 bg-white px-3 py-1 font-mono text-xs font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+            className="inline-flex items-center rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950"
           >
             {copy.challenge.header.backToPlay}
           </Link>
-          <span className="inline-flex items-center rounded-md border border-slate-200 bg-slate-100 px-3 py-1 text-[10px] tabular-nums font-semibold uppercase tracking-[0.2em] text-slate-950">
+          <span className="inline-flex items-center rounded-md border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
             {copy.challenge.header.resultLevelTitle(result.level, levelName)}
           </span>
         </header>
@@ -1440,17 +1624,17 @@ function ResultCard({
         <div className="rounded-md border border-slate-200 bg-white p-6 sm:p-10">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">{r.eyebrow}</p>
-              <p className="mt-1 text-5xl font-black tracking-tight text-slate-950">{Math.round(result.totalScore)}<span className="font-mono text-lg font-semibold text-slate-700">{r.scoreOutOf(100)}</span></p>
+              <p className="text-xs font-medium text-slate-500">{r.eyebrow}</p>
+              <p className="mt-1 text-5xl font-bold tracking-tight text-slate-950">{Math.round(result.totalScore)}<span className="font-mono text-lg font-semibold text-slate-700">{r.scoreOutOf(100)}</span></p>
               <p className="mt-2 text-sm font-medium text-slate-800">{result.summary}</p>
             </div>
             <div className="flex flex-col items-end gap-2">
               {band ? (
-                <span className={`inline-flex items-center rounded-md px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] ${bandColor(band)}`}>
+                <span className={`inline-flex items-center rounded-md px-3 py-1 text-xs font-medium ${bandColor(band)}`}>
                   {band}{result.qualityLabel ? ` · ${result.qualityLabel}` : ''}
                 </span>
               ) : null}
-              <span className={`inline-flex items-center rounded-md border-2 px-3 py-1 font-mono text-xs font-semibold ${unlocked ? 'border-emerald-700 bg-emerald-50 text-emerald-800' : 'border-rose-700 bg-rose-50 text-rose-800'}`}>
+              <span className={`inline-flex items-center rounded-md border px-3 py-1 text-xs font-medium ${unlocked ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-rose-200 bg-rose-50 text-rose-800'}`}>
                 {unlocked ? r.unlocked : r.locked}
               </span>
             </div>
@@ -1464,21 +1648,21 @@ function ResultCard({
                 <ScoreTile label={r.qualityLabel} value={result.qualityScore ?? 0} max={30} />
               </>
             ) : (
-              <div className="rounded-md border-2 border-emerald-700 bg-emerald-50 p-4 font-mono tabular-nums text-emerald-800 sm:col-span-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-800">{r.onboardingEyebrow}</p>
+              <div className="rounded-md border border-emerald-200 bg-emerald-50 p-4 text-emerald-800 sm:col-span-3">
+                <p className="text-xs font-medium text-emerald-800">{r.onboardingEyebrow}</p>
                 <p className="mt-2 text-sm font-medium text-emerald-950">{r.onboardingBody}</p>
               </div>
             )}
           </div>
 
           {hasPercentile && !isOnboarding ? (
-            <div className="mt-4 rounded-md border-2 border-sky-700 bg-sky-50 px-4 py-3 text-xs font-medium text-sky-900">
+            <div className="mt-4 rounded-md border border-sky-200 bg-sky-50 px-4 py-3 text-xs font-medium text-sky-900">
               {r.percentile(result.level, Math.round(result.percentile!))}
             </div>
           ) : null}
 
           {!unlocked && failReasonLabel ? (
-            <div className="mt-4 rounded-md border-2 border-amber-700 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-900">
+            <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-900">
               {r.unlockBlockedPrefix}{failReasonLabel}.
             </div>
           ) : null}
@@ -1491,7 +1675,7 @@ function ResultCard({
           ) : null}
 
           {Array.isArray(result.flags) && result.flags.length > 0 && !isOnboarding ? (
-            <div className="mt-4 rounded-md border-2 border-amber-700 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-900">
+            <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-900">
               <p className="font-semibold">{r.judgeFlagsHeading}</p>
               <ul className="mt-1 list-inside list-disc space-y-0.5">
                 {result.flags.map((f) => (
@@ -1503,7 +1687,7 @@ function ResultCard({
 
           {hasFieldFeedback && !isOnboarding ? (
             <div className="mt-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">{r.fieldFeedbackHeading}</p>
+                <p className="text-xs font-medium text-slate-500">{r.fieldFeedbackHeading}</p>
               <ul className="mt-2 space-y-2">
                 {(result.fieldScores ?? []).map((f) => (
                   <li key={f.field} className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3">
@@ -1522,7 +1706,7 @@ function ResultCard({
             {unlocked && nextLevel ? (
               <Link
                 href={`/challenge/${nextLevel}`}
-                className="memory-accent-button inline-flex items-center rounded-md border px-5 py-3 font-mono text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2"
+                className="memory-accent-button inline-flex items-center rounded-md border px-5 py-3 text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2"
               >
                 {r.tryNextLevel(nextLevel)}
               </Link>
@@ -1530,19 +1714,19 @@ function ResultCard({
             <button
               type="button"
               onClick={onRetry}
-              className="inline-flex items-center rounded-md border border-slate-200 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+              className="inline-flex items-center rounded-md border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950"
             >
               {r.retryLevel(result.level)}
             </button>
             <Link
               href="/play"
-              className="inline-flex items-center rounded-md border border-slate-200 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+              className="inline-flex items-center rounded-md border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950"
             >
               {r.backToPlay}
             </Link>
             <Link
               href="/leaderboard"
-              className="inline-flex items-center rounded-md border border-slate-200 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+              className="inline-flex items-center rounded-md border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950"
             >
               {r.leaderboard}
             </Link>
@@ -1550,16 +1734,16 @@ function ResultCard({
         </div>
 
         {result.replayUnlocked && result.nextSteps ? (
-          <div className="rounded-md border-2 border-emerald-700 bg-emerald-50 p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-800">{r.replayEyebrow}</p>
-            <h2 className="mt-2 text-xl font-black tracking-tight text-emerald-950">{r.replayTitle}</h2>
+          <div className="rounded-md border border-emerald-200 bg-emerald-50 p-6">
+            <p className="text-xs font-medium text-emerald-800">{r.replayEyebrow}</p>
+            <h2 className="mt-2 text-xl font-bold tracking-tight text-emerald-950">{r.replayTitle}</h2>
             <p className="mt-2 text-sm leading-6 text-emerald-900">{result.nextSteps.replay}</p>
             <div className="mt-4 flex flex-wrap gap-3">
               <a
                 href={result.nextSteps.discord}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center rounded-md border border-slate-200 bg-slate-950 px-5 py-3 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
+                className="inline-flex items-center rounded-md border border-slate-200 bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition-colors duration-150 hover:bg-slate-800"
               >
                 {r.joinDiscord}
               </a>
@@ -1567,7 +1751,7 @@ function ResultCard({
                 href={result.nextSteps.share}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center rounded-md border border-slate-200 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+                className="inline-flex items-center rounded-md border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950"
               >
                 {r.shareResult}
               </a>
@@ -1576,21 +1760,21 @@ function ResultCard({
         ) : null}
 
         {registerPromptOpen ? (
-          <div role="dialog" aria-modal="true" className="rounded-md border-2 border-emerald-700 bg-emerald-50 p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-800">{r.registerEyebrow}</p>
-            <h2 className="mt-2 text-xl font-black tracking-tight text-emerald-950">{r.registerTitle}</h2>
+          <div role="dialog" aria-modal="true" className="rounded-md border border-emerald-200 bg-emerald-50 p-6">
+            <p className="text-xs font-medium text-emerald-800">{r.registerEyebrow}</p>
+            <h2 className="mt-2 text-xl font-bold tracking-tight text-emerald-950">{r.registerTitle}</h2>
             <p className="mt-2 text-sm leading-6 text-emerald-900">{r.registerBody}</p>
             <div className="mt-4 flex flex-wrap gap-3">
               <Link
                 href="/profile"
-                className="inline-flex items-center rounded-md border border-slate-200 bg-slate-950 px-5 py-3 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
+                className="memory-accent-button inline-flex items-center rounded-md border px-5 py-3 text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2"
               >
                 {r.registerCta}
               </Link>
               <button
                 type="button"
                 onClick={onDismissRegisterPrompt}
-                className="inline-flex items-center rounded-md border border-slate-200 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white"
+                className="inline-flex items-center rounded-md border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950"
               >
                 {r.registerDismiss}
               </button>
@@ -1606,7 +1790,7 @@ function ScoreTile({ label, value, max }: { label: string; value: number; max: n
   const pct = max > 0 ? Math.min(100, Math.max(0, (value / max) * 100)) : 0;
   return (
     <div className="rounded-md border border-slate-200 bg-white p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-700">{label}</p>
+      <p className="text-xs font-medium text-slate-500">{label}</p>
       <p className="mt-1 text-xl font-bold text-slate-950">
         {Math.round(value * 10) / 10}<span className="font-mono text-xs font-semibold text-slate-700"> / {max}</span>
       </p>

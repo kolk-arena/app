@@ -1,8 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import {
+  useLocalizedDateTimeFormatter,
+  useLocalizedTimeFormatter,
+  useServerNow,
+} from '@/components/time/localized-time';
 import { copy } from '@/i18n';
-import { formatDateTime, formatTimeOnly } from '@/i18n/format';
 
 type ScopeView = {
   scope: string;
@@ -19,6 +23,7 @@ type DeviceRequestView = {
   grantedScopes: string[];
   createdAt: string;
   expiresAt: string;
+  serverNowUtc: string;
   status: 'pending' | 'verified' | 'denied' | 'expired' | 'invalid';
 };
 
@@ -39,20 +44,11 @@ export function DeviceFlowPanel({
   const [selectedScopes, setSelectedScopes] = useState<Set<string>>(
     () => new Set(deviceRequest?.requestedScopes.map((scope) => scope.scope) ?? []),
   );
-  const [now, setNow] = useState(0);
+  const now = useServerNow(deviceRequest?.serverNowUtc);
+  const formatLocalDateTime = useLocalizedDateTimeFormatter();
+  const formatLocalTime = useLocalizedTimeFormatter();
 
   const normalizedCode = useMemo(() => codeInput.trim().toUpperCase(), [codeInput]);
-
-  useEffect(() => {
-    if (deviceRequest?.status !== 'pending') {
-      return;
-    }
-
-    const intervalId = window.setInterval(() => {
-      setNow(Date.now());
-    }, 1000);
-    return () => window.clearInterval(intervalId);
-  }, [deviceRequest?.status, deviceRequest?.expiresAt]);
 
   const effectiveRequestStatus = useMemo<DeviceRequestView['status'] | null>(() => {
     if (!deviceRequest) {
@@ -255,7 +251,11 @@ export function DeviceFlowPanel({
             <div className="rounded-md border border-slate-200 bg-white px-4 py-3">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-700">{copy.device.client}</p>
               <p className="mt-2 text-sm font-semibold text-slate-950">{deviceRequest.clientKind}</p>
-              <p className="mt-1 font-mono text-xs text-slate-700">{copy.device.requestedAt(formatDateTime(deviceRequest.createdAt, deviceRequest.createdAt))}</p>
+              <p className="mt-1 font-mono text-xs text-slate-700">
+                {copy.device.requestedAt(
+                  formatLocalDateTime(deviceRequest.createdAt, deviceRequest.createdAt),
+                )}
+              </p>
             </div>
           </div>
 
@@ -266,7 +266,9 @@ export function DeviceFlowPanel({
                 <p className="mt-1 text-sm text-slate-700">{copy.device.requestedScopesBody}</p>
               </div>
               <span className="rounded-md border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-700">
-                {copy.device.expiresAt(formatTimeOnly(deviceRequest.expiresAt, deviceRequest.expiresAt))}
+                {copy.device.expiresAt(
+                  formatLocalTime(deviceRequest.expiresAt, deviceRequest.expiresAt),
+                )}
               </span>
             </div>
 

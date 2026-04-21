@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useLocalizedDateTimeFormatter } from '@/components/time/localized-time';
 import { copy } from '@/i18n';
-import { formatClockSeconds, formatDateTime, formatNumber } from '@/i18n/format';
+import { formatClockSeconds, formatNumber } from '@/i18n/format';
+import { countryNameFromCode } from '@/lib/frontend/countries';
 import { getFlagEmoji } from '@/lib/frontend/flag';
 import type { ActivitySubmissionDetail } from '@/lib/kolk/types';
 
@@ -42,6 +44,11 @@ function bandDotClasses(band: ActivitySubmissionDetail['color_band']) {
     default:
       return 'bg-slate-300';
   }
+}
+
+function formatCountryLabel(value: string | null | undefined) {
+  if (!value) return null;
+  return countryNameFromCode(value) ?? value;
 }
 
 export function ActivityDetailPanel({
@@ -116,6 +123,8 @@ export function ActivityDetailPanel({
     };
   }, [submissionId]);
 
+  const formatLocalDateTime = useLocalizedDateTimeFormatter();
+
   if (!submissionId) {
     return null;
   }
@@ -142,7 +151,7 @@ export function ActivityDetailPanel({
     >
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-5">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+          <p className="text-xs font-medium text-slate-500">
             {ad.eyebrow}
           </p>
           <h2 className="mt-1 text-base font-semibold text-slate-950">{ad.title}</h2>
@@ -189,7 +198,7 @@ export function ActivityDetailPanel({
 
           <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-              <dt className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+              <dt className="text-xs font-medium text-slate-500">
                 {ad.totalLabel}
               </dt>
               <dd className="mt-1 flex items-center gap-1.5 font-semibold text-slate-950 tabular-nums">
@@ -201,7 +210,7 @@ export function ActivityDetailPanel({
               </dd>
             </div>
             <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-              <dt className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+              <dt className="text-xs font-medium text-slate-500">
                 {ad.structureLabel}
               </dt>
               <dd className="mt-1 font-semibold text-slate-950 tabular-nums">
@@ -209,7 +218,7 @@ export function ActivityDetailPanel({
               </dd>
             </div>
             <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-              <dt className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+              <dt className="text-xs font-medium text-slate-500">
                 {ad.coverageLabel}
               </dt>
               <dd className="mt-1 font-semibold text-slate-950 tabular-nums">
@@ -217,7 +226,7 @@ export function ActivityDetailPanel({
               </dd>
             </div>
             <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-              <dt className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+              <dt className="text-xs font-medium text-slate-500">
                 {ad.qualityLabel}
               </dt>
               <dd className="mt-1 font-semibold text-slate-950 tabular-nums">
@@ -228,7 +237,7 @@ export function ActivityDetailPanel({
 
           <dl className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
             <div>
-              <dt className="font-semibold uppercase tracking-wider text-slate-500">
+              <dt className="font-medium text-slate-500">
                 {ad.solveTimeLabel}
               </dt>
               <dd className="mt-1 text-slate-900 tabular-nums">
@@ -239,25 +248,25 @@ export function ActivityDetailPanel({
               </dd>
             </div>
             <div>
-              <dt className="font-semibold uppercase tracking-wider text-slate-500">
+              <dt className="font-medium text-slate-500">
                 {ad.countryLabel}
               </dt>
               <dd className="mt-1 text-slate-900">
-                {effectiveDetail.country_code ?? ad.notAvailable}
+                {formatCountryLabel(effectiveDetail.country_code) ?? ad.notAvailable}
               </dd>
             </div>
             <div>
-              <dt className="font-semibold uppercase tracking-wider text-slate-500">
+              <dt className="font-medium text-slate-500">
                 {ad.submittedLabel}
               </dt>
               <dd className="mt-1 text-slate-900 tabular-nums">
                 {effectiveDetail.submitted_at
-                  ? formatDateTime(effectiveDetail.submitted_at, effectiveDetail.submitted_at)
+                  ? formatLocalDateTime(effectiveDetail.submitted_at, effectiveDetail.submitted_at)
                   : ad.notAvailable}
               </dd>
             </div>
             <div>
-              <dt className="font-semibold uppercase tracking-wider text-slate-500">
+              <dt className="font-medium text-slate-500">
                 {ad.tierLabel}
               </dt>
               <dd className="mt-1 text-slate-900">
@@ -268,7 +277,7 @@ export function ActivityDetailPanel({
 
           {effectiveDetail.judge_summary ? (
             <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+              <p className="text-xs font-medium text-slate-500">
                 {ad.judgeSummaryLabel}
               </p>
               <p className="mt-1 text-sm leading-6 text-slate-800">{effectiveDetail.judge_summary}</p>

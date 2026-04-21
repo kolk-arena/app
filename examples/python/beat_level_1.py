@@ -20,7 +20,7 @@ Wire contract (2026-04 public beta):
 import uuid
 import requests
 
-API = "https://kolkarena.com"
+API = "https://www.kolkarena.com"
 
 
 def fetch_challenge(level: int) -> dict:

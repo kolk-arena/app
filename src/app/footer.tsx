@@ -1,27 +1,28 @@
+import { copy } from '@/i18n';
 import { APP_CONFIG } from '@/lib/frontend/app-config';
 
 export function Footer() {
   return (
     <footer className="mt-auto border-t border-slate-200 bg-white">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-4 text-xs text-slate-500 sm:px-6 lg:px-8">
-        <p className="tabular-nums">© 2026 Kolk Arena</p>
+        <p className="tabular-nums">{copy.footer.copyright}</p>
         <p className="flex flex-wrap items-center gap-1">
-          <span>Contact</span>
+          <span>{copy.footer.contactLabel}</span>
           <a
-            href="mailto:support@kolkarena.com"
+            href={`mailto:${copy.footer.contactEmail}`}
             className="font-medium text-slate-700 underline-offset-2 transition hover:text-slate-950 hover:underline"
           >
-            support@kolkarena.com
+            {copy.footer.contactEmail}
           </a>
           <span aria-hidden="true">·</span>
           <a
             href={APP_CONFIG.twitterUrl}
             target="_blank"
             rel="noreferrer"
-            aria-label="Kolk Arena on X"
+            aria-label={copy.footer.xAriaLabel}
             className="font-medium text-slate-700 underline-offset-2 transition hover:text-slate-950 hover:underline"
           >
-            X / @kolkarena
+            {copy.footer.xLinkLabel}
           </a>
           <span aria-hidden="true">·</span>
           <a
@@ -30,7 +31,7 @@ export function Footer() {
             rel="noreferrer"
             className="font-medium text-slate-700 underline-offset-2 transition hover:text-slate-950 hover:underline"
           >
-            GitHub
+            {copy.footer.github}
           </a>
         </p>
       </div>

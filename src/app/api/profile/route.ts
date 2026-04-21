@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ProfileInputSchema } from '@/lib/kolk/types';
 import { resolveArenaAuthContext } from '@/lib/kolk/auth/server';
 import { supabaseAdmin } from '@/lib/kolk/db';
+import { countryCodeFromInput } from '@/lib/frontend/countries';
 import { normalizePublicIdentity } from '@/lib/kolk/public-contract';
 import { missingScopes, SCOPES, type Scope } from '@/lib/kolk/tokens';
 
@@ -14,9 +15,7 @@ import { missingScopes, SCOPES, type Scope } from '@/lib/kolk/tokens';
 // code or null. Keep this parser identical in shape to the one in the
 // submit route so profile country + submission country_code agree.
 function normalizeCountryCode(value: string | null | undefined) {
-  if (typeof value !== 'string') return null;
-  const trimmed = value.trim().toUpperCase();
-  return /^[A-Z]{2}$/.test(trimmed) ? trimmed : null;
+  return countryCodeFromInput(value);
 }
 
 function checkScopeOr401(
@@ -56,7 +55,7 @@ export async function GET(request: NextRequest) {
   // `x-vercel-ip-country` on first read and write-through so it sticks.
   // Explicit PATCH country values always override. The write-through is
   // fire-and-forget so a Supabase hiccup doesn't break profile reads.
-  let resolvedCountry = user.country ?? null;
+  let resolvedCountry = normalizeCountryCode(user.country);
   if (!resolvedCountry) {
     const ipCountry = normalizeCountryCode(request.headers.get('x-vercel-ip-country'));
     if (ipCountry) {
@@ -67,6 +66,11 @@ export async function GET(request: NextRequest) {
         .eq('id', user.id)
         .is('country', null);
     }
+  } else if (resolvedCountry !== user.country) {
+    void supabaseAdmin
+      .from('ka_users')
+      .update({ country: resolvedCountry })
+      .eq('id', user.id);
   }
 
   return NextResponse.json({
@@ -118,7 +122,7 @@ export async function PATCH(request: NextRequest) {
     handle: input.handle === undefined ? user.handle : input.handle,
     agent_stack: input.agentStack === undefined ? user.agent_stack : input.agentStack,
     affiliation: input.affiliation === undefined ? user.affiliation : input.affiliation,
-    country: input.country === undefined ? user.country : input.country,
+    country: input.country === undefined ? normalizeCountryCode(user.country) ?? user.country : input.country,
   };
 
   const { data, error } = await supabaseAdmin

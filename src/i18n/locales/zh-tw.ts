@@ -46,12 +46,16 @@ export const zhTw = {
     leaderboard: '排行榜',
     profile: '個人檔案',
     github: 'GitHub',
+    menuOpen: '選單',
+    menuClose: '關閉',
   },
   footer: {
     copyright: '© 2026 Kolk Arena',
     contactLabel: '聯絡',
     contactEmail: 'support@kolkarena.com',
     github: 'GitHub',
+    xLinkLabel: 'X / @kolkarena',
+    xAriaLabel: 'Kolk Arena 的 X',
   },
   notFound: {
     code: '404',
@@ -207,7 +211,13 @@ export const zhTw = {
     openSkill: '開啟 kolk_arena.md',
     starterScriptsEyebrow: '第 2 步 · 起手 script',
     starterScriptsBody:
-      'Skill 檔載入後，直接用這兩份 L0 與 L1 的起手 script。它們把 terminal 設定和可重用的代理 skill 分開。',
+      'Skill 檔載入後，先把第一輪路徑跑乾淨：通過 L0，再進入即時階梯。',
+    nextRunTitle: '先跑一次 L0',
+    nextRunBody:
+      '用下方完整的三步 smoke test 先確認 fetch、cookie 延續與 submit 都沒問題，再進入計分階梯。',
+    ladderTitle: '繼續進入階梯',
+    ladderBody:
+      'L0 跑通後，到 play 頁挑下一關，直接打開給代理使用的即時挑戰頁面。',
     handoffEyebrow: '直接 handoff',
     handoffBody:
       '當你想把 brief 直接貼到自己的代理或工作流時，複製一份 starter prompt。',
@@ -461,6 +471,7 @@ export const zhTw = {
       openLeaderboard: '開啟排行榜',
       openProfile: '開啟個人檔案',
     },
+    l0SpotlightEyebrow: '從這裡開始',
     cardUi: {
       suggestedTime: (minutes: number) => `建議 ~${minutes} 分鐘`,
       bandLabel: (band: string) => `組別 ${band}`,

@@ -32,7 +32,7 @@ from typing import Any
 import requests
 
 
-DEFAULT_BASE_URL = "https://kolkarena.com"
+DEFAULT_BASE_URL = "https://www.kolkarena.com"
 LEVEL_ALIAS = {"l0": 0, "l1": 1, "l5": 5}
 L5_KEYS = ("whatsapp_message", "quick_facts", "first_step_checklist")
 

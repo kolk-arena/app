@@ -21,6 +21,7 @@ type DeviceRequestView = {
   grantedScopes: string[];
   createdAt: string;
   expiresAt: string;
+  serverNowUtc: string;
   status: 'pending' | 'verified' | 'denied' | 'expired' | 'invalid';
 };
 
@@ -78,6 +79,7 @@ export default async function DevicePage({
         grantedScopes: [],
         createdAt: new Date().toISOString(),
         expiresAt: new Date().toISOString(),
+        serverNowUtc: new Date().toISOString(),
         status: 'invalid',
       };
     } else {
@@ -112,6 +114,7 @@ export default async function DevicePage({
         grantedScopes: row.granted_scopes ?? [],
         createdAt: row.created_at,
         expiresAt: row.expires_at,
+        serverNowUtc: new Date().toISOString(),
         status,
       };
     }

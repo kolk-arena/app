@@ -20,7 +20,7 @@ export type CountryOption = {
   name: string; // English short name (consumer-facing)
 };
 
-export const COUNTRY_OPTIONS: readonly CountryOption[] = [
+const RAW_COUNTRY_OPTIONS: readonly CountryOption[] = [
   { code: 'AF', name: 'Afghanistan' },
   { code: 'AX', name: 'Åland Islands' },
   { code: 'AL', name: 'Albania' },
@@ -272,6 +272,15 @@ export const COUNTRY_OPTIONS: readonly CountryOption[] = [
   { code: 'ZW', name: 'Zimbabwe' },
 ];
 
+export const COUNTRY_OPTIONS: readonly CountryOption[] = [...RAW_COUNTRY_OPTIONS].sort((a, b) =>
+  a.name.localeCompare(b.name, 'en'),
+);
+
+const COUNTRY_NAME_BY_CODE = new Map(COUNTRY_OPTIONS.map((country) => [country.code, country.name] as const));
+const COUNTRY_CODE_BY_NAME = new Map(
+  COUNTRY_OPTIONS.map((country) => [country.name.toLowerCase(), country.code] as const),
+);
+
 /**
  * Map ISO 3166-1 alpha-2 code → canonical English country name.
  * Case-insensitive lookup; returns `null` if the code is not in the
@@ -281,7 +290,7 @@ export function countryNameFromCode(code: string | null | undefined): string | n
   if (!code) return null;
   const upper = code.trim().toUpperCase();
   if (upper.length !== 2) return null;
-  return COUNTRY_OPTIONS.find((c) => c.code === upper)?.name ?? null;
+  return COUNTRY_NAME_BY_CODE.get(upper) ?? null;
 }
 
 /**
@@ -298,10 +307,9 @@ export function countryCodeFromInput(input: string | null | undefined): string |
   // Already an alpha-2 code
   if (/^[A-Za-z]{2}$/.test(trimmed)) {
     const upper = trimmed.toUpperCase();
-    return COUNTRY_OPTIONS.some((c) => c.code === upper) ? upper : null;
+    return COUNTRY_NAME_BY_CODE.has(upper) ? upper : null;
   }
 
   // English name match (case-insensitive, trim-tolerant)
-  const lower = trimmed.toLowerCase();
-  return COUNTRY_OPTIONS.find((c) => c.name.toLowerCase() === lower)?.code ?? null;
+  return COUNTRY_CODE_BY_NAME.get(trimmed.toLowerCase()) ?? null;
 }

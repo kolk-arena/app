@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useId, useState, useTransition } from 'react';
+import { useEffect, useId, useRef, useState, useTransition } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useLocalizedDateTimeFormatter } from '@/components/time/localized-time';
 import { copy } from '@/i18n';
-import { formatClockSeconds, formatDateTime, formatNumber } from '@/i18n/format';
+import { formatClockSeconds, formatNumber } from '@/i18n/format';
 import { getFlagEmoji } from '@/lib/frontend/flag';
 import { readPublicAgentFilters } from '@/lib/kolk/public-contract';
 import type { ActivityFeedEntry, LeaderboardResponse as SharedLeaderboardResponse } from '@/lib/kolk/types';
@@ -73,17 +74,13 @@ function formatScore(value: number) {
   });
 }
 
-function formatUpdatedLabel(value: string | null) {
-  if (!value) return copy.leaderboard.noRecentSubmissionData;
-  return formatDateTime(value, value);
-}
-
 function formatSolveTime(value: number | null | undefined) {
   if (typeof value !== 'number' || !Number.isFinite(value)) return copy.leaderboard.timePending;
   return formatClockSeconds(value);
 }
 
 export function LeaderboardClient() {
+  const formatLocalDateTime = useLocalizedDateTimeFormatter();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -127,6 +124,7 @@ export function LeaderboardClient() {
   });
   const [isPending, startTransition] = useTransition();
   const detailRegionId = useId();
+  const activityDetailRef = useRef<HTMLDivElement | null>(null);
   const agentStackInput =
     filterDraftState.appliedFilterKey === appliedFilterKey
       ? filterDraftState.agentStackInput
@@ -142,6 +140,19 @@ export function LeaderboardClient() {
     selectedPlayerParam && !selectedPlayerId
       ? copy.leaderboard.selectionInvalid
       : null;
+  const formatUpdatedLabel = (value: string | null) =>
+    value
+      ? formatLocalDateTime(value, value)
+      : copy.leaderboard.noRecentSubmissionData;
+
+  useEffect(() => {
+    if (!selectedActivityId || selectedPlayerId) return;
+    if (typeof window === 'undefined' || window.innerWidth >= 1280) return;
+    const timeoutId = window.setTimeout(() => {
+      activityDetailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
+    return () => window.clearTimeout(timeoutId);
+  }, [selectedActivityId, selectedPlayerId]);
 
   useEffect(() => {
     let active = true;
@@ -359,7 +370,7 @@ export function LeaderboardClient() {
           <div className="border-b border-slate-100 px-3 py-2 sm:px-5">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="space-y-2">
-                <div className="inline-flex items-center rounded-md border border-slate-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                <div className="inline-flex items-center rounded-md border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
                   {lb.heroEyebrow}
                 </div>
                 <div>
@@ -375,12 +386,12 @@ export function LeaderboardClient() {
 
             <div className="grid w-full gap-3 sm:w-auto sm:min-w-[15rem] sm:grid-cols-2">
               <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{lb.entriesEyebrow}</p>
-                <p className="mt-2 inline-block bg-emerald-50 px-3 py-1 font-mono tabular-nums text-3xl text-emerald-700 border border-emerald-200 shadow-sm">{total}</p>
+                <p className="text-xs font-medium text-slate-500">{lb.entriesEyebrow}</p>
+                <p className="mt-2 inline-block rounded-md border border-slate-200 bg-white px-3 py-1 text-3xl font-semibold tabular-nums text-slate-950 shadow-sm">{total}</p>
               </div>
               <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{lb.currentLeaderEyebrow}</p>
-                <p className="mt-2 inline-block bg-emerald-50 px-3 py-1 text-xl font-bold tracking-tight text-emerald-700 border border-emerald-200 shadow-sm truncate">
+                <p className="text-xs font-medium text-slate-500">{lb.currentLeaderEyebrow}</p>
+                <p className="mt-2 inline-block max-w-full truncate rounded-md border border-slate-200 bg-white px-3 py-1 text-xl font-semibold tracking-tight text-slate-950 shadow-sm">
                   {topEntry ? topEntry.display_name : lb.currentLeaderEmpty}
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
@@ -393,48 +404,15 @@ export function LeaderboardClient() {
                     : lb.currentLeaderEmpty}
                 </p>
               </div>
-              {data?.agent_stack_stats && data.agent_stack_stats.length > 0 ? (
-                <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-4 sm:col-span-2">
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{lb.frameworkWars.title}</p>
-                  </div>
-                  <div className="flex h-4 w-full overflow-hidden border border-slate-200 bg-slate-200 shadow-sm">
-                    {data.agent_stack_stats.map((stat, idx) => {
-                      const bgColors = ['bg-emerald-500', 'bg-sky-500', 'bg-indigo-500', 'bg-amber-500', 'bg-rose-500'];
-                      return (
-                        <div
-                          key={stat.agent_stack}
-                          style={{ width: `${stat.percentage}%` }}
-                          className={`${bgColors[idx % bgColors.length]} transition-all duration-500`}
-                          title={`${stat.agent_stack}: ${stat.count}`}
-                        />
-                      );
-                    })}
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-slate-600">
-                    {data.agent_stack_stats.map((stat, idx) => {
-                      const textColors = ['text-emerald-700', 'text-sky-700', 'text-indigo-700', 'text-amber-700', 'text-rose-700'];
-                      return (
-                        <div key={stat.agent_stack} className="flex items-center gap-1.5">
-                          <span className={`h-2 w-2 rounded-md bg-current ${textColors[idx % textColors.length]}`} />
-                          <span className="font-medium">{stat.agent_stack}</span>
-                          <span className="text-slate-400">({lb.frameworkWars.legendPercent(stat.percentage)})</span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              ) : (
-                <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 sm:col-span-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{lb.leaderboardRuleEyebrow}</p>
-                  <p className="mt-2 text-sm font-medium text-slate-900">
-                    {lb.leaderboardRuleBody}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    {lb.topTierLabel(topTier)}
-                  </p>
-                </div>
-              )}
+              <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 sm:col-span-2">
+                <p className="text-xs font-medium text-slate-500">{lb.leaderboardRuleEyebrow}</p>
+                <p className="mt-2 text-sm font-medium text-slate-900">
+                  {lb.leaderboardRuleBody}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  {lb.topTierLabel(topTier)}
+                </p>
+              </div>
             </div>
             </div>
           </div>
@@ -443,7 +421,7 @@ export function LeaderboardClient() {
             <div className="space-y-3">
               <form onSubmit={handleFilterSubmit} className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
                 <label className="flex min-w-0 flex-1 flex-col gap-1.5">
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{lb.agentStackFilter}</span>
+                  <span className="text-xs font-medium text-slate-500">{lb.agentStackFilter}</span>
                   <input
                     value={agentStackInput}
                     onChange={(event) => setFilterDraftState({
@@ -452,12 +430,12 @@ export function LeaderboardClient() {
                       affiliationInput,
                     })}
                     placeholder={lb.agentStackPlaceholder}
-                    className="min-h-8 rounded-xl border border-slate-200 bg-white px-4 text-base text-slate-900 outline-none transition focus:ring-2 focus:ring-slate-900 sm:text-sm shadow-sm"
+                    className="min-h-11 rounded-md border border-slate-200 bg-white px-4 text-base text-slate-900 outline-none transition focus:ring-2 focus:ring-slate-900 sm:text-sm"
                   />
                 </label>
 
                 <label className="flex min-w-0 flex-1 flex-col gap-1.5">
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{lb.affiliationFilter}</span>
+                  <span className="text-xs font-medium text-slate-500">{lb.affiliationFilter}</span>
                   <input
                     value={affiliationInput}
                     onChange={(event) => setFilterDraftState({
@@ -466,14 +444,14 @@ export function LeaderboardClient() {
                       affiliationInput: event.target.value,
                     })}
                     placeholder={lb.affiliationPlaceholder}
-                    className="min-h-8 rounded-xl border border-slate-200 bg-white px-4 text-base text-slate-900 outline-none transition focus:ring-2 focus:ring-slate-900 sm:text-sm shadow-sm"
+                    className="min-h-11 rounded-md border border-slate-200 bg-white px-4 text-base text-slate-900 outline-none transition focus:ring-2 focus:ring-slate-900 sm:text-sm"
                   />
                 </label>
 
                 <div className="grid grid-cols-2 gap-2 sm:flex sm:items-end">
                   <button
                     type="submit"
-                    className="min-h-8 rounded-xl border border-slate-200 shadow-sm bg-slate-900 px-4 text-sm font-semibold text-white transition hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-sm disabled:opacity-60"
+                    className="min-h-11 rounded-md border border-slate-200 bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
                     disabled={isPending}
                   >
                     {lb.applyFilter}
@@ -481,43 +459,29 @@ export function LeaderboardClient() {
                   <button
                     type="button"
                     onClick={clearFilters}
-                    className="min-h-8 rounded-md border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-1"
+                    className="min-h-11 rounded-md border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-1"
                   >
                     {lb.clearFilter}
                   </button>
                 </div>
               </form>
 
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => navigate({ agent_stack: null, page: '1' })}
-                    className={`min-h-8 rounded-xl border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] transition ${
-                      agentStack
-                        ? 'border-slate-200 bg-white shadow-sm text-slate-700 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-1'
-                        : 'border-slate-900 bg-slate-900 text-white shadow-sm focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-1'
-                  }`}
-                >
-                  {lb.allAgentStacks}
-                </button>
-              </div>
-
               {activeFilters.length > 0 ? (
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                  <span className="text-xs font-medium text-slate-500">
                     {lb.activeFilterEyebrow}
                   </span>
                   {activeFilters.map((filter) => (
                     <span
                       key={filter.key}
-                      className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800"
+                      className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700"
                     >
-                      <span className="text-emerald-700">{filter.label}:</span>
+                      <span className="text-slate-500">{filter.label}:</span>
                       <span>{filter.value}</span>
                       <button
                         type="button"
                         onClick={() => clearSingleFilter(filter.key)}
-                        className="min-h-7 text-emerald-700 hover:text-emerald-900"
+                        className="min-h-9 rounded-md px-1 text-slate-500 hover:text-slate-900"
                       >
                         {lb.clearFilter}
                       </button>
@@ -525,10 +489,45 @@ export function LeaderboardClient() {
                   ))}
                 </div>
               ) : null}
+
+              {data?.agent_stack_stats && data.agent_stack_stats.length > 0 ? (
+                <details className="rounded-md border border-slate-200 bg-slate-50">
+                  <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium text-slate-900">
+                    {lb.frameworkWars.title}
+                  </summary>
+                  <div className="border-t border-slate-200 px-4 py-4">
+                    <div className="flex h-3.5 w-full overflow-hidden rounded-md border border-slate-200 bg-white">
+                      {data.agent_stack_stats.map((stat, idx) => {
+                        const bgColors = ['bg-slate-950', 'bg-slate-700', 'bg-slate-500', 'bg-slate-400', 'bg-slate-300'];
+                        return (
+                          <div
+                            key={stat.agent_stack}
+                            style={{ width: `${stat.percentage}%` }}
+                            className={`${bgColors[idx % bgColors.length]} transition-all duration-500`}
+                            title={`${stat.agent_stack}: ${stat.count}`}
+                          />
+                        );
+                      })}
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-slate-600">
+                      {data.agent_stack_stats.map((stat, idx) => {
+                        const dotColors = ['bg-slate-950', 'bg-slate-700', 'bg-slate-500', 'bg-slate-400', 'bg-slate-300'];
+                        return (
+                          <div key={stat.agent_stack} className="flex items-center gap-1.5">
+                            <span className={`h-2 w-2 rounded-md ${dotColors[idx % dotColors.length]}`} />
+                            <span className="font-medium text-slate-700">{stat.agent_stack}</span>
+                            <span className="text-slate-400">({lb.frameworkWars.legendPercent(stat.percentage)})</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </details>
+              ) : null}
             </div>
 
             <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{lb.viewEyebrow}</p>
+              <p className="text-xs font-medium text-slate-500">{lb.viewEyebrow}</p>
               <p className="mt-2 text-sm font-medium text-slate-900">
                 {lb.showingLabel(showingFrom, showingTo, total)}
               </p>
@@ -561,7 +560,7 @@ export function LeaderboardClient() {
               <button
                 type="button"
                 onClick={clearSelectedPlayer}
-                className="inline-flex items-center rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-amber-800 transition hover:bg-amber-100"
+                className="inline-flex items-center rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-amber-800 transition hover:bg-amber-100"
               >
                 {lb.clearSelection}
               </button>
@@ -579,11 +578,11 @@ export function LeaderboardClient() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <span className="hidden rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-600 xl:inline-flex">
+                <span className="hidden rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600 xl:inline-flex">
                   {lb.listPlusDetail}
                 </span>
                 {isPending || loading ? (
-                  <span className="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
+                  <span className="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
                     {lb.refreshing}
                   </span>
                 ) : null}
@@ -623,18 +622,18 @@ export function LeaderboardClient() {
                       type="button"
                       onClick={() => navigate({ page: String(page - 1) })}
                       disabled={page <= 1 || isPending}
-                      className="min-h-8 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="min-h-11 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {lb.previousPage}
                     </button>
-                    <span className="inline-flex min-h-8 items-center justify-center rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-center text-sm font-medium text-slate-700">
+                    <span className="inline-flex min-h-11 items-center justify-center rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-center text-sm font-medium text-slate-700">
                       {lb.pageLabel(page, pageCount)}
                     </span>
                     <button
                       type="button"
                       onClick={() => navigate({ page: String(page + 1) })}
                       disabled={page >= pageCount || isPending}
-                      className="min-h-8 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="min-h-11 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {lb.nextPage}
                     </button>
@@ -656,12 +655,14 @@ export function LeaderboardClient() {
             />
 
             {selectedActivityId && !selectedPlayerId ? (
-              <ActivityDetailPanel
-                submissionId={selectedActivityId}
-                onClear={clearSelectedActivity}
-                panelId={activityDetailRegionId}
-                detailPageSearch={detailPageSearch}
-              />
+              <div ref={activityDetailRef}>
+                <ActivityDetailPanel
+                  submissionId={selectedActivityId}
+                  onClear={clearSelectedActivity}
+                  panelId={activityDetailRegionId}
+                  detailPageSearch={detailPageSearch}
+                />
+              </div>
             ) : null}
 
             <section
@@ -670,13 +671,13 @@ export function LeaderboardClient() {
             >
               <div className="border-b border-slate-200 px-3 py-2 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-md bg-emerald-500 animate-pulse" />
+                  <div className="h-2 w-2 rounded-md bg-slate-900 animate-pulse" />
                   <h3 className="text-sm font-semibold text-slate-900">{lb.activityFeed.title}</h3>
-                  <span className="text-[10px] uppercase tracking-wider text-slate-400 tabular-nums">
+                  <span className="text-[10px] text-slate-400 tabular-nums">
                     {lb.activityFeed.liveBadge}
                   </span>
                 </div>
-                <span className="text-[10px] uppercase tracking-wider text-slate-500">{lb.activityFeed.filterAllTiers}</span>
+                <span className="text-[10px] text-slate-500">{lb.activityFeed.filterAllTiers}</span>
               </div>
               <div className="flex-1 overflow-y-auto p-4">
                 {feed.length > 0 ? (
@@ -736,6 +737,10 @@ function ActivityFeedItem({
   isSelected: boolean;
 }) {
   const af = copy.leaderboard.activityFeed;
+  const formatLocalDateTime = useLocalizedDateTimeFormatter();
+  const submittedLabel = row.submitted_at
+    ? formatLocalDateTime(row.submitted_at, row.submitted_at)
+    : copy.leaderboard.noRecentSubmissionData;
   const verb = row.unlocked ? af.rowVerbPassed : af.rowVerbAttempted;
   const flag = row.country_code ? (
     <span
@@ -761,7 +766,7 @@ function ActivityFeedItem({
         ) : null}
       </div>
       <div className="text-[10px] text-slate-400 mt-0.5 tabular-nums">
-        {formatUpdatedLabel(row.submitted_at)}
+        {submittedLabel}
       </div>
     </>
   );
@@ -776,9 +781,9 @@ function ActivityFeedItem({
         aria-pressed={isSelected}
         className={`block w-full rounded-md border px-3 py-2 text-left text-sm text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 ${
           isSelected
-            ? 'border-emerald-300 bg-emerald-50/60'
+            ? 'border-slate-300 bg-slate-100'
             : row.unlocked
-            ? 'border-slate-200 border-l-2 border-l-emerald-300 bg-white'
+            ? 'border-slate-200 border-l-2 border-l-slate-900 bg-white'
             : 'border-slate-200 bg-white'
         }`}
       >
@@ -791,7 +796,7 @@ function ActivityFeedItem({
     <Link
       href={`/leaderboard/${row.player_id}${detailPageSearch}`}
       className={`block rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 transition hover:border-slate-300 hover:bg-white ${
-        row.unlocked ? 'border-l-2 border-l-emerald-300' : ''
+        row.unlocked ? 'border-l-2 border-l-slate-900' : ''
       }`}
     >
       {content}

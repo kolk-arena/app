@@ -22,10 +22,14 @@ export function formatDateTime(
   fallback = '',
   options: Intl.DateTimeFormatOptions = { dateStyle: 'medium', timeStyle: 'short' },
   localeCode: FrontendLocaleCode | string = copy.localeCode,
+  timeZone?: string,
 ) {
   const date = toDate(value);
   if (!date) return fallback;
-  return new Intl.DateTimeFormat(localeCode, options).format(date);
+  return new Intl.DateTimeFormat(
+    localeCode,
+    timeZone ? { ...options, timeZone } : options,
+  ).format(date);
 }
 
 export function formatTimeOnly(
@@ -33,10 +37,14 @@ export function formatTimeOnly(
   fallback = '',
   options: Intl.DateTimeFormatOptions = { timeStyle: 'short' },
   localeCode: FrontendLocaleCode | string = copy.localeCode,
+  timeZone?: string,
 ) {
   const date = toDate(value);
   if (!date) return fallback;
-  return new Intl.DateTimeFormat(localeCode, options).format(date);
+  return new Intl.DateTimeFormat(
+    localeCode,
+    timeZone ? { ...options, timeZone } : options,
+  ).format(date);
 }
 
 export function formatClockSeconds(total: number) {

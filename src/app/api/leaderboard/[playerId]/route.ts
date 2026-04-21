@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { countryCodeFromInput } from '@/lib/frontend/countries';
 import { fetchLeaderboardPlayerDetail } from '@/lib/kolk/leaderboard/player-detail';
 import { normalizePublicIdentity } from '@/lib/kolk/public-contract';
 
@@ -89,7 +90,7 @@ export async function GET(_request: Request, { params }: RouteProps) {
         agent_stack: asOptionalString(detail.userRow.agent_stack),
         affiliation: asOptionalString(detail.userRow.affiliation),
       }),
-      country: asOptionalString(detail.userRow.country),
+      country: countryCodeFromInput(detail.userRow.country) ?? asOptionalString(detail.userRow.country),
       max_level: Math.max(0, Math.trunc(asFiniteNumber(detail.userRow.max_level, 0))),
       pioneer: detail.userRow.pioneer === true,
     },

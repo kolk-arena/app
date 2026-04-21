@@ -38,9 +38,6 @@ export default async function Home() {
             <p className="max-w-3xl text-lg leading-8 text-slate-700 sm:text-xl">
               {copy.home.heroIntro}
             </p>
-            <p className="max-w-3xl text-sm leading-7 text-slate-700">
-              Start with <code className="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-800">kolk_arena.md</code>. Load the agent skill, then run L0 to verify your fetch → solve → submit loop.
-            </p>
             <p className="max-w-3xl text-base leading-7 text-slate-600">
               {copy.home.heroBodyPrefix}
               <code className="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-800">/api/challenge/submit</code>
@@ -55,25 +52,17 @@ export default async function Home() {
               slate/white/gray so the accent reads as intent, not theme.
             */}
             <Link
-              href="#agent-skill"
-              className="memory-accent-button inline-flex items-center rounded-md border px-5 py-3 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2"
-            >
-              {copy.home.heroActions.agentSkill}
-            </Link>
-            <Link
               href="#try-it"
-              className="inline-flex items-center rounded-md border border-slate-300 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition-all hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
+              className="memory-accent-button inline-flex items-center rounded-md border px-5 py-3 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2"
             >
               {copy.home.heroActions.runL0}
             </Link>
-            <a
-              href={APP_CONFIG.githubUrl}
-              target="_blank"
-              rel="noreferrer"
+            <Link
+              href="#agent-skill"
               className="inline-flex items-center rounded-md border border-slate-300 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition-all hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
             >
-              {copy.home.heroActions.github}
-            </a>
+              {copy.home.heroActions.agentSkill}
+            </Link>
           </div>
         </div>
 
@@ -121,42 +110,42 @@ export default async function Home() {
             </div>
           </div>
 
-          <aside className="rounded-xl border border-slate-800 bg-slate-900 p-6 text-slate-100 shadow-sm sm:p-8">
+          <aside className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
             <div className="space-y-5">
               <div>
-                <p className="text-xs font-medium text-slate-400">
+                <p className="text-xs font-medium text-slate-500">
                   {copy.home.statusCard.eyebrow}
                 </p>
-                <p className="mt-2 text-2xl font-bold tracking-tight">{copy.home.statusCard.title}</p>
+                <p className="mt-2 text-2xl font-bold tracking-tight text-slate-950">{copy.home.statusCard.title}</p>
               </div>
 
-              <div className="rounded-lg border border-slate-800 bg-slate-950 p-4">
-                <p className="text-xs font-medium text-slate-400">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-medium text-slate-500">
                   {copy.home.statusCard.howToEnterEyebrow}
                 </p>
-                <p className="mt-2 text-sm leading-7 text-slate-300">
+                <p className="mt-2 text-sm leading-7 text-slate-700">
                   {copy.home.statusCard.howToEnterBody}
                 </p>
               </div>
 
-              <div className="rounded-lg border border-slate-800 bg-slate-950 p-4">
-                <p className="text-xs font-medium text-slate-400">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-medium text-slate-500">
                   {copy.home.statusCard.publicAddressEyebrow}
                 </p>
-                <p className="mt-2 text-sm font-mono text-slate-200">
+                <p className="mt-2 text-sm font-mono text-slate-900">
                   {APP_CONFIG.canonicalOrigin.replace('https://', '')}
                 </p>
               </div>
 
-              <div className="rounded-lg border border-slate-800 bg-slate-950 p-4">
-                <p className="text-xs font-medium text-slate-400">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-medium text-slate-500">
                   {copy.home.statusCard.githubEyebrow}
                 </p>
                 <a
                   href={APP_CONFIG.githubUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-2 inline-block text-sm font-mono text-slate-200 underline decoration-slate-500 underline-offset-4 transition hover:decoration-slate-300 hover:text-white"
+                  className="mt-2 inline-block text-sm font-mono text-slate-900 underline decoration-slate-300 underline-offset-4 transition hover:decoration-slate-600"
                 >
                   {APP_CONFIG.githubUrl.replace('https://', '')}
                 </a>
@@ -181,8 +170,8 @@ export default async function Home() {
             </div>
             <div className="divide-y divide-slate-100">
               {topPlayers.map((player, i) => (
-                <div key={`${player.player_id}-${i}`} className="flex items-center justify-between py-3">
-                  <div className="flex items-center gap-3">
+                <div key={`${player.player_id}-${i}`} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-wrap items-center gap-3">
                     <span className={`inline-flex min-w-8 items-center justify-center rounded-md border px-2 py-1 text-sm font-medium ${
                       player.rank === 1 ? 'memory-accent-rank' : 'border-slate-200 bg-slate-50 text-slate-600'
                     }`}>
@@ -196,7 +185,7 @@ export default async function Home() {
                       'bg-slate-50 text-slate-600 border-slate-200'
                     }`}>{player.tier}</span>
                   </div>
-                  <div className="text-right">
+                  <div className="text-left sm:text-right">
                     <span className="text-sm font-mono text-slate-700">L{player.highest_level}</span>
                     <span className="ml-2 text-xs text-slate-500">
                       {Math.round(player.best_score_on_highest)} frontier · {player.solve_time_seconds != null ? `${player.solve_time_seconds}s` : copy.home.liveRankings.timePending}
@@ -245,6 +234,7 @@ export default async function Home() {
                   key={step.title}
                   title={`#${index + 1} · ${step.title}`}
                   code={step.code}
+                  language="bash"
                   copyValue={step.code}
                   copyLabel={`${copy.common.copyThisStep} #${index + 1}`}
                   copiedLabel={copy.common.copied}

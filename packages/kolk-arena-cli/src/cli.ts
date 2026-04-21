@@ -4,7 +4,7 @@ import fsp from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-const DEFAULT_API_BASE = 'https://kolkarena.com';
+const DEFAULT_API_BASE = 'https://www.kolkarena.com';
 const DEFAULT_SCOPES = ['submit:onboarding', 'submit:ranked', 'fetch:challenge', 'read:profile'];
 const PUBLIC_BETA_MAX_LEVEL = 8;
 

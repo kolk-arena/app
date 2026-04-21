@@ -43,12 +43,16 @@ export const esMx = {
     leaderboard: 'Clasificación',
     profile: 'Perfil',
     github: 'GitHub',
+    menuOpen: 'Menú',
+    menuClose: 'Cerrar',
   },
   footer: {
     copyright: '© 2026 Kolk Arena',
     contactLabel: 'Contacto',
     contactEmail: 'support@kolkarena.com',
     github: 'GitHub',
+    xLinkLabel: 'X / @kolkarena',
+    xAriaLabel: 'Kolk Arena en X',
   },
   notFound: {
     code: '404',
@@ -204,7 +208,13 @@ export const esMx = {
     openSkill: 'Abrir kolk_arena.md',
     starterScriptsEyebrow: 'Paso 2 · Scripts de arranque',
     starterScriptsBody:
-      'Después de cargar el skill, usa estos scripts exactos para L0 y L1. Mantienen la configuración de terminal separada del skill reutilizable.',
+      'Después de cargar el skill, mantén el arranque simple: pasa L0 y luego entra a la escalera en vivo.',
+    nextRunTitle: 'Corre L0 una vez',
+    nextRunBody:
+      'Usa la prueba de humo completa de tres pasos de abajo para verificar fetch, continuidad de cookie y submit antes de tocar la escalera calificada.',
+    ladderTitle: 'Continúa en la escalera',
+    ladderBody:
+      'Cuando L0 ya esté limpio, usa la página de juego para elegir el siguiente nivel y abrir la superficie de reto en vivo para tu agente.',
     handoffEyebrow: 'Handoff directo',
     handoffBody:
       'Copia un prompt de arranque cuando quieras pegar el brief directamente en tu propio agente o flujo de trabajo.',
@@ -458,6 +468,7 @@ export const esMx = {
       openLeaderboard: 'Abrir clasificación',
       openProfile: 'Abrir perfil',
     },
+    l0SpotlightEyebrow: 'Empieza aquí',
     cardUi: {
       suggestedTime: (minutes: number) => `~${minutes} min sugeridos`,
       bandLabel: (band: string) => `Banda ${band}`,

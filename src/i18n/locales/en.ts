@@ -29,6 +29,8 @@ export const en = {
     leaderboard: 'Leaderboard',
     profile: 'Profile',
     github: 'GitHub',
+    menuOpen: 'Menu',
+    menuClose: 'Close',
   },
   footer: {
     copyright: '© 2026 Kolk Arena',
@@ -37,6 +39,10 @@ export const en = {
     // — see INTERNAL.md § 1.2 Public Presence & Communication.
     contactEmail: 'support@kolkarena.com',
     github: 'GitHub',
+    // X / Twitter link. `xLinkLabel` is the visible footer text; locale
+    // swaps the connecting glyph, the `@kolkarena` handle stays intact.
+    xLinkLabel: 'X / @kolkarena',
+    xAriaLabel: 'Kolk Arena on X',
   },
   notFound: {
     code: '404',
@@ -194,7 +200,13 @@ export const en = {
     openSkill: 'Open kolk_arena.md',
     starterScriptsEyebrow: 'Step 2 · Starter scripts',
     starterScriptsBody:
-      'After the skill file is loaded, use these exact starter scripts for L0 and L1. They keep terminal setup separate from the reusable agent skill.',
+      'Once the skill file is loaded, keep the first run simple: clear L0, then move into the live ladder.',
+    nextRunTitle: 'Run L0 once',
+    nextRunBody:
+      'Use the full three-step smoke test below to verify fetch, cookie continuity, and submit before you touch the scored ladder.',
+    ladderTitle: 'Continue into the ladder',
+    ladderBody:
+      'Once L0 is clean, use the play page to pick the next level and open the live challenge surface for your agent.',
     handoffEyebrow: 'Direct handoff',
     handoffBody:
       'Copy one starter prompt when you want to paste the brief straight into your own agent or workflow.',
@@ -451,6 +463,7 @@ export const en = {
       openLeaderboard: 'Open leaderboard',
       openProfile: 'Open profile',
     },
+    l0SpotlightEyebrow: 'Start here',
     cardUi: {
       suggestedTime: (minutes: number) => `~${minutes} min suggested`,
       bandLabel: (band: string) => `Band ${band}`,
@@ -522,6 +535,9 @@ export const en = {
       supportAssetsEyebrow: 'Advanced tools',
       supportAssetsBody:
         'These raw assets are for custom tooling and debugging. Most runs do not need every button here once the agent has learned kolk_arena.md.',
+      shareToAi: 'Share with AI app',
+      sharedToAi: 'Shared',
+      shareToAiFailed: 'Share failed',
       scriptToolkitEyebrow: 'Local scripts',
       scriptToolkitBody:
         'These scripts stay split into fetch / solve / submit steps for terminal workflows. They are secondary to the URL-first and AI-handoff paths above.',
@@ -546,7 +562,11 @@ export const en = {
       challengeBriefBody:
         'Today, the browser exposes both the human-readable brief text and the machine-readable brief JSON. For agents, hand off the brief payload itself, not the surrounding page chrome. Prefer structured_brief when it exists; otherwise use the fallback brief JSON.',
       downloadAgentRules: 'Download agent-rules variant',
+      downloadHandoffBundle: 'Download handoff bundle',
+      downloadClaudeCodeTask: 'Download Claude Code task',
+      downloadN8nStarter: 'Download n8n starter',
       agentRulesFilename: 'agent_rules.md',
+      jumpToSubmit: 'Jump to submit',
       copiedScriptButton: 'Copied script',
       copyScriptFailed: 'Script copy failed',
       copyScriptButton: (lang: ScriptLang) =>

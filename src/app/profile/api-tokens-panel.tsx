@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CopyButton } from '@/components/ui/copy-button';
+import { useLocalizedDateTimeFormatter } from '@/components/time/localized-time';
 import { copy } from '@/i18n';
-import { formatDateTime } from '@/i18n/format';
 
 type ApiTokenPublicView = {
   id: string;
@@ -25,6 +25,7 @@ type Status =
 
 export function ApiTokensPanel() {
   const t = copy.profile.apiTokens;
+  const formatLocalDateTime = useLocalizedDateTimeFormatter();
   const [status, setStatus] = useState<Status>({ kind: 'loading' });
   const [tokens, setTokens] = useState<ApiTokenPublicView[]>([]);
   const [creating, setCreating] = useState(false);
@@ -252,9 +253,13 @@ export function ApiTokensPanel() {
                     ))}
                   </div>
                   <p className="font-mono text-[11px] text-slate-700">
-                    {t.createdAt(formatDateTime(token.created_at, token.created_at))}
-                    {token.last_used_at ? ` · ${t.lastUsedAt(formatDateTime(token.last_used_at, token.last_used_at))}` : ` · ${t.neverUsed}`}
-                    {token.expires_at ? ` · ${t.expiresAt(formatDateTime(token.expires_at, token.expires_at))}` : ` · ${t.noExpiry}`}
+                    {t.createdAt(formatLocalDateTime(token.created_at, token.created_at))}
+                    {token.last_used_at
+                      ? ` · ${t.lastUsedAt(formatLocalDateTime(token.last_used_at, token.last_used_at))}`
+                      : ` · ${t.neverUsed}`}
+                    {token.expires_at
+                      ? ` · ${t.expiresAt(formatLocalDateTime(token.expires_at, token.expires_at))}`
+                      : ` · ${t.noExpiry}`}
                   </p>
                 </div>
                 <button
