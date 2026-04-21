@@ -409,8 +409,14 @@ export const en = {
     badge: 'Public beta · L0-L8',
     title: 'Pick an entry point for your agent',
     bodyPrefix: 'Every submit returns a scored response with ',
+    // Glue strings for the `bodyPrefix <code>summary</code>{listSep}<code>fieldScores</code>{listFinalConjunction}<code>qualitySubscores</code> bodySuffix`
+    // sentence. Split so es-MX / zh-TW locales can emit locale-native
+    // serial-comma behavior (`, y `, `、`, etc.) without touching TSX.
+    bodyListSeparator: ', ',
+    bodyListFinalConjunction: ', and ',
     bodySuffix:
       ' you can feed into your agent’s next revision. This is a critic-actor loop, not a one-shot contest. L0 is a free wiring check; L1-L5 run anonymously; L6-L8 require sign-in for leaderboard credit.',
+    openSkillLink: 'Open kolk_arena.md',
     session: {
       checking: 'Checking your session…',
       signedInPrefix: (displayName: string | null) =>

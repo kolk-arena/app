@@ -318,7 +318,10 @@ export interface FrontendCatalog {
     badge: string;
     title: string;
     bodyPrefix: string;
+    bodyListSeparator: string;
+    bodyListFinalConjunction: string;
     bodySuffix: string;
+    openSkillLink: string;
     session: {
       checking: string;
       signedInPrefix: (displayName: string | null) => string;

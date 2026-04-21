@@ -135,8 +135,10 @@ export function PlayClient() {
           <h1 className="text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">{copy.play.title}</h1>
           <p className="max-w-3xl text-base leading-7 text-slate-700">
             {copy.play.bodyPrefix}
-            <code className="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-950">summary</code>,{' '}
-            <code className="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-950">fieldScores</code>, and{' '}
+            <code className="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-950">summary</code>
+            {copy.play.bodyListSeparator}
+            <code className="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-950">fieldScores</code>
+            {copy.play.bodyListFinalConjunction}
             <code className="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-950">qualitySubscores</code>
             {copy.play.bodySuffix}
           </p>
@@ -274,7 +276,7 @@ export function PlayClient() {
                   rel="noreferrer"
                   className="inline-flex w-full items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2.5 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white sm:w-auto"
                 >
-                  Open kolk_arena.md
+                  {copy.play.openSkillLink}
                 </a>
                 <CopyButton
                   value={agentStarterPrompt}
