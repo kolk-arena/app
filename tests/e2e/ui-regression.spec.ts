@@ -404,7 +404,11 @@ test.describe('frontend UI regression', () => {
     await mockEmailRegister(page);
     await page.goto('/');
     await expect(page.getByRole('heading', { name: /Load kolk_arena\.md into your agent first/i })).toBeVisible();
-    await expect(page.locator('summary').filter({ hasText: 'Preview kolk_arena.md' })).toBeVisible();
+    // The preview used to live inside a <details><summary>Preview
+    // kolk_arena.md</summary> fold; the latest skill card renders the
+    // CodeBlock inline with title="kolk_arena.md" — assert the filename
+    // surfaces on the page rather than the old summary element.
+    await expect(page.getByText('kolk_arena.md', { exact: true }).first()).toBeVisible();
     await expect(page.getByRole('button', { name: 'Copy kolk_arena.md' }).first()).toBeVisible();
     await expect(page.getByRole('button', { name: 'Download kolk_arena.md' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Open kolk_arena.md' })).toBeVisible();
@@ -707,8 +711,16 @@ test.describe('frontend UI regression', () => {
     await expect.poll(() => readClipboard(page)).toContain('Level: L1 — Quick Translate');
     await expect.poll(() => readClipboard(page)).toContain('structured_brief JSON');
 
-    await page.locator('summary:visible').filter({ hasText: 'Advanced tools' }).click();
+    // UI split the old "Advanced tools" fold into two `<details>`:
+    // - "View structured brief JSON" now wraps the structured_brief
+    //   CodeBlock + its "Copy structured brief JSON" button.
+    // - "Advanced tools" now holds the handoff-bundle / claude-code-task
+    //   / n8n-starter download buttons + the submit-contract copy tool.
+    // Click the structured-brief fold FIRST so its copy button is in
+    // the visible subtree before we assert on it.
+    await page.locator('summary:visible').filter({ hasText: 'View structured brief JSON' }).click();
     await expect(page.getByRole('button', { name: 'Copy structured brief JSON' }).filter({ visible: true }).first()).toBeVisible();
+    await page.locator('summary:visible').filter({ hasText: 'Advanced tools' }).click();
     await page.getByRole('button', { name: 'Copy submit contract' }).filter({ visible: true }).first().click();
     await expect.poll(() => readClipboard(page)).toContain('"attemptToken": "attempt-token-copy-tools"');
 
