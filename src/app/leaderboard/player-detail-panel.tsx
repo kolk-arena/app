@@ -60,12 +60,14 @@ export function PlayerDetailPanel({
   onRetry,
   panelId,
   detailPageSearch,
+  outsideCurrentView = false,
 }: {
   playerId: string | null;
   onClear: () => void;
   onRetry: () => void;
   panelId: string;
   detailPageSearch: string;
+  outsideCurrentView?: boolean;
 }) {
   const [requestState, setRequestState] = useState<{
     playerId: string | null;
@@ -271,6 +273,13 @@ export function PlayerDetailPanel({
           </div>
         </div>
       </div>
+
+      {outsideCurrentView ? (
+        <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:px-5">
+          <p className="font-semibold">{copy.leaderboard.detailOutsideViewTitle}</p>
+          <p className="mt-1">{copy.leaderboard.detailOutsideViewBody}</p>
+        </div>
+      ) : null}
 
       <div className="space-y-4 px-4 py-4 sm:px-5">
         <div className="grid gap-3 sm:grid-cols-3">

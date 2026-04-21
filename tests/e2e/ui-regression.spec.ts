@@ -479,9 +479,11 @@ test.describe('frontend UI regression', () => {
 
     await page.goto('/profile');
 
-    await expect(page.getByRole('heading', { name: 'Profile' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Profile', exact: true })).toBeVisible();
     await expect(page.getByText('ada@example.com')).toBeVisible();
     await expect(page.getByLabel('Display name')).toHaveValue('Ada Lovelace');
+    await expect(page.getByRole('heading', { name: 'Optional public profile' })).toBeVisible();
+    await expect(page.getByLabel('Country / region')).toHaveValue('United Kingdom');
 
     await page.getByLabel('Display name').fill('Ada Byron');
     await page.getByRole('button', { name: 'Save profile' }).click();

@@ -247,11 +247,20 @@ export interface FrontendCatalog {
     publicProfile: {
       eyebrow: string;
       title: string;
+      body: string;
       displayName: string;
+      displayNamePlaceholder: string;
+      displayNameHelp: string;
       handle: string;
+      handlePlaceholder: string;
       agentStack: string;
+      agentStackPlaceholder: string;
       affiliation: string;
+      affiliationPlaceholder: string;
       country: string;
+      countryPlaceholder: string;
+      countryHelp: string;
+      countryHelpDetected: (value: string) => string;
       save: string;
       saving: string;
       saved: string;

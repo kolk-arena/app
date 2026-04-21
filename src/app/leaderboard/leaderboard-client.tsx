@@ -645,14 +645,6 @@ export function LeaderboardClient() {
           </div>
 
           <div className="xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)] xl:self-start xl:overflow-auto space-y-4">
-            {!loading && selectedPlayerId && !selectedPlayerOnPage && !selectionMessage ? (
-              <div className="mb-4 rounded-xl border border-slate-200 bg-amber-50 px-5 py-4 text-sm text-amber-900 shadow-sm">
-                <p className="font-semibold">{lb.detailOutsideViewTitle}</p>
-                <p className="mt-1">
-                  {lb.detailOutsideViewBody}
-                </p>
-              </div>
-            ) : null}
             <PlayerDetailPanel
               key={`${selectedPlayerId ?? 'no-player-selected'}-${detailRetryNonce}`}
               playerId={selectedPlayerId}
@@ -660,6 +652,7 @@ export function LeaderboardClient() {
               onRetry={retrySelectedPlayer}
               panelId={detailRegionId}
               detailPageSearch={detailPageSearch}
+              outsideCurrentView={!loading && Boolean(selectedPlayerId) && !selectedPlayerOnPage && !selectionMessage}
             />
 
             {selectedActivityId && !selectedPlayerId ? (

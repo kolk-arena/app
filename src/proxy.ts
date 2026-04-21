@@ -28,7 +28,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 //     routes that happen to take a `code` param.
 //   * Preserves the existing `next` param if the URL already carried
 //     one; only defaults to the hit path when `next` is missing.
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname, searchParams, hostname } = request.nextUrl;
 
   // Apex → www canonicalization. The production host is `www.kolkarena.com`.

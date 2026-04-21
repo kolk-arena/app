@@ -22,6 +22,32 @@ type Profile = {
   pioneer: boolean;
 };
 
+function expandRegionCode(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  if (!trimmed) return '';
+
+  if (!/^[a-z]{2}$/i.test(trimmed)) {
+    return trimmed;
+  }
+
+  try {
+    const displayNames = new Intl.DisplayNames(['en'], { type: 'region' });
+    return displayNames.of(trimmed.toUpperCase()) ?? trimmed.toUpperCase();
+  } catch {
+    return trimmed.toUpperCase();
+  }
+}
+
+function buildEditableProfileForm(profile: Profile) {
+  return {
+    displayName: profile.display_name ?? '',
+    handle: profile.handle ?? '',
+    agentStack: profile.agent_stack ?? '',
+    affiliation: profile.affiliation ?? '',
+    country: expandRegionCode(profile.country),
+  };
+}
+
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [authRequired, setAuthRequired] = useState(false);
@@ -74,13 +100,7 @@ export default function ProfilePage() {
         const nextProfile = payload.profile as Profile;
         setAuthRequired(false);
         setProfile(nextProfile);
-        setForm({
-          displayName: nextProfile.display_name ?? '',
-          handle: nextProfile.handle ?? '',
-          agentStack: nextProfile.agent_stack ?? '',
-          affiliation: nextProfile.affiliation ?? '',
-          country: nextProfile.country ?? '',
-        });
+        setForm(buildEditableProfileForm(nextProfile));
       })
       .catch((err: unknown) => {
         if (!active || controller.signal.aborted) return;
@@ -98,6 +118,10 @@ export default function ProfilePage() {
   }, [reloadNonce]);
 
   const authMethods = useMemo(() => profile?.auth_methods.join(', ') ?? '', [profile]);
+  const detectedCountryLabel = useMemo(() => {
+    const expanded = expandRegionCode(form.country);
+    return expanded && expanded !== form.country.trim() ? `${expanded} (${form.country.trim().toUpperCase()})` : expanded;
+  }, [form.country]);
   const p = copy.profile;
   const showInlineError = Boolean(error) && !(authRequired && error === p.sessionExpiredBody);
 
@@ -113,11 +137,11 @@ export default function ProfilePage() {
         credentials: 'include',
         cache: 'no-store',
         body: JSON.stringify({
-          displayName: form.displayName,
-          handle: form.handle || null,
-          agentStack: form.agentStack || null,
-          affiliation: form.affiliation || null,
-          country: form.country || null,
+          ...(form.displayName.trim() ? { displayName: form.displayName.trim() } : {}),
+          handle: form.handle.trim() || null,
+          agentStack: form.agentStack.trim() || null,
+          affiliation: form.affiliation.trim() || null,
+          country: expandRegionCode(form.country) || null,
         }),
       });
 
@@ -135,13 +159,7 @@ export default function ProfilePage() {
       const nextProfile = payload.profile as Profile;
       setAuthRequired(false);
       setProfile(nextProfile);
-      setForm({
-        displayName: nextProfile.display_name ?? '',
-        handle: nextProfile.handle ?? '',
-        agentStack: nextProfile.agent_stack ?? '',
-        affiliation: nextProfile.affiliation ?? '',
-        country: nextProfile.country ?? '',
-      });
+      setForm(buildEditableProfileForm(nextProfile));
       setSaveSuccess(true);
       window.setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
@@ -321,28 +339,60 @@ export default function ProfilePage() {
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">{p.publicProfile.eyebrow}</p>
                 <h2 className="text-2xl font-bold tracking-tight text-slate-950">{p.publicProfile.title}</h2>
+                <p className="max-w-2xl text-sm leading-6 text-slate-600">{p.publicProfile.body}</p>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="space-y-2 text-sm text-slate-800">
                   <span className="font-semibold uppercase tracking-[0.14em] text-slate-700">{p.publicProfile.displayName}</span>
-                  <input className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950" value={form.displayName} onChange={(event) => setForm((current) => ({ ...current, displayName: event.target.value }))} />
+                  <input
+                    className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950"
+                    value={form.displayName}
+                    placeholder={p.publicProfile.displayNamePlaceholder}
+                    onChange={(event) => setForm((current) => ({ ...current, displayName: event.target.value }))}
+                  />
+                  <p className="text-xs leading-5 text-slate-500">{p.publicProfile.displayNameHelp}</p>
                 </label>
                 <label className="space-y-2 text-sm text-slate-800">
                   <span className="font-semibold uppercase tracking-[0.14em] text-slate-700">{p.publicProfile.handle}</span>
-                  <input className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950" value={form.handle} onChange={(event) => setForm((current) => ({ ...current, handle: event.target.value }))} />
+                  <input
+                    className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950"
+                    value={form.handle}
+                    placeholder={p.publicProfile.handlePlaceholder}
+                    onChange={(event) => setForm((current) => ({ ...current, handle: event.target.value }))}
+                  />
                 </label>
                 <label className="space-y-2 text-sm text-slate-800">
                   <span className="font-semibold uppercase tracking-[0.14em] text-slate-700">{p.publicProfile.agentStack}</span>
-                  <input className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950" value={form.agentStack} onChange={(event) => setForm((current) => ({ ...current, agentStack: event.target.value }))} />
+                  <input
+                    className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950"
+                    value={form.agentStack}
+                    placeholder={p.publicProfile.agentStackPlaceholder}
+                    onChange={(event) => setForm((current) => ({ ...current, agentStack: event.target.value }))}
+                  />
                 </label>
                 <label className="space-y-2 text-sm text-slate-800">
                   <span className="font-semibold uppercase tracking-[0.14em] text-slate-700">{p.publicProfile.affiliation}</span>
-                  <input className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950" value={form.affiliation} onChange={(event) => setForm((current) => ({ ...current, affiliation: event.target.value }))} />
+                  <input
+                    className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950"
+                    value={form.affiliation}
+                    placeholder={p.publicProfile.affiliationPlaceholder}
+                    onChange={(event) => setForm((current) => ({ ...current, affiliation: event.target.value }))}
+                  />
                 </label>
                 <label className="space-y-2 text-sm text-slate-800 sm:col-span-2">
                   <span className="font-semibold uppercase tracking-[0.14em] text-slate-700">{p.publicProfile.country}</span>
-                  <input className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950" value={form.country} onChange={(event) => setForm((current) => ({ ...current, country: event.target.value }))} />
+                  <input
+                    className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950"
+                    value={form.country}
+                    placeholder={p.publicProfile.countryPlaceholder}
+                    onChange={(event) => setForm((current) => ({ ...current, country: event.target.value }))}
+                  />
+                  <p className="text-xs leading-5 text-slate-500">
+                    {detectedCountryLabel
+                      ? p.publicProfile.countryHelpDetected(detectedCountryLabel)
+                      : p.publicProfile.countryHelp}
+                  </p>
                 </label>
               </div>
 

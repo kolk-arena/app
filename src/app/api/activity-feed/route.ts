@@ -4,16 +4,13 @@ import { colorBandToQualityLabel } from '@/lib/kolk/beta-contract';
 import { normalizePublicIdentity } from '@/lib/kolk/public-contract';
 import type { ActivityFeedEntry } from '@/lib/kolk/types';
 
-// Route-level revalidation hint for the Next.js / Vercel edge cache.
-// NOTE: vercel.json sets `Cache-Control: no-store, no-cache, must-revalidate`
-// for all /api/* routes, which overrides any Cache-Control header we emit
-// here. We keep the explicit `s-maxage` header below for clarity and so that
-// if the global no-store rule is ever narrowed in vercel.json (recommended
-// post-launch for this specific path), this route automatically benefits
-// from 10-second edge caching + 30-second stale-while-revalidate. Until
-// then, the client-side 30s polling + visibility gate (see
-// `leaderboard-client.tsx`) is what actually protects Supabase quota.
-export const revalidate = 10;
+// This endpoint reads request headers for per-IP rate limiting, so it must
+// stay fully dynamic. Static analysis during `next build` would otherwise
+// emit a dynamic-server-usage warning for `request.headers`.
+//
+// CDN caching remains controlled explicitly via the `Cache-Control` header
+// below; we do not rely on route-level revalidation for this path.
+export const dynamic = 'force-dynamic';
 
 // Simple in-memory IP rate limit. Per-lambda-instance accuracy is acceptable
 // for this low-stakes, read-only surface; it exists to stop a single
