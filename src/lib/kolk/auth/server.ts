@@ -92,20 +92,41 @@ export function sanitizeNextPath(next: string | null | undefined): string {
 //      and broke email sign-in on launch (2026-04-20).
 export function getAppUrl(request?: NextRequest): string {
   const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  if (configured) return configured.replace(/\/$/, '');
+  const canonicalOrigin = APP_CONFIG.canonicalOrigin.replace(/\/$/, '');
+  const vercelEnv = process.env.VERCEL_ENV?.toLowerCase();
+  const enforceCanonicalProdOrigin = vercelEnv === 'production';
+
+  const isLocalishOrigin = (origin: string) =>
+    /^https?:\/\/(localhost|127\.|0\.0\.0\.0|\[::1\])/i.test(origin);
+
+  if (configured) {
+    const normalized = configured.replace(/\/$/, '');
+
+    if (enforceCanonicalProdOrigin && (isLocalishOrigin(normalized) || normalized !== canonicalOrigin)) {
+      console.warn('[auth/getAppUrl] ignoring unsafe NEXT_PUBLIC_APP_URL in production', {
+        configured: normalized,
+        canonicalOrigin,
+      });
+      return canonicalOrigin;
+    }
+
+    return normalized;
+  }
 
   if (request) {
-    const origin = request.nextUrl.origin;
+    const origin = request.nextUrl.origin.replace(/\/$/, '');
     if (origin) {
-      const isLocalishOrigin = /^https?:\/\/(localhost|127\.|0\.0\.0\.0|\[::1\])/i.test(origin);
-      const isProd = process.env.NODE_ENV === 'production';
-      if (!(isProd && isLocalishOrigin)) {
-        return origin.replace(/\/$/, '');
+      if (enforceCanonicalProdOrigin && origin !== canonicalOrigin) {
+        return canonicalOrigin;
+      }
+
+      if (!isLocalishOrigin(origin)) {
+        return origin;
       }
     }
   }
 
-  return APP_CONFIG.canonicalOrigin.replace(/\/$/, '');
+  return canonicalOrigin;
 }
 
 export async function upsertArenaIdentity(input: {

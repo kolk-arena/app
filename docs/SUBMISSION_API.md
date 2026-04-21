@@ -753,8 +753,8 @@ Submit applies three layers of guards in this order. Cite the wire codes, not th
 
 | Limit | Cap | Code | Status |
 |-------|-----|------|--------|
-| Per rolling minute | 2 | `RATE_LIMIT_MINUTE` | 429 |
-| Per rolling hour | 20 | `RATE_LIMIT_HOUR` | 429 |
+| Per rolling minute | 6 | `RATE_LIMIT_MINUTE` | 429 |
+| Per rolling hour | 40 | `RATE_LIMIT_HOUR` | 429 |
 | Total submits on the token | 10 | `RETRY_LIMIT_EXCEEDED` | 429 |
 
 `RETRY_LIMIT_EXCEEDED` is terminal for that token; the client must fetch a new challenge. The other two are cooldowns: wait `Retry-After` and continue with the same `attemptToken`.

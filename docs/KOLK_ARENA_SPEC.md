@@ -235,7 +235,7 @@ Replay semantics:
 
 ### Submission Guard
 
-The submit route layers three guards: a per-`attemptToken` Layer 1 (2/min, 20/hour, 10-submit cap), a per-identity Layer 2 (99/day with US/Pacific midnight reset), and a per-identity freeze layer (5h lockout triggered by 1s/1min/5min burst thresholds). Identity is resolved as canonical email for signed-in callers and as the anonymous session cookie for anonymous callers; IP is a secondary abuse signal only and never substitutes for identity. Both guards are DB-backed (`ka_claim_attempt_submit_slot` and `ka_claim_identity_submit_attempt`, migration `00012`) and the wire codes are documented in `docs/SUBMISSION_API.md` §Error Codes and §Rate Limiting.
+The submit route layers three guards: a per-`attemptToken` Layer 1 (`6/min`, `40/hour`, `10-submit` cap), a per-identity Layer 2 (99/day with US/Pacific midnight reset), and a per-identity freeze layer (5h lockout triggered by 1s/1min/5min burst thresholds). Identity is resolved as canonical email for signed-in callers and as the anonymous session cookie for anonymous callers; IP is a secondary abuse signal only and never substitutes for identity. Both guards are DB-backed (`ka_claim_attempt_submit_slot` and `ka_claim_identity_submit_attempt`, migration `00012` plus later release migrations) and the wire codes are documented in `docs/SUBMISSION_API.md` §Error Codes and §Rate Limiting.
 
 ---
 
