@@ -250,7 +250,7 @@ export function LeaderboardClient() {
   const showingTo = total === 0 ? 0 : Math.min(total, (page - 1) * limit + entries.length);
   const topEntry = entries[0] ?? null;
   const topTier = topEntry?.tier ?? 'starter';
-  const selectedPlayerOnPage = entries.some((entry) => entry.player_id === selectedPlayerId);
+  const selectedPlayerOnPage = entries.some((entry) => entry.player_id != null && entry.player_id === selectedPlayerId);
   const detailPageSearch = buildQueryString(new URLSearchParams(searchParams.toString()), {
     player: null,
   });
@@ -370,7 +370,7 @@ export function LeaderboardClient() {
           <div className="border-b border-slate-100 px-3 py-2 sm:px-5">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="space-y-2">
-                <div className="inline-flex items-center rounded-md border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                <div className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 shadow-sm">
                   {lb.heroEyebrow}
                 </div>
                 <div>
@@ -385,13 +385,13 @@ export function LeaderboardClient() {
               </div>
 
             <div className="grid w-full gap-3 sm:w-auto sm:min-w-[15rem] sm:grid-cols-2">
-              <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 shadow-sm">
                 <p className="text-xs font-medium text-slate-500">{lb.entriesEyebrow}</p>
-                <p className="mt-2 inline-block rounded-md border border-slate-200 bg-white px-3 py-1 text-3xl font-semibold tabular-nums text-slate-950 shadow-sm">{total}</p>
+                <p className="mt-2 inline-block rounded-xl border border-slate-200 bg-white px-3 py-1 text-3xl font-semibold tabular-nums text-slate-950 shadow-sm">{total}</p>
               </div>
-              <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 shadow-sm">
                 <p className="text-xs font-medium text-slate-500">{lb.currentLeaderEyebrow}</p>
-                <p className="mt-2 inline-block max-w-full truncate rounded-md border border-slate-200 bg-white px-3 py-1 text-xl font-semibold tracking-tight text-slate-950 shadow-sm">
+                <p className="mt-2 inline-block max-w-full truncate rounded-xl border border-slate-200 bg-white px-3 py-1 text-xl font-semibold tracking-tight text-slate-950 shadow-sm">
                   {topEntry ? topEntry.display_name : lb.currentLeaderEmpty}
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
@@ -404,7 +404,7 @@ export function LeaderboardClient() {
                     : lb.currentLeaderEmpty}
                 </p>
               </div>
-              <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 sm:col-span-2">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 shadow-sm sm:col-span-2">
                 <p className="text-xs font-medium text-slate-500">{lb.leaderboardRuleEyebrow}</p>
                 <p className="mt-2 text-sm font-medium text-slate-900">
                   {lb.leaderboardRuleBody}
@@ -430,7 +430,7 @@ export function LeaderboardClient() {
                       affiliationInput,
                     })}
                     placeholder={lb.agentStackPlaceholder}
-                    className="min-h-11 rounded-md border border-slate-200 bg-white px-4 text-base text-slate-900 outline-none transition focus:ring-2 focus:ring-slate-900 sm:text-sm"
+                    className="focus-gentle min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-base text-slate-900 outline-none transition sm:text-sm"
                   />
                 </label>
 
@@ -444,14 +444,14 @@ export function LeaderboardClient() {
                       affiliationInput: event.target.value,
                     })}
                     placeholder={lb.affiliationPlaceholder}
-                    className="min-h-11 rounded-md border border-slate-200 bg-white px-4 text-base text-slate-900 outline-none transition focus:ring-2 focus:ring-slate-900 sm:text-sm"
+                    className="focus-gentle min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-base text-slate-900 outline-none transition sm:text-sm"
                   />
                 </label>
 
                 <div className="grid grid-cols-2 gap-2 sm:flex sm:items-end">
                   <button
                     type="submit"
-                    className="min-h-11 rounded-md border border-slate-200 bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+                    className="focus-gentle min-h-11 rounded-xl border border-slate-200 bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
                     disabled={isPending}
                   >
                     {lb.applyFilter}
@@ -459,7 +459,7 @@ export function LeaderboardClient() {
                   <button
                     type="button"
                     onClick={clearFilters}
-                    className="min-h-11 rounded-md border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-1"
+                    className="focus-gentle min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                   >
                     {lb.clearFilter}
                   </button>
@@ -474,14 +474,14 @@ export function LeaderboardClient() {
                   {activeFilters.map((filter) => (
                     <span
                       key={filter.key}
-                      className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700"
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm"
                     >
                       <span className="text-slate-500">{filter.label}:</span>
                       <span>{filter.value}</span>
                       <button
                         type="button"
                         onClick={() => clearSingleFilter(filter.key)}
-                        className="min-h-9 rounded-md px-1 text-slate-500 hover:text-slate-900"
+                        className="focus-gentle min-h-9 rounded-xl px-1 text-slate-500 hover:text-slate-900"
                       >
                         {lb.clearFilter}
                       </button>
@@ -491,12 +491,12 @@ export function LeaderboardClient() {
               ) : null}
 
               {data?.agent_stack_stats && data.agent_stack_stats.length > 0 ? (
-                <details className="rounded-md border border-slate-200 bg-slate-50">
+                <details className="rounded-xl border border-slate-200 bg-slate-50 shadow-sm">
                   <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium text-slate-900">
                     {lb.frameworkWars.title}
                   </summary>
                   <div className="border-t border-slate-200 px-4 py-4">
-                    <div className="flex h-3.5 w-full overflow-hidden rounded-md border border-slate-200 bg-white">
+                    <div className="flex h-3.5 w-full overflow-hidden rounded-full border border-slate-200 bg-white">
                       {data.agent_stack_stats.map((stat, idx) => {
                         const bgColors = ['bg-slate-950', 'bg-slate-700', 'bg-slate-500', 'bg-slate-400', 'bg-slate-300'];
                         return (
@@ -526,7 +526,7 @@ export function LeaderboardClient() {
               ) : null}
             </div>
 
-            <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 shadow-sm">
               <p className="text-xs font-medium text-slate-500">{lb.viewEyebrow}</p>
               <p className="mt-2 text-sm font-medium text-slate-900">
                 {lb.showingLabel(showingFrom, showingTo, total)}
@@ -560,7 +560,7 @@ export function LeaderboardClient() {
               <button
                 type="button"
                 onClick={clearSelectedPlayer}
-                className="inline-flex items-center rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-amber-800 transition hover:bg-amber-100"
+                className="focus-gentle inline-flex items-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-amber-800 transition hover:bg-amber-100"
               >
                 {lb.clearSelection}
               </button>
@@ -578,11 +578,11 @@ export function LeaderboardClient() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <span className="hidden rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600 xl:inline-flex">
+                <span className="hidden rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600 xl:inline-flex">
                   {lb.listPlusDetail}
                 </span>
                 {isPending || loading ? (
-                  <span className="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
+                  <span className="inline-flex items-center rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
                     {lb.refreshing}
                   </span>
                 ) : null}
@@ -622,18 +622,18 @@ export function LeaderboardClient() {
                       type="button"
                       onClick={() => navigate({ page: String(page - 1) })}
                       disabled={page <= 1 || isPending}
-                      className="min-h-11 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="focus-gentle min-h-11 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {lb.previousPage}
                     </button>
-                    <span className="inline-flex min-h-11 items-center justify-center rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-center text-sm font-medium text-slate-700">
+                    <span className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-center text-sm font-medium text-slate-700">
                       {lb.pageLabel(page, pageCount)}
                     </span>
                     <button
                       type="button"
                       onClick={() => navigate({ page: String(page + 1) })}
                       disabled={page >= pageCount || isPending}
-                      className="min-h-11 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="focus-gentle min-h-11 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {lb.nextPage}
                     </button>
@@ -714,7 +714,7 @@ export function LeaderboardClient() {
  */
 type ActivityFeedRow = Pick<
   ActivityFeedEntry,
-  'id' | 'player_id' | 'display_name' | 'agent_stack' | 'level' | 'unlocked' | 'submitted_at' | 'country_code'
+  'id' | 'player_id' | 'display_name' | 'agent_stack' | 'level' | 'unlocked' | 'submitted_at' | 'country_code' | 'is_anon'
 >;
 
 /**
@@ -773,13 +773,13 @@ function ActivityFeedItem({
 
   // Anonymous rows open the inline ActivityDetailPanel via `?activity=<id>`.
   // Registered rows link out to the full player page as before.
-  if (!row.player_id) {
+  if (row.is_anon === true || !row.player_id) {
     return (
       <button
         type="button"
         onClick={() => onSelectAnonymous(row.id)}
         aria-pressed={isSelected}
-        className={`block w-full rounded-md border px-3 py-2 text-left text-sm text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 ${
+        className={`block w-full rounded-xl border px-3 py-2 text-left text-sm text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 ${
           isSelected
             ? 'border-slate-300 bg-slate-100'
             : row.unlocked
@@ -795,7 +795,7 @@ function ActivityFeedItem({
   return (
     <Link
       href={`/leaderboard/${row.player_id}${detailPageSearch}`}
-      className={`block rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 transition hover:border-slate-300 hover:bg-white ${
+      className={`block rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-white ${
         row.unlocked ? 'border-l-2 border-l-slate-900' : ''
       }`}
     >

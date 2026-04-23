@@ -25,6 +25,7 @@ import {
   getChallengeHandoffBundle,
   getChallengeScriptBundle,
   getClaudeCodeTaskBundle,
+  getCursorTaskBundle,
   getScriptCodeLanguage,
   getLevelDeliveryInstruction,
   getLevelOutputTemplate,
@@ -181,6 +182,9 @@ const panelLayoutStorage = {
   },
 };
 
+function stringifyJson(value: unknown) {
+  return JSON.stringify(value, null, 2);
+}
 const L5_REQUIRED_KEYS = ['whatsapp_message', 'quick_facts', 'first_step_checklist'] as const;
 
 // ============================================================================
@@ -249,10 +253,14 @@ export function ChallengeClient({ level }: { level: number }) {
   const [registerPromptOpen, setRegisterPromptOpen] = useState(false);
   const [refreshNonce, setRefreshNonce] = useState(0);
   const [scriptTab, setScriptTab] = useState<ScriptLang>('curl');
+  const [openDetailIdx, setOpenDetailIdx] = useState<number | null>(null);
+  const [isCompactLayout, setIsCompactLayout] = useState(false);
+  const [isTextareaFocused, setIsTextareaFocused] = useState(false);
   const [dryRunResult, setDryRunResult] = useState<{valid: boolean; errors: string[]; warnings: string[]} | null>(null);
   const [shareStatus, setShareStatus] = useState<'idle' | 'shared' | 'failed'>('idle');
   const idempotencyKeyRef = useRef<string>('');
   const submitFormRef = useRef<HTMLFormElement | null>(null);
+  const submitTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const scriptTabRefs = useRef<Record<ScriptLang, HTMLButtonElement | null>>({
     curl: null,
     python: null,
@@ -270,6 +278,22 @@ export function ChallengeClient({ level }: { level: number }) {
     setDryRunResult(result);
     return result;
   }, [level, primaryText]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+
+    const mediaQuery = window.matchMedia('(max-width: 1279px)');
+    const update = () => setIsCompactLayout(mediaQuery.matches);
+    update();
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', update);
+      return () => mediaQuery.removeEventListener('change', update);
+    }
+
+    mediaQuery.addListener(update);
+    return () => mediaQuery.removeListener(update);
+  }, []);
 
   const downloadFile = (filename: string, content: string) => {
     const blob = new Blob([content], { type: 'text/plain' });
@@ -289,14 +313,30 @@ export function ChallengeClient({ level }: { level: number }) {
     setPrimaryText(level === 0 ? 'Hello, Kolk Arena!' : '');
     setDryRunResult(null);
     setShareStatus('idle');
+    setIsTextareaFocused(false);
     idempotencyKeyRef.current = randomIdempotencyKey();
     setRefreshNonce((current) => current + 1);
   }, [level]);
 
+  const scrollElementIntoView = useCallback((element: HTMLElement | null, focusTextarea = false) => {
+    if (!element) return;
+    element.scrollIntoView({
+      behavior: 'smooth',
+      block: isCompactLayout ? 'center' : 'start',
+    });
+
+    if (focusTextarea) {
+      window.setTimeout(() => submitTextareaRef.current?.focus(), 120);
+    }
+  }, [isCompactLayout]);
+
   const scrollToSubmitCard = useCallback(() => {
-    submitFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    submitFormRef.current?.querySelector('textarea')?.focus();
-  }, []);
+    scrollElementIntoView(submitFormRef.current, true);
+  }, [scrollElementIntoView]);
+
+  const scrollToSection = useCallback((id: string) => {
+    scrollElementIntoView(document.getElementById(id));
+  }, [scrollElementIntoView]);
 
   const handleScriptTabKeyDown = useCallback((event: KeyboardEvent<HTMLButtonElement>) => {
     const currentIndex = CHALLENGE_SCRIPT_LANGS.indexOf(scriptTab);
@@ -727,11 +767,15 @@ export function ChallengeClient({ level }: { level: number }) {
   const claudeCodeTask = getClaudeCodeTaskBundle({
     level: handoffLevel,
     levelName: level_info.name,
+  });
+  const n8nStarterBundle = getN8nStarterBundle({
+    level: handoffLevel,
+    levelName: level_info.name,
     promptMd: challenge.promptMd,
     taskJson: challenge.taskJson,
     attemptToken: challenge.attemptToken,
   });
-  const n8nStarterBundle = getN8nStarterBundle({
+  const cursorTaskBundle = getCursorTaskBundle({
     level: handoffLevel,
     levelName: level_info.name,
     promptMd: challenge.promptMd,
@@ -771,6 +815,29 @@ export function ChallengeClient({ level }: { level: number }) {
       : level === 5
       ? copy.challenge.deliveryRules.placeholderLevel5
       : copy.challenge.deliveryRules.placeholderDefault;
+  const hasDraftText = primaryText.trim().length > 0;
+  const submitFormId = `challenge-submit-form-l${level}`;
+  const submitButtonId = `challenge-submit-button-l${level}`;
+  const deliveryInputId = `challenge-delivery-input-l${level}`;
+  const deliveryHintId = `challenge-delivery-hint-l${level}`;
+  const deliveryCountId = `challenge-delivery-count-l${level}`;
+  const l5ValidationId = `challenge-l5-validation-l${level}`;
+  const dryRunErrorsId = `challenge-dry-run-errors-l${level}`;
+  const dryRunWarningsId = `challenge-dry-run-warnings-l${level}`;
+  const dryRunPassedId = `challenge-dry-run-passed-l${level}`;
+  const deliveryInputDescribedBy = [
+    deliveryHintId,
+    deliveryCountId,
+    level === 5 && l5LocalValidation !== null ? l5ValidationId : null,
+    dryRunResult && !dryRunResult.valid ? dryRunErrorsId : null,
+    dryRunResult?.warnings.length ? dryRunWarningsId : null,
+    dryRunResult && dryRunResult.valid && dryRunResult.warnings.length === 0 ? dryRunPassedId : null,
+  ]
+    .filter(Boolean)
+    .join(' ');
+  const deliveryInputInvalid =
+    (level === 5 && l5LocalValidation?.ok === false) ||
+    Boolean(dryRunResult && !dryRunResult.valid);
   const hasNativeShare =
     typeof navigator !== 'undefined' &&
     typeof navigator.share === 'function' &&
@@ -789,19 +856,32 @@ export function ChallengeClient({ level }: { level: number }) {
       : hasNativeShare
       ? copy.challenge.agentPanel.shareToAi
       : copy.challenge.agentPanel.copyChallengeUrl;
+  const portableSolveBrief = [
+    `Solve Kolk Arena L${level} — ${level_info.name}`,
+    `Challenge URL: ${challengePageUrl}`,
+    '',
+    'Return ONLY the final primaryText payload.',
+    level >= 6
+      ? 'If you later automate submit, use the same bearer token from fetch through submit.'
+      : 'Do not submit directly from another app for anonymous L0-L5. Paste the final output back into the original Kolk Arena page, or submit from the same browser session that fetched the challenge.',
+    '',
+    '--- BRIEF ---',
+    challenge.promptMd,
+    '',
+    '--- DATA ---',
+    stringifyJson(extractStructuredBrief(challenge.taskJson) ?? challenge.taskJson),
+  ].join('\n');
 
   async function handleShareToAi() {
-    const browserAgentMessage =
-      `Open this Kolk Arena challenge page in the same browser session and work from the visible brief.\n${challengePageUrl}`;
     try {
       if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
         await navigator.share({
           title: `${APP_CONFIG.name} · L${level}`,
-          text: browserAgentMessage,
+          text: portableSolveBrief,
           url: challengePageUrl,
         });
       } else if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(browserAgentMessage);
+        await navigator.clipboard.writeText(portableSolveBrief);
       } else {
         throw new Error('share_unavailable');
       }
@@ -815,6 +895,15 @@ export function ChallengeClient({ level }: { level: number }) {
       setShareStatus('failed');
       window.setTimeout(() => setShareStatus('idle'), 2000);
     }
+  }
+
+  function handleMobilePrimaryAction() {
+    if (hasDraftText) {
+      submitFormRef.current?.requestSubmit();
+      return;
+    }
+
+    scrollToSubmitCard();
   }
 
   const timerCards = (
@@ -838,7 +927,7 @@ export function ChallengeClient({ level }: { level: number }) {
         <p className="mt-1 text-xs text-slate-600">
           {challenge.deadlineUtc
             ? copy.challenge.time.expiresAt(
-                formatLocalDateTime(challenge.deadlineUtc, challenge.deadlineUtc),
+                formatLocalDateTime(challenge.deadlineUtc),
               )
             : ''}
         </p>
@@ -847,20 +936,22 @@ export function ChallengeClient({ level }: { level: number }) {
   );
 
   const briefCard = (
-    <CodeBlock
-      eyebrow={copy.challenge.cards.brief}
-      code={challenge.promptMd}
-      language="markdown"
-      copyValue={challenge.promptMd}
-      copyLabel={copy.challenge.agentPanel.copyBriefText}
-      copiedLabel={copy.challenge.agentPanel.copiedBriefText}
-      failedLabel={copy.challenge.agentPanel.copyFailed}
-      tone="light"
-    />
+    <div id="mobile-brief-anchor" className="scroll-mt-28">
+      <CodeBlock
+        eyebrow={copy.challenge.cards.brief}
+        code={challenge.promptMd}
+        language="markdown"
+        copyValue={challenge.promptMd}
+        copyLabel={copy.challenge.agentPanel.copyBriefText}
+        copiedLabel={copy.challenge.agentPanel.copiedBriefText}
+        failedLabel={copy.challenge.agentPanel.copyFailed}
+        tone="light"
+      />
+    </div>
   );
 
   const handoffCard = (
-    <article className="min-w-0 rounded-md border border-slate-200 bg-white p-6 sm:p-8">
+    <article id="mobile-agent-anchor" className="min-w-0 scroll-mt-28 rounded-md border border-slate-200 bg-white p-6 sm:p-8">
       <p className="text-xs font-medium text-slate-500">
         {copy.challenge.agentPanel.eyebrow}
       </p>
@@ -870,18 +961,46 @@ export function ChallengeClient({ level }: { level: number }) {
       <p className="mt-2 text-sm leading-7 text-slate-700">
         {copy.challenge.agentPanel.body}
       </p>
-      <ol className="mt-4 space-y-2 text-sm leading-6 text-slate-800">
-        {copy.challenge.agentPanel.steps.map((step, index) => (
-          <li key={step} className="flex gap-3">
-            <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-100 text-xs font-medium text-slate-700">
-              {index + 1}
-            </span>
-            <span>{step}</span>
-          </li>
-        ))}
-      </ol>
+      {isCompactLayout ? (
+        <details className="mt-4 rounded-md border border-slate-200 bg-slate-50 px-4 py-3">
+          <summary className="cursor-pointer text-sm font-medium text-slate-900">
+            {copy.challenge.agentPanel.mobileGuidanceSummary}
+          </summary>
+          <div className="mt-3 space-y-3">
+            <ol className="space-y-2 text-sm leading-6 text-slate-800">
+              {copy.challenge.agentPanel.steps.map((step, index) => (
+                <li key={step} className="flex gap-3">
+                  <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs font-medium text-slate-700">
+                    {index + 1}
+                  </span>
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ol>
+            <p className="text-xs leading-6 text-slate-600">
+              {copy.challenge.agentPanel.browserModeNote}
+            </p>
+          </div>
+        </details>
+      ) : (
+        <>
+          <ol className="mt-4 space-y-2 text-sm leading-6 text-slate-800">
+            {copy.challenge.agentPanel.steps.map((step, index) => (
+              <li key={step} className="flex gap-3">
+                <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-100 text-xs font-medium text-slate-700">
+                  {index + 1}
+                </span>
+                <span>{step}</span>
+              </li>
+            ))}
+          </ol>
+          <p className="mt-3 text-xs leading-6 text-slate-600">
+            {copy.challenge.agentPanel.browserModeNote}
+          </p>
+        </>
+      )}
 
-      <section className="mt-6 rounded-md border border-slate-200 bg-slate-50 p-4">
+      <section className="mt-6 rounded-md bg-slate-50 p-4">
         <p className="text-xs font-medium text-slate-500">
           {copy.challenge.agentPanel.directActionsEyebrow}
         </p>
@@ -914,21 +1033,32 @@ export function ChallengeClient({ level }: { level: number }) {
           >
             {copy.homeInteractive.openSkill}
           </a>
-          <span>
-            {copy.challenge.agentPanel.browserModeNote}
-          </span>
         </div>
       </section>
     </article>
   );
 
+  const getMobileDetailProps = (index: number) =>
+    isCompactLayout
+      ? {
+          open: openDetailIdx === index,
+          onClick: (e: React.MouseEvent<HTMLElement>) => {
+            const target = e.target as HTMLElement;
+            if (target.tagName.toLowerCase() === 'summary' || target.closest('summary')) {
+              e.preventDefault();
+              setOpenDetailIdx(openDetailIdx === index ? null : index);
+            }
+          },
+        }
+      : {};
+
   const advancedToolsCard = (
-    <section className="space-y-4">
-      <details className="rounded-md border border-slate-200 bg-white">
+    <section id="mobile-tools-anchor" className="scroll-mt-28 space-y-4">
+      <details className="rounded-md border border-slate-200 bg-white" {...getMobileDetailProps(0)}>
         <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-slate-900">
           {structuredBrief ? copy.challenge.agentPanel.structuredBriefTitle : copy.challenge.agentPanel.taskJsonTitle}
         </summary>
-        <div className="border-t border-slate-200 px-4 py-4">
+        <div className="px-4 pb-4 pt-2">
           <p className="text-sm leading-6 text-slate-700">
             {copy.challenge.agentPanel.challengeBriefBody}
           </p>
@@ -936,6 +1066,7 @@ export function ChallengeClient({ level }: { level: number }) {
             code={structuredBriefCopy}
             language="json"
             tone="dark"
+            mobileChrome="subtle"
             copyValue={structuredBriefCopy}
             copyLabel={structuredBrief ? copy.challenge.agentPanel.copyStructuredBrief : copy.challenge.agentPanel.copyTaskJson}
             copiedLabel={structuredBrief ? copy.challenge.agentPanel.copiedStructuredBrief : copy.challenge.agentPanel.copiedTaskJson}
@@ -945,59 +1076,120 @@ export function ChallengeClient({ level }: { level: number }) {
         </div>
       </details>
 
-      <details className="rounded-md border border-slate-200 bg-white">
+      <details className="rounded-md border border-slate-200 bg-white" {...getMobileDetailProps(1)}>
         <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-slate-900">
           {copy.challenge.agentPanel.supportAssetsEyebrow}
         </summary>
-        <div className="border-t border-slate-200 px-4 py-4">
+        <div className="px-4 pb-4 pt-2">
           <p className="text-sm leading-6 text-slate-700">
             {copy.challenge.agentPanel.supportAssetsBody}
           </p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <QuickActionButton
-              type="button"
-              onClick={() => downloadFile(`kolk-l${level}-handoff.json`, handoffBundle)}
-              className={secondaryActionButtonClass}
-            >
-              {copy.challenge.agentPanel.downloadHandoffBundle}
-            </QuickActionButton>
-            <QuickActionButton
-              type="button"
-              onClick={() => downloadFile(`kolk-l${level}-claude-code.md`, claudeCodeTask)}
-              className={secondaryActionButtonClass}
-            >
-              {copy.challenge.agentPanel.downloadClaudeCodeTask}
-            </QuickActionButton>
-            <QuickActionButton
-              type="button"
-              onClick={() => downloadFile(`kolk-l${level}-n8n-starter.json`, n8nStarterBundle)}
-              className={secondaryActionButtonClass}
-            >
-              {copy.challenge.agentPanel.downloadN8nStarter}
-            </QuickActionButton>
-            <CopyButton
-              value={submitContractSnippet}
-              idleLabel={copy.challenge.agentPanel.copySubmitContract}
-              copiedLabel={copy.challenge.agentPanel.copiedSubmitContract}
-              failedLabel={copy.challenge.agentPanel.copyFailed}
-              className={secondaryActionButtonClass}
-            />
-            <CopyButton
-              value={outputTemplate}
-              idleLabel={copy.challenge.agentPanel.copyOutputTemplate}
-              copiedLabel={copy.challenge.agentPanel.copiedOutputTemplate}
-              failedLabel={copy.challenge.agentPanel.copyFailed}
-              className={secondaryActionButtonClass}
-            />
-          </div>
+          {isCompactLayout ? (
+            <div className="mt-4 space-y-3">
+              <QuickActionButton
+                type="button"
+                onClick={() => downloadFile(`kolk-l${level}-handoff.json`, handoffBundle)}
+                className={secondaryActionButtonClass}
+              >
+                {copy.challenge.agentPanel.downloadHandoffBundle}
+              </QuickActionButton>
+              <details className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3">
+                <summary className="cursor-pointer text-sm font-medium text-slate-900">
+                  {copy.challenge.agentPanel.moreAssetsSummary}
+                </summary>
+                <div className="mt-3 flex flex-wrap gap-3">
+                  <QuickActionButton
+                    type="button"
+                    onClick={() => downloadFile(`kolk-l${level}-claude-code.md`, claudeCodeTask)}
+                    className={secondaryActionButtonClass}
+                  >
+                    {copy.challenge.agentPanel.downloadClaudeCodeTask}
+                  </QuickActionButton>
+                  <QuickActionButton
+                    type="button"
+                    onClick={() => downloadFile(`kolk-l${level}-n8n-starter.json`, n8nStarterBundle)}
+                    className={secondaryActionButtonClass}
+                  >
+                    {copy.challenge.agentPanel.downloadN8nStarter}
+                  </QuickActionButton>
+                  <QuickActionButton
+                    type="button"
+                    onClick={() => downloadFile(`kolk-l${level}-cursor-task.md`, cursorTaskBundle)}
+                    className={secondaryActionButtonClass}
+                  >
+                    {copy.challenge.agentPanel.downloadCursorTask}
+                  </QuickActionButton>
+                  <CopyButton
+                    value={submitContractSnippet}
+                    idleLabel={copy.challenge.agentPanel.copySubmitContract}
+                    copiedLabel={copy.challenge.agentPanel.copiedSubmitContract}
+                    failedLabel={copy.challenge.agentPanel.copyFailed}
+                    className={secondaryActionButtonClass}
+                  />
+                  <CopyButton
+                    value={outputTemplate}
+                    idleLabel={copy.challenge.agentPanel.copyOutputTemplate}
+                    copiedLabel={copy.challenge.agentPanel.copiedOutputTemplate}
+                    failedLabel={copy.challenge.agentPanel.copyFailed}
+                    className={secondaryActionButtonClass}
+                  />
+                </div>
+              </details>
+            </div>
+          ) : (
+            <div className="mt-4 flex flex-wrap gap-3">
+              <QuickActionButton
+                type="button"
+                onClick={() => downloadFile(`kolk-l${level}-handoff.json`, handoffBundle)}
+                className={secondaryActionButtonClass}
+              >
+                {copy.challenge.agentPanel.downloadHandoffBundle}
+              </QuickActionButton>
+              <QuickActionButton
+                type="button"
+                onClick={() => downloadFile(`kolk-l${level}-claude-code.md`, claudeCodeTask)}
+                className={secondaryActionButtonClass}
+              >
+                {copy.challenge.agentPanel.downloadClaudeCodeTask}
+              </QuickActionButton>
+              <QuickActionButton
+                type="button"
+                onClick={() => downloadFile(`kolk-l${level}-n8n-starter.json`, n8nStarterBundle)}
+                className={secondaryActionButtonClass}
+              >
+                {copy.challenge.agentPanel.downloadN8nStarter}
+              </QuickActionButton>
+              <QuickActionButton
+                type="button"
+                onClick={() => downloadFile(`kolk-l${level}-cursor-task.md`, cursorTaskBundle)}
+                className={secondaryActionButtonClass}
+              >
+                {copy.challenge.agentPanel.downloadCursorTask}
+              </QuickActionButton>
+              <CopyButton
+                value={submitContractSnippet}
+                idleLabel={copy.challenge.agentPanel.copySubmitContract}
+                copiedLabel={copy.challenge.agentPanel.copiedSubmitContract}
+                failedLabel={copy.challenge.agentPanel.copyFailed}
+                className={secondaryActionButtonClass}
+              />
+              <CopyButton
+                value={outputTemplate}
+                idleLabel={copy.challenge.agentPanel.copyOutputTemplate}
+                copiedLabel={copy.challenge.agentPanel.copiedOutputTemplate}
+                failedLabel={copy.challenge.agentPanel.copyFailed}
+                className={secondaryActionButtonClass}
+              />
+            </div>
+          )}
         </div>
       </details>
 
-      <details className="overflow-hidden rounded-md border border-slate-200 bg-white">
+      <details className="overflow-hidden rounded-md border border-slate-200 bg-white" {...getMobileDetailProps(2)}>
         <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-slate-900">
           {copy.challenge.agentPanel.scriptToolkitEyebrow}
         </summary>
-        <div className="border-t border-slate-200 px-4 py-4">
+        <div className="px-4 pb-4 pt-2">
           <p className="text-sm leading-6 text-slate-700">
             {copy.challenge.agentPanel.scriptToolkitBody}
           </p>
@@ -1029,7 +1221,7 @@ export function ChallengeClient({ level }: { level: number }) {
             </QuickActionButton>
           </div>
         </div>
-        <div className="border-y border-slate-200 bg-slate-100 p-2">
+        <div className="bg-slate-50 px-4 py-3">
           <div
             role="tablist"
             aria-label={copy.challenge.agentPanel.scriptTabListAriaLabel}
@@ -1063,6 +1255,7 @@ export function ChallengeClient({ level }: { level: number }) {
               title={`#${index + 1} · ${step.title}`}
               code={step.code}
               language={getScriptCodeLanguage(activeScriptLang)}
+              mobileChrome="subtle"
               copyValue={step.code}
               copyLabel={`${copy.common.copyThisStep} #${index + 1}`}
               copiedLabel={copy.common.copied}
@@ -1077,24 +1270,40 @@ export function ChallengeClient({ level }: { level: number }) {
   );
 
   const submitCard = (
-    <form ref={submitFormRef} onSubmit={handleSubmit} className="space-y-4 rounded-md border border-slate-200 bg-white p-6 sm:p-8">
+    <form
+      id={submitFormId}
+      ref={submitFormRef}
+      onSubmit={handleSubmit}
+      aria-busy={submitStatus.kind === 'submitting'}
+      className="scroll-mt-28 space-y-4 rounded-md border border-slate-200 bg-white p-6 sm:p-8"
+    >
       <SubmitErrorBanner status={submitStatus} level={level} onRefetch={requestFreshChallenge} />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-medium text-slate-500">{copy.challenge.cards.yourDelivery}</p>
-          <p className="mt-1 text-sm font-medium text-slate-900">
+          <label htmlFor={deliveryInputId} className="text-xs font-medium text-slate-500">
+            {copy.challenge.cards.yourDelivery}
+          </label>
+          <p id={deliveryHintId} className="mt-1 text-sm font-medium text-slate-900">
             {deliveryRule}
           </p>
         </div>
-        <span className="text-xs font-medium text-slate-600">{copy.challenge.deliveryRules.chars(formatNumber(primaryText.length))}</span>
+        <span id={deliveryCountId} className="text-xs font-medium text-slate-600">
+          {copy.challenge.deliveryRules.chars(formatNumber(primaryText.length))}
+        </span>
       </div>
 
       <textarea
+        id={deliveryInputId}
+        ref={submitTextareaRef}
         value={primaryText}
         onChange={(e) => setPrimaryText(e.target.value)}
+        onFocus={() => setIsTextareaFocused(true)}
+        onBlur={() => setIsTextareaFocused(false)}
         rows={level === 5 ? 12 : 14}
         spellCheck={level !== 5}
+        aria-describedby={deliveryInputDescribedBy}
+        aria-invalid={deliveryInputInvalid}
         // Matches the server cap in `src/lib/kolk/constants/index.ts`. The
         // submit route still hard-enforces via HTTP 422 TEXT_TOO_LONG, but
         // stopping over-long pastes at the input saves the round-trip and
@@ -1105,18 +1314,30 @@ export function ChallengeClient({ level }: { level: number }) {
       />
 
       {level === 5 && l5LocalValidation && !l5LocalValidation.ok ? (
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-900">
+        <p
+          id={l5ValidationId}
+          role="alert"
+          className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-900"
+        >
           {copy.challenge.deliveryRules.localJsonInvalid(l5LocalValidation.message)}
         </p>
       ) : null}
       {level === 5 && l5LocalValidation && l5LocalValidation.ok ? (
-        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800">
+        <p
+          id={l5ValidationId}
+          role="status"
+          className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800"
+        >
           {copy.challenge.deliveryRules.localJsonValid}
         </p>
       ) : null}
 
       {dryRunResult && !dryRunResult.valid && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-900">
+        <div
+          id={dryRunErrorsId}
+          role="alert"
+          className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-900"
+        >
           <p className="font-semibold">{copy.challenge.dryRun.failedHeading}</p>
           <ul className="mt-1 list-inside list-disc space-y-0.5">
             {dryRunResult.errors.map(err => <li key={err}>{err}</li>)}
@@ -1124,7 +1345,11 @@ export function ChallengeClient({ level }: { level: number }) {
         </div>
       )}
       {dryRunResult?.warnings.length ? (
-        <div className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-xs font-medium text-sky-900">
+        <div
+          id={dryRunWarningsId}
+          role="status"
+          className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-xs font-medium text-sky-900"
+        >
           <p className="font-semibold">{copy.challenge.dryRun.warningHeading}</p>
           <ul className="mt-1 list-inside list-disc space-y-0.5">
             {dryRunResult.warnings.map((warning) => <li key={warning}>{warning}</li>)}
@@ -1132,7 +1357,11 @@ export function ChallengeClient({ level }: { level: number }) {
         </div>
       ) : null}
       {dryRunResult && dryRunResult.valid && dryRunResult.warnings.length === 0 && (
-        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800">
+        <p
+          id={dryRunPassedId}
+          role="status"
+          className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800"
+        >
           {copy.challenge.dryRun.passedMessage}
         </p>
       )}
@@ -1146,6 +1375,7 @@ export function ChallengeClient({ level }: { level: number }) {
           {copy.challenge.dryRun.validateButton}
         </QuickActionButton>
         <button
+          id={submitButtonId}
           type="submit"
           disabled={submitStatus.kind === 'submitting' || primaryText.trim().length === 0}
           className="memory-accent-button inline-flex items-center rounded-md border px-6 py-3 text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
@@ -1209,7 +1439,7 @@ export function ChallengeClient({ level }: { level: number }) {
           ) : null}
         </header>
 
-        <div className="min-w-0 space-y-6 xl:hidden">
+        <div className="min-w-0 space-y-8 xl:hidden px-1">
           {timerCards}
           {briefCard}
           {handoffCard}
@@ -1255,30 +1485,84 @@ export function ChallengeClient({ level }: { level: number }) {
       </section>
       <div className="xl:hidden">
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur-sm">
+          {!isTextareaFocused ? (
+            <div className="mb-3 flex overflow-x-auto gap-2 pb-1 scroll-smooth">
+              <button
+                type="button"
+                onClick={() => scrollToSection('mobile-brief-anchor')}
+                className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200"
+              >
+                {copy.challenge.agentPanel.mobileNavBrief}
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection('mobile-agent-anchor')}
+                className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200"
+              >
+                {copy.challenge.agentPanel.mobileNavAgent}
+              </button>
+              <button
+                type="button"
+                onClick={scrollToSubmitCard}
+                className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200"
+              >
+                {copy.challenge.agentPanel.mobileNavDelivery}
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection('mobile-tools-anchor')}
+                className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200"
+              >
+                {copy.challenge.agentPanel.mobileNavTools}
+              </button>
+            </div>
+          ) : null}
           <div className="mx-auto flex max-w-7xl flex-col gap-2 sm:flex-row">
-            <QuickActionButton
-              type="button"
-              onClick={handleShareToAi}
-              variant="primary"
-              tone="sans"
-              size="md"
-              width="full"
-            >
-              {sharePrimaryLabel}
-            </QuickActionButton>
-            <QuickActionButton
-              type="button"
-              onClick={scrollToSubmitCard}
-              variant="secondary"
-              tone="sans"
-              size="md"
-              width="full"
-            >
-              {copy.challenge.agentPanel.jumpToSubmit}
-            </QuickActionButton>
+            {hasDraftText ? (
+              <>
+                <button
+                  type="button"
+                  onClick={handleMobilePrimaryAction}
+                  disabled={submitStatus.kind === 'submitting'}
+                  aria-controls={submitFormId}
+                  className="memory-accent-button inline-flex min-h-11 items-center justify-center rounded-md border px-4 py-3 text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {submitStatus.kind === 'submitting' ? copy.challenge.deliveryRules.scoring : copy.challenge.deliveryRules.submit}
+                </button>
+                {!isTextareaFocused ? (
+                  <CopyButton
+                    value={agentBrief}
+                    idleLabel={copy.challenge.agentPanel.copyAgentBrief}
+                    copiedLabel={copy.challenge.agentPanel.copiedAgentBrief}
+                    failedLabel={copy.challenge.agentPanel.copyFailed}
+                    className={secondaryActionButtonClass}
+                  />
+                ) : null}
+              </>
+            ) : (
+              <>
+                <CopyButton
+                  value={agentBrief}
+                  idleLabel={copy.challenge.agentPanel.copyAgentBrief}
+                  copiedLabel={copy.challenge.agentPanel.copiedAgentBrief}
+                  failedLabel={copy.challenge.agentPanel.copyFailed}
+                  className={primaryActionButtonClass}
+                />
+                <QuickActionButton
+                  type="button"
+                  onClick={scrollToSubmitCard}
+                  variant="secondary"
+                  tone="sans"
+                  size="md"
+                  width="full"
+                >
+                  {copy.challenge.agentPanel.jumpToEditor}
+                </QuickActionButton>
+              </>
+            )}
           </div>
         </div>
-        <div className="h-28 sm:h-20" aria-hidden="true" />
+        <div className="h-36 sm:h-28" aria-hidden="true" />
       </div>
     </main>
   );
@@ -1550,7 +1834,7 @@ function AccountFrozenScreen({
       : Math.max(0, initialRemaining - tick);
 
   const localTime = status.frozenUntil
-    ? formatLocalTime(status.frozenUntil, status.frozenUntil)
+    ? formatLocalTime(status.frozenUntil)
     : null;
 
   const af = copy.challenge.accountFrozen;

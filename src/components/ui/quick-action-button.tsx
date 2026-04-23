@@ -34,8 +34,8 @@ export function getQuickActionButtonClassName({
     width === 'full' ? 'w-full' : width === 'auto' ? '' : 'w-full sm:w-auto';
 
   return [
-    'inline-flex items-center justify-center rounded-md transition-colors duration-150',
-    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2',
+    'inline-flex items-center justify-center rounded-xl transition-colors duration-150',
+    'focus-visible:outline-none focus-gentle',
     variantClasses,
     toneClasses,
     sizeClasses,

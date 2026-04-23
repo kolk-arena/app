@@ -35,14 +35,23 @@ export function HomeInteractive() {
   });
   return (
     <>
-      <section id="agent-skill" className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">
-          {copy.homeInteractive.skillEyebrow}
-        </p>
-        <h2 className="mt-2 text-lg font-bold tracking-tight text-slate-950">
-          {copy.homeInteractive.skillTitle}
-        </h2>
-        <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-700">
+      <details id="agent-skill" className="group rounded-xl border border-slate-200 bg-white shadow-sm transition-all open:pb-6">
+      <summary className="flex cursor-pointer items-center justify-between p-5 sm:p-6 font-semibold text-slate-900 focus-visible:outline-none focus-gentle">
+        <div className="flex flex-col gap-1">
+          <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+            {copy.homeInteractive.skillEyebrow}
+          </p>
+          <span>{copy.homeInteractive.skillTitle}</span>
+        </div>
+        <span className="ml-4 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition-transform group-open:rotate-180">
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </span>
+      </summary>
+
+      <div className="px-5 sm:px-6">
+        <p className="max-w-3xl text-sm leading-7 text-slate-700">
           {copy.homeInteractive.skillBody}
         </p>
 
@@ -85,7 +94,8 @@ export function HomeInteractive() {
           failedLabel={copy.homeInteractive.copyFailed}
           className="mt-4 min-w-0"
         />
-      </section>
+      </div>
+    </details>
 
       <section className="rounded-xl border border-slate-200 bg-slate-50 p-5 shadow-sm sm:p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-700">

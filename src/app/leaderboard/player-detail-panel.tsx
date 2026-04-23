@@ -179,14 +179,14 @@ export function PlayerDetailPanel({
               <button
                 type="button"
                 onClick={onRetry}
-                className="inline-flex min-h-11 items-center rounded-md border border-rose-200 bg-white px-3 py-2 text-sm font-medium text-rose-800 transition-colors duration-150 hover:bg-rose-100"
+                className="focus-gentle inline-flex min-h-11 items-center rounded-xl border border-rose-200 bg-white px-3 py-2 text-sm font-medium text-rose-800 transition-colors duration-150 hover:bg-rose-100"
               >
                 {pd.retry}
               </button>
               <button
                 type="button"
                 onClick={onClear}
-                className="inline-flex min-h-11 items-center rounded-md border border-rose-200 bg-white px-3 py-2 text-sm font-medium text-rose-800 transition-colors duration-150 hover:bg-rose-100"
+                className="focus-gentle inline-flex min-h-11 items-center rounded-xl border border-rose-200 bg-white px-3 py-2 text-sm font-medium text-rose-800 transition-colors duration-150 hover:bg-rose-100"
               >
                 {pd.clearSelection}
               </button>
@@ -268,12 +268,12 @@ export function PlayerDetailPanel({
               value={publicProfileUrl}
               idleLabel={pd.copyProfileLink}
               copiedLabel={pd.copiedProfileLink}
-              className="inline-flex min-h-11 items-center rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950"
+              className="focus-gentle inline-flex min-h-11 items-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950"
             />
             <button
               type="button"
               onClick={onClear}
-              className="inline-flex min-h-11 items-center rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950"
+              className="focus-gentle inline-flex min-h-11 items-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950"
             >
               {pd.clearShort}
             </button>
@@ -290,42 +290,42 @@ export function PlayerDetailPanel({
 
       <div className="space-y-4 px-4 py-4 sm:px-5">
         <div className="grid gap-3 sm:grid-cols-3">
-          <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 shadow-sm">
             <p className="text-xs font-medium text-slate-500">{pd.highestLevel}</p>
             <p className="mt-2 text-2xl font-semibold text-slate-950 tabular-nums">L{highestLevel}</p>
           </div>
-          <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 shadow-sm">
             <p className="text-xs font-medium text-slate-500">{pd.totalScore}</p>
             <p className="mt-2 text-2xl font-semibold text-slate-950 tabular-nums">{formatScore(totalScore)}</p>
           </div>
-          <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 shadow-sm">
             <p className="text-xs font-medium text-slate-500">{pd.levelsCompleted}</p>
             <p className="mt-2 text-2xl font-semibold text-slate-950 tabular-nums">{levelsCompleted}</p>
           </div>
         </div>
 
         <dl className="grid gap-3 text-sm sm:grid-cols-2">
-          <div className="rounded-md border border-slate-200 px-4 py-3">
+          <div className="rounded-xl border border-slate-200 px-4 py-3">
             <dt className="text-xs font-medium text-slate-500">{pd.affiliationLabel}</dt>
             <dd className="mt-2 break-words font-medium text-slate-900">{affiliation ?? pd.affiliationFallback}</dd>
           </div>
-          <div className="rounded-md border border-slate-200 px-4 py-3">
+          <div className="rounded-xl border border-slate-200 px-4 py-3">
             <dt className="text-xs font-medium text-slate-500">{pd.agentStackLabel}</dt>
             <dd className="mt-2 break-words font-medium text-slate-900">{agentStack ?? pd.agentStackFallback}</dd>
           </div>
-          <div className="rounded-md border border-slate-200 px-4 py-3">
+          <div className="rounded-xl border border-slate-200 px-4 py-3">
             <dt className="text-xs font-medium text-slate-500">{pd.countryLabel}</dt>
             <dd className="mt-2 font-medium text-slate-900">
               {formatCountryLabel(detail.userRow.country) ?? pd.countryFallback}
             </dd>
           </div>
-          <div className="rounded-md border border-slate-200 px-4 py-3">
+          <div className="rounded-xl border border-slate-200 px-4 py-3">
             <dt className="text-xs font-medium text-slate-500">{pd.lastSubmissionLabel}</dt>
             <dd className="mt-2 font-medium text-slate-900">{lastSubmissionLabel}</dd>
           </div>
         </dl>
 
-        <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-4">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs font-medium text-slate-500">{pd.bestScoresHeading}</p>
@@ -333,7 +333,7 @@ export function PlayerDetailPanel({
             </div>
             <Link
               href={fullPageHref}
-              className="inline-flex min-h-11 items-center rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950"
+              className="focus-gentle inline-flex min-h-11 items-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950"
             >
               {pd.openPage}
             </Link>
@@ -344,7 +344,7 @@ export function PlayerDetailPanel({
               levelCards.map((entry) => (
                 <span
                   key={entry.level}
-                  className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700"
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700"
                 >
                   <span className="tabular-nums">L{entry.level}</span>
                   <span className="text-slate-400">·</span>
@@ -358,7 +358,7 @@ export function PlayerDetailPanel({
         </div>
 
         {sidebarBadge ? (
-          <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-4">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 shadow-sm">
             <p className="text-xs font-medium text-slate-500">
               {badgeCopy.sidebarEyebrow}
             </p>
@@ -370,13 +370,13 @@ export function PlayerDetailPanel({
                 idleLabel={badgeCopy.sidebarCopyButton}
                 copiedLabel={badgeCopy.sidebarCopiedButton}
                 failedLabel={badgeCopy.copyFailed}
-                className="inline-flex min-h-11 items-center rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950"
+                className="focus-gentle inline-flex min-h-11 items-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950"
               />
             </div>
           </div>
         ) : null}
 
-        <div className="rounded-md border border-slate-200">
+        <div className="overflow-hidden rounded-xl border border-slate-200 shadow-sm">
           <div className="border-b border-slate-200 px-4 py-3">
             <h3 className="text-sm font-semibold text-slate-950">{pd.recentSubmissionsHeading}</h3>
             <p className="mt-1 text-sm text-slate-500">{pd.recentSubmissionsSubtitle}</p>
@@ -407,15 +407,15 @@ export function PlayerDetailPanel({
                   </div>
 
                   <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                    <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
                       <p className="text-xs font-medium text-slate-500">{pd.structureLabel}</p>
                       <p className="mt-2 text-base font-semibold text-slate-950 tabular-nums">{formatScore(submission.structure_score)}</p>
                     </div>
-                    <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
                       <p className="text-xs font-medium text-slate-500">{pd.coverageLabel}</p>
                       <p className="mt-2 text-base font-semibold text-slate-950 tabular-nums">{formatScore(submission.coverage_score)}</p>
                     </div>
-                    <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
                       <p className="text-xs font-medium text-slate-500">{pd.qualityLabel}</p>
                       <p className="mt-2 text-base font-semibold text-slate-950 tabular-nums">{formatScore(submission.quality_score)}</p>
                     </div>
@@ -427,7 +427,7 @@ export function PlayerDetailPanel({
                         href={submission.repo_url}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                        className="focus-gentle inline-flex items-center rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
                       >
                         {pd.viewRepo}
                       </a>

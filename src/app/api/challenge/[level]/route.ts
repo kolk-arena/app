@@ -250,7 +250,7 @@ async function buildSessionAndRespond(
       suggested_time_minutes: suggestedTimeMinutes,
       is_boss: levelDef.isBoss,
       ai_judged: isAiJudgedLevel(level),
-      leaderboard_eligible: level >= 1 && participantId !== null,
+      leaderboard_eligible: level >= 1,
     },
     replayAvailable,
   };

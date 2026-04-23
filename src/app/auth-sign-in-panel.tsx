@@ -68,9 +68,9 @@ export function AuthSignInPanel({
     ? description
     : description.replace(/GitHub, Google, or email(?: OTP)?/g, 'email');
   const primaryButtonClass =
-    'memory-accent-button inline-flex min-h-11 items-center justify-center rounded-md border px-4 py-2.5 text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2 disabled:opacity-60';
+    'memory-accent-button inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors duration-150 focus-visible:outline-none focus-gentle disabled:opacity-60';
   const secondaryButtonClass =
-    'inline-flex min-h-11 items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:opacity-60';
+    'inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950 focus-visible:outline-none focus-gentle disabled:opacity-60';
 
   useEffect(() => {
     const controller = new AbortController();
@@ -174,7 +174,7 @@ export function AuthSignInPanel({
 
         {authStatusMessage ? (
           <div
-            className={`rounded-lg border px-4 py-3 text-sm ${
+            className={`rounded-xl border px-4 py-3 text-sm shadow-sm ${
               authStatusMessage.tone === 'success'
                 ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
                 : 'border-rose-200 bg-rose-50 text-rose-900'
@@ -186,13 +186,13 @@ export function AuthSignInPanel({
         ) : null}
 
         {sessionState === 'checking' ? (
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 shadow-sm">
             {copy.auth.checkingSession}
           </div>
         ) : null}
 
         {sessionState === 'authenticated' ? (
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-5 py-5 text-sm text-slate-700">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-5 py-5 text-sm text-slate-700 shadow-sm">
             <p className="font-semibold text-slate-950">{copy.auth.alreadySignedInTitle}</p>
             <p className="mt-1">
               {copy.auth.alreadySignedInBody}
@@ -215,98 +215,98 @@ export function AuthSignInPanel({
         ) : null}
 
         {sessionError && sessionState !== 'authenticated' ? (
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 shadow-sm">
             {copy.auth.sessionCheckFailed(sessionError)}
           </div>
         ) : null}
 
         {sessionState === 'anonymous' ? (
           <>
-        {hasPublicOAuth ? (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {APP_CONFIG.publicGithubAuthEnabled ? (
-              <a
-                href={`/api/auth/oauth/github?next=${encodedNext}`}
-                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md border border-slate-200 bg-slate-950 px-5 py-3 text-center text-sm font-semibold text-white transition-colors duration-150 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
-              >
-                <GitHubIcon className="h-4 w-4" />
-                <span>{copy.auth.oauthGitHub}</span>
-              </a>
+            {hasPublicOAuth ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {APP_CONFIG.publicGithubAuthEnabled ? (
+                  <a
+                    href={`/api/auth/oauth/github?next=${encodedNext}`}
+                    className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-950 px-5 py-3 text-center text-sm font-semibold text-white shadow-sm transition-colors duration-150 hover:bg-slate-800 focus-visible:outline-none focus-gentle"
+                  >
+                    <GitHubIcon className="h-4 w-4" />
+                    <span>{copy.auth.oauthGitHub}</span>
+                  </a>
+                ) : null}
+                {APP_CONFIG.publicGoogleAuthEnabled ? (
+                  <a
+                    href={`/api/auth/oauth/google?next=${encodedNext}`}
+                    className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-medium text-slate-700 shadow-sm transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950 focus-visible:outline-none focus-gentle"
+                  >
+                    <GoogleIcon className="h-4 w-4" />
+                    <span>{copy.auth.oauthGoogle}</span>
+                  </a>
+                ) : null}
+              </div>
             ) : null}
-            {APP_CONFIG.publicGoogleAuthEnabled ? (
-              <a
-                href={`/api/auth/oauth/google?next=${encodedNext}`}
-                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-5 py-3 text-center text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
-              >
-                <GoogleIcon className="h-4 w-4" />
-                <span>{copy.auth.oauthGoogle}</span>
-              </a>
-            ) : null}
-          </div>
-        ) : null}
 
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
-          <div className="space-y-4">
-            <div>
-              <p className="text-xs font-medium text-slate-500">
-                {copy.auth.emailSignInEyebrow}
-              </p>
-              <p className="mt-2 text-sm leading-7 text-slate-600">
-                {copy.auth.emailSignInBody}
-              </p>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-sm sm:p-5">
+              <div className="space-y-4">
+                <div>
+                  <p className="text-xs font-medium text-slate-500">
+                    {copy.auth.emailSignInEyebrow}
+                  </p>
+                  <p className="mt-2 text-sm leading-7 text-slate-600">
+                    {copy.auth.emailSignInBody}
+                  </p>
+                </div>
+
+                <form onSubmit={handleEmailSignIn} className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+                  <label className="space-y-2 text-sm text-slate-800">
+                    <span className="text-xs font-medium text-slate-600">{copy.auth.emailLabel}</span>
+                    <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      autoComplete="email"
+                      inputMode="email"
+                      spellCheck={false}
+                      className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base text-slate-950 shadow-sm outline-none transition focus:border-slate-400 focus-gentle sm:text-sm"
+                      placeholder={copy.auth.emailPlaceholder}
+                    />
+                  </label>
+                  <label className="space-y-2 text-sm text-slate-800">
+                    <span className="text-xs font-medium text-slate-600">{copy.auth.displayNameLabel}</span>
+                    <input
+                      type="text"
+                      value={displayName}
+                      onChange={(event) => setDisplayName(event.target.value)}
+                      autoComplete="nickname"
+                      maxLength={60}
+                      className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base text-slate-950 shadow-sm outline-none transition focus:border-slate-400 focus-gentle sm:text-sm"
+                      placeholder={copy.auth.displayNamePlaceholder}
+                    />
+                  </label>
+                  <div className="flex items-end">
+                    <button
+                      type="submit"
+                      disabled={emailState === 'submitting' || email.trim().length === 0}
+                      className={`${primaryButtonClass} min-h-12 w-full lg:w-auto`}
+                    >
+                      {emailState === 'submitting' ? copy.auth.sending : copy.auth.sendSignInLink}
+                    </button>
+                  </div>
+                </form>
+
+                {emailState === 'success' ? (
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 shadow-sm" aria-live="polite">
+                    {emailMessage}
+                  </div>
+                ) : null}
+
+                {emailState === 'error' ? (
+                  <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900 shadow-sm" aria-live="polite">
+                    {emailMessage}
+                  </div>
+                ) : null}
+              </div>
             </div>
-
-            <form onSubmit={handleEmailSignIn} className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-              <label className="space-y-2 text-sm text-slate-800">
-                <span className="text-xs font-medium text-slate-600">{copy.auth.emailLabel}</span>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  autoComplete="email"
-                  inputMode="email"
-                  spellCheck={false}
-                  className="min-h-12 w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-base text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950 sm:text-sm"
-                  placeholder={copy.auth.emailPlaceholder}
-                />
-              </label>
-              <label className="space-y-2 text-sm text-slate-800">
-                <span className="text-xs font-medium text-slate-600">{copy.auth.displayNameLabel}</span>
-                <input
-                  type="text"
-                  value={displayName}
-                  onChange={(event) => setDisplayName(event.target.value)}
-                  autoComplete="nickname"
-                  maxLength={60}
-                  className="min-h-12 w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-base text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950 sm:text-sm"
-                  placeholder={copy.auth.displayNamePlaceholder}
-                />
-              </label>
-              <div className="flex items-end">
-                <button
-                  type="submit"
-                  disabled={emailState === 'submitting' || email.trim().length === 0}
-                  className={`${primaryButtonClass} min-h-12 w-full lg:w-auto`}
-                >
-                  {emailState === 'submitting' ? copy.auth.sending : copy.auth.sendSignInLink}
-                </button>
-              </div>
-            </form>
-
-            {emailState === 'success' ? (
-              <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900" aria-live="polite">
-                {emailMessage}
-              </div>
-            ) : null}
-
-            {emailState === 'error' ? (
-              <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900" aria-live="polite">
-                {emailMessage}
-              </div>
-            ) : null}
-          </div>
-        </div>
           </>
         ) : null}
       </div>

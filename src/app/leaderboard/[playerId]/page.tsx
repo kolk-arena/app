@@ -132,7 +132,7 @@ export default async function PlayerDetailPage({ params, searchParams }: PlayerP
       <section className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-6 sm:gap-6 sm:px-6 sm:py-8 lg:px-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-2">
-            <div className="inline-flex items-center rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600">
+            <div className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium tracking-[0.12em] text-slate-500 shadow-sm">
               {pd.eyebrow}
             </div>
             <h1 className="text-3xl font-bold tracking-tight text-slate-950">
@@ -145,7 +145,7 @@ export default async function PlayerDetailPage({ params, searchParams }: PlayerP
 
           <Link
             href={backHref}
-            className="inline-flex min-h-11 items-center rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950"
+            className="inline-flex min-h-11 items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950 focus-visible:outline-none focus-gentle"
           >
             {pd.backToLeaderboard}
           </Link>
@@ -153,17 +153,17 @@ export default async function PlayerDetailPage({ params, searchParams }: PlayerP
 
         <div className="grid gap-6 lg:grid-cols-[22rem_minmax(0,1fr)]">
           <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
-            <div className="rounded-md border border-slate-200 bg-white">
+            <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
               <div className="border-b border-slate-200 px-4 py-4 sm:px-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-medium text-slate-500">{pd.eyebrow}</p>
+                    <p className="text-xs font-medium tracking-[0.12em] text-slate-500">{pd.eyebrow}</p>
                     <p className="mt-2 text-xl font-semibold text-slate-950">{userRow.display_name ?? pd.profilePlayerFallback}</p>
                     <p className="mt-1 text-sm text-slate-700">
                       {userRow.handle ? `@${userRow.handle}` : pd.noPublicHandle}
                     </p>
                   </div>
-                  <span className={`inline-flex rounded-md px-2.5 py-1 text-xs font-medium ${tierClasses(tier)}`}>
+                  <span className={`inline-flex rounded-lg px-2.5 py-1 text-xs font-medium shadow-sm ${tierClasses(tier)}`}>
                     {tier}
                   </span>
                 </div>
@@ -171,11 +171,11 @@ export default async function PlayerDetailPage({ params, searchParams }: PlayerP
 
               <div className="grid gap-4 px-4 py-4 sm:px-5">
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 shadow-sm">
                     <p className="text-xs font-medium text-slate-500">{pd.highestLevel}</p>
                     <p className="mt-2 text-2xl font-semibold text-slate-950 tabular-nums">L{highestLevel}</p>
                   </div>
-                  <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 shadow-sm">
                     <p className="text-xs font-medium text-slate-500">{pd.totalScore}</p>
                     <p className="mt-2 text-2xl font-semibold text-slate-950 tabular-nums">{formatScore(totalScore)}</p>
                   </div>
@@ -213,16 +213,16 @@ export default async function PlayerDetailPage({ params, searchParams }: PlayerP
               </div>
             </div>
 
-            <div className="rounded-md border border-slate-200 bg-white">
+            <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
               <div className="border-b border-slate-200 px-4 py-4 sm:px-5">
-                <p className="text-xs font-medium text-slate-500">{pd.bestScoresHeading}</p>
+                <p className="text-xs font-medium tracking-[0.12em] text-slate-500">{pd.bestScoresHeading}</p>
               </div>
               <div className="flex flex-wrap gap-2 px-4 py-4 sm:px-5">
                 {levelCards.length > 0 ? (
                   levelCards.map((entry) => (
                     <span
                       key={entry.level}
-                      className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700"
+                      className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm"
                     >
                       <span className="tabular-nums">L{entry.level}</span>
                       <span className="text-slate-500">·</span>
@@ -240,9 +240,9 @@ export default async function PlayerDetailPage({ params, searchParams }: PlayerP
             {badge ? (
               <section
                 aria-label={badgeCopy.sectionTitle}
-                className="rounded-md border border-slate-200 bg-white p-6 sm:p-8"
+                className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8"
               >
-                <p className="text-xs font-medium text-slate-500">
+                <p className="text-xs font-medium tracking-[0.12em] text-slate-500">
                   {badgeCopy.sectionEyebrow}
                 </p>
                 <h2 className="mt-2 text-xl font-bold tracking-tight text-slate-950">
@@ -261,10 +261,10 @@ export default async function PlayerDetailPage({ params, searchParams }: PlayerP
                 </div>
 
                 <div className="mt-4 flex flex-col gap-2">
-                  <p className="text-xs font-medium text-slate-500">
+                  <p className="text-xs font-medium tracking-[0.12em] text-slate-500">
                     {badgeCopy.markdownLabel}
                   </p>
-                  <pre className="overflow-x-auto rounded-md border border-slate-200 bg-slate-950 p-4 font-mono text-xs text-slate-200 leading-6">
+                  <pre className="overflow-x-auto rounded-xl border border-slate-200 bg-slate-950 p-4 font-mono text-xs leading-6 text-slate-200">
                     {badge.markdown}
                   </pre>
                   <div className="flex flex-wrap gap-2">
@@ -273,21 +273,21 @@ export default async function PlayerDetailPage({ params, searchParams }: PlayerP
                       idleLabel={badgeCopy.copyMarkdown}
                       copiedLabel={badgeCopy.copiedMarkdown}
                       failedLabel={badgeCopy.copyFailed}
-                      className="inline-flex items-center rounded-md border border-slate-200 bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition-colors duration-150 hover:bg-slate-800"
+                      className="inline-flex items-center rounded-xl border border-slate-200 bg-slate-950 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors duration-150 hover:bg-slate-800 focus-visible:outline-none focus-gentle"
                     />
                     <CopyButton
                       value={badge.html}
                       idleLabel={badgeCopy.copyHtml}
                       copiedLabel={badgeCopy.copiedHtml}
                       failedLabel={badgeCopy.copyFailed}
-                      className="inline-flex items-center rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950"
+                      className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950 focus-visible:outline-none focus-gentle"
                     />
                   </div>
                 </div>
               </section>
             ) : null}
 
-            <div className="rounded-md border border-slate-200 bg-white">
+            <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
               <div className="border-b border-slate-200 px-4 py-4 sm:px-5">
                 <h2 className="text-base font-semibold text-slate-950">{pd.recentSubmissionsHeading}</h2>
                 <p className="mt-1 text-sm text-slate-700">
@@ -302,7 +302,7 @@ export default async function PlayerDetailPage({ params, searchParams }: PlayerP
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="min-w-0 flex-1 space-y-2">
                         <div className="flex flex-wrap items-center gap-2">
-                            <span className="inline-flex rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700">
+                            <span className="inline-flex rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700 shadow-sm">
                               {pd.levelLabel(submission.level)}
                             </span>
                             <span className="text-sm font-semibold text-slate-950 tabular-nums">
@@ -323,15 +323,15 @@ export default async function PlayerDetailPage({ params, searchParams }: PlayerP
                       </div>
 
                       <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                        <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3">
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 shadow-sm">
                           <p className="text-xs font-medium text-slate-500">{pd.structureLabel}</p>
                           <p className="mt-2 text-lg font-semibold text-slate-950 tabular-nums">{formatScore(submission.structure_score)}</p>
                         </div>
-                        <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3">
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 shadow-sm">
                           <p className="text-xs font-medium text-slate-500">{pd.coverageLabel}</p>
                           <p className="mt-2 text-lg font-semibold text-slate-950 tabular-nums">{formatScore(submission.coverage_score)}</p>
                         </div>
-                        <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3">
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 shadow-sm">
                           <p className="text-xs font-medium text-slate-500">{pd.qualityLabel}</p>
                           <p className="mt-2 text-lg font-semibold text-slate-950 tabular-nums">{formatScore(submission.quality_score)}</p>
                         </div>
@@ -343,20 +343,20 @@ export default async function PlayerDetailPage({ params, searchParams }: PlayerP
                             href={submission.repo_url}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950"
+                            className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950 focus-visible:outline-none focus-gentle"
                           >
                             {pd.viewRepo}
                           </a>
                         ) : null}
                         {submission.commit_hash ? (
-                          <code className="max-w-full overflow-x-auto rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 font-mono text-xs text-slate-700">
+                          <code className="max-w-full overflow-x-auto rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 font-mono text-xs text-slate-700">
                             {submission.commit_hash}
                           </code>
                         ) : null}
                         {normalizeFlags(submission.flags).map((flag) => (
                           <span
                             key={flag}
-                            className="inline-flex items-center rounded-md border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-800"
+                            className="inline-flex items-center rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-800 shadow-sm"
                           >
                             {flag}
                           </span>

@@ -159,7 +159,7 @@ export function ActivityDetailPanel({
         <button
           type="button"
           onClick={onClear}
-          className="inline-flex items-center rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+          className="focus-gentle inline-flex items-center rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
         >
           {ad.close}
         </button>
@@ -197,19 +197,19 @@ export function ActivityDetailPanel({
           </div>
 
           <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 shadow-sm">
               <dt className="text-xs font-medium text-slate-500">
                 {ad.totalLabel}
               </dt>
               <dd className="mt-1 flex items-center gap-1.5 font-semibold text-slate-950 tabular-nums">
                 <span
                   aria-hidden="true"
-                  className={`inline-flex h-2 w-2 rounded-md ${bandDotClasses(effectiveDetail.color_band)}`}
+                  className={`inline-flex h-2 w-2 rounded-full ${bandDotClasses(effectiveDetail.color_band)}`}
                 />
                 {formatScore(effectiveDetail.total_score)}
               </dd>
             </div>
-            <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 shadow-sm">
               <dt className="text-xs font-medium text-slate-500">
                 {ad.structureLabel}
               </dt>
@@ -217,7 +217,7 @@ export function ActivityDetailPanel({
                 {formatScore(effectiveDetail.structure_score)}
               </dd>
             </div>
-            <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 shadow-sm">
               <dt className="text-xs font-medium text-slate-500">
                 {ad.coverageLabel}
               </dt>
@@ -225,7 +225,7 @@ export function ActivityDetailPanel({
                 {formatScore(effectiveDetail.coverage_score)}
               </dd>
             </div>
-            <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 shadow-sm">
               <dt className="text-xs font-medium text-slate-500">
                 {ad.qualityLabel}
               </dt>
@@ -276,7 +276,7 @@ export function ActivityDetailPanel({
           </dl>
 
           {effectiveDetail.judge_summary ? (
-            <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 shadow-sm">
               <p className="text-xs font-medium text-slate-500">
                 {ad.judgeSummaryLabel}
               </p>
@@ -287,7 +287,7 @@ export function ActivityDetailPanel({
           {effectiveDetail.player_id ? (
             <Link
               href={`/leaderboard/${effectiveDetail.player_id}${detailPageSearch}`}
-              className="inline-flex items-center rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-950 transition hover:bg-slate-50"
+              className="focus-gentle inline-flex items-center rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-950 shadow-sm transition hover:bg-slate-50"
             >
               {ad.openFullProfile}
             </Link>

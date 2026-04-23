@@ -6,27 +6,7 @@ import { useLocalizedDateTimeFormatter } from '@/components/time/localized-time'
 import { copy } from '@/i18n';
 import { formatClockSeconds, formatNumber } from '@/i18n/format';
 import { getFlagEmoji } from '@/lib/frontend/flag';
-
-type LeaderboardEntry = {
-  player_id: string;
-  rank: number;
-  display_name: string;
-  handle?: string | null;
-  agent_stack?: string | null;
-  affiliation?: string | null;
-  highest_level: number;
-  best_score_on_highest: number;
-  best_color_band?: 'RED' | 'ORANGE' | 'YELLOW' | 'GREEN' | 'BLUE' | null;
-  best_quality_label?: string | null;
-  solve_time_seconds?: number | null;
-  efficiency_badge?: boolean;
-  total_score: number;
-  levels_completed: number;
-  tier: string;
-  pioneer?: boolean;
-  last_submission_at: string | null;
-  country_code?: string | null;
-};
+import type { LeaderboardEntry } from '@/lib/kolk/types';
 
 /**
  * Trigger a 2-second highlight whenever `value` flips.
@@ -113,7 +93,8 @@ function LeaderboardMobileRow({
   detailPageSearch: string;
 }) {
   const isUpdated = useHighlightOnChange(entry.last_submission_at);
-  const isSelected = selectedPlayerId === entry.player_id;
+  const hasPublicProfile = !entry.is_anon && Boolean(entry.player_id);
+  const isSelected = hasPublicProfile && selectedPlayerId === entry.player_id;
   const t = copy.leaderboard.table;
   const affiliation = entry.affiliation;
   const agentStack = entry.agent_stack;
@@ -122,18 +103,16 @@ function LeaderboardMobileRow({
     ? formatLocalDateTime(entry.last_submission_at, entry.last_submission_at)
     : t.noSubmissionsYet;
 
-  return (
-    <Link
-      href={`/leaderboard/${entry.player_id}${detailPageSearch}`}
-      className={`flex w-full flex-col gap-3 px-2 py-2 text-left transition-colors duration-1000 ${
-        isUpdated
-          ? 'bg-slate-100'
-          : isSelected
-          ? 'bg-slate-100/90'
-          : 'bg-white hover:bg-slate-50/80'
-      }`}
-      aria-label={t.openPlayerPageAriaLabel(entry.display_name)}
-    >
+  const rowClassName = `flex w-full flex-col gap-3 px-2 py-2 text-left transition-colors duration-1000 ${
+    isUpdated
+      ? 'bg-slate-100'
+      : isSelected
+      ? 'bg-slate-100/90'
+      : 'bg-white hover:bg-slate-50/80'
+  }`;
+
+  const content = (
+    <>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap items-center gap-2">
@@ -160,27 +139,29 @@ function LeaderboardMobileRow({
             <span>{affiliation ?? t.affiliationFallback}</span>
           </div>
         </div>
-        <span className="rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600">
-          {t.viewLabel}
-        </span>
+        {hasPublicProfile ? (
+          <span className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm">
+            {t.viewLabel}
+          </span>
+        ) : null}
       </div>
 
       <dl className="grid grid-cols-3 gap-3 text-sm">
-        <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 shadow-sm">
           <dt className="text-xs font-medium text-slate-500">{t.highestLabel}</dt>
           <dd className="mt-1 font-medium text-slate-900">L{entry.highest_level}</dd>
         </div>
-        <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 shadow-sm">
           <dt className="text-xs font-medium text-slate-500">{t.frontierLabel}</dt>
           <dd className="mt-1 flex items-center gap-2 font-medium text-slate-900 tabular-nums">
             <span
               aria-hidden="true"
-              className={`inline-flex h-2.5 w-2.5 rounded-md ${bandDotClasses(entry.best_color_band ?? null)}`}
+              className={`inline-flex h-2.5 w-2.5 rounded-full ${bandDotClasses(entry.best_color_band ?? null)}`}
             />
             {formatScore(entry.best_score_on_highest)}
           </dd>
         </div>
-        <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 shadow-sm">
           <dt className="text-xs font-medium text-slate-500">{t.solveTimeLabel}</dt>
           <dd className="mt-1 font-medium text-slate-900 tabular-nums">
             {formatSolveTime(entry.solve_time_seconds)}
@@ -192,6 +173,24 @@ function LeaderboardMobileRow({
       <p className="text-xs leading-5 text-slate-500">
         {t.lastSubmissionLabel(lastSubmissionLabel)}
       </p>
+    </>
+  );
+
+  if (!hasPublicProfile || !entry.player_id) {
+    return (
+      <article className={rowClassName} aria-label={entry.display_name}>
+        {content}
+      </article>
+    );
+  }
+
+  return (
+    <Link
+      href={`/leaderboard/${entry.player_id}${detailPageSearch}`}
+      className={rowClassName}
+      aria-label={t.openPlayerPageAriaLabel(entry.display_name)}
+    >
+      {content}
     </Link>
   );
 }
@@ -208,7 +207,8 @@ function LeaderboardDesktopRow({
   detailRegionId: string;
 }) {
   const isUpdated = useHighlightOnChange(entry.last_submission_at);
-  const isSelected = selectedPlayerId === entry.player_id;
+  const hasPublicProfile = !entry.is_anon && Boolean(entry.player_id);
+  const isSelected = hasPublicProfile && selectedPlayerId === entry.player_id;
   const t = copy.leaderboard.table;
   const affiliation = entry.affiliation;
   const agentStack = entry.agent_stack;
@@ -239,24 +239,32 @@ function LeaderboardDesktopRow({
             <span className="text-sm" title={entry.country_code || t.globalCountryTooltip}>
               {getFlagEmoji(entry.country_code)}
             </span>
-            <button
-              type="button"
-              onClick={() => onSelectPlayer(entry.player_id)}
-              className="rounded-md break-words text-left font-semibold text-slate-900 underline-offset-4 outline-none transition hover:underline focus-visible:ring-2 focus-visible:ring-slate-300"
-              aria-controls={detailRegionId}
-              aria-expanded={isSelected}
-              aria-label={t.openPlayerDetailAriaLabel(entry.display_name)}
-            >
-              {entry.display_name}
-            </button>
+            {hasPublicProfile && entry.player_id ? (
+              <button
+                type="button"
+                onClick={() => onSelectPlayer(entry.player_id!)}
+                className="focus-gentle rounded-xl break-words px-1 py-0.5 text-left font-semibold text-slate-900 underline-offset-4 outline-none transition hover:underline"
+                aria-controls={detailRegionId}
+                aria-expanded={isSelected}
+                aria-label={t.openPlayerDetailAriaLabel(entry.display_name)}
+              >
+                {entry.display_name}
+              </button>
+            ) : (
+              <span className="rounded-xl px-1 py-0.5 font-semibold text-slate-900">
+                {entry.display_name}
+              </span>
+            )}
             {entry.pioneer ? (
               <span className="memory-accent-chip inline-flex rounded-md border px-2 py-0.5 text-[10px] font-semibold">
                 {t.pioneerBadge}
               </span>
             ) : null}
-            <span className="text-xs font-medium text-slate-400">
-              {isSelected ? t.selectedLabel : t.viewLabel}
-            </span>
+            {hasPublicProfile ? (
+              <span className="text-xs font-medium text-slate-400">
+                {isSelected ? t.selectedLabel : t.viewLabel}
+              </span>
+            ) : null}
           </div>
           {entry.handle ? (
             <span className="text-xs text-slate-500">@{entry.handle}</span>
@@ -280,7 +288,7 @@ function LeaderboardDesktopRow({
           <span className="flex items-center gap-1 text-xs text-slate-400">
             <span
               aria-hidden="true"
-              className={`inline-flex h-2.5 w-2.5 rounded-md ${bandDotClasses(entry.best_color_band ?? null)}`}
+              className={`inline-flex h-2.5 w-2.5 rounded-full ${bandDotClasses(entry.best_color_band ?? null)}`}
             />
             {entry.best_quality_label ?? t.frontierFallback}
           </span>
@@ -323,8 +331,16 @@ export function LeaderboardTable({
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <div className="divide-y divide-slate-200 md:hidden">
         {entries.map((entry) => (
-          <LeaderboardMobileRow 
-            key={`${entry.player_id}-${entry.rank}-${entry.last_submission_at ?? 'none'}-mobile`}
+          <LeaderboardMobileRow
+            // Key MUST NOT include `last_submission_at`. Earlier versions
+            // put it in to bump a row when a new submission arrived, but
+            // React then unmounts + remounts the row on every poll that
+            // changes the timestamp — which resets any per-row useState,
+            // including the "just submitted" highlight that
+            // useHighlightOnChange tracks. Result: the highlight effect
+            // never fires. Keep the key stable on identity (player_id +
+            // rank) so internal state survives polling updates.
+            key={`${entry.player_id}-${entry.rank}-mobile`}
             entry={entry}
             selectedPlayerId={selectedPlayerId}
             detailPageSearch={detailPageSearch}
@@ -349,7 +365,10 @@ export function LeaderboardTable({
           <tbody>
             {entries.map((entry) => (
               <LeaderboardDesktopRow
-                key={`${entry.player_id}-${entry.rank}-${entry.last_submission_at ?? 'none'}`}
+                // See LeaderboardMobileRow above for why the key is
+                // stable on (player_id, rank) only and does NOT include
+                // last_submission_at.
+                key={`${entry.player_id}-${entry.rank}`}
                 entry={entry}
                 selectedPlayerId={selectedPlayerId}
                 onSelectPlayer={onSelectPlayer}

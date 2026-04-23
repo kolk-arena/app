@@ -30,7 +30,7 @@ export function Nav() {
               href={APP_CONFIG.githubUrl}
               target="_blank"
               rel="noreferrer"
-              className="hidden min-h-10 items-center rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 sm:inline-flex"
+              className="hidden min-h-10 items-center rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 hover:text-slate-950 focus-visible:outline-none focus-gentle sm:inline-flex"
             >
               {copy.nav.github}
             </a>
@@ -40,7 +40,7 @@ export function Nav() {
               onClick={() => setMobileOpen((current) => !current)}
               aria-expanded={mobileOpen}
               aria-controls="mobile-site-nav"
-              className="inline-flex min-h-10 items-center rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 sm:hidden"
+              className="inline-flex min-h-10 items-center rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 hover:text-slate-950 focus-visible:outline-none focus-gentle sm:hidden"
             >
               {mobileOpen ? copy.nav.menuClose : copy.nav.menuOpen}
             </button>
@@ -55,9 +55,9 @@ export function Nav() {
                 key={href}
                 href={href}
                 onClick={() => setMobileOpen(false)}
-                className={`inline-flex min-h-10 items-center justify-center rounded-md px-3 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 ${
+                className={`inline-flex min-h-10 items-center justify-center rounded-xl px-3.5 py-2 text-sm font-medium shadow-sm transition focus-visible:outline-none focus-gentle ${
                   active
-                    ? 'bg-slate-950 text-white'
+                    ? 'border border-slate-950 bg-slate-950 text-white'
                     : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-950'
                 }`}
               >
@@ -80,9 +80,9 @@ export function Nav() {
                     key={href}
                     href={href}
                     onClick={() => setMobileOpen(false)}
-                    className={`inline-flex min-h-11 items-center justify-center rounded-md px-3 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 ${
+                    className={`inline-flex min-h-11 items-center justify-center rounded-xl px-3.5 py-2 text-sm font-medium shadow-sm transition focus-visible:outline-none focus-gentle ${
                       active
-                        ? 'bg-slate-950 text-white'
+                        ? 'border border-slate-950 bg-slate-950 text-white'
                         : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-950'
                     }`}
                   >
@@ -98,7 +98,7 @@ export function Nav() {
                 target="_blank"
                 rel="noreferrer"
                 onClick={() => setMobileOpen(false)}
-                className="inline-flex min-h-10 items-center rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
+                className="inline-flex min-h-10 items-center rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 hover:text-slate-950 focus-visible:outline-none focus-gentle"
               >
                 {copy.nav.github}
               </a>

@@ -162,36 +162,36 @@ export function DeviceFlowPanel({
 
   const statusMessage =
     status.kind === 'error'
-      ? 'border-rose-700 bg-rose-50 text-rose-900'
+      ? 'border-rose-200 bg-rose-50 text-rose-900'
       : status.kind === 'success'
-      ? 'border-emerald-700 bg-emerald-50 text-emerald-900'
-      : 'border-slate-950 bg-slate-50 text-slate-800';
+      ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+      : 'border-slate-200 bg-slate-50 text-slate-800';
 
   return (
-    <section className="space-y-5 rounded-md border border-slate-200 bg-white p-6 sm:p-8">
+    <section className="space-y-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
       <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">{copy.device.panelEyebrow}</p>
+        <p className="text-xs font-medium tracking-[0.14em] text-slate-500">{copy.device.panelEyebrow}</p>
         <h1 className="text-3xl font-black tracking-tight text-slate-950">{copy.device.panelTitle}</h1>
         <p className="max-w-3xl text-sm leading-7 text-slate-700">
           {copy.device.panelBodyPrefix}
-          <code className="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-950">{copy.device.cliCommand}</code>
+          <code className="rounded-lg border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-950">{copy.device.cliCommand}</code>
           {copy.device.panelBodySuffix}
         </p>
       </div>
 
       {status.kind !== 'idle' ? (
-        <div className={`rounded-md border-2 px-4 py-3 text-sm ${statusMessage}`}>
+        <div className={`rounded-xl border px-4 py-3 text-sm shadow-sm ${statusMessage}`}>
           {status.message}
         </div>
       ) : null}
 
       {!deviceRequest ? (
-        <div className="space-y-4 rounded-md border border-slate-200 bg-slate-50 p-4">
+        <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
           <div>
             <p className="text-sm font-semibold text-slate-950">{copy.device.enterCodeTitle}</p>
             <p className="mt-1 text-sm text-slate-700">
               {copy.device.enterCodeBodyPrefix}
-              <code className="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-950">{copy.device.cliCommand}</code>
+              <code className="rounded-lg border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-950">{copy.device.cliCommand}</code>
               {copy.device.enterCodeBodySuffix}
             </p>
           </div>
@@ -200,12 +200,12 @@ export function DeviceFlowPanel({
               value={codeInput}
               onChange={(event) => setCodeInput(event.target.value)}
               placeholder={copy.device.codePlaceholder}
-              className="min-h-12 flex-1 rounded-md border border-slate-200 bg-white px-4 py-3 text-base uppercase tracking-[0.18em] text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950"
+              className="min-h-12 flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 text-base uppercase tracking-[0.18em] text-slate-950 shadow-sm outline-none transition focus:border-slate-400 focus-gentle"
             />
             <button
               type="button"
               onClick={openCode}
-              className="min-h-12 rounded-md border border-slate-200 bg-slate-950 px-5 py-3 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950"
+              className="min-h-12 rounded-xl border border-slate-200 bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors duration-150 hover:bg-slate-800 focus-visible:outline-none focus-gentle"
             >
               {copy.device.continue}
             </button>
@@ -214,42 +214,42 @@ export function DeviceFlowPanel({
       ) : null}
 
       {effectiveRequestStatus === 'invalid' ? (
-        <div className="rounded-md border-2 border-rose-700 bg-rose-50 px-4 py-4 text-sm text-rose-900">
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-900 shadow-sm">
           {copy.device.invalidCodePrefix}
-          <code className="rounded-md border-2 border-rose-700 bg-white px-1.5 py-0.5 font-mono text-xs">{copy.device.cliCommand}</code>
+          <code className="rounded-lg border border-rose-200 bg-white px-1.5 py-0.5 font-mono text-xs">{copy.device.cliCommand}</code>
           {copy.device.invalidCodeSuffix}
         </div>
       ) : null}
 
       {effectiveRequestStatus === 'expired' ? (
-        <div className="rounded-md border-2 border-amber-700 bg-amber-50 px-4 py-4 text-sm text-amber-900">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900 shadow-sm">
           {copy.device.expiredCodePrefix}
-          <code className="rounded-md border-2 border-amber-700 bg-white px-1.5 py-0.5 font-mono text-xs">{copy.device.cliCommand}</code>
+          <code className="rounded-lg border border-amber-200 bg-white px-1.5 py-0.5 font-mono text-xs">{copy.device.cliCommand}</code>
           {copy.device.expiredCodeSuffix}
         </div>
       ) : null}
 
       {effectiveRequestStatus === 'denied' ? (
-        <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-800">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-800 shadow-sm">
           {copy.device.deniedRequest}
         </div>
       ) : null}
 
       {effectiveRequestStatus === 'verified' ? (
-        <div className="rounded-md border-2 border-emerald-700 bg-emerald-50 px-4 py-4 text-sm text-emerald-900">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-900 shadow-sm">
           {copy.device.verifiedRequest}
         </div>
       ) : null}
 
       {effectiveRequestStatus === 'pending' && deviceRequest ? (
-        <div className="space-y-5 rounded-md border border-slate-200 bg-slate-50 p-4">
+        <div className="space-y-5 rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-md border border-slate-200 bg-white px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-700">{copy.device.userCode}</p>
+            <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+              <p className="text-xs font-medium tracking-[0.14em] text-slate-500">{copy.device.userCode}</p>
               <p className="mt-2 font-mono text-lg font-semibold tracking-[0.18em] text-slate-950">{deviceRequest.userCode}</p>
             </div>
-            <div className="rounded-md border border-slate-200 bg-white px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-700">{copy.device.client}</p>
+            <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+              <p className="text-xs font-medium tracking-[0.14em] text-slate-500">{copy.device.client}</p>
               <p className="mt-2 text-sm font-semibold text-slate-950">{deviceRequest.clientKind}</p>
               <p className="mt-1 font-mono text-xs text-slate-700">
                 {copy.device.requestedAt(
@@ -259,13 +259,13 @@ export function DeviceFlowPanel({
             </div>
           </div>
 
-          <div className="rounded-md border border-slate-200 bg-white px-4 py-4">
+          <div className="rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-slate-950">{copy.device.requestedScopesTitle}</p>
                 <p className="mt-1 text-sm text-slate-700">{copy.device.requestedScopesBody}</p>
               </div>
-              <span className="rounded-md border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-700">
+              <span className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium tracking-[0.12em] text-slate-600">
                 {copy.device.expiresAt(
                   formatLocalTime(deviceRequest.expiresAt, deviceRequest.expiresAt),
                 )}
@@ -274,16 +274,16 @@ export function DeviceFlowPanel({
 
             <ul className="mt-4 grid gap-2">
               {deviceRequest.requestedScopes.map((scope) => (
-                <li key={scope.scope} className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
+                <li key={scope.scope} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
                   <label className="flex items-start gap-3 text-sm">
                     <input
                       type="checkbox"
-                      className="mt-1"
+                      className="mt-1 h-4 w-4 rounded border-slate-300 text-slate-950 focus:ring-slate-950"
                       checked={selectedScopes.has(scope.scope)}
                       onChange={() => toggleScope(scope.scope)}
                     />
                     <span>
-                      <code className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 font-mono text-[11px] text-slate-950">{scope.label}</code>
+                      <code className="rounded-lg border border-slate-200 bg-white px-1.5 py-0.5 font-mono text-[11px] text-slate-950">{scope.label}</code>
                       <p className="mt-1 text-sm text-slate-700">{scope.detail}</p>
                     </span>
                   </label>
@@ -297,7 +297,7 @@ export function DeviceFlowPanel({
               type="button"
               onClick={authorize}
               disabled={status.kind === 'submitting'}
-              className="min-h-12 rounded-md border border-slate-200 bg-slate-950 px-5 py-3 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950 disabled:opacity-60 disabled:hover:bg-slate-950 disabled:hover:text-white"
+              className="min-h-12 rounded-xl border border-slate-200 bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors duration-150 hover:bg-slate-800 focus-visible:outline-none focus-gentle disabled:opacity-60 disabled:hover:bg-slate-950 disabled:hover:text-white"
             >
               {copy.device.authorize}
             </button>
@@ -305,7 +305,7 @@ export function DeviceFlowPanel({
               type="button"
               onClick={deny}
               disabled={status.kind === 'submitting'}
-              className="min-h-12 rounded-md border border-slate-200 bg-white px-5 py-3 font-mono text-sm font-semibold text-slate-950 transition-colors duration-150 hover:bg-slate-950 hover:text-white disabled:opacity-60"
+              className="min-h-12 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 shadow-sm transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950 focus-visible:outline-none focus-gentle disabled:opacity-60"
             >
               {copy.device.cancel}
             </button>

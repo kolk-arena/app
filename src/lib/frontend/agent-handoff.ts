@@ -84,44 +84,6 @@ ATTEMPT="$(jq -r '.challenge.attemptToken' /tmp/kolk_l0.json)"`,
   return buildShellBundle('kolk-l0-smoke-test.sh', steps);
 }
 
-export function getL0SmokeTestCommand() {
-  return getL0SmokeTestBundle().code;
-}
-
-export function getL1StarterBundle(): ScriptBundle {
-  const steps: readonly ScriptStep[] = [
-    {
-      title: 'Fetch L1 and preserve the anonymous session cookie',
-      code: `curl -sc /tmp/kolk.jar ${CANONICAL_ORIGIN}/api/challenge/1 > /tmp/kolk_l1.json`,
-    },
-    {
-      title: 'Inspect the agent-facing brief and extract the attemptToken',
-      code: `jq '.challenge | { attemptToken, promptMd, taskJson }' /tmp/kolk_l1.json
-ATTEMPT="$(jq -r '.challenge.attemptToken' /tmp/kolk_l1.json)"`,
-    },
-    {
-      title: 'Submit the final delivery with the same cookie jar',
-      code: `cat > payload.json <<JSON
-{
-  "attemptToken": "$ATTEMPT",
-  "primaryText": "YOUR_AI_GENERATED_TEXT_HERE"
-}
-JSON
-
-curl -sb /tmp/kolk.jar -X POST ${CANONICAL_ORIGIN}/api/challenge/submit \\
-  -H "Content-Type: application/json" \\
-  -H "Idempotency-Key: $(uuidgen)" \\
-  -d @payload.json`,
-    },
-  ];
-
-  return buildShellBundle('kolk-l1-starter.sh', steps);
-}
-
-export function getL1StarterCommand() {
-  return getL1StarterBundle().code;
-}
-
 export function getAgentStarterPrompt() {
   return `You are helping me submit to Kolk Arena.
 
@@ -452,10 +414,6 @@ console.log(submitRes.status, await submitRes.json());`,
   };
 }
 
-export function getCurlSolveSnippet(level: BetaPublicLevel) {
-  return getChallengeScriptBundle('curl', level).code;
-}
-
 function levelRuleLines(level: BetaPublicLevel) {
   switch (level) {
     case 0:
@@ -768,7 +726,74 @@ export function getChallengeHandoffBundle({
   });
 }
 
+// The Claude Code bash bundle only needs level + levelName — it
+// instructs the CLI to fetch promptMd/taskJson/attemptToken at runtime
+// via curl + jq, so we don't bake them into the static text. Narrow
+// the type here to make that contract explicit and stop callers from
+// believing they need to supply fields the template will ignore.
+//
+// L0-L5 are anonymous: the submit route treats the caller as anonymous
+// via an `anon_token` session cookie. `curl -c`/`-b` keeps that cookie
+// between GET and POST. L6-L8 require a signed-in participant; the
+// server expects `Authorization: Bearer <PAT>` on both the GET and the
+// POST. The bash template branches on that so L6-L8 users don't hit
+// AUTH_REQUIRED when they run the generated script verbatim.
 export function getClaudeCodeTaskBundle({
+  level,
+  levelName,
+}: Pick<ChallengeHandoffArgs, 'level' | 'levelName'>) {
+  const isL5 = level === 5;
+  const needsBearer = level >= 6;
+
+  const fetchCmd = needsBearer
+    ? `curl -s -H "Authorization: Bearer $KOLK_TOKEN" ${CANONICAL_ORIGIN}/api/challenge/${level} > /tmp/kolk.json`
+    : `curl -sc /tmp/kolk.jar ${CANONICAL_ORIGIN}/api/challenge/${level} > /tmp/kolk.json`;
+
+  const submitCmd = needsBearer
+    ? `curl -s -X POST ${CANONICAL_ORIGIN}/api/challenge/submit \\
+  -H "Authorization: Bearer $KOLK_TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -H "Idempotency-Key: $(uuidgen)" \\
+  -d "{\\"attemptToken\\":\\"$ATTEMPT\\",\\"primaryText\\":\\"<OUTPUT>\\"}"`
+    : `curl -sb /tmp/kolk.jar -X POST ${CANONICAL_ORIGIN}/api/challenge/submit \\
+  -H "Content-Type: application/json" \\
+  -H "Idempotency-Key: $(uuidgen)" \\
+  -d "{\\"attemptToken\\":\\"$ATTEMPT\\",\\"primaryText\\":\\"<OUTPUT>\\"}"`;
+
+  const preamble = needsBearer
+    ? `Prerequisite: L${level} is a signed-in level. Create a personal access token at ${CANONICAL_ORIGIN}/profile and export it once before running the block:
+
+\`\`\`bash
+export KOLK_TOKEN="kat_your_token_here"
+\`\`\`
+
+Then:`
+    : `Copy this entire block into Claude Code to solve Kolk Arena L${level} — ${levelName}:`;
+
+  return `# Kolk Arena task for Claude Code — L${level} ${levelName}
+
+${preamble}
+
+\`\`\`bash
+# 1. Fetch challenge
+${fetchCmd}
+
+# 2. Extract context
+ATTEMPT=$(jq -r '.challenge.attemptToken' /tmp/kolk.json)
+PROMPT=$(jq -r '.challenge.promptMd' /tmp/kolk.json)
+TASK=$(jq '.challenge.taskJson' /tmp/kolk.json)
+
+# Now solve the challenge using the $PROMPT and $TASK variables.
+# ${isL5 ? 'Return raw JSON object text only with string keys: whatsapp_message, quick_facts, first_step_checklist.' : 'Produce ONLY the final primaryText.'}
+
+# 3. Submit
+# Replace <OUTPUT> with your generated answer (properly escaped for JSON)
+${submitCmd}
+\`\`\`
+`;
+}
+
+export function getCursorTaskBundle({
   level,
   levelName,
   promptMd,
@@ -777,104 +802,120 @@ export function getClaudeCodeTaskBundle({
 }: ChallengeHandoffArgs) {
   const structuredBrief = extractStructuredBrief(taskJson);
 
-  return `# Kolk Arena task for Claude Code
+  return `# Kolk Arena task for Cursor
 
-Use this file inside a Claude Code session that already knows \`kolk_arena.md\`.
+Use this as a one-run Cursor task file or paste it into Cursor chat.
+Do not save it as workspace-wide .cursorrules because it contains challenge-specific state.
 
-## Goal
-- Solve Kolk Arena L${level} — ${levelName}
-- Return only the final \`primaryText\`
-- No reasoning, no wrapper prose, no Markdown fences unless the brief requires them
+You are solving Kolk Arena L${level} — ${levelName}.
 
-## Challenge URL
-${CANONICAL_ORIGIN}/challenge/${level}
+### GOAL
+Read the brief below, produce the final primaryText, and submit it.
+Return ONLY the final primaryText. No reasoning, no wrapper prose.
+${level === 5 ? 'L5 must be raw JSON object text with string keys: whatsapp_message, quick_facts, first_step_checklist.' : ''}
 
-## attemptToken
-${attemptToken ?? '<attemptToken>'}
-
-## Human-readable brief
+### BRIEF
 ${promptMd}
 
-## Machine-readable brief JSON
+### DATA CONTEXT
 \`\`\`json
 ${stringifyJson(structuredBrief ?? taskJson)}
 \`\`\`
 
-## Suggested output shape
+### SUGGESTED OUTPUT SHAPE
 ${getLevelOutputTemplate(level, taskJson)}
 
-## Submit contract
+### SUBMIT CONTRACT
 ${getSubmitContractSnippet(attemptToken ?? '<attemptToken>', level)}
 
-## Critical reminders
+### RULES
 - Anonymous L0-L5 runs must preserve the same cookie jar between fetch and submit.
 - Signed-in L6-L8 runs must use \`Authorization: Bearer <token>\`.
 - Regenerate \`Idempotency-Key\` for each new submit attempt.
-- If the server returns \`fix_hint\`, repair the payload and retry with the same attemptToken.
-${level === 5 ? '- L5 must be raw JSON object text with string keys: whatsapp_message, quick_facts, first_step_checklist.' : ''}`;
+- If the server returns \`fix_hint\`, repair the payload and retry with the same attemptToken.`;
 }
 
 export function getN8nStarterBundle({
   level,
   levelName,
-  promptMd,
   taskJson,
   attemptToken,
 }: ChallengeHandoffArgs) {
   const structuredBrief = extractStructuredBrief(taskJson);
   const identityMode = getIdentityMode(level);
+  const isAnonymousCookieFlow = identityMode === 'browser_session_cookie';
 
   return stringifyJson({
-    name: `Kolk Arena L${level} starter`,
-    description: 'Starter payload for n8n / workflow tools. Map these fields into your own HTTP + AI nodes.',
+    kind: 'kolk_n8n_blueprint',
+    name: `Kolk Arena L${level} starter - ${levelName}`,
+    importableWorkflow: false,
     identityMode,
+    overview: 'Blueprint for wiring an n8n flow that respects the live Kolk Arena fetch -> solve -> submit contract.',
     fetchStep: {
-      url: `${CANONICAL_ORIGIN}/challenge/${level}`,
-      note:
-        identityMode === 'browser_session_cookie'
-          ? 'Persist the same session cookie from fetch through submit.'
-          : 'Use a personal access token in the Authorization header.',
+      nodeType: 'n8n-nodes-base.httpRequest',
+      method: 'GET',
+      url: `${CANONICAL_ORIGIN}/api/challenge/${level}`,
+      headers:
+        identityMode === 'bearer_token'
+          ? {
+              Authorization: 'Bearer <token>',
+            }
+          : {},
+      sessionRequirement: isAnonymousCookieFlow
+        ? 'Persist the same cookie jar from this fetch step through the submit step. Without the same cookie/session, anonymous L0-L5 submit will fail.'
+        : 'Use the same bearer token for fetch and submit.',
+      responsePath: 'challenge',
     },
     aiStep: {
-      instruction: 'Give promptMd plus structuredBrief/taskJson to the AI node and require final primaryText only.',
-      promptMd,
-      structuredBrief: structuredBrief ?? taskJson,
+      input: {
+        promptMd: '<challenge.promptMd>',
+        structuredBrief: structuredBrief ?? taskJson,
+      },
+      instruction: 'Return ONLY the final primaryText payload. No reasoning, no wrapper prose.',
       outputTemplate: getLevelOutputTemplate(level, taskJson),
     },
     submitStep: {
-      url: `${CANONICAL_ORIGIN}/api/challenge/submit`,
+      nodeType: 'n8n-nodes-base.httpRequest',
       method: 'POST',
-      bodyTemplate: {
-        attemptToken: attemptToken ?? '<attemptToken>',
-        primaryText: '<AI node output>',
-      },
-      requiredHeaders: [
-        'Content-Type: application/json',
-        'Idempotency-Key: <uuid>',
+      url: `${CANONICAL_ORIGIN}/api/challenge/submit`,
+      headers:
         identityMode === 'bearer_token'
-          ? 'Authorization: Bearer <token>'
-          : 'Cookie: <same cookie jar as fetch>',
-      ],
+          ? {
+              Authorization: 'Bearer <token>',
+              'Content-Type': 'application/json',
+              'Idempotency-Key': '<generate a new uuid per submit attempt>',
+            }
+          : {
+              'Content-Type': 'application/json',
+              'Idempotency-Key': '<generate a new uuid per submit attempt>',
+              Cookie: '<same cookie jar preserved from fetchStep>',
+            },
+      bodyTemplate: {
+        attemptToken: attemptToken ?? '<challenge.attemptToken from fetchStep>',
+        primaryText: '<AI step final output>',
+      },
     },
-    validation: {
-      level,
-      levelName,
-      ruleSummary: getLevelRuleSummary(level),
-      deliveryInstruction: getLevelDeliveryInstruction(level),
+    retryPolicy: {
+      attemptTokenTtlHours: 24,
+      perMinuteLimit: 6,
+      perHourLimit: 40,
+      maxRetriesPerAttemptToken: 10,
+      note: 'Server-side 5xx failures do not count against these limits, but validation/rate-limit failures do.',
     },
+    n8nNotes: isAnonymousCookieFlow
+      ? [
+          'Anonymous L0-L5 automation is only valid if n8n preserves the same cookie/session between fetch and submit.',
+          'If your workflow cannot preserve that cookie jar, use n8n only for generation and paste the final primaryText back into the original Kolk Arena page.',
+        ]
+      : [
+          'Signed-in L6-L8 automation must reuse the same bearer token on both HTTP nodes.',
+          'Generate a fresh Idempotency-Key on every new submit attempt.',
+        ],
   });
 }
 
 export function getStructuredBriefCopy(taskJson: JsonRecord) {
   return stringifyJson(extractStructuredBrief(taskJson) ?? taskJson);
-}
-
-export function getPythonSubmitSnippet(level: BetaPublicLevel) {
-  return getChallengeScriptBundle('python', level).code;
-}
-
-export function getNodeSubmitSnippet(level: BetaPublicLevel) {
-  return getChallengeScriptBundle('node', level).code;
 }
 
 export function getAgentRules() {

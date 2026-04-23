@@ -142,9 +142,9 @@ export function ApiTokensPanel() {
   }
 
   return (
-    <section className="space-y-5 rounded-md border border-slate-200 bg-white p-6">
+    <section className="space-y-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm card-hover">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">{t.sectionEyebrow}</p>
+        <p className="text-xs font-medium text-slate-500">{t.sectionEyebrow}</p>
         <h2 className="text-2xl font-bold tracking-tight text-slate-950">{t.sectionTitle}</h2>
         <p className="mt-1 text-sm leading-6 text-slate-700">
           {t.sectionBody}
@@ -152,26 +152,26 @@ export function ApiTokensPanel() {
       </div>
 
       {status.kind === 'error' ? (
-        <div className="rounded-md border-2 border-rose-700 bg-rose-50 px-4 py-3 text-sm text-rose-900" role="alert">
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900 shadow-sm" role="alert">
           {status.message}
         </div>
       ) : null}
 
       {justCreated ? (
-        <div className="space-y-2 rounded-md border-2 border-emerald-700 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+        <div className="space-y-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 shadow-sm">
           <p className="font-semibold">{t.newTokenTitle}</p>
-          <code className="block break-all rounded-md border-2 border-emerald-700 bg-white px-3 py-2 font-mono text-xs text-emerald-900">{justCreated.token}</code>
+          <code className="block break-all rounded-xl border border-emerald-200 bg-white px-3 py-2 font-mono text-xs text-emerald-900">{justCreated.token}</code>
           <div className="flex gap-2">
             <CopyButton
               value={justCreated.token}
               idleLabel={t.copyToken}
               copiedLabel={t.copiedToken}
-              className="rounded-md border-2 border-emerald-700 bg-white px-4 py-1 font-mono text-xs font-semibold text-emerald-800 transition-colors duration-150 hover:bg-emerald-700 hover:text-white"
+              className="focus-gentle rounded-xl border border-emerald-200 bg-white px-4 py-1 text-xs font-semibold text-emerald-800 transition-colors duration-150 hover:bg-emerald-100"
             />
             <button
               type="button"
               onClick={() => setJustCreated(null)}
-              className="rounded-md border-2 border-emerald-700 bg-white px-4 py-1 font-mono text-xs font-semibold text-emerald-800 transition-colors duration-150 hover:bg-emerald-700 hover:text-white"
+              className="focus-gentle rounded-xl border border-emerald-200 bg-white px-4 py-1 text-xs font-semibold text-emerald-800 transition-colors duration-150 hover:bg-emerald-100"
             >
               {t.dismissToken}
             </button>
@@ -179,12 +179,12 @@ export function ApiTokensPanel() {
         </div>
       ) : null}
 
-      <form onSubmit={handleCreate} className="space-y-4 rounded-md border border-slate-200 bg-slate-50 p-4">
+      <form onSubmit={handleCreate} className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
         <div>
           <label className="block space-y-2 text-sm text-slate-800">
-            <span className="font-semibold uppercase tracking-[0.14em] text-slate-700">{t.tokenName}</span>
+            <span className="text-xs font-medium text-slate-600">{t.tokenName}</span>
             <input
-              className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950"
+              className="focus-gentle w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none transition"
               value={newName}
               onChange={(event) => setNewName(event.target.value)}
               placeholder={t.tokenNamePlaceholder}
@@ -195,11 +195,11 @@ export function ApiTokensPanel() {
         </div>
 
         <fieldset className="space-y-2">
-          <legend className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-700">{t.scopes}</legend>
+          <legend className="text-xs font-medium text-slate-600">{t.scopes}</legend>
           <p className="text-xs text-slate-700">{t.scopesHelp}</p>
           <ul className="grid gap-2 sm:grid-cols-2">
             {scopeCheckboxes.map((s) => (
-              <li key={s.scope} className="rounded-md border border-slate-200 bg-white px-3 py-2">
+              <li key={s.scope} className="rounded-xl border border-slate-200 bg-white px-3 py-2">
                 <label className="flex items-start gap-2 text-sm">
                   <input
                     type="checkbox"
@@ -221,14 +221,14 @@ export function ApiTokensPanel() {
         <button
           type="submit"
           disabled={creating}
-          className="rounded-md border border-slate-200 bg-slate-950 px-5 py-2 font-mono text-sm font-semibold text-white transition-colors duration-150 hover:bg-white hover:text-slate-950 disabled:opacity-60 disabled:hover:bg-slate-950 disabled:hover:text-white"
+          className="focus-gentle rounded-xl border border-slate-200 bg-slate-950 px-5 py-2 text-sm font-semibold text-white transition-colors duration-150 hover:bg-slate-800 disabled:opacity-60 disabled:hover:bg-slate-950"
         >
           {creating ? t.creating : t.create}
         </button>
       </form>
 
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">{t.activeTokens}</p>
+        <p className="text-xs font-medium text-slate-500">{t.activeTokens}</p>
         {status.kind === 'loading' ? (
           <p className="mt-2 text-sm text-slate-700">{t.loading}</p>
         ) : tokens.length === 0 ? (
@@ -236,7 +236,7 @@ export function ApiTokensPanel() {
         ) : (
           <ul className="mt-2 space-y-2">
             {tokens.map((token) => (
-              <li key={token.id} className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-4 py-3">
+              <li key={token.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
                 <div className="flex flex-col gap-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-semibold text-slate-950">{token.name}</span>
@@ -265,7 +265,7 @@ export function ApiTokensPanel() {
                 <button
                   type="button"
                   onClick={() => handleRevoke(token.id)}
-                  className="rounded-md border-2 border-rose-700 bg-white px-3 py-1 font-mono text-xs font-semibold text-rose-800 transition-colors duration-150 hover:bg-rose-700 hover:text-white"
+                  className="focus-gentle rounded-xl border border-rose-200 bg-white px-3 py-1 text-xs font-semibold text-rose-800 transition-colors duration-150 hover:bg-rose-100"
                 >
                   {t.revoke}
                 </button>
