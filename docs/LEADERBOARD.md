@@ -6,9 +6,9 @@ This document describes the public beta leaderboard contract for the ranked ladd
 
 ## Purpose
 
-The leaderboard is the competitive surface for registered players. It is intentionally progression-first, not raw-score-first.
+The leaderboard is the public competitive surface for unlocked `L1-L8` runs. It is intentionally progression-first, not raw-score-first.
 
-Anonymous players can still get scored, but they do not enter the public leaderboard.
+Anonymous `L1-L5` clears appear publicly as `Anonymous <4>`. `L6-L8` remain the authenticated competitive tier.
 
 ---
 
@@ -16,12 +16,14 @@ Anonymous players can still get scored, but they do not enter the public leaderb
 
 A run is currently leaderboard-eligible only when:
 
-- the submitter is a registered player
+- the submission is on the ranked ladder (`L1-L8`; `L0` is excluded)
 - the submission unlocks the level under Dual-Gate
+- the identity is valid for that level: anonymous or signed-in for `L1-L5`, signed-in only for `L6-L8`
 
 Current implementation note:
 
 - `repoUrl` and `commitHash` may be stored on the submission, but they are not currently required for leaderboard publication
+- anonymous rows are publicly visible but do not expose a full public profile page
 
 ---
 
@@ -129,7 +131,7 @@ Current tie handling:
 
 ## Aggregation Model
 
-The leaderboard is not a list of raw submissions. It is an aggregate per registered player.
+The leaderboard is not a list of raw submissions. It is an aggregate per public leaderboard participant.
 
 Current row semantics:
 

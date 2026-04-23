@@ -6,6 +6,76 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/
 
 ## [Unreleased]
 
+### Pre-launch hardening for ChallengeBrief Preview surface — round 2 (2026-04-23 / T+3)
+
+Second review pass after the first eight issues landed. Caught four residual items (slider hydration, design spacing, cron error-leak, typewriter staleness) + a keyboard-navigation gap + two type-safety partials + one pre-existing CSS orphan.
+
+#### Fixed
+
+- **Slider hydration mismatch.** `brief-showcase-slider.tsx` used the same `useMemo(() => typeof window !== 'undefined' && window.matchMedia(...))` antipattern that was fixed earlier in `typewriter-quote.tsx` — SSR returned `false`, CSR returned the real preference, React dropped the server tree for reduced-motion users. Reworked to `useState(false) + useEffect` with a `matchMedia('change')` listener. Also de-coupled `isPaused` initial state from the divergent motion read.
+- **Design-system spacing on the homepage carousel.** Removed the slider's own `py-8 max-w-6xl` (overrode the page's `gap-12 max-w-6xl` rhythm and visually "floated" the section) and the `px-2` inserts on the header + carousel container (misaligned the left edge from the Hero title). The slider now inherits layout from `page.tsx`.
+- **Cron error response no longer leaks internals.** `POST /api/internal/cron/brief-showcase` used to return `detail: error.message` on 5xx, which could expose provider names, model identifiers, or file paths through a bearer-protected surface that monitoring tools sometimes re-emit. Full error stays in `console.error`; the JSON response now carries only the stable `code` and a generic `error`.
+- **Typewriter no longer stalls on same-mount `text` prop swap.** The slider passes a `key` that depends on `(level, scenarioTitle)` — good when slot changes, but a locale switch that swaps `requestContext` while keeping `scenarioTitle` left `visibleCount` pointing at the previous string's length. Added a `useEffect([text])` that resets the typing position when the source text actually changes.
+- **Keyboard navigation on the carousel.** The slider had no `onKeyDown`; screen-reader and keyboard-only users could tab onto the region but not advance slides. Added Left/Right/Home/End bindings wired through the existing Embla API, plus `tabIndex={0}` + `focus-gentle` on the region so the focus ring appears when the carousel is focused.
+- **Tightened `getMostRecentPromotedBatchTimestamp`.** Replaced the bare `data.generated_at as string` cast with a `typeof === 'string'` guard so a schema change that drops or retypes the column returns `null` (triggering a fresh generate) rather than producing an `Invalid Date`.
+- **Validated env-driven provider choice.** `BRIEF_SHOWCASE_CONFIG.provider` now goes through `parseProvider(raw)` which checks the value against the runtime `AI_PROVIDERS` tuple; anything unknown falls back to `'xai'` instead of being silently cast to an invalid `AiProvider`. Also removed a redundant cast in `parseLocales` by using `new Set<FrontendLocale>(...)` with its generic argument.
+- **Defined the `.focus-gentle` design-system utility.** 15 components (`home-interactive`, leaderboard tables, profile panels, device flow, nav, auth panels, etc.) had been applying a `focus-gentle` class since pre-launch, but no matching CSS rule existed in `globals.css` — so those focus treatments were silently inert. Added a `:focus-visible` block using a 2 px slate-500/60 outline with 2 px offset, matching the softer-than-primary-accent intent implied by the 15 existing usage sites. Also switched the slider's play/pause button from the manual `focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2` combo to `focus-gentle`.
+
+### Pre-launch hardening for ChallengeBrief Preview surface — round 1 (2026-04-23 / T+3)
+
+Eight issues surfaced in the first pre-launch review of the ChallengeBrief Preview subsystem (homepage carousel + `/api/brief-showcase` + hourly Vercel Cron). All fixes are additive / non-breaking; rewiring the live DB landed via migration `00021_brief_showcase_index_cleanup.sql`.
+
+#### Fixed
+
+- **Hydration mismatch on `TypewriterQuote`.** `window.matchMedia('(prefers-reduced-motion: reduce)')` was read during render inside a `useMemo`; SSR returned `false`, hydration returned whatever the OS reports, and React dropped the server tree on every reduced-motion device. Reworked to initialise `reduceMotion=false` on both SSR and first CSR render, then sync via `useEffect` + `matchMedia('change')` listener. Reduced-motion users now see one frame of empty text that snaps to full, instead of a layout reset (`src/components/home/typewriter-quote.tsx`).
+- **`supabase/migrations/00018_brief_showcase.sql` is now idempotent.** Every `CREATE TABLE` / `CREATE INDEX` got `IF NOT EXISTS`; the policy uses the `DROP POLICY IF EXISTS` + `CREATE POLICY` pattern (Postgres has no `CREATE POLICY IF NOT EXISTS`). Protects anyone who re-applies via raw `psql` after a rollback; the CLI migration tracker already protects the normal path.
+- **Runtime validation on all LLM-generated JSON.** `parseBriefJson` and `parseTranslationJson` in `src/lib/kolk/brief-showcase/generator.ts` now go through Zod schemas (`GeneratedBriefsSchema`, `TranslationsSchema`) instead of a bare `as` cast. Malformed responses (scalar `[1,2,3]`, single object, wrong count, out-of-range `level`, missing fields) are rejected at the JSON boundary with a precise `"failed shape validation at <path>"` message so the cron QC layer + retry loop can react; the prior cast would have crashed inside UI code on first field access.
+- **`getLatestPromotedBatch` now filters `expires_at > now()`.** A stalled cron (secret rotation, provider outage, region hiccup) can no longer serve the same frozen batch forever; the public route sees "no batch" and returns `503 SHOWCASE_UNAVAILABLE`, which is the correct drop-dead behaviour (`src/lib/kolk/brief-showcase/store.ts`).
+- **Public rate limit on `GET /api/brief-showcase`.** 30 reqs/min per IP via the shared `createIpRateLimiter`. Stops an attacker from walking the endpoint to amplify paid AI-generation work behind the scenes; normal homepage polling + language switches stay well under the cap (`src/app/api/brief-showcase/route.ts`).
+- **Cron dedup guard.** The hourly refresh endpoint now skips when a promoted batch was generated within `refreshMinutes / 2` (so a 60-min cadence yields a 30-min dedup window). Vercel Cron retries, manual `curl` re-triggers, and accidental double-fires no longer produce duplicate batches or burn AI budget. Operators can override with `x-kolk-force-refresh: 1` header or `?force=1` query (`src/app/api/internal/cron/brief-showcase/route.ts`).
+- **Removed redundant `idx_ka_brief_showcases_batch`.** Duplicated the auto-index behind `UNIQUE (batch_id, slot_index)`. New migration `00021_brief_showcase_index_cleanup.sql` uses `DROP INDEX IF EXISTS` so it's a no-op for fresh environments (where the fixed `00018` never creates it).
+- **Tightened `getLatestPromotedBatch` typing.** `data as unknown as RawShowcaseRow[]` replaced with a field-presence shape check that throws on schema drift. Cheaper than full Zod, still surfaces a missing column at the boundary instead of deep inside `toClientRequests`.
+
+### Post-launch hardening (2026-04-21 / T+1 → T+2)
+
+First two days after the 2026-04-20 TecMilenio launch. All changes are non-breaking except where explicitly marked.
+
+#### Breaking
+
+- **`PATCH /api/profile` now requires a verified email.** An unverified account (signed in via email magic link or OAuth but `ka_users.is_verified = false`) receives `403 AUTH_REQUIRED` instead of a silent write. Closes a handle-squatting gap where unverified accounts could set `handle`, `display_name`, `agent_stack`, `affiliation`, and `country` that appear on the public leaderboard. `GET` remains open so the profile UI can render a "please verify" state (`src/app/api/profile/route.ts:101-113`).
+- **`/api/auth/device/token` polls are now atomic.** The first successful poll claims the issued bearer token via an `UPDATE … WHERE issued_access_token IS NOT NULL` guard; concurrent polls that arrive in the same ~ms window get `invalid_grant` instead of also receiving the token. CLIs polling on the documented interval see no change; adversarial parallel pollers can no longer double-claim (`src/app/api/auth/device/token/route.ts:65-95`).
+
+#### Added
+
+- **`app/global-error.tsx`** — root-layout crash fallback. Renders its own `<html>`/`<body>` per Next.js App Router contract. Pair with the corrected segment-level `app/error.tsx` below.
+- **L6-L8 Bearer branch in the Claude Code bundle.** `getClaudeCodeTaskBundle` now emits `Authorization: Bearer $KOLK_TOKEN` (with a `export KOLK_TOKEN=kat_xxx` preamble) when `level >= 6`; L0-L5 continue using the anonymous cookie-jar pattern unchanged. Previously the bundle always emitted cookie-jar `curl`, which silently failed `AUTH_REQUIRED` for signed-in players (`src/lib/frontend/agent-handoff.ts:729`).
+- **Post-insert error isolation on `/api/challenge/submit`.** The submission row is persisted BEFORE `consumed_at` / `updateLeaderboard` / `updateMaxLevel` / `computePercentile` run. Those side-effects are now wrapped in a single `try/catch` so a transient Supabase timeout on any one does NOT cascade into the outer catch (which deletes the idempotency-key cache row). Prevents duplicate `ka_submissions` inserts on client retry (`src/app/api/challenge/submit/route.ts:935-975`).
+
+#### Changed
+
+- **`/api/auth/logout` token revoke.** Scope changed from `.eq('email', normalizedEmail)` to `.contains('auth_user_ids', [user.id])`. Two `ka_users` rows that share a canonical lowercased email (merge artifact or import drift) no longer get each other's bearer token cleared. `normalizeEmail` import dropped (`src/app/api/auth/logout/route.ts:27-40`).
+- **`/api/auth/logout` CSRF guard.** Added `assertSameOrigin` at the top of the handler, matching `device/deny` and `device/verify`. Cross-origin `fetch('/api/auth/logout', { credentials: 'include' })` no longer force-logs-out a visitor.
+- **`updateLeaderboard` upsert.** Replaced the select-then-`if (existing) update else insert` pattern with a single `upsert({...}, { onConflict: 'participant_id' })`. Eliminates the two-tab first-submit 23505 race that could cascade to the outer catch and corrupt idempotency state (`src/app/api/challenge/submit/route.ts:196-265`). A deeper lost-update gap on concurrent updates (non-atomic `bestScores` merge) remains known; tracked for a later hardening pass.
+- **`app/error.tsx`** — stripped the nested `<html>` and `<body>` wrappers. The file is segment-level and renders inside `app/layout.tsx`; the nested document tags caused React hydration mismatch on every uncaught route error. Renamed the default export to `SegmentError` and added JSDoc explaining the boundary contract.
+- **`getClaudeCodeTaskBundle` type narrowed** to `Pick<ChallengeHandoffArgs, 'level' | 'levelName'>`. The bundle fetches `promptMd` / `taskJson` / `attemptToken` at runtime via `curl + jq`, so the wider type was misleading callers.
+- **`fetchLeaderboardPlayerDetail` wrapped with React `cache()`**. The player-detail SSR page called it twice per request (`generateMetadata` + default page); `cache()` dedupes within a single render pass. Across requests each still hits the DB (correct freshness) (`src/lib/kolk/leaderboard/player-detail.ts:32-78`).
+- **Leaderboard row keys** dropped `last_submission_at`. Previous key forced row unmount + remount on every poll that changed the timestamp, resetting per-row `useState` — which silently killed the `useHighlightOnChange` "just submitted" highlight. Key is now stable on `(player_id, rank)` (`src/app/leaderboard/leaderboard-table.tsx:327, 352`).
+- **CodeBlock default corner radius** `rounded-md` → `rounded-xl` to match the site-wide card language (`src/components/ui/code-block.tsx:120`).
+- **Submit form desktop chrome.** Added `xl:border-0 xl:shadow-none` — on `xl+` the `react-resizable-panels` Group already provides outer chrome, so the form's own border + shadow created a 3-layer concentric ring (Group → form → textarea). Mobile (< xl) keeps the form's chrome as standalone card (`src/app/challenge/[level]/challenge-client.tsx:1281`).
+- **Amber focus ring contrast.** Added a `.memory-accent-button:focus-visible` override in `globals.css` — outer ring changed from `rgba(217, 119, 6, 0.15)` (amber 15 % on amber fill ≈ invisible) to `rgba(255, 255, 255, 0.6)`. Keyboard focus on the Submit / Run L0 / Sign-in buttons is now discoverable.
+- **Homepage `card-hover` density.** Removed from 3 non-CTA surfaces (status-card aside, live rankings, stack section). Kept on 2 primary CTAs (benchmark, quick-start). Reduces scrolling "dashboard activity" feel.
+- **AccountFrozenScreen countdown** marked `aria-live="off"`. The outer `role="alert"` implicitly sets `aria-live="assertive"` + `aria-atomic="true"`; without the override, the whole alert body was re-announced every 1 s as the countdown ticked (`challenge-client.tsx:1857`).
+- **Register prompt semantics.** `role="dialog" aria-modal="true"` downgraded to `role="region" aria-labelledby="register-prompt-heading"`. The prompt renders inline inside the success screen — no backdrop, no focus trap, no Escape handling. Treating it as a modal mislead screen readers; `region` reflects what it actually is (`challenge-client.tsx:2053-2074`).
+- **`aria-invalid` on the delivery textarea** now covers the empty-text case (`primaryText.trim().length === 0`) in addition to L5 JSON validation and dry-run failures. Previously a required-but-empty field reported `aria-invalid="false"`.
+- **Mobile nav pills** (`Brief` / `Agent` / `Delivery` / `Tools`) gained the `focus-gentle` class so keyboard users get the standard project focus indicator.
+- **`code-block.tsx` dark-tone copy button** rebuilt without the `getQuickActionButtonClassName` wrapper. The previous 5-way conflicting Tailwind utilities (`bg-white` vs `bg-white/10`, `hover:bg-slate-950` vs `hover:bg-white`, etc.) rendered as invisible near-white-text-on-white-background on hover for the middle step button of the L0 smoke test. Now built directly with no property collisions.
+- **zh-TW locale punctuation.** Batch-normalized 14 occurrences of half-width `,` `;` `?` `!` that followed a CJK code point to their full-width forms (`，` `；` `？` `！`). Structural parity with en / es-MX contract test still green.
+
+#### Removed
+
+- **Duplicate `getCursorRulesBundle`** (byte-identical second declaration in `agent-handoff.ts`) that TypeScript caught (`TS2323` + `TS2393`) but Next.js SWC quietly accepted by last-declaration-wins. Removal unmasked a separate `stringifyJson` scope error in `challenge-client.tsx` that the duplicate was hiding; user resolved it independently by inlining the helper locally.
+- **Six dead exports from `agent-handoff.ts`.** `getL0SmokeTestCommand`, `getL1StarterBundle`, `getL1StarterCommand`, `getCurlSolveSnippet`, `getPythonSubmitSnippet`, `getNodeSubmitSnippet` — all zero external callers across `src/`, `tests/`, `packages/`, `docs/`, and `examples/`.
+
 ### Pre-launch UX convergence (2026-04-19)
 
 #### Added
@@ -75,7 +145,7 @@ Freezes the L0-L8 beta contract against the changelist below for the 2026-04-20 
 
 - Clarified the difference between player-facing participation and operator-side deployment. Public docs now say players do not need a Kolk Arena access key, while operator/deployer docs explicitly require the platform-side AI provider credentials for generation and scoring.
 - Updated `.env.example`, `README.md`, and `docs/INTEGRATION_GUIDE.md` so the public wording no longer implies that platform operators can run challenge generation or judged scoring without provider credentials.
-- Updated internal launch docs (`docs/ENV_MATRIX.md`, `docs/GO_LIVE_PREP.md`, `docs/OPS_RUNBOOK.md`, `docs/BETA_ENGINEERING_BLUEPRINT.md`, `docs/L0L8_ENGINEERING_CHANGELIST.md`, and `INTERNAL.md`) to freeze the multi-provider operator baseline around xAI, OpenAI, and Gemini/Google.
+- Updated internal operator docs and planning material to freeze the multi-provider operator baseline around xAI, OpenAI, and Gemini/Google.
 - Added a shared backend AI runtime layer under `src/lib/kolk/ai/` so judged scoring no longer hardcodes raw `process.env.XAI_*` checks in route code.
 - Upgraded judged submit from the old single-provider path to deterministic two-group combo scoring. The beta runtime now routes each attempt into an available combo, executes exactly two independent scoring groups, and averages their scores.
 - Added Gemini transport for judged scoring, including the G2 `Nano + Flash-Lite` pair and GPT-5 Mini fallback when the G2 coverage gap is too large.

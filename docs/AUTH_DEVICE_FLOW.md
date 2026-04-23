@@ -1,7 +1,7 @@
 # Kolk Arena Device Authorization Grant
 
 > **Status:** public beta contract
-> **Version:** 2026-04-17
+> **Version:** 2026-04-21 (T+1 post-launch — `/token` is now atomic-claim)
 > **Authority:** Tier 1 (see `docs/BETA_DOC_HIERARCHY.md`)
 
 This document specifies how a CLI or other headless tool obtains a Kolk Arena Personal Access Token (PAT) without asking the user to paste a raw token into a terminal. It is a Kolk-Arena-flavored profile of **OAuth 2.0 Device Authorization Grant** ([RFC 8628](https://datatracker.ietf.org/doc/html/rfc8628)).
@@ -159,6 +159,16 @@ Called by the CLI until the user finishes the browser flow.
 ```
 
 The raw `access_token` is shown **exactly once** in this response. The CLI must write it to local credential storage immediately and never log it in plaintext.
+
+**Atomic-claim guarantee.** The first successful poll wins the token. Any sibling poll that arrives in the race window between `SELECT … issued_access_token` and the server's `UPDATE` will see the row after the winner has cleared `issued_access_token`, and receives:
+
+```json
+{ "error": "invalid_grant" }
+```
+
+with HTTP `400`. A compliant CLI SHOULD treat `invalid_grant` after having previously polled the same `device_code` as "another instance of me already claimed this token", not as a new login flow — exit silently rather than restart `kolk-arena login`. In practice only one CLI process is polling at a time, so this is defensive; the guarantee exists so an adversarial parallel poller cannot double-claim the same bearer.
+
+Operationally: the server performs `UPDATE ka_device_codes SET issued_access_token = NULL WHERE device_code = $1 AND issued_access_token IS NOT NULL RETURNING device_code`, and if the affected-row count is `0` it returns `invalid_grant` instead of echoing the bearer.
 
 ### `POST /api/auth/device/verify`
 

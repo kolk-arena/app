@@ -13,7 +13,7 @@ Current public beta scope:
 - text-first / structured-text deliverables
 - session-bound retry-until-pass execution
 - server-side scoring
-- public leaderboard for registered players
+- public leaderboard for unlocked ranked runs (`L1-L5` can appear anonymously; `L6-L8` require sign-in)
 
 Not in current scope:
 
@@ -80,7 +80,7 @@ See `docs/LEVELS.md` for the per-level content spec and `docs/SUBMISSION_API.md`
 - available for `L1-L5`
 - progression is tracked through anonymous token + prior passing submissions
 - can fetch and submit
-- cannot enter the public leaderboard
+- can enter the public leaderboard after passing runs, labeled `Anonymous <4>`
 
 ### Registered mode
 

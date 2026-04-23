@@ -1,9 +1,20 @@
 # Kolk Arena Frontend Beta States
 
-> **Last updated:** 2026-04-18
+> **Last updated:** 2026-04-23
 > **Purpose:** freeze page-level UI behavior for the current public beta
 
 This document defines the page and state contract that frontend work must implement for the `L0-L8` public beta.
+
+## Error Boundary Contract (2026-04-21 hardening)
+
+The app has **two** React error boundaries, and they are NOT interchangeable:
+
+- **`src/app/error.tsx`** — segment-level boundary. Catches any error thrown inside a route segment's render. Renders **inside** `app/layout.tsx`'s `<html>`/`<body>` tree. The file **must not** emit its own `<html>` or `<body>` tags — doing so produces nested document tags and a hydration mismatch. The current file returns a `<main>` wrapping a rose-tinted error card with a Retry + Back-home pair.
+- **`src/app/global-error.tsx`** — root-layout boundary. Runs only when `app/layout.tsx` itself throws, before the root `<html>`/`<body>` tree exists. This file **must** emit its own `<html>` and `<body>`. Kept intentionally minimal (plain HTML + a handful of Tailwind utilities, no `copy` i18n import, no custom components) so that whatever crashed the layout cannot cascade into this fallback.
+
+If you add an error boundary at a deeper segment (e.g. `app/challenge/error.tsx`), follow the segment-level contract — no `<html>`/`<body>`. Do not copy `global-error.tsx` as a starting point; copy `error.tsx`.
+
+Both boundaries log to `console.error` in a `useEffect`. Do not surface the raw `error.message` to users; render the digest hash (`error.digest`) as a short mono-font line so ops can correlate with server logs.
 
 ## Global Product Decisions
 
@@ -59,6 +70,24 @@ This document defines the page and state contract that frontend work must implem
 - `deadlineUtc` is shown separately as the 24-hour hard ceiling.
 - Going over suggested time does not lock the form and does not change score semantics.
 - Refresh must preserve fetched-session state from the server response already tied to `attemptToken`.
+
+### Mobile nav (4-tab layout, 2026-04-23+)
+
+On viewports below the desktop breakpoint the challenge page collapses into a bottom-anchored 4-tab switcher so the timer + submit surface stay above the fold. Each tab is backed by an i18n key; do not hardcode English strings in TSX.
+
+| Tab | i18n key | Panel content |
+|---|---|---|
+| Brief | `mobileNavBrief` | `promptMd` rendered, `taskJson` facts callout, suggested time + deadline |
+| Agent | `mobileNavAgent` | Agent handoff block (Claude Code / curl / python bundle), bearer example for L6-L8 |
+| Delivery | `mobileNavDelivery` | `primaryText` editor + submit button + retry budget counters (minute / hour / day) |
+| Tools | `mobileNavTools` | Links to leaderboard, profile, and replay controls when `replay === true` |
+
+Rules:
+
+- Tab state is local to the route; refreshing or re-fetching must not silently jump the player off the Delivery tab if they were mid-edit.
+- The Delivery tab is the default on first visit and after a fetch.
+- Error/freeze surfaces (`429 RATE_LIMIT_*`, `403 ACCOUNT_FROZEN`, `503 SCORING_UNAVAILABLE`) render inside the Delivery tab, not floating above the tab bar.
+- Desktop (≥ lg) renders the same content as a split layout with Brief on the left and Delivery on the right; Agent and Tools stay as expandable sections. The 4-tab mobile layout and the desktop split layout share the same underlying state machine — do not fork the data model.
 
 ## Submit States
 
@@ -139,6 +168,8 @@ Full-screen block, not an inline error. The player cannot retry until the freeze
 - Body: *"You sent too many submissions too quickly. Submissions unpause at HH:MM:SS (your local time)."* Convert `frozenUntil` (UTC ISO) to the browser's local time for display.
 - Echo the server `reason` string verbatim — for example *"6 attempts detected within 1 second"*.
 - Render a live countdown clock to `frozenUntil`.
+  - The outer block has `role="alert"` so the initial freeze announcement fires once on mount.
+  - The countdown `<p>` **must carry `aria-live="off"`** so the per-second tick does not re-announce the whole alert body every second (the outer `role="alert"` implies `aria-atomic="true"` by default, which would otherwise repeat title + body + countdown on each render). Implemented at `src/app/challenge/[level]/challenge-client.tsx` in `AccountFrozenScreen`.
 - Hide the submit button entirely; do not show a disabled retry control. The player should not be tempted to keep trying.
 - Surface `limits.day.used / limits.day.max` and `limits.minute / limits.fiveMinute` if present, so the player sees what tripped the freeze.
 - **Scope:** the freeze is keyed on the **identity** (canonical email for signed-in players, anonymous session cookie for anonymous players). Closing the tab, fetching a new `attemptToken`, or refreshing does not unblock submit. Make this explicit in the body copy: *"This pause applies to your whole account, not just this tab."*
@@ -222,6 +253,16 @@ Once a player has passed L8 (`max_level >= 8`):
 - Render the **Pioneer** badge on any row where `pioneer === true`. Place it next to the display name; do not let it shift the score column. Pioneer is a flag, not a sort key.
 - Render the lightning icon on rows where `efficiency_badge === true`.
 - Leaderboard rows link to player-detail pages on both desktop and mobile.
+
+### Anonymous leaderboard labeling (2026-04-23+)
+
+Anonymous `L1-L5` runs that clear the Dual-Gate are eligible for the public leaderboard (migration `00019_anonymous_leaderboard.sql`).
+
+- The public display name for such rows is `Anonymous <4>` where `<4>` is the first 4 lowercase hex characters of a server-computed hash of the `kolk_anon_session` cookie. The hash is stable per browser, does not leak the cookie value, and keeps different anonymous players distinguishable at a glance.
+- Rows mint a `ka_users` row with `is_anon = true` and `anon_session_hash` populated; the `ka_leaderboard.is_anon` column mirrors this flag so the UI can style anonymous rows (e.g. lighter chip, no avatar placeholder) without a join.
+- The **Pioneer** badge and efficiency-lightning icon follow the same rules for anonymous rows as they do for signed-in rows; neither requires a verified account.
+- Clearing cookies or switching browsers intentionally starts a new identity. Signing in later can upgrade the same row to a verified account without losing submission history. This framing mirrors `public/kolk_arena.md §3`.
+- Do not render the raw cookie, the full hash, or any "Guest-123" numeric sequence. The only public identifier for an anonymous row is the 4-char hex suffix.
 
 ## Player Detail and Profile
 

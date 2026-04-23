@@ -18,15 +18,18 @@ new locale?"
   not in the catalog.
 - `tests/unit/i18n-contract.test.mjs` — key-parity + leaf-shape contract test.
 
-## 2. Current locale support (as of 2026-04-20 launch)
+## 2. Current locale support (as of 2026-04-23 / T+3 post-launch)
 
-- `en` (`en-US`) — English default, shipped.
-- `es-mx` (`es-MX`) — planned, not yet shipped. Add per §3 when ready.
+- `en` (`en-US`) — English default, shipped and the only active runtime locale.
+- `es-mx` (`es-MX`) — full structural parity with `en` (775-leaf catalog, enforced by contract test). **Catalog is present; not yet active at runtime.**
+- `zh-tw` (`zh-TW`) — full structural parity with `en`. **Catalog is present; not yet active at runtime.** Post-launch T+1 punctuation pass normalized half-width `,` `;` `?` `!` that followed a CJK code point to their full-width forms (see §4.1).
 
-The runtime currently runs as a single-locale compile-time singleton: the
-homepage, the play surface, and the leaderboard all read from `copy` directly
-without any runtime locale switch. See §6 for the criteria that promote us to
-route-level locales.
+The runtime currently runs as a single-locale compile-time singleton: every
+route reads from `copy` directly (`src/i18n/index.ts` hardcodes `copy = en`).
+Adding the locale switcher (cookie + `Accept-Language` header + footer 🌐
+dropdown) is a deliberate post-launch milestone — the catalogs are ready so
+that switch flip is the only remaining code change. See §6 for the criteria
+that promote us to route-level locales.
 
 ## 3. How to add a new locale (4 steps)
 
@@ -48,6 +51,39 @@ route-level locales.
 - Exceptions that pass through as identifiers, not content:
   - OG type values (`"website"`, `"article"`)
   - CSS class names and Tailwind tokens
+
+### 4.1 Per-locale typography rules
+
+These are not enforced by the contract test (which only checks key-path
+parity) but are part of the reviewer checklist whenever you touch a non-en
+catalog.
+
+**`zh-tw` (Traditional Chinese, Taiwan):**
+
+- Use **full-width punctuation** whenever the punctuation follows a CJK
+  code point (`[\u4e00-\u9fff]`):
+  - `，` instead of `,`
+  - `。` instead of `.`
+  - `；` instead of `;`
+  - `：` instead of `:`
+  - `？` instead of `?`
+  - `！` instead of `!`
+- Use 「」 for quotations, not `"` or `'`.
+- Half-width punctuation is acceptable next to Latin text, URLs, code
+  identifiers, and numbers (e.g. `L0-L8`, `primaryText`, `1,000 players`).
+- A quick regex sanity-check: `grep -nE '[\u4e00-\u9fff][,;?!]'` on
+  `src/i18n/locales/zh-tw.ts` should return zero hits. T+1 launch had 14
+  hits; those were batch-patched.
+
+**`es-mx` (Mexican Spanish):**
+
+- Use opening inverted marks for questions and exclamations: `¿…?` and `¡…!`.
+- Non-breaking space before `%` and unit symbols when typographically
+  warranted; otherwise match en's spacing.
+- Follow the standard Spanish serial-comma behavior (`a, b y c` — no Oxford
+  comma). The en catalog provides glue-string slots (`bodyListSeparator`,
+  `bodyListFinalConjunction`) so es-MX can emit `, ` and `, y ` without
+  changing TSX.
   - Timezone codes (`"UTC"`, `"America/New_York"`)
   - ISO country codes and emoji flags
   - Agent / tool / model names (see §7)

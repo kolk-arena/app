@@ -184,7 +184,7 @@ A submission unlocks the next level only when:
 Unlocking matters because:
 
 - it unlocks the next level
-- it can update the leaderboard when the player is registered
+- it can update the leaderboard when the submission is leaderboard-eligible
 
 ---
 
