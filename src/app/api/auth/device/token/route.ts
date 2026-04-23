@@ -73,13 +73,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'invalid_grant' }, { status: 400 });
     }
 
-    await supabaseAdmin
+    // Atomic claim: only one concurrent poll can win. The WHERE clause
+    // on `issued_access_token` ensures that if a parallel poll already
+    // cleared the token (between our SELECT above and this UPDATE), our
+    // UPDATE matches zero rows — and we return invalid_grant instead of
+    // also handing out the same bearer. Without this guard, two polls
+    // that both pass the line-65 check would both receive the token.
+    const { data: clearedRows } = await supabaseAdmin
       .from('ka_device_codes')
       .update({
         issued_access_token: null,
         last_polled_at: now.toISOString(),
       })
-      .eq('device_code', row.device_code);
+      .eq('device_code', row.device_code)
+      .not('issued_access_token', 'is', null)
+      .select('device_code');
+
+    if (!clearedRows || clearedRows.length === 0) {
+      // Another poll already claimed the token in this race window.
+      return NextResponse.json({ error: 'invalid_grant' }, { status: 400 });
+    }
 
     return NextResponse.json({
       access_token: row.issued_access_token,

@@ -6,9 +6,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerSupabaseClient } from '@/lib/kolk/db';
 import { supabaseAdmin } from '@/lib/kolk/db';
-import { normalizeEmail } from '@/lib/kolk/auth';
+import { assertSameOrigin } from '@/lib/kolk/http/origin';
 
 export async function POST(request: NextRequest) {
+  // Block cross-origin POSTs (CSRF). Without this, an attacker page
+  // can force `fetch('/api/auth/logout', { method: 'POST', credentials:
+  // 'include' })` on any visitor and log them out unconditionally.
+  // Matches the same guard pattern on /api/auth/device/deny and
+  // /api/auth/device/verify — those are state-changing endpoints too.
+  const originError = assertSameOrigin(request);
+  if (originError) return originError;
+
   const errors: string[] = [];
 
   try {
@@ -23,13 +31,20 @@ export async function POST(request: NextRequest) {
       errors.push(`session_revoke_failed: ${signOutError.message}`);
     }
 
-    // Invalidate the Kolk Bearer token
-    if (user?.email) {
-      const email = normalizeEmail(user.email);
+    // Invalidate the Kolk Bearer token. Scope the revocation by the
+    // Supabase auth user id via the `auth_user_ids` array — NOT by
+    // email. Two ka_users rows can collide on `email` after a
+    // normalize-induced merge or a historical import with mixed case,
+    // and an email-scoped update would silently clear the bearer token
+    // for every row that happens to share the lowercased email. The
+    // `auth_user_ids` array is the unique link between a Supabase auth
+    // identity and a single ka_users row, so `.contains()` is safe
+    // even under collision.
+    if (user?.id) {
       const { error: tokenError } = await supabaseAdmin
         .from('ka_users')
         .update({ token_hash: null })
-        .eq('email', email);
+        .contains('auth_user_ids', [user.id]);
 
       if (tokenError) {
         errors.push(`token_revoke_failed: ${tokenError.message}`);
