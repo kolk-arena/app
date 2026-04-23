@@ -15,8 +15,7 @@ export const MAX_PRIMARY_TEXT_CHARS = 50_000;
 export const TRUNCATE_FOR_JUDGE_CHARS = 20_000;
 
 // Level gating
-export const ANONYMOUS_MAX_LEVEL = 5;
-export const REGISTRATION_WALL_AFTER = 5;
+// Canonical source: src/lib/kolk/beta-contract.ts::ANONYMOUS_BETA_MAX_LEVEL
 
 // Scoring
 export const STRUCTURE_MAX = 40;

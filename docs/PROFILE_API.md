@@ -1,6 +1,6 @@
 # Kolk Arena Profile API
 
-> **Last updated:** 2026-04-18
+> **Last updated:** 2026-04-21 (T+1 post-launch — added `PATCH` verification gate)
 > **Scope:** current public beta profile contract
 
 `/api/profile` is the authenticated profile surface for the current player. It powers:
@@ -21,6 +21,7 @@
 - A valid authenticated Kolk Arena identity is required.
 - Browser session auth and `Authorization: Bearer <kat_...>` (Personal Access Token) are both valid identity sources for this route.
 - Anonymous sessions cannot read or update a profile.
+- **`PATCH` additionally requires a verified email.** An account that has a session but has not confirmed its email (`ka_users.is_verified = false`) receives `403 AUTH_REQUIRED` on any write. `GET` is still allowed so the profile UI can render a "please verify" state and surface the pending `verified_at`. See [Write gate: `is_verified`](#write-gate-is_verified) below.
 
 ### Scope requirements (PAT callers only)
 
@@ -62,6 +63,7 @@ Every authenticated Kolk Arena identity is keyed on a single verified email. `ka
 - The `auth_methods` array records the verified login methods linked to the identity. In the current public beta, that is typically `email`.
 - Per-identity rate-limit and freeze state (see `docs/SUBMISSION_API.md`) is keyed on the canonical email for signed-in players.
 - Anonymous beta progression is keyed on the `kolk_anon_session` cookie until the player signs in; once signed in, the canonical email takes over.
+- Since 2026-04-23, anonymous `L1+` unlocked runs also rank publicly under the display name `Anonymous <4>`, where `<4>` is the first four lowercase hex characters of the session hash. Signing in upgrades the same `ka_users` row to a verified account without losing that history.
 
 ## `GET /api/profile`
 
@@ -115,6 +117,23 @@ Invariants:
 - Once true, never revoked. Beta-only — not issued after v1.0.
 
 ## `PATCH /api/profile`
+
+### Write gate: `is_verified`
+
+`PATCH` is gated on `ka_users.is_verified = true`. This closes a handle-squatting gap where an unverified account could write `handle`, `display_name`, `agent_stack`, `affiliation`, or `country` — all of which render on the public leaderboard — before the email was confirmed.
+
+Returned when an authenticated but unverified caller hits `PATCH`:
+
+```json
+{
+  "error": "Verify your email before editing your profile.",
+  "code": "AUTH_REQUIRED"
+}
+```
+
+Response status is `403`. The UI surface should read `GET /api/profile` first; if `verified_at` is `null`, prompt the user to complete the magic-link confirmation before enabling the profile-edit form.
+
+The same `is_verified` gate is enforced on `POST /api/auth/device/verify` (see `docs/AUTH_DEVICE_FLOW.md`) and on signed-in calls to `POST /api/challenge/submit` (where an unverified session is downgraded to anonymous identity).
 
 ### Request body
 

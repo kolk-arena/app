@@ -5,9 +5,10 @@ import {
   scoreToColorBand,
 } from '@/lib/kolk/beta-contract';
 import { asOptionalPublicString, normalizeAgentStackStat, normalizePublicIdentity } from '@/lib/kolk/public-contract';
+import { TIERS } from '@/lib/kolk/types';
 
 export type PublicLeaderboardRow = {
-  player_id: string;
+  player_id: string | null;
   rank: number;
   display_name: string;
   handle: string | null;
@@ -23,11 +24,16 @@ export type PublicLeaderboardRow = {
   levels_completed: number;
   tier: string;
   pioneer: boolean;
+  is_anon: boolean;
   last_submission_at: string | null;
   country_code?: string | null;
 };
 
-const VALID_TIERS = new Set(['starter', 'builder', 'specialist', 'champion']);
+type SortableLeaderboardRow = PublicLeaderboardRow & {
+  sort_player_id: string;
+};
+
+const VALID_TIERS = new Set<string>(TIERS);
 
 function asFiniteNumber(value: unknown, fallback = 0) {
   const parsed = typeof value === 'number' ? value : Number(value);
@@ -65,7 +71,7 @@ function resolveBestScoreOnHighest(entry: Record<string, unknown>, highestLevel:
 function normalizeLeaderboardRow(
   entry: Record<string, unknown>,
   agentStackByParticipantId: Map<string, string | null>,
-): PublicLeaderboardRow | null {
+): SortableLeaderboardRow | null {
   const playerId = asOptionalString(entry.participant_id);
   if (!playerId) return null;
 
@@ -89,8 +95,9 @@ function normalizeLeaderboardRow(
   const tier = asOptionalString(entry.tier);
 
   return {
-    player_id: playerId,
+    player_id: entry.is_anon === true ? null : playerId,
     rank: 0,
+    sort_player_id: playerId,
     display_name: asOptionalString(entry.display_name) ?? 'Anonymous',
     handle: asOptionalString(entry.handle),
     ...normalizePublicIdentity({
@@ -108,12 +115,13 @@ function normalizeLeaderboardRow(
     levels_completed: Math.max(0, Math.trunc(asFiniteNumber(entry.levels_completed, 0))),
     tier: tier && VALID_TIERS.has(tier) ? tier : 'starter',
     pioneer: entry.pioneer === true,
+    is_anon: entry.is_anon === true,
     last_submission_at: asIsoDateString(entry.last_submission_at),
     country_code: asOptionalString(entry.country_code),
   };
 }
 
-function compareLeaderboardRows(a: PublicLeaderboardRow, b: PublicLeaderboardRow) {
+function compareLeaderboardRows(a: SortableLeaderboardRow, b: SortableLeaderboardRow) {
   if (b.highest_level !== a.highest_level) return b.highest_level - a.highest_level;
   if (b.best_score_on_highest !== a.best_score_on_highest) return b.best_score_on_highest - a.best_score_on_highest;
 
@@ -121,14 +129,14 @@ function compareLeaderboardRows(a: PublicLeaderboardRow, b: PublicLeaderboardRow
   const bTime = b.solve_time_seconds ?? Number.POSITIVE_INFINITY;
   if (aTime !== bTime) return aTime - bTime;
 
-  return a.player_id.localeCompare(b.player_id);
+  return a.sort_player_id.localeCompare(b.sort_player_id);
 }
 
-export function rankLeaderboardRows(entries: PublicLeaderboardRow[]): PublicLeaderboardRow[] {
+export function rankLeaderboardRows(entries: SortableLeaderboardRow[]): PublicLeaderboardRow[] {
   const sorted = [...entries].sort(compareLeaderboardRows);
   let currentRank = 1;
 
-  return sorted.map((entry, index) => {
+  const ranked = sorted.map((entry, index) => {
     if (index > 0) {
       const prev = sorted[index - 1];
       const sameFrontier =
@@ -145,6 +153,12 @@ export function rankLeaderboardRows(entries: PublicLeaderboardRow[]): PublicLead
       ...entry,
       rank: currentRank,
     };
+  });
+
+  return ranked.map((entry) => {
+    const publicEntry: Partial<SortableLeaderboardRow> = { ...entry };
+    delete publicEntry.sort_player_id;
+    return publicEntry as PublicLeaderboardRow;
   });
 }
 
@@ -222,7 +236,7 @@ export async function fetchRankedLeaderboardRows(options?: {
 
   const normalized = (rawRows ?? [])
     .map((entry) => normalizeLeaderboardRow(entry as Record<string, unknown>, agentStackByParticipantId))
-    .filter((entry): entry is PublicLeaderboardRow => entry !== null);
+    .filter((entry): entry is SortableLeaderboardRow => entry !== null);
 
   const filtered = normalized.filter((row) => {
     if (agentStackNeedle && !(row.agent_stack?.toLowerCase().includes(agentStackNeedle))) {

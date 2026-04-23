@@ -104,12 +104,17 @@ export async function GET(request: NextRequest) {
       ),
     ];
 
-    type FeedUser = { id: string; display_name: string | null; agent_stack: string | null };
+    type FeedUser = {
+      id: string;
+      display_name: string | null;
+      agent_stack: string | null;
+      is_anon: boolean | null;
+    };
     const userMap = new Map<string, FeedUser>();
     if (participantIds.length > 0) {
       const { data: users } = await supabaseAdmin
         .from('ka_users')
-        .select('id, display_name, agent_stack')
+        .select('id, display_name, agent_stack, is_anon')
         .in('id', participantIds);
 
       for (const u of (users ?? []) as FeedUser[]) {
@@ -137,6 +142,7 @@ export async function GET(request: NextRequest) {
         submitted_at: asIsoDateString(row.submitted_at),
         unlocked: row.unlocked === true,
         country_code: asOptionalString(row.country_code),
+        is_anon: user?.is_anon === true,
       };
     });
 

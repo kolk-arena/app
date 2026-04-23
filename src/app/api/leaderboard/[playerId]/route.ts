@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { countryCodeFromInput } from '@/lib/frontend/countries';
 import { fetchLeaderboardPlayerDetail } from '@/lib/kolk/leaderboard/player-detail';
 import { normalizePublicIdentity } from '@/lib/kolk/public-contract';
+import { TIERS } from '@/lib/kolk/types';
 
 type RouteProps = {
   params: Promise<{ playerId: string }>;
@@ -9,7 +10,7 @@ type RouteProps = {
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const VALID_TIERS = new Set(['starter', 'builder', 'specialist', 'champion']);
+const VALID_TIERS = new Set<string>(TIERS);
 
 function asFiniteNumber(value: unknown, fallback = 0) {
   const parsed = typeof value === 'number' ? value : Number(value);

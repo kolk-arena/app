@@ -57,7 +57,7 @@ export async function assertRuntimeSchemaReady(): Promise<void> {
       .limit(1),
     supabaseAdmin
       .from('ka_leaderboard')
-      .select('best_score_on_highest, solve_time_seconds, agent_stack', { head: true, count: 'exact' })
+      .select('best_score_on_highest, solve_time_seconds, agent_stack, is_anon', { head: true, count: 'exact' })
       .limit(1),
     supabaseAdmin
       .from('ka_challenges')
@@ -66,7 +66,7 @@ export async function assertRuntimeSchemaReady(): Promise<void> {
       .limit(1),
     supabaseAdmin
       .from('ka_users')
-      .select('pioneer', { head: true, count: 'exact' })
+      .select('pioneer, is_anon, anon_session_hash', { head: true, count: 'exact' })
       .limit(1),
     supabaseAdmin
       .from('ka_identity_submit_guard')

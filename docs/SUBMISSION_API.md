@@ -1,6 +1,6 @@
 # Kolk Arena Submission API
 
-> **Last updated: 2026-04-18 (public beta contract alignment).** Describes the API contract for the **L0-L8 public beta path** and the **L1-L8 ranked ladder**.
+> **Last updated: 2026-04-21 (T+1 post-launch).** Describes the API contract for the **L0-L8 public beta path** and the **L1-L8 ranked ladder**. T+1 added the post-insert side-effect isolation note below (leaderboard / max-level / percentile are best-effort once the submission row is committed).
 
 This document describes the current implementation contract. It replaces the older `challenge_id + job_id + run_log` submission model.
 
@@ -58,7 +58,7 @@ Note that `primaryText` is a **string** (JSON escaped); the JSON object lives in
 - tracked by an anonymous session token
 - scored by the full Layer 1 + AI coverage/quality pipeline
 - subject to Dual-Gate unlock
-- not leaderboard eligible
+- leaderboard eligible when the run clears the Dual-Gate; public rows appear as `Anonymous <4>`
 
 ### Competitive play (`L6-L8` in the current public beta)
 
@@ -403,7 +403,7 @@ Current server-side validation order:
 14. compute unlock state from Dual-Gate (`structure >= 25`, `coverage + quality >= 15`)
 15. persist the scored submission
 16. mark the session as consumed only if the submission unlocks the level
-17. update leaderboard when the submission is registered, unlocked, and leaderboard-eligible
+17. update leaderboard when the submission is unlocked and leaderboard-eligible
 
 ### Why `attemptToken` exists
 
@@ -466,6 +466,23 @@ To stop a single `attemptToken` from becoming an infinite brute-force handle, su
 Re-fetching a new challenge is not governed by the per-submit-token limits above.
 
 ---
+
+## Post-Insert Side-Effect Isolation
+
+The submit route persists the `ka_submissions` row **before** running any downstream side-effects. Those side-effects are best-effort:
+
+1. `ka_challenge_sessions.consumed_at` update (only on Dual-Gate pass — stops the `attemptToken` from being reused).
+2. `updateLeaderboard` (only on a ranked, leaderboard-eligible submission).
+3. `updateMaxLevel` (only on a ranked level's first pass).
+4. `computePercentile` for the response body.
+
+If **any** of those throws (transient Supabase timeout, network blip, RPC error), the server does NOT roll back the submission row and does NOT return `500 INTERNAL_ERROR`. The response body is still the normally-shaped `SubmissionResult` — `percentile` may come back as `null`, and the leaderboard / `max_level` / `consumed_at` stamps may be briefly stale until the next successful submit reconciles them.
+
+This is intentional. Cascading a side-effect failure into a `500` would cause the outer catch to delete the `ka_idempotency_keys` cache row, and a client retry with the same `Idempotency-Key` would then re-process the request from scratch — inserting a duplicate `ka_submissions` row and double-incrementing leaderboard counters. The best-effort contract trades short-lived aggregate staleness for exactly-once submission insertion.
+
+Callers that need strict consistency on the leaderboard view should re-fetch `GET /api/leaderboard` (or the player's row) a few seconds after a successful submit; the next submit from any player on the same level will also re-aggregate.
+
+**Implementation reference:** `src/app/api/challenge/submit/route.ts` — the `try { … } catch (postInsertErr) { console.error(…) }` block wrapping the post-insert mutations.
 
 ## Submit Response
 
@@ -662,10 +679,10 @@ Current beta contract:
   "code": "RATE_LIMIT_MINUTE",
   "retryAfter": 23,
   "limits": {
-    "minute": { "used": 2, "max": 2 },
-    "hour": { "used": 2, "max": 20 },
-    "day": { "used": 2, "max": 99 },
-    "retry": { "used": 2, "max": 10 }
+    "minute": { "used": 7, "max": 6 },
+    "hour": { "used": 7, "max": 40 },
+    "day": { "used": 7, "max": 99 },
+    "retry": { "used": 7, "max": 10 }
   }
 }
 ```
@@ -776,6 +793,16 @@ Submit applies three layers of guards in this order. Cite the wire codes, not th
 Hitting any trigger sets `frozen_until = now() + 5 hours` for that identity and every subsequent submit on **any** token tied to that identity returns `403 ACCOUNT_FROZEN` with `frozenUntil` and `reason`. Identity = canonical email for signed-in callers, anonymous session cookie for anonymous callers; IP is never identity.
 
 All cooldown / freeze responses include a standard `Retry-After` HTTP header in addition to the JSON `retryAfter` (seconds) field.
+
+### Release on 5xx — server failures refund the rate-limit claim
+
+Rate-limit slots (per-minute, per-hour, per-day, per-token retry count) are **claimed up-front** when your submit enters the guarded path, so that concurrent submits cannot race through the caps. If the server then fails with a 5xx — either a downstream scoring outage surfaced as `503 SCORING_UNAVAILABLE`, or any uncaught server-side error — the submit path **unwinds the claim** before returning the response. The consequence you can code against:
+
+- A 5xx response does **not** consume your `RATE_LIMIT_MINUTE` / `RATE_LIMIT_HOUR` / `RATE_LIMIT_DAY` slot.
+- A 5xx response does **not** consume a `RETRY_LIMIT_EXCEEDED` count against your `attemptToken`.
+- Your burst counters for the 5-hour freeze trigger are also not advanced by a server-side 5xx.
+
+Practically: if you receive a 5xx, honour any `Retry-After` you get, then submit the same delivery again on the same `attemptToken` — no quota was spent. `4xx` responses (`RATE_LIMIT_*`, `ACCOUNT_FROZEN`, validation errors, `IDENTITY_MISMATCH`, etc.) are still authoritative and still count as normal.
 
 ---
 

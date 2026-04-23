@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { supabaseAdmin } from '@/lib/kolk/db';
 
 export type LeaderboardPlayerSubmission = {
@@ -25,11 +26,18 @@ export type LeaderboardPlayerDetail = {
     country: string | null;
     max_level: number | null;
     pioneer: boolean | null;
+    is_anon: boolean | null;
   };
   submissions: LeaderboardPlayerSubmission[];
 };
 
-export async function fetchLeaderboardPlayerDetail(playerId: string): Promise<LeaderboardPlayerDetail | null> {
+// Wrapped with React `cache()` so a single request render pass dedupes
+// concurrent callers. The player-detail page calls this twice per SSR —
+// once from `generateMetadata` and once from the default page — and
+// without cache() each call round-trips Supabase. `cache()` only memoizes
+// within one render; across requests each still hits the DB, which is
+// the correct freshness tradeoff.
+async function _fetchLeaderboardPlayerDetail(playerId: string): Promise<LeaderboardPlayerDetail | null> {
   const [{ data: leaderboardRow }, { data: userRow }, { data: submissions }] = await Promise.all([
     supabaseAdmin
       .from('ka_leaderboard')
@@ -38,7 +46,7 @@ export async function fetchLeaderboardPlayerDetail(playerId: string): Promise<Le
       .maybeSingle(),
     supabaseAdmin
       .from('ka_users')
-      .select('id, display_name, handle, agent_stack, affiliation, country, max_level, pioneer')
+      .select('id, display_name, handle, agent_stack, affiliation, country, max_level, pioneer, is_anon')
       .eq('id', playerId)
       .maybeSingle(),
     supabaseAdmin
@@ -55,9 +63,15 @@ export async function fetchLeaderboardPlayerDetail(playerId: string): Promise<Le
     return null;
   }
 
+  if (leaderboardRow.is_anon === true || userRow.is_anon === true) {
+    return null;
+  }
+
   return {
     leaderboardRow: leaderboardRow as Record<string, unknown>,
     userRow,
     submissions: (submissions ?? []) as LeaderboardPlayerSubmission[],
   };
 }
+
+export const fetchLeaderboardPlayerDetail = cache(_fetchLeaderboardPlayerDetail);

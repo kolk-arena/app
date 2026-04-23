@@ -20,24 +20,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import { assertRuntimeSchemaReady, supabaseAdmin } from '@/lib/kolk/db';
 import { SubmissionInputSchema, type SubmissionResult } from '@/lib/kolk/types';
 import { hashCode, readAnonTokenCookie } from '@/lib/kolk/auth';
+import { ensureAnonUser } from '@/lib/kolk/auth/anon-user';
 import { resolveArenaAuthContext } from '@/lib/kolk/auth/server';
 import { missingScopes, SCOPES, type Scope } from '@/lib/kolk/tokens';
 import { getLevel } from '@/lib/kolk/levels';
 import { runLayer1, type Layer1Config } from '@/lib/kolk/evaluator/layer1';
 import { runJudge, type JudgeResult } from '@/lib/kolk/evaluator/judge';
-import { MAX_PRIMARY_TEXT_CHARS, STRUCTURE_MAX } from '@/lib/kolk/constants';
+import { COVERAGE_MAX, MAX_PRIMARY_TEXT_CHARS, QUALITY_MAX, STRUCTURE_MAX } from '@/lib/kolk/constants';
 import type { VariantRubric } from '@/lib/kolk/types';
 import { getAiReadinessSummary } from '@/lib/kolk/ai';
 import {
   ANONYMOUS_BETA_MAX_LEVEL,
   colorBandToQualityLabel,
   computeSolveTimeSeconds,
+  COVERAGE_QUALITY_GATE,
   hasEfficiencyBadge,
   isAiJudgedLevel,
   isDualGateUnlock,
   isLeaderboardEligible,
   isRankedBetaLevel,
   scoreToColorBand,
+  STRUCTURE_GATE,
 } from '@/lib/kolk/beta-contract';
 import {
   buildSubmissionIdentity,
@@ -45,6 +48,7 @@ import {
   claimIdentitySubmitAttempt,
   releaseAttemptSubmitSlot,
   releaseIdentitySubmitAttempt,
+  SUBMIT_RETRY_CAP_PER_ATTEMPT_TOKEN,
   type SubmissionIdentity,
 } from '@/lib/kolk/submission-guards';
 
@@ -144,8 +148,8 @@ async function errorResponse({
 }
 
 function buildFailReason(structureScore: number, coverageScore: number, qualityScore: number) {
-  if (structureScore < 25) return 'STRUCTURE_GATE' as const;
-  if (coverageScore + qualityScore < 15) return 'QUALITY_FLOOR' as const;
+  if (structureScore < STRUCTURE_GATE) return 'STRUCTURE_GATE' as const;
+  if (coverageScore + qualityScore < COVERAGE_QUALITY_GATE) return 'QUALITY_FLOOR' as const;
   return null;
 }
 
@@ -205,7 +209,7 @@ async function updateLeaderboard(input: {
     supabaseAdmin.from('ka_leaderboard').select('*').eq('participant_id', participantId).single(),
     supabaseAdmin
       .from('ka_users')
-      .select('display_name, handle, agent_stack, affiliation')
+      .select('display_name, handle, agent_stack, affiliation, is_anon')
       .eq('id', participantId)
       .single(),
   ]);
@@ -243,6 +247,7 @@ async function updateLeaderboard(input: {
     handle: user?.handle ?? null,
     agent_stack: user?.agent_stack ?? null,
     affiliation: user?.affiliation ?? null,
+    is_anon: user?.is_anon === true,
     pioneer: highestLevel >= 8,
     last_submission_at: bestRun?.submitted_at ?? new Date().toISOString(),
   };
@@ -251,17 +256,21 @@ async function updateLeaderboard(input: {
     payload.country_code = countryCode;
   }
 
-  if (existing) {
-    await supabaseAdmin
-      .from('ka_leaderboard')
-      .update(payload)
-      .eq('participant_id', participantId);
-  } else {
-    await supabaseAdmin.from('ka_leaderboard').insert({
-      participant_id: participantId,
-      ...payload,
-    });
-  }
+  // Upsert atomically on the UNIQUE(participant_id) constraint. The
+  // previous if (existing) UPDATE else INSERT pattern had a two-tab
+  // first-submit race: both calls read existing=null, both INSERT, and
+  // the second one 23505-errored — which cascaded to the outer catch
+  // and corrupted the idempotency cache (E4 from the T+2 audit).
+  //
+  // Note: this fixes the 23505 case only. A deeper concurrency gap
+  // remains: two in-flight updates can each compute `bestScores` from
+  // a stale read and the later upsert will overwrite the earlier's
+  // payload, potentially losing a just-won score on a DIFFERENT level.
+  // Fixing that requires a DB-side jsonb merge or an RPC with row
+  // locking; deferred to a later hardening pass.
+  await supabaseAdmin
+    .from('ka_leaderboard')
+    .upsert({ participant_id: participantId, ...payload }, { onConflict: 'participant_id' });
 }
 
 function normalizeCountryCode(value: string | null | undefined) {
@@ -411,7 +420,7 @@ export async function POST(request: NextRequest) {
         code: 'TEXT_TOO_LONG',
         message: `primaryText exceeds ${MAX_PRIMARY_TEXT_CHARS} character limit`,
         fixHint:
-          'primaryText exceeds 50000 character limit. Trim your delivery before resubmitting.',
+          `primaryText exceeds ${MAX_PRIMARY_TEXT_CHARS.toLocaleString()} character limit. Trim your delivery before resubmitting.`,
       });
     }
 
@@ -620,7 +629,7 @@ export async function POST(request: NextRequest) {
           keyHash,
           status: 429,
           code: 'RETRY_LIMIT_EXCEEDED',
-          message: 'This token has reached the 10-submit cap. Fetch a new challenge to continue.',
+          message: `This token has reached the ${SUBMIT_RETRY_CAP_PER_ATTEMPT_TOKEN}-submit cap. Fetch a new challenge to continue.`,
           fixHint: 'Maximum retries for this attemptToken reached. Call GET /api/challenge again to fetch a new token.',
           bodyExtras: {
             limits: {
@@ -715,9 +724,9 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      structureScore = 40;
-      coverageScore = 30;
-      qualityScore = 30;
+      structureScore = STRUCTURE_MAX;
+      coverageScore = COVERAGE_MAX;
+      qualityScore = QUALITY_MAX;
       summary = 'L0 onboarding check passed. Your integration is connected.';
     } else {
       const levelDef = getLevel(challenge.level);
@@ -780,7 +789,7 @@ export async function POST(request: NextRequest) {
         reason: check.reason,
       }));
 
-      if (structureScore >= 25) {
+      if (structureScore >= STRUCTURE_GATE) {
         const aiReadiness = getAiReadinessSummary();
         if (!aiReadiness.scoringReady) {
           await releaseClaimsOnServerFailure();
@@ -860,7 +869,7 @@ export async function POST(request: NextRequest) {
     const colorBand = scoreToColorBand(totalScore);
     const qualityLabel = colorBandToQualityLabel(colorBand);
     const efficiencyBadge = hasEfficiencyBadge(challenge.level, solveTimeSeconds);
-    const leaderboardEligible = isLeaderboardEligible(challenge.level, participantId, unlocked);
+    const leaderboardEligible = isLeaderboardEligible(challenge.level, participantId, anonToken, unlocked);
     const levelUnlocked = unlocked && challenge.level < 8 ? challenge.level + 1 : undefined;
     const showRegisterPrompt = !participantId && challenge.level === 5 && unlocked ? true : undefined;
     const failReason = unlocked ? null : buildFailReason(structureScore, coverageScore, qualityScore);
@@ -927,32 +936,73 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Consume the attemptToken only when the Dual-Gate is cleared.
+    // Post-insert side-effects. The `ka_submissions` row is already
+    // committed above, so the user's submission is persisted. The
+    // mutations below (consume attemptToken, update leaderboard/max
+    // level, compute percentile) are best-effort side-effects — if any
+    // throws we MUST NOT cascade to the outer catch, because the outer
+    // catch deletes the idempotency cache row and a client retry with
+    // the same Idempotency-Key would then miss the dedup and insert a
+    // duplicate `ka_submissions` row (E3 from the T+2 audit).
+    //
+    // Wrap the whole block in one try/catch: log, return partial state.
     // Failed scored runs leave the token alive for retry within the 24h ceiling.
-    if (unlocked) {
-      await supabaseAdmin
-        .from('ka_challenge_sessions')
-        .update({ consumed_at: submittedAt.toISOString() })
-        .eq('attempt_token', attemptToken)
-        .is('consumed_at', null);
-    }
+    let percentile: number | null = null;
+    try {
+      if (unlocked) {
+        await supabaseAdmin
+          .from('ka_challenge_sessions')
+          .update({ consumed_at: submittedAt.toISOString() })
+          .eq('attempt_token', attemptToken)
+          .is('consumed_at', null);
+      }
 
-    if (leaderboardEligible && participantId) {
-      await updateLeaderboard({
-        participantId,
-        level: challenge.level,
-        score: totalScore,
-        countryCode: requesterCountryCode,
-      });
-    }
+      // For anonymous L1+ unlocked runs, mint (or reuse) a lightweight
+      // ka_users row keyed on the sha256 of the kolk_anon_session cookie
+      // so the leaderboard FK is satisfied and different anonymous
+      // browsers stay distinguishable on the public ranking. See
+      // src/lib/kolk/auth/anon-user.ts for the identity contract.
+      let effectiveParticipantId = participantId;
+      if (!effectiveParticipantId && anonToken && leaderboardEligible) {
+        try {
+          const anonUser = await ensureAnonUser(anonToken);
+          effectiveParticipantId = anonUser.id;
 
-    if (participantId && unlocked && isRankedBetaLevel(challenge.level)) {
-      await updateMaxLevel(participantId, challenge.level);
-    }
+          // Backfill participant_id on the persisted submission so the
+          // 30-day cohort window used by computePercentile and the
+          // activity-feed join both see the anonymous participant.
+          await supabaseAdmin
+            .from('ka_submissions')
+            .update({ participant_id: effectiveParticipantId })
+            .eq('id', submission.id);
+        } catch (anonErr) {
+          console.error('[submit] ensureAnonUser failed (anonymous run will not rank this submit):', anonErr);
+          effectiveParticipantId = null;
+        }
+      }
 
-    const percentile = isRankedBetaLevel(challenge.level)
-      ? await computePercentile(challenge.level, totalScore)
-      : null;
+      if (leaderboardEligible && effectiveParticipantId) {
+        await updateLeaderboard({
+          participantId: effectiveParticipantId,
+          level: challenge.level,
+          score: totalScore,
+          countryCode: requesterCountryCode,
+        });
+      }
+
+      if (effectiveParticipantId && unlocked && isRankedBetaLevel(challenge.level)) {
+        await updateMaxLevel(effectiveParticipantId, challenge.level);
+      }
+
+      if (isRankedBetaLevel(challenge.level)) {
+        percentile = await computePercentile(challenge.level, totalScore);
+      }
+    } catch (postInsertErr) {
+      // Submission row persisted; side-effects may be stale. DO NOT
+      // rethrow — that would trigger the outer catch's idempotency
+      // cache delete and enable duplicate submissions on retry.
+      console.error('[submit] post-insert side-effect failed (submission already saved, idempotency cache preserved):', postInsertErr);
+    }
 
     const result: SubmissionResult = {
       submissionId: submission.id,

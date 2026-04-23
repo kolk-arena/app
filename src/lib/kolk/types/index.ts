@@ -17,8 +17,7 @@ export const LEVELS = Array.from({ length: 21 }, (_, i) => i) as number[];
 export const MIN_LEVEL = 0;
 export const MAX_LEVEL = 20;
 export const PUBLIC_BETA_LEVELS = Array.from({ length: 9 }, (_, i) => i) as number[];
-export const PUBLIC_BETA_MIN_LEVEL = 0;
-export const PUBLIC_BETA_MAX_LEVEL = 8;
+export { PUBLIC_BETA_MIN_LEVEL, PUBLIC_BETA_MAX_LEVEL } from '@/lib/kolk/beta-contract';
 
 export const DELIVERABLE_FAMILIES = [
   'connectivity_check',
@@ -239,7 +238,7 @@ export const ProfileInputSchema = z
 // ============================================================================
 
 export interface LeaderboardEntry {
-  player_id: string;
+  player_id: string | null;
   rank: number;
   display_name: string;
   handle: string | null;
@@ -255,6 +254,7 @@ export interface LeaderboardEntry {
   highest_level: number;
   tier: LeaderboardTier;
   pioneer?: boolean;
+  is_anon: boolean;
   last_submission_at: string | null;
   country_code?: string | null;
 }
@@ -305,6 +305,12 @@ export interface ActivityFeedEntry {
    * when the submission predates migration 00015.
    */
   country_code: string | null;
+  /**
+   * True when the row belongs to an anonymous participant (ka_users.is_anon = true,
+   * migration 00019). Optional so existing serializers that omit it keep type-checking;
+   * when absent, the consumer should treat the row as non-anonymous.
+   */
+  is_anon?: boolean;
 }
 
 /**

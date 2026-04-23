@@ -9,8 +9,7 @@ import {
   getAgentStarterPrompt,
   getSubmitContractSnippet,
 } from '@/lib/frontend/agent-handoff';
-
-const ANONYMOUS_MAX_LEVEL = 5;
+import { ANONYMOUS_BETA_MAX_LEVEL } from '@/lib/kolk/beta-contract';
 
 type AuthState =
   | { status: 'loading' }
@@ -19,7 +18,7 @@ type AuthState =
 
 function getRecommendedLevel(maxLevel: number, signedIn: boolean) {
   if (maxLevel <= 0) return 0;
-  if (!signedIn && maxLevel >= ANONYMOUS_MAX_LEVEL) return null;
+  if (!signedIn && maxLevel >= ANONYMOUS_BETA_MAX_LEVEL) return null;
   if (signedIn && maxLevel >= 8) return null;
   return maxLevel + 1;
 }
@@ -119,11 +118,11 @@ export function PlayClient() {
           <h1 className="text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl">{copy.play.title}</h1>
           <p className="max-w-3xl text-base leading-7 text-slate-700">
             {copy.play.bodyPrefix}
-            <code className="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-950">summary</code>
+            <span className="font-semibold text-slate-900">summary</span>
             {copy.play.bodyListSeparator}
-            <code className="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-950">fieldScores</code>
+            <span className="font-semibold text-slate-900">fieldScores</span>
             {copy.play.bodyListFinalConjunction}
-            <code className="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-950">qualitySubscores</code>
+            <span className="font-semibold text-slate-900">qualitySubscores</span>
             {copy.play.bodySuffix}
           </p>
           <p className="text-sm text-slate-700" aria-live="polite">
@@ -146,7 +145,7 @@ export function PlayClient() {
             ) : (
               <>
                 {copy.play.session.signedOutPrefix}
-                <span className="font-mono font-semibold text-slate-950">L{ANONYMOUS_MAX_LEVEL}</span>.{' '}
+                <span className="font-mono font-semibold text-slate-950">L{ANONYMOUS_BETA_MAX_LEVEL}</span>.{' '}
                 <Link href="/profile" className="font-semibold text-slate-900 underline decoration-slate-300 underline-offset-2 hover:decoration-slate-500">
                   {copy.play.session.signInCta}
                 </Link>{' '}
@@ -166,7 +165,47 @@ export function PlayClient() {
           </div>
         </header>
 
-        <section className="grid gap-4 sm:grid-cols-3">
+        <section className="sm:hidden rounded-md border border-slate-200 bg-white p-4">
+          <div className="space-y-3">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-slate-500">{summary.modeLabel}</p>
+                <p className="mt-1 text-sm font-semibold text-slate-950">
+                  {auth.status === 'loading' ? summary.loadingValue : signedIn ? summary.signedInMode : summary.anonymousMode}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-slate-500">{summary.progressLabel}</p>
+                <p className="mt-1 text-sm font-semibold text-slate-950">
+                  {auth.status === 'loading' ? summary.loadingValue : summary.progressValue(maxLevel)}
+                </p>
+              </div>
+            </div>
+            <div className="border-t border-slate-200 pt-3">
+              <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-slate-500">{summary.nextLabel}</p>
+              <p className="mt-1 text-sm font-semibold text-slate-950">
+                {auth.status === 'loading'
+                  ? summary.loadingValue
+                  : recommendedLevel != null
+                  ? summary.nextStepStart(recommendedLevel)
+                  : signedIn
+                  ? summary.nextStepComplete
+                  : summary.nextStepSignIn}
+              </p>
+              <p className="mt-1 text-xs leading-5 text-slate-600">
+                {recommendedLevel === 0
+                  ? copy.challenge.deliveryRules.level0
+                  : recommendedLevel != null
+                  ? playUi.startLevel(recommendedLevel)
+                  : signedIn
+                  ? summary.signedInUnlockHint
+                  : summary.anonymousUnlockHint}
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="hidden gap-4 sm:grid sm:grid-cols-3">
           <article className="rounded-md border border-slate-200 bg-white p-5">
             <p className="text-xs font-medium text-slate-500">{summary.modeLabel}</p>
             <p className="mt-2 text-xl font-semibold tracking-tight text-slate-950">
@@ -234,9 +273,9 @@ export function PlayClient() {
           </section>
         ) : null}
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 relative">
           {ladderCards.map((card) => {
-            const requiresAuth = card.level > ANONYMOUS_MAX_LEVEL;
+            const requiresAuth = card.level > ANONYMOUS_BETA_MAX_LEVEL;
             const isLocked = requiresAuth && !signedIn;
             const hasUnlockedProgression = card.level === 1 || maxLevel >= card.level - 1;
             const isBlockedByProgression = !isLocked && !hasUnlockedProgression;
@@ -258,32 +297,37 @@ export function PlayClient() {
             return (
               <article
                 key={card.level}
-                className={`flex flex-col gap-3 rounded-md border border-slate-200 bg-white p-5 sm:p-6 ${
+                className={`relative flex flex-col gap-3 sm:gap-4 rounded-md border border-slate-200 bg-white p-4 sm:p-6 ${
                   isRecommended ? 'ring-2 ring-slate-950 ring-offset-2' : ''
                 }`}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3">
-                <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-100 font-mono text-sm font-semibold text-slate-700">
-                  L{card.level}
-                </span>
+                <div className="flex items-center sm:items-start justify-between gap-3">
+                  <div className="flex items-center sm:items-start gap-3 min-w-0 flex-1">
+                    <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-100 font-mono text-sm font-semibold text-slate-700">
+                      L{card.level}
+                    </span>
                     <div className="min-w-0">
-                      <h2 className="text-base font-bold text-slate-950">{card.name}</h2>
-                      <p className="mt-1 text-xs leading-5 text-slate-600">
-                        {playUi.bandLabel(card.band)} · {playUi.suggestedTime(card.suggestedTimeMinutes)} · {tierLabel}
+                      <h2 className="text-sm sm:text-base font-bold text-slate-950 truncate">{card.name}</h2>
+                      <p className="mt-0.5 sm:mt-1 text-xs leading-5 text-slate-600 truncate">
+                        {playUi.bandLabel(card.band)} · {playUi.suggestedTime(card.suggestedTimeMinutes)}
+                        <span className="hidden sm:inline"> · {tierLabel}</span>
                       </p>
                     </div>
                   </div>
                   {stateBadge ? (
-                    <span className={`inline-flex items-center rounded-md px-2.5 py-1 text-[11px] font-medium ${stateBadge.className}`}>
-                      {stateBadge.label}
+                    <span className={`shrink-0 inline-flex items-center rounded-md px-2 sm:px-2.5 py-0.5 sm:py-1 text-[10px] sm:text-[11px] font-medium ${stateBadge.className}`}>
+                      <span className="hidden sm:inline">{stateBadge.label}</span>
+                      <span className="sm:hidden">
+                        {isLocked ? 'Locked' : isBlockedByProgression ? 'Locked' : isCleared ? 'Cleared' : 'New'}
+                      </span>
                     </span>
                   ) : null}
                 </div>
 
-                <p className="text-sm leading-6 text-slate-700">{card.hint}</p>
+                <p className="line-clamp-2 text-xs leading-5 text-slate-600 sm:hidden">{card.hint}</p>
+                <p className="hidden text-sm leading-6 text-slate-700 sm:block">{card.hint}</p>
 
-                <div className="mt-auto flex flex-wrap items-center gap-2 pt-2">
+                <div className="mt-auto hidden sm:flex flex-wrap items-center gap-2 pt-2">
                   {isLocked ? (
                     <Link
                       href="/profile"
@@ -311,6 +355,28 @@ export function PlayClient() {
                     </Link>
                   )}
                 </div>
+                {/* Mobile tap target overlay that makes the whole card clickable */}
+                {!isLocked && !isBlockedByProgression && (
+                  <Link
+                    href={`/challenge/${card.level}`}
+                    className="absolute inset-0 z-10 sm:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2 rounded-md"
+                    aria-label={playUi.startLevel(card.level)}
+                  />
+                )}
+                {isLocked && (
+                  <Link
+                    href="/profile"
+                    className="absolute inset-0 z-10 sm:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2 rounded-md"
+                    aria-label={playUi.signInUnlockLevels}
+                  />
+                )}
+                {isBlockedByProgression && (
+                  <Link
+                    href={`/challenge/${card.level - 1}`}
+                    className="absolute inset-0 z-10 sm:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2 rounded-md"
+                    aria-label={playUi.goToLevel(card.level - 1)}
+                  />
+                )}
               </article>
             );
           })}
@@ -369,6 +435,17 @@ export function PlayClient() {
           </ul>
         </aside>
       </section>
+      <div className="h-28 sm:hidden" aria-hidden="true" />
+      <div className="sm:hidden fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur-sm">
+        {primaryAction ? (
+          <Link
+            href={primaryAction.href}
+            className="memory-accent-button inline-flex min-h-11 w-full items-center justify-center rounded-md border px-5 py-3 text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2"
+          >
+            {primaryAction.label}
+          </Link>
+        ) : null}
+      </div>
     </main>
   );
 }

@@ -8,17 +8,18 @@ export const ANONYMOUS_BETA_MAX_LEVEL = 5;
 export const STRUCTURE_GATE = 25;
 export const COVERAGE_QUALITY_GATE = 15;
 
-// Submit rate limit is scoped to the attemptToken (not the account).
-// See docs/SUBMISSION_API.md §Rate Limiting + §Anti-farming for rationale.
-// Launch-week relaxation (2026-04-20): raised 2 → 6. Canonical source of
-// truth is SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN_PER_MINUTE in
-// src/lib/kolk/submission-guards.ts; keep this in sync.
-export const SUBMIT_RATE_LIMIT_WINDOW_MS = 60_000;
+// Scoring maxima — canonical values live in constants/index.ts (legacy home,
+// still used by layer1.ts + judge.ts). Re-exported here so callers needing
+// the beta-contract surface don't have to dual-import.
+export { STRUCTURE_MAX, COVERAGE_MAX, QUALITY_MAX } from './constants';
+
+// Submit rate-limit numbers live in src/lib/kolk/submission-guards.ts
+// (SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN_PER_MINUTE / _PER_HOUR, plus
+// SUBMIT_RETRY_CAP_PER_ATTEMPT_TOKEN and SUBMIT_RATE_LIMIT_PER_IDENTITY_PER_DAY).
+// A single mirrored knob is kept here for callers that only reach the
+// beta-contract surface; the "keep in sync" discipline is documented there.
+// Launch-week relaxation (2026-04-20): raised 2 → 6.
 export const SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN = 6;
-// Legacy alias for one minor release — new code should reference
-// SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN directly.
-/** @deprecated use SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN */
-export const SUBMIT_RATE_LIMIT_MAX = SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN;
 
 export type ColorBand = 'RED' | 'ORANGE' | 'YELLOW' | 'GREEN' | 'BLUE';
 
@@ -105,7 +106,26 @@ export function hasEfficiencyBadge(level: number, solveTimeSeconds: number): boo
   return solveTimeSeconds <= getSuggestedTimeMinutes(level) * 60;
 }
 
-export function isLeaderboardEligible(level: number, participantId: string | null, unlocked: boolean): boolean {
-  return Boolean(participantId) && isRankedBetaLevel(level) && unlocked;
+/**
+ * Leaderboard eligibility.
+ *
+ * Launch policy (2026-04-23): anonymous L1-L5 runs ARE eligible too —
+ * anonymous players that clear the Dual-Gate get a lightweight ka_users
+ * row minted in the submit route (see src/lib/kolk/auth/anon-user.ts)
+ * so the FK to ka_leaderboard.participant_id holds. The `anonToken`
+ * parameter here is the raw kolk_anon_session cookie value; either an
+ * authenticated participantId OR an anonymous cookie qualifies.
+ */
+export function isLeaderboardEligible(
+  level: number,
+  participantId: string | null,
+  anonToken: string | null,
+  unlocked: boolean,
+): boolean {
+  return (
+    isRankedBetaLevel(level)
+    && unlocked
+    && (Boolean(participantId) || Boolean(anonToken))
+  );
 }
 

@@ -1,16 +1,15 @@
 /**
  * GET /api/activity/submission/:submissionId
  *
- * Public-safe submission detail used by the anonymous-row detail view on
+ * Public-safe submission detail used by the live-activity detail view on
  * /leaderboard. Returns ONLY the columns already rendered on other public
  * surfaces (level, scores, color band, timings, judge summary). Identity-
- * bearing columns (anon_token, participant_id, auth user id, IP) are
- * never returned.
+ * bearing columns (anon_token, auth user id, IP) are never returned.
  *
- * For registered-user rows the activity feed links to /leaderboard/:playerId
- * and this endpoint is not called. It exists so anonymous activity rows
- * (where we can't link to a player page — there is no player page for an
- * anon_token) still have a Player-Detail-like surface.
+ * Registered rows link straight to /leaderboard/:playerId and skip this
+ * endpoint. Anonymous rows open the submission-summary panel first so the
+ * live feed stays scoped to the specific run that just landed; when a public
+ * player page exists, the panel can still surface that route as a follow-up.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -81,23 +80,25 @@ export async function GET(
       );
     }
 
-    // If the submission belongs to a registered user, surface their display
-    // name + agent stack so the detail panel labels match the leaderboard.
-    // We deliberately do NOT return handle, affiliation, country-from-profile,
-    // or any other field that would let someone enumerate a player from a
-    // single submission id — if those are needed, the client should follow
-    // the player_id link to the full /leaderboard/:playerId page instead.
+    // Surface display name + agent stack so the detail panel labels match the
+    // leaderboard. We deliberately do NOT return handle, affiliation,
+    // country-from-profile, or any other field that would let someone
+    // enumerate a player from a single submission id — if those are needed,
+    // the client should follow the player_id link to the full
+    // /leaderboard/:playerId page instead.
     let displayName: string = 'Anonymous';
     let agentStack: string | null = null;
+    let isAnon = false;
     if (row.participant_id) {
       const { data: user } = await supabaseAdmin
         .from('ka_users')
-        .select('display_name, agent_stack')
+        .select('display_name, agent_stack, is_anon')
         .eq('id', row.participant_id)
         .maybeSingle();
       if (user) {
         displayName = asOptionalString(user.display_name) ?? 'Anonymous';
         agentStack = asOptionalString(user.agent_stack);
+        isAnon = user.is_anon === true;
       }
     }
 
@@ -106,7 +107,7 @@ export async function GET(
     const payload: ActivitySubmissionDetail = {
       id: String(row.id),
       level: Math.max(1, Math.trunc(asFiniteNumber(row.level, 1) ?? 1)),
-      player_id: asOptionalString(row.participant_id),
+      player_id: isAnon ? null : asOptionalString(row.participant_id),
       display_name: displayName,
       ...normalizePublicIdentity({
         agent_stack: agentStack,

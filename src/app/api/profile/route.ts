@@ -98,6 +98,20 @@ export async function PATCH(request: NextRequest) {
   if (scopeDenied) return scopeDenied;
   const user = ctx!.user;
 
+  // Gate profile writes on email verification. An unverified account is
+  // still allowed to READ its own profile (so the UI can show "please
+  // verify" state), but it must not be able to squat a handle / display
+  // name / agent_stack / affiliation that appears on the public
+  // leaderboard until the email is confirmed. Same gate pattern as
+  // /api/auth/device/verify/route.ts:51 and /api/challenge/submit/route.ts:457
+  // (submit also downgrades unverified users to anonymous).
+  if (!user.is_verified) {
+    return NextResponse.json(
+      { error: 'Verify your email before editing your profile.', code: 'AUTH_REQUIRED' },
+      { status: 403 },
+    );
+  }
+
   let body: unknown;
   try {
     body = await request.json();
@@ -153,7 +167,7 @@ export async function PATCH(request: NextRequest) {
 
   const savedProfile = data as unknown as {
     id: string;
-    email: string;
+    email: string | null;
     display_name: string | null;
     handle: string | null;
     agent_stack: string | null;

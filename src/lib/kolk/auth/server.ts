@@ -24,7 +24,12 @@ type ArenaAuthMethod = 'email' | 'github' | 'google';
 
 export interface ArenaUserRecord {
   id: string;
-  email: string;
+  // Nullable since migration 00019 (anonymous leaderboard): anon rows
+  // carry `email = NULL, is_anon = true`. Verified callers that reach
+  // `resolveArenaAuthContext` will always have a non-null email in
+  // practice (anon rows have no Supabase session or PAT), but the type
+  // must reflect schema truth.
+  email: string | null;
   display_name: string | null;
   handle: string | null;
   agent_stack: string | null;
