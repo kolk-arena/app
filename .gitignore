@@ -46,44 +46,24 @@ yarn-error.log*
 .claude/
 .idea/
 
-# internal docs (not for public repo)
+# local git backups / recovery copies (never publish)
+.git.backup-*/
+git.backup-*/
+
+# local/private notes and launch scratch
 INTERNAL.md
-docs/GO_LIVE_PREP.md
-docs/kolk_model_routing_spec_v3_final.md
-docs/kolk_arena_consolidated_report.md
-docs/kolk_model_routing_spec_v5.md
-docs/SPEC_GAP_TRACKER.md
-docs/SPEC_V5_ALIGNMENT_TRACKER.md
-docs/LEVELS_BETA_DESIGN.md
-docs/L0L8_ENGINEERING_CHANGELIST.md
-docs/BETA_FRONTEND_BLUEPRINT.md
-docs/BETA_ENGINEERING_BLUEPRINT.md
-docs/GITHUB_COMMUNITY_OPENING_QUESTIONS.md
-docs/OPS_RUNBOOK.md
-docs/ENV_MATRIX.md
-docs/CLOUDFLARE_BASELINE.md
-docs/ROLLBACK_PLAN.md
-docs/LAUNCH_PLAN_IMPLEMENTATION_TRACKER.md
-docs/Kolk_Arena_Launch_Plan_Optimization.md
-docs/launch_kit_v5.0/
-docs/launch_kit_v5.1/
-docs/launch_kit_v5.2/
-docs/launch_kit_v5.3/
-docs/launch_kit_v5.4/
-docs/launch_kit_v4.*/
-docs/launch_kit_*/
-docs/bond_core_vision.md
-docs/bond_*.md
-docs/pybh_*.md
-docs/round*_*.md
-bond_core_vision.md
-bond_*.md
-pybh_*.md
-round*_*.md
-# launch-day temporary Chinese scratch (ephemeral; delete post-launch)
+internal.md
+INTERNAL*.md
+internal*.md
 T0_*.md
 t0_*.md
-supabase/migrations/
+
+# Additional repo-specific operator docs are ignored locally via
+# .git/info/exclude so their filenames do not leak through the public tree.
+
+# supabase/migrations/ is tracked. The child supabase/.gitignore keeps
+# .branches/.temp/.env.local ignored so only the canonical SQL +
+# config.toml reach the repo.
 
 # frozen public-doc snapshots (do not publish until later ladder rollout)
 archieve/

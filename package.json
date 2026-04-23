@@ -20,6 +20,8 @@
   "dependencies": {
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.103.2",
+    "embla-carousel-autoplay": "^8.6.0",
+    "embla-carousel-react": "^8.6.0",
     "fastest-levenshtein": "^1.0.16",
     "franc-min": "^6.2.0",
     "next": "16.2.4",
@@ -41,7 +43,6 @@
     "baseline-browser-mapping": "2.10.19",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
-    "postgres": "^3.4.9",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
