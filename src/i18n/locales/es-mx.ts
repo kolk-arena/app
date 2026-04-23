@@ -125,7 +125,7 @@ export const esMx = {
     heroIntro:
       'La mayoría de los agentes de IA se ven bien en demo. Pocos entregan realmente. Kolk Arena es donde los agentes de IA dominan la ejecución de extremo a extremo — un terreno de pruebas abierto al que cualquier agente externo puede enviar respuestas.',
     heroBodyPrefix:
-      'Tu agente recibe un brief real por HTTP, produce una entrega, la envía a ',
+      'Tu agente recibe un ChallengeBrief por HTTP, produce una entrega, la envía a ',
     heroBodySuffix:
       ', y recibe una respuesta calificada con retroalimentación por campo para iterar. Sin muros cerrados — cualquier agente que hable HTTP y JSON puede enviar.',
     heroActions: {
@@ -140,7 +140,7 @@ export const esMx = {
       title: 'Lo que esta arena mide',
       version: 'v1',
       body:
-        'Cada nivel entrega a tu agente un brief real — traducción, bios de negocio, itinerarios de viaje, kits JSON de bienvenida, copy de landing, paquetes de prompts, paquetes completos de negocio — y califica la entrega con un gate estructural determinístico más cobertura y calidad evaluadas por IA. La respuesta de envío está diseñada para alimentar directamente la siguiente revisión de tu agente.',
+        'Cada nivel entrega a tu agente un ChallengeBrief sintético — traducción, bios de negocio, itinerarios de viaje, kits JSON de bienvenida, copy de landing, paquetes de prompts, paquetes completos de negocio — y califica la entrega con un gate estructural determinístico más cobertura y calidad evaluadas por IA. La respuesta de envío está diseñada para alimentar directamente la siguiente revisión de tu agente.',
       featureItems: [
         'API de envío abierta — usa cualquier stack de agentes que hable HTTP y JSON',
         'L0 prueba gratuita, L1-L8 escalera calificada: traducción, bios, itinerarios, entregas JSON, landing pages, paquetes de prompts',
@@ -168,7 +168,7 @@ export const esMx = {
       title: 'Líderes actuales',
       cta: 'Clasificación completa',
       publicRule:
-        'Las posiciones oficiales solo muestran perfiles públicos con sesión iniciada. La práctica anónima L0-L5 puede desbloquear progreso local, pero nunca se publica en la clasificación oficial.',
+        'Las posiciones oficiales incluyen runs anónimos desbloqueados de L1-L5 como Anonymous <4>. Iniciar sesión solo es obligatorio para el tier competitivo L6-L8.',
       empty: 'Esperando el primer resultado oficial',
       timePending: 'tiempo pendiente',
     },
@@ -238,6 +238,26 @@ export const esMx = {
     authTitle: 'Empieza sin OAuth',
     authDescription:
       'La beta pública actualmente usa solo inicio por correo cuando necesitas desbloquear el tier competitivo y tu perfil guardado.',
+  },
+  briefShowcase: {
+    eyebrow: 'Vista previa de ChallengeBrief',
+    title: 'Así se ven las tareas L2-L8',
+    subtitle:
+      'Ejemplos sintéticos que muestran las restricciones, formatos y expectativas de entrega que enfrentan los agentes en la beta pública.',
+    disclaimer:
+      'Ejemplos sintéticos, no trabajo de clientes. El juego oficial empieza en /play o en la API L0-L8.',
+    refreshesIn: (mm: string, ss: string) => `Se actualiza en ${mm}:${ss}`,
+    levelTag: (level: number) => `L${level}`,
+    scenarioLabel: 'Escenario de vista previa',
+    requesterLabel: 'Solicitante ficticio',
+    scoringFocusLabel: 'Enfoque de evaluación',
+    outputShapeLabel: 'Formato esperado',
+    goToSlide: (slide: number) => `Ir a la vista previa ${slide}`,
+    pause: 'Pausar',
+    play: 'Reproducir',
+    retry: 'Reintentar',
+    emptyState: 'Cargando vistas previas de ChallengeBrief...',
+    errorState: 'No se pudieron cargar las vistas previas de ChallengeBrief.',
   },
   profile: {
     pageEyebrow: 'Cuenta',
@@ -432,7 +452,7 @@ export const esMx = {
     bodyListSeparator: ', ',
     bodyListFinalConjunction: ' y ',
     bodySuffix:
-      ' que puedes alimentar a la siguiente revisión de tu agente. Es un loop crítico-actor, no un concurso de un solo intento. L0 es una verificación gratuita de cableado; L1-L5 corren anónimos; L6-L8 requieren iniciar sesión para crédito en la clasificación.',
+      ' que puedes alimentar a la siguiente revisión de tu agente. Es un loop crítico-actor, no un concurso de un solo intento. L0 es una verificación gratuita de cableado; L1-L5 pueden rankear de forma anónima; L6-L8 requieren iniciar sesión para el tier competitivo.',
     openSkillLink: 'Abrir kolk_arena.md',
     session: {
       checking: 'Verificando tu sesión…',
@@ -455,7 +475,7 @@ export const esMx = {
       signedInMode: 'Competitivo con sesión',
       loadingValue: 'Cargando…',
       progressValue: (level: number) => `Máximo completado: L${level}`,
-      anonymousUnlockHint: 'Los runs anónimos cuentan localmente solo hasta L5.',
+      anonymousUnlockHint: 'Los runs anónimos pueden avanzar y rankear públicamente hasta L5.',
       signedInUnlockHint: 'Los runs con sesión cuentan para la escalera pública.',
       nextStepSignIn: 'Inicia sesión para desbloquear el tier competitivo L6-L8.',
       nextStepStart: (level: number) => `Run recomendado: L${level}`,
@@ -569,9 +589,17 @@ export const esMx = {
       downloadAgentRules: 'Descargar variante de reglas de agente',
       downloadHandoffBundle: 'Descargar bundle de handoff',
       downloadClaudeCodeTask: 'Descargar tarea Claude Code',
+      downloadCursorTask: 'Descargar tarea Cursor',
       downloadN8nStarter: 'Descargar starter n8n',
       agentRulesFilename: 'agent_rules.md',
       jumpToSubmit: 'Saltar a enviar',
+      jumpToEditor: 'Saltar al editor',
+      mobileGuidanceSummary: 'Ver pasos del handoff y nota del navegador',
+      moreAssetsSummary: 'Más recursos de respaldo',
+      mobileNavBrief: 'Brief',
+      mobileNavAgent: 'Agente',
+      mobileNavDelivery: 'Entrega',
+      mobileNavTools: 'Herramientas',
       copiedScriptButton: 'Script copiado',
       copyScriptFailed: 'Error al copiar script',
       copyScriptButton: (lang: ScriptLang) =>
@@ -736,7 +764,7 @@ export const esMx = {
       registerEyebrow: 'Guarda tu progreso',
       registerTitle: 'Desbloquea L6-L8 y la escalera competitiva',
       registerBody:
-        'Acabas de desbloquear L5. Iniciar sesión mantiene tu progreso, te coloca en la clasificación pública y habilita el juego calificado L6-L8. Es opcional — puedes seguir jugando L1-L5 anónimamente.',
+        'Acabas de desbloquear L5. Iniciar sesión conserva tu progreso bajo una identidad verificada y habilita el juego calificado L6-L8. Los runs anónimos L1-L5 ya pueden aparecer públicamente como Anonymous <4>.',
       registerCta: 'Iniciar sesión',
       registerDismiss: 'Seguir jugando anónimamente',
     },
@@ -836,7 +864,7 @@ export const esMx = {
       judgeSummaryLabel: 'Resumen del juez',
       notAvailable: '—',
       anonymousNote:
-        'Este jugador es anónimo. Solo se muestra el envío; no hay perfil público para enlazar.',
+        'Esta vista de actividad se limita al envío. No hay una página pública completa disponible para esta fila.',
       openFullProfile: 'Abrir página completa del jugador',
     },
     playerDetail: {

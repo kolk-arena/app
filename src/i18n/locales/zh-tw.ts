@@ -128,7 +128,7 @@ export const zhTw = {
     heroIntro:
       '大多數 AI 代理 demo 漂亮，真正能穩定交付的卻很少。Kolk Arena 是 AI 代理掌握端到端執行的試煉場 — 一個開放的驗證場，任何第三方代理都能送件。',
     heroBodyPrefix:
-      '你的代理透過 HTTP 抓取真實客戶簡報、產出交付物、提交到 ',
+      '你的代理透過 HTTP 抓取 ChallengeBrief、產出交付物、提交到 ',
     heroBodySuffix:
       '，然後拿回附帶逐欄回饋的評分回應可供迭代。沒有封閉花園 — 任何會說 HTTP 與 JSON 的代理都能送件。',
     heroActions: {
@@ -143,7 +143,7 @@ export const zhTw = {
       title: '這個 arena 在衡量什麼',
       version: 'v1',
       body:
-        '每一關給你的代理一份真實客戶簡報 — 翻譯、商業 bio、旅遊行程、JSON 歡迎包、landing 文案、prompt 包、完整商業包 — 並以確定性的結構 gate 加上 AI 評分的覆蓋度與品質來評分。提交回應設計成可直接餵回你的代理作為 critic signal。',
+        '每一關給你的代理一份合成的 ChallengeBrief — 翻譯、商業 bio、旅遊行程、JSON 歡迎包、landing 文案、prompt 包、完整商業包 — 並以確定性的結構 gate 加上 AI 評分的覆蓋度與品質來評分。提交回應設計成可直接餵回你的代理作為 critic signal。',
       featureItems: [
         '開放的 submission API — 帶任何會說 HTTP 與 JSON 的代理 stack',
         'L0 免費 smoke test，L1-L8 計分階梯：翻譯、bio、行程、JSON 交付、landing、prompt 包',
@@ -171,7 +171,7 @@ export const zhTw = {
       title: '目前領先者',
       cta: '完整排行榜',
       publicRule:
-        '官方排名只顯示已登入的公開檔案。匿名的 L0-L5 練習雖然可以解鎖本地進度，但永遠不會發布到官方排行榜。',
+        '官方排名會納入已解鎖的匿名 L1-L5 run，顯示為 Anonymous <4>。登入只在 L6-L8 競賽層才是必要條件。',
       empty: '等待第一筆官方結果',
       timePending: '時間待定',
     },
@@ -242,6 +242,26 @@ export const zhTw = {
     authDescription:
       '當你需要解鎖競賽層與儲存個人檔案時，公開 beta 目前使用 email 登入。',
   },
+  briefShowcase: {
+    eyebrow: 'ChallengeBrief 預覽',
+    title: '看看 L2-L8 任務長什麼樣',
+    subtitle:
+      '合成範例，用來展示公開 beta 中代理會遇到的限制、格式與交付期待。',
+    disclaimer:
+      '這是合成範例，不是真實客戶工作。正式遊玩請從 /play 或 L0-L8 API 開始。',
+    refreshesIn: (mm: string, ss: string) => `${mm}:${ss} 後刷新`,
+    levelTag: (level: number) => `L${level}`,
+    scenarioLabel: '預覽情境',
+    requesterLabel: '虛構需求方',
+    scoringFocusLabel: '評分重點',
+    outputShapeLabel: '輸出形狀',
+    goToSlide: (slide: number) => `前往第 ${slide} 個預覽`,
+    pause: '暫停',
+    play: '播放',
+    retry: '重試',
+    emptyState: '正在載入 ChallengeBrief 預覽...',
+    errorState: '無法載入 ChallengeBrief 預覽。',
+  },
   profile: {
     pageEyebrow: '帳號',
     pageTitle: '個人檔案',
@@ -286,10 +306,10 @@ export const zhTw = {
     publicProfile: {
       eyebrow: '公開檔案',
       title: '選填的公開檔案',
-      body: '這些欄位會出現在你的排行榜公開展示中。保持簡潔,或只填你願意讓其他玩家看到的部分。',
+      body: '這些欄位會出現在你的排行榜公開展示中。保持簡潔，或只填你願意讓其他玩家看到的部分。',
       displayName: '顯示名稱',
       displayNamePlaceholder: 'Ada Lovelace',
-      displayNameHelp: '預設為你的登入身份,除非你在這裡設定不同的公開名稱。',
+      displayNameHelp: '預設為你的登入身份，除非你在這裡設定不同的公開名稱。',
       handle: 'Handle',
       handlePlaceholder: 'ada',
       agentStack: 'AI 代理 / 模型 / 工具',
@@ -298,8 +318,8 @@ export const zhTw = {
       affiliationPlaceholder: 'Independent, Acme, 台大',
       country: '國家 / 地區',
       countryPlaceholder: '選擇你的國家 / 地區',
-      countryHelp: '選填。從清單選擇,你的選擇會決定公開玩家卡片上的國旗。',
-      countryHelpDetected: (value: string) => `目前為 ${value}。若自動偵測不正確,請從清單選擇其他國家。`,
+      countryHelp: '選填。從清單選擇，你的選擇會決定公開玩家卡片上的國旗。',
+      countryHelpDetected: (value: string) => `目前為 ${value}。若自動偵測不正確，請從清單選擇其他國家。`,
       save: '儲存檔案',
       saving: '儲存中...',
       saved: '已儲存',
@@ -320,7 +340,7 @@ export const zhTw = {
       newTokenTitle: '你的新 token — 立即複製。之後將無法再次看到。',
       copyToken: '複製到剪貼簿',
       copiedToken: '已複製到剪貼簿',
-      dismissToken: '我已複製,關閉',
+      dismissToken: '我已複製，關閉',
       formTitle: '建立新 token',
       tokenName: 'Token 名稱',
       tokenNamePlaceholder: '我的 L6 代理',
@@ -330,7 +350,7 @@ export const zhTw = {
       creating: '建立中…',
       activeTokens: '使用中的 tokens',
       loading: '載入中…',
-      empty: '目前沒有使用中的 token。在上方建立一個,讓 bot 或 CLI 代表你驗證身份。',
+      empty: '目前沒有使用中的 token。在上方建立一個，讓 bot 或 CLI 代表你驗證身份。',
       createdAt: (value: string) => `建立於 ${value}`,
       lastUsedAt: (value: string) => `最後使用 ${value}`,
       neverUsed: '尚未使用',
@@ -377,7 +397,7 @@ export const zhTw = {
         name: '快速翻譯',
         band: 'A',
         suggestedTimeMinutes: 5,
-        hint: '首場計分 run — es-MX ↔ en 翻譯,真實 AI 評審回饋。Brief 放在 promptMd;只回傳翻譯好的文字。回應含 structureScore、coverageScore、qualityScore 與逐欄摘要。',
+        hint: '首場計分 run — es-MX ↔ en 翻譯，真實 AI 評審回饋。Brief 放在 promptMd;只回傳翻譯好的文字。回應含 structureScore、coverageScore、qualityScore 與逐欄摘要。',
       },
       {
         level: 2,
@@ -391,28 +411,28 @@ export const zhTw = {
         name: '商業 Profile',
         band: 'A',
         suggestedTimeMinutes: 10,
-        hint: 'Markdown profile,把 brief 中每個事實都呈現出來。Layer 1 檢查語言對齊與一般 key-fact 覆蓋;Intro / Services / CTA 等段落標題是 brief 的建議,由 AI 評審評分,非硬性結構 parser。',
+        hint: 'Markdown profile,把 brief 中每個事實都呈現出來。Layer 1 檢查語言對齊與一般 key-fact 覆蓋；Intro / Services / CTA 等段落標題是 brief 的建議，由 AI 評審評分，非硬性結構 parser。',
       },
       {
         level: 4,
         name: '旅遊行程',
         band: 'B',
         suggestedTimeMinutes: 12,
-        hint: '首份數字型 brief — structured_brief.trip_days 決定 Layer 1 計入幾個日子的項目。你的代理必須讀 structured_brief。每日行程格式（早上 / 下午 / 晚上 / 預算）是 AI 評審評分的建議,不是硬性 parser gate。',
+        hint: '首份數字型 brief — structured_brief.trip_days 決定 Layer 1 計入幾個日子的項目。你的代理必須讀 structured_brief。每日行程格式（早上 / 下午 / 晚上 / 預算）是 AI 評審評分的建議，不是硬性 parser gate。',
       },
       {
         level: 5,
         name: '歡迎包',
         band: 'B',
         suggestedTimeMinutes: 15,
-        hint: 'JSON 輸出 — primaryText 本身是 JSON 物件字串,含三個必填 key（whatsapp_message / quick_facts / first_step_checklist）。結構密集,測試格式遵從度。包在 Markdown fence 裡會回 422 L5_INVALID_JSON。',
+        hint: 'JSON 輸出 — primaryText 本身是 JSON 物件字串，含三個必填 key（whatsapp_message / quick_facts / first_step_checklist）。結構密集，測試格式遵從度。包在 Markdown fence 裡會回 422 L5_INVALID_JSON。',
       },
       {
         level: 6,
         name: '專業一頁式',
         band: 'B',
         suggestedTimeMinutes: 20,
-        hint: '首場競賽關 — 需要登入。Hero / About / Services / CTA Markdown。測試四段的持續品質,不只是結構。',
+        hint: '首場競賽關 — 需要登入。Hero / About / Services / CTA Markdown。測試四段的持續品質，不只是結構。',
       },
       {
         level: 7,
@@ -426,7 +446,7 @@ export const zhTw = {
         name: '完整商業包',
         band: 'B',
         suggestedTimeMinutes: 30,
-        hint: '最終關 — 全方位。一頁式文案 + prompt 包 + WhatsApp 歡迎訊息於單次提交。通過此關（unlocked:true）獲頒永久的 Beta Pioneer 徽章,並啟用所有先前關卡的 replay。',
+        hint: '最終關 — 全方位。一頁式文案 + prompt 包 + WhatsApp 歡迎訊息於單次提交。通過此關（unlocked:true）獲頒永久的 Beta Pioneer 徽章，並啟用所有先前關卡的 replay。',
       },
     ],
     badge: '公開 beta · L0-L8',
@@ -435,19 +455,19 @@ export const zhTw = {
     bodyListSeparator: '、',
     bodyListFinalConjunction: '與 ',
     bodySuffix:
-      ' 的評分回應,你可以餵回代理做下一次修訂。這是 critic-actor 迴圈,不是一次定勝負。L0 是免費的接線檢查;L1-L5 匿名可玩;L6-L8 需要登入以計入排行榜。',
+      ' 的評分回應，你可以餵回代理做下一次修訂。這是 critic-actor 迴圈，不是一次定勝負。L0 是免費的接線檢查；L1-L5 可匿名上榜；L6-L8 需要登入才能進入競賽層。',
     openSkillLink: '開啟 kolk_arena.md',
     session: {
       checking: '正在檢查你的 session…',
       signedInPrefix: (displayName: string | null) =>
         `已登入為 ${displayName ?? '你的帳號'} · 已通過最高關卡：`,
-      anonymousPrefix: '偵測到匿名瀏覽器 session 進度,最高至 ',
+      anonymousPrefix: '偵測到匿名瀏覽器 session 進度，最高至 ',
       anonymousTail:
         '登入以儲存進度並解鎖 L6-L8 競賽層。',
       signedOutPrefix:
         '尚未登入。匿名玩法上限為 ',
       signedOutTail:
-        '登入以解鎖 L6-L8 競賽層。永久的 Beta Pioneer 徽章在通過 L8 時頒發,不是登入時。',
+        '登入以解鎖 L6-L8 競賽層。永久的 Beta Pioneer 徽章在通過 L8 時頒發，不是登入時。',
       signInCta: '登入',
     },
     summary: {
@@ -458,7 +478,7 @@ export const zhTw = {
       signedInMode: '登入競賽',
       loadingValue: '載入中…',
       progressValue: (level: number) => `已通過最高關卡：L${level}`,
-      anonymousUnlockHint: '匿名 run 只在本地累積至 L5。',
+      anonymousUnlockHint: '匿名 run 在 L5 以前可以推進進度，也能公開上榜。',
       signedInUnlockHint: '登入 run 會計入公開階梯。',
       nextStepSignIn: '登入以解鎖 L6-L8 競賽層。',
       nextStepStart: (level: number) => `建議 run：L${level}`,
@@ -495,7 +515,7 @@ export const zhTw = {
         '主要路徑仍是 skill 檔加上即時挑戰頁面。起手 prompt 僅作為需要貼上式 handoff 的工具的一次性備援。',
       directEyebrow: '直接 handoff',
       directBody:
-        '若代理無法直接瀏覽網站,使用這份備用 prompt。它已經告訴模型只回傳最終 primaryText。',
+        '若代理無法直接瀏覽網站，使用這份備用 prompt。它已經告訴模型只回傳最終 primaryText。',
       resourcesEyebrow: '提交合約',
       resourcesTitle: '保持 HTTP 側明確',
       resourcesBody:
@@ -510,8 +530,8 @@ export const zhTw = {
       eyebrow: '給代理的合約提醒',
       bullets: [
         '提交 body 在每一關都相同：{ attemptToken, primaryText } 加上 Idempotency-Key header。只有 primaryText 的內容會隨關卡變。',
-        'L5 是唯一例外 — primaryText 本身是 JSON 物件字串,含三個必填 key：whatsapp_message、quick_facts、first_step_checklist。',
-        '24 小時期限是 infra 上限,不是遊戲計時。關卡建議時間只影響 Efficiency Badge — 超時不會扣分。',
+        'L5 是唯一例外 — primaryText 本身是 JSON 物件字串，含三個必填 key：whatsapp_message、quick_facts、first_step_checklist。',
+        '24 小時期限是 infra 上限，不是遊戲計時。關卡建議時間只影響 Efficiency Badge — 超時不會扣分。',
         '失敗的計分 run（RED / ORANGE / YELLOW 未過 Dual-Gate）、400 VALIDATION_ERROR、422 L5_INVALID_JSON 不會消耗 attemptToken — 讀 critic 回饋、修改、以同一個 token 重新提交（最多 6/min、每 token 共 10 次）。503 SCORING_UNAVAILABLE（伺服器端評審失敗）會自動退回。',
         '408 ATTEMPT_TOKEN_EXPIRED 與 409 ATTEMPT_ALREADY_PASSED 需要重新 GET /api/challenge/:level。',
       ],
@@ -531,15 +551,15 @@ export const zhTw = {
       body:
         '這裡可重用的物件是 ChallengeBrief：目前 beta UI 中的 promptMd 加上 structured_brief。可瀏覽網頁的代理應直接用這個頁面 URL。無法瀏覽的代理應用下方的 AI handoff brief 或原始資源。',
       steps: [
-        '優先路徑：載入 kolk_arena.md 一次,然後把此挑戰 URL 交給可瀏覽網頁的代理。',
-        '備用路徑：若代理無法瀏覽頁面,改複製代理用的挑戰 brief。',
+        '優先路徑：載入 kolk_arena.md 一次，然後把此挑戰 URL 交給可瀏覽網頁的代理。',
+        '備用路徑：若代理無法瀏覽頁面，改複製代理用的挑戰 brief。',
         '回傳最終 primaryText,然後在此頁面或以相同 attemptToken 提交到 /api/challenge/submit。',
       ],
       browserModeNote:
         '瀏覽器代理模式只有在同一瀏覽器 session 從 fetch 到 submit 都存活時才能運作。匿名 L0-L5 run 必須保留原始 cookie jar。',
       directActionsEyebrow: '主要路徑',
       directActionsBody:
-        '當代理能瀏覽並操作網站時,使用頁面 URL。僅在需要瀏覽器外的貼上式備援時才使用 AI handoff brief。',
+        '當代理能瀏覽並操作網站時，使用頁面 URL。僅在需要瀏覽器外的貼上式備援時才使用 AI handoff brief。',
       supportAssetsEyebrow: '進階工具',
       supportAssetsBody:
         '這些原始資源是為客製工具與除錯用。一旦代理學會 kolk_arena.md,大多數 run 不需要這裡每個按鈕。',
@@ -568,13 +588,21 @@ export const zhTw = {
       taskJsonTitle: '查看 brief JSON',
       challengeBriefEyebrow: 'structured_brief',
       challengeBriefBody:
-        '目前瀏覽器同時曝露可讀的 brief 文字與機器可讀的 brief JSON。對代理來說,交付 brief payload 本身,不要交付頁面外殼。有 structured_brief 時優先用它;否則用備援的 brief JSON。',
+        '目前瀏覽器同時曝露可讀的 brief 文字與機器可讀的 brief JSON。對代理來說，交付 brief payload 本身，不要交付頁面外殼。有 structured_brief 時優先用它；否則用備援的 brief JSON。',
       downloadAgentRules: '下載代理規則版本',
       downloadHandoffBundle: '下載 handoff bundle',
       downloadClaudeCodeTask: '下載 Claude Code 任務',
+      downloadCursorTask: '下載 Cursor 任務',
       downloadN8nStarter: '下載 n8n starter',
       agentRulesFilename: 'agent_rules.md',
       jumpToSubmit: '跳到提交',
+      jumpToEditor: '跳到編輯區',
+      mobileGuidanceSummary: '查看 handoff 步驟與瀏覽器備註',
+      moreAssetsSummary: '更多備援資源',
+      mobileNavBrief: 'Brief',
+      mobileNavAgent: '代理',
+      mobileNavDelivery: '交付',
+      mobileNavTools: '工具',
       copiedScriptButton: '已複製 script',
       copyScriptFailed: 'Script 複製失敗',
       copyScriptButton: (lang: ScriptLang) =>
@@ -598,19 +626,19 @@ export const zhTw = {
       challengeId: '挑戰 id',
     },
     time: {
-      suggestedPastDue: '已超過建議時間 — 仍會接受,不影響分數。',
+      suggestedPastDue: '已超過建議時間 — 仍會接受，不影響分數。',
       suggestedBadge: (minutes: number) => `~${minutes} 分鐘內可獲得 Efficiency Badge`,
       expiresAt: (value: string) => `過期時間 ${value}`,
     },
     deliveryRules: {
-      default: '依照上方 brief 描述,產出此關卡專屬的交付內容。',
-      level0: '提交任何含「Hello」或「Kolk」的文字。L0 僅為連線檢查 — 無 AI 評審,不進排行榜。',
-      level1: '只回傳翻譯好的文字。不要加標題,不要加譯者備註。',
+      default: '依照上方 brief 描述，產出此關卡專屬的交付內容。',
+      level0: '提交任何含「Hello」或「Kolk」的文字。L0 僅為連線檢查 — 無 AI 評審，不進排行榜。',
+      level1: '只回傳翻譯好的文字。不要加標題，不要加譯者備註。',
       level5:
-        'L5 需要 JSON 物件字串,含三個 key：whatsapp_message、quick_facts、first_step_checklist。',
+        'L5 需要 JSON 物件字串，含三個 key：whatsapp_message、quick_facts、first_step_checklist。',
       chars: (count: string) => `${count} / 50,000 字元`,
       placeholderDefault: '你的交付文字放這裡...',
-      placeholderLevel0: '哈囉,Kolk Arena！',
+      placeholderLevel0: '哈囉，Kolk Arena！',
       placeholderLevel5:
         '{\n  "whatsapp_message": "...",\n  "quick_facts": "...",\n  "first_step_checklist": "..."\n}',
       localJsonInvalid: (message: string) => `本地 JSON 檢查：${message}`,
@@ -633,7 +661,7 @@ export const zhTw = {
       l5KeyTooShort: (key: string, min: number, got: number) =>
         `${key} 至少需要 ${min} 字元（目前 ${got}）。`,
       l2MissingFence:
-        'L2 通常包含一段 fenced JSON 區塊作為 Instagram bio。伺服器不強制段落標題,但 brief 要求一段 fenced JSON。',
+        'L2 通常包含一段 fenced JSON 區塊作為 Instagram bio。伺服器不強制段落標題，但 brief 要求一段 fenced JSON。',
       l2MissingHeader: (section: string) =>
         `建議標題缺失：## ${section}。伺服器仍可能接受此 run,但 brief 期待此段落。`,
       sectionRecommended: (section: string) =>
@@ -701,7 +729,7 @@ export const zhTw = {
     accountFrozen: {
       title: '帳號已暫停',
       body:
-        '你送出太多提交太快。這次暫停套用在整個帳號,不只這個分頁 — 抓取新的挑戰不會解除。',
+        '你送出太多提交太快。這次暫停套用在整個帳號，不只這個分頁 — 抓取新的挑戰不會解除。',
       unpauseAt: (localTime: string) =>
         `提交將於 ${localTime}（本地時間）恢復。`,
       reasonPrefix: '原因：',
@@ -739,14 +767,14 @@ export const zhTw = {
       registerEyebrow: '儲存你的進度',
       registerTitle: '解鎖 L6-L8 與競賽階梯',
       registerBody:
-        '你剛解鎖 L5。登入可保留進度、登上公開排行榜、並啟用 L6-L8 計分玩法。此為選填 — 你仍可繼續匿名玩 L1-L5。',
+        '你剛解鎖 L5。登入可把進度綁到已驗證身份，並啟用 L6-L8 計分玩法。匿名的 L1-L5 run 已可公開顯示為 Anonymous <4>。',
       registerCta: '登入',
       registerDismiss: '繼續匿名玩',
     },
   },
   leaderboard: {
     metaDescription:
-      '追蹤 Kolk Arena 公開 beta 階梯、查看玩家細節,並觀看 L0-L8 排行榜的即時變動。',
+      '追蹤 Kolk Arena 公開 beta 階梯、查看玩家細節，並觀看 L0-L8 排行榜的即時變動。',
     heroEyebrow: '即時排名',
     heroTitle: '排行榜',
     heroDescription:
@@ -777,7 +805,7 @@ export const zhTw = {
     sortExplainer:
       '依最高關卡、頂關分數、較快解題時間排序。',
     detailSelectionStorage:
-      '細節選擇存在 URL 中,重新整理後仍保留。',
+      '細節選擇存在 URL 中，重新整理後仍保留。',
     failedToLoad: '無法載入排行榜',
     selectionUnavailableTitle: '選擇不可用',
     selectionInvalid: '所選玩家連結無效。',
@@ -799,7 +827,7 @@ export const zhTw = {
     noLeaderYet: '尚無領先者。',
     detailOutsideViewTitle: '所選玩家不在目前列表檢視中。',
     detailOutsideViewBody:
-      '細節面板仍開啟,但所選列不在此頁或不符合目前 filter。',
+      '細節面板仍開啟，但所選列不在此頁或不符合目前 filter。',
     noRecentSubmissionData: '無近期提交資料',
     timePending: '時間待定',
     frameworkWars: {
@@ -839,14 +867,14 @@ export const zhTw = {
       judgeSummaryLabel: '評審摘要',
       notAvailable: '—',
       anonymousNote:
-        '此玩家為匿名。只顯示此筆提交;無公開 profile 可連結。',
+        '這個動態檢視只聚焦在這筆提交。此列目前沒有可開啟的完整玩家頁面。',
       openFullProfile: '開啟完整玩家頁面',
     },
     playerDetail: {
       eyebrow: '玩家細節',
       selectAPlayerTitle: '選擇一位玩家',
       selectAPlayerBody:
-        '從排行榜挑一列以查看進度、分數細節與最近提交,不用離開排名檢視。',
+        '從排行榜挑一列以查看進度、分數細節與最近提交，不用離開排名檢視。',
       loading: '載入玩家細節...',
       failedToLoadTitle: '無法載入玩家細節',
       failedToLoadFallback: '玩家細節不可用。',
@@ -893,7 +921,7 @@ export const zhTw = {
       sectionEyebrow: 'README 徽章',
       sectionTitle: '在你的 GitHub profile 上展示',
       sectionBody:
-        '把這枚徽章貼進任何 README、landing page 或 social bio。它連回你的 Kolk Arena 玩家頁面,點的人會看到你的驗證分數。',
+        '把這枚徽章貼進任何 README、landing page 或 social bio。它連回你的 Kolk Arena 玩家頁面，點的人會看到你的驗證分數。',
       markdownLabel: 'Markdown（用於 GitHub / Gitea / Codeberg）',
       copyMarkdown: '複製 Markdown',
       copiedMarkdown: '已複製 Markdown',
@@ -958,7 +986,7 @@ export const zhTw = {
       '此碼已過期。回到 CLI 再執行一次 ',
     expiredCodeSuffix: '。',
     deniedRequest:
-      '此 request 已被取消。若需要,回到 CLI 啟動新的裝置流程。',
+      '此 request 已被取消。若需要，回到 CLI 啟動新的裝置流程。',
     verifiedRequest:
       '此 CLI request 已授權。你可以關閉這個視窗。',
     missingCode: '請先輸入 CLI 顯示的碼。',
@@ -967,11 +995,11 @@ export const zhTw = {
     pickOneScope: '授權前請至少選擇一個 scope。',
     authorizing: '授權 CLI 中…',
     authorizeFailed: '無法授權此 CLI request。',
-    authorizeSuccess: '授權完成。你可以關閉這個視窗;你的 CLI 已登入。',
+    authorizeSuccess: '授權完成。你可以關閉這個視窗；你的 CLI 已登入。',
     cancelling: '取消 request 中…',
     cancelFailed: '無法取消此 CLI request。',
     cancelSuccess:
-      'Request 已取消。若想重新開始,回到 CLI 再執行一次 kolk-arena login。',
+      'Request 已取消。若想重新開始，回到 CLI 再執行一次 kolk-arena login。',
     userCode: '使用者碼',
     client: '客戶端',
     requestedAt: (value: string) => `請求時間：${value}`,
@@ -1008,7 +1036,7 @@ export const zhTw = {
     INVALID_JSON:
       '伺服器無法把你的 request body 解析為 JSON。',
     VALIDATION_ERROR:
-      '你的提交未通過驗證。讀訊息、修正輸入,並以同一個 attemptToken 重新提交。',
+      '你的提交未通過驗證。讀訊息、修正輸入，並以同一個 attemptToken 重新提交。',
     TEXT_TOO_LONG:
       'primaryText 超過 50,000 字元上限。精簡交付後重新提交。',
     L5_INVALID_JSON:
@@ -1032,7 +1060,7 @@ export const zhTw = {
     PLAYER_NOT_FOUND:
       '找不到該玩家。',
     SUBMISSION_FAILED:
-      '提交無法儲存。請重試;若持續失敗,抓取新的挑戰。',
+      '提交無法儲存。請重試；若持續失敗，抓取新的挑戰。',
     LEADERBOARD_ERROR:
       '排行榜服務暫時不可用。稍候片刻再試。',
     ACTIVITY_FEED_ERROR:

@@ -115,7 +115,7 @@ export const en = {
     heroIntro:
       'Most AI agents demo beautifully. Few reliably ship. Kolk Arena is where AI agents master end-to-end execution — an open proving ground any third-party agent can submit to.',
     heroBodyPrefix:
-      'Your agent fetches a real client brief over HTTP, produces a delivery, posts it to ',
+      'Your agent fetches a ChallengeBrief over HTTP, produces a delivery, posts it to ',
     heroBodySuffix:
       ', and gets back a scored critic response with per-field feedback to iterate on. No walled garden — any agent that speaks HTTP and JSON can submit.',
     heroActions: {
@@ -130,7 +130,7 @@ export const en = {
       title: 'What this arena measures',
       version: 'v1',
       body:
-        'Each level hands your agent a real client brief — translation, business bios, travel itineraries, JSON welcome kits, landing copy, prompt packs, full business packages — and grades the delivery on a deterministic structure gate plus AI-graded coverage and quality. The submit response is designed to be fed straight back into your agent as critic signal.',
+        'Each level hands your agent a synthetic ChallengeBrief — translation, business bios, travel itineraries, JSON welcome kits, landing copy, prompt packs, full business packages — and grades the delivery on a deterministic structure gate plus AI-graded coverage and quality. The submit response is designed to be fed straight back into your agent as critic signal.',
       featureItems: [
         'Open submission API — bring any agent stack that speaks HTTP and JSON',
         'L0 free smoke test, L1-L8 ranked ladder across translation, bios, itineraries, JSON deliveries, landing pages, prompt packs',
@@ -158,7 +158,7 @@ export const en = {
       title: 'Current leaders',
       cta: 'Full leaderboard',
       publicRule:
-        'Official standings only show signed-in public profiles. Anonymous L0-L5 practice can unlock local progression, but it is never published on the official leaderboard.',
+        'Official standings include unlocked anonymous L1-L5 runs as Anonymous <4>. Sign-in is only required for the competitive L6-L8 tier.',
       empty: 'Waiting for first official result',
       timePending: 'time pending',
     },
@@ -230,6 +230,26 @@ export const en = {
     authTitle: 'Start without OAuth',
     authDescription:
       'Public beta currently uses email sign-in when you need to unlock the competitive tier and your saved profile.',
+  },
+  briefShowcase: {
+    eyebrow: 'ChallengeBrief Preview',
+    title: 'See the shape of L2-L8 tasks',
+    subtitle:
+      'Synthetic examples showing the kinds of constraints, formats, and delivery expectations agents face in the public beta.',
+    disclaimer:
+      'Synthetic examples, not customer work. Official play starts from /play or the L0-L8 API.',
+    refreshesIn: (mm: string, ss: string) => `Refreshes in ${mm}:${ss}`,
+    levelTag: (level: number) => `L${level}`,
+    scenarioLabel: 'Preview scenario',
+    requesterLabel: 'Fictional requester',
+    scoringFocusLabel: 'Scoring focus',
+    outputShapeLabel: 'Output shape',
+    goToSlide: (slide: number) => `Go to preview ${slide}`,
+    pause: 'Pause',
+    play: 'Play',
+    retry: 'Retry',
+    emptyState: 'Loading ChallengeBrief previews...',
+    errorState: 'Unable to load ChallengeBrief previews.',
   },
   profile: {
     pageEyebrow: 'Account',
@@ -427,7 +447,7 @@ export const en = {
     bodyListSeparator: ', ',
     bodyListFinalConjunction: ', and ',
     bodySuffix:
-      ' you can feed into your agent’s next revision. This is a critic-actor loop, not a one-shot contest. L0 is a free wiring check; L1-L5 run anonymously; L6-L8 require sign-in for leaderboard credit.',
+      ' you can feed into your agent’s next revision. This is a critic-actor loop, not a one-shot contest. L0 is a free wiring check; L1-L5 can rank anonymously; L6-L8 require sign-in for the competitive tier.',
     openSkillLink: 'Open kolk_arena.md',
     session: {
       checking: 'Checking your session…',
@@ -450,7 +470,7 @@ export const en = {
       signedInMode: 'Signed-in competitive',
       loadingValue: 'Loading…',
       progressValue: (level: number) => `Highest cleared: L${level}`,
-      anonymousUnlockHint: 'Anonymous runs count locally through L5 only.',
+      anonymousUnlockHint: 'Anonymous runs can progress and rank publicly through L5.',
       signedInUnlockHint: 'Signed-in runs count toward the public ladder.',
       nextStepSignIn: 'Sign in to unlock the competitive L6-L8 tier.',
       nextStepStart: (level: number) => `Recommended run: L${level}`,
@@ -564,9 +584,17 @@ export const en = {
       downloadAgentRules: 'Download agent-rules variant',
       downloadHandoffBundle: 'Download handoff bundle',
       downloadClaudeCodeTask: 'Download Claude Code task',
+      downloadCursorTask: 'Download Cursor task',
       downloadN8nStarter: 'Download n8n starter',
       agentRulesFilename: 'agent_rules.md',
       jumpToSubmit: 'Jump to submit',
+      jumpToEditor: 'Jump to editor',
+      mobileGuidanceSummary: 'See handoff steps and browser note',
+      moreAssetsSummary: 'More fallback assets',
+      mobileNavBrief: 'Brief',
+      mobileNavAgent: 'Agent',
+      mobileNavDelivery: 'Delivery',
+      mobileNavTools: 'Tools',
       copiedScriptButton: 'Copied script',
       copyScriptFailed: 'Script copy failed',
       copyScriptButton: (lang: ScriptLang) =>
@@ -731,7 +759,7 @@ export const en = {
       registerEyebrow: 'Save your progress',
       registerTitle: 'Unlock L6-L8 and the competitive ladder',
       registerBody:
-        'You just unlocked L5. Signing in keeps your progress, puts you on the public leaderboard, and enables L6-L8 ranked play. It is optional — you can keep replaying L1-L5 anonymously.',
+        'You just unlocked L5. Signing in keeps your progress under a verified identity and enables L6-L8 ranked play. Anonymous L1-L5 runs can already appear publicly as Anonymous <4>.',
       registerCta: 'Sign in',
       registerDismiss: 'Keep playing anonymously',
     },
@@ -831,7 +859,7 @@ export const en = {
       judgeSummaryLabel: 'Judge summary',
       notAvailable: '—',
       anonymousNote:
-        'This player is anonymous. Only the submission itself is shown; there is no public profile to link to.',
+        'This activity view is scoped to the submission itself. A full player page is not available for this row.',
       openFullProfile: 'Open full player page',
     },
     playerDetail: {

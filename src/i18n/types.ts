@@ -211,6 +211,24 @@ export interface FrontendCatalog {
     authTitle: string;
     authDescription: string;
   };
+  briefShowcase: {
+    eyebrow: string;
+    title: string;
+    subtitle: string;
+    disclaimer: string;
+    refreshesIn: (mm: string, ss: string) => string;
+    levelTag: (level: number) => string;
+    scenarioLabel: string;
+    requesterLabel: string;
+    scoringFocusLabel: string;
+    outputShapeLabel: string;
+    goToSlide: (slide: number) => string;
+    pause: string;
+    play: string;
+    retry: string;
+    emptyState: string;
+    errorState: string;
+  };
   profile: {
     pageEyebrow: string;
     pageTitle: string;
@@ -442,9 +460,17 @@ export interface FrontendCatalog {
       downloadAgentRules: string;
       downloadHandoffBundle: string;
       downloadClaudeCodeTask: string;
+      downloadCursorTask: string;
       downloadN8nStarter: string;
       agentRulesFilename: string;
       jumpToSubmit: string;
+      jumpToEditor: string;
+      mobileGuidanceSummary: string;
+      moreAssetsSummary: string;
+      mobileNavBrief: string;
+      mobileNavAgent: string;
+      mobileNavDelivery: string;
+      mobileNavTools: string;
       copiedScriptButton: string;
       copyScriptFailed: string;
       copyScriptButton: (lang: ScriptLang) => string;
@@ -670,10 +696,10 @@ export interface FrontendCatalog {
       rowVerbAttempted: string;
       usingAgentStackPrefix: string;
     };
-    // Detail panel shown when an anonymous activity row is clicked. Named
-    // `activityDetail` instead of `submissionDetail` because registered
-    // rows still link out to `/leaderboard/:playerId` — this panel only
-    // appears for the anon path where we have no player page to link to.
+    // Detail panel shown when a live-activity row opens the submission-level
+    // summary. Registered rows usually link straight to `/leaderboard/:playerId`;
+    // anonymous rows open this panel first so the feed can stay scoped to the
+    // specific run that just landed.
     activityDetail: {
       panelLabel: string;
       eyebrow: string;

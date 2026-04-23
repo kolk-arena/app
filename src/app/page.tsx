@@ -8,6 +8,7 @@ import {
 } from '@/lib/frontend/agent-handoff';
 import { AuthSignInPanel } from './auth-sign-in-panel';
 import { HomeInteractive } from './home-interactive';
+import { BriefShowcaseWrapper } from './brief-showcase-wrapper';
 import { fetchRankedLeaderboardRows } from '@/lib/kolk/leaderboard/ranking';
 
 async function getTopPlayers() {
@@ -65,6 +66,8 @@ export default async function Home() {
             </Link>
           </div>
         </div>
+
+        <BriefShowcaseWrapper />
 
         <HomeInteractive />
 

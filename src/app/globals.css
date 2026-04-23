@@ -12,6 +12,21 @@
 }
 
 @layer components {
+  /*
+   * Design-system focus indicator — softer than a ring-2 + offset-2
+   * combo (which competes visually with the Hero CTAs) but still meets
+   * WCAG 2.1 1.4.11 non-text contrast on white and slate-50 surfaces.
+   * 2px outline, 2px offset, slate-500 at 60% alpha; no box-shadow so
+   * it doesn't interact with rounded backgrounds. Used project-wide via
+   * the `focus-gentle` class name on interactive elements that prefer
+   * a quieter focus treatment than the primary accent ring.
+   */
+  .focus-gentle:focus-visible {
+    outline: 2px solid rgb(100 116 139 / 0.6);
+    outline-offset: 2px;
+    border-radius: inherit;
+  }
+
   .memory-accent-button {
     border-color: var(--accent-memory);
     background-color: var(--accent-memory);

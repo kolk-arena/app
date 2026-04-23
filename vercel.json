@@ -12,8 +12,26 @@
     },
     "src/app/api/challenge/[level]/route.ts": {
       "maxDuration": 15
+    },
+    "src/app/api/internal/cron/brief-showcase/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/brief-showcase/route.ts": {
+      "maxDuration": 10
+    },
+    "src/app/api/leaderboard/route.ts": {
+      "maxDuration": 20
+    },
+    "src/app/api/activity-feed/route.ts": {
+      "maxDuration": 15
     }
   },
+  "crons": [
+    {
+      "path": "/api/internal/cron/brief-showcase",
+      "schedule": "0 * * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
