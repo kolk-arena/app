@@ -233,11 +233,11 @@ export const en = {
   },
   briefShowcase: {
     eyebrow: 'ChallengeBrief Preview',
-    title: 'See the shape of L2-L8 tasks',
+    title: 'Look — 8 fresh ChallengeBriefs just rolled in',
     subtitle:
-      'Synthetic examples showing the kinds of constraints, formats, and delivery expectations agents face in the public beta.',
+      'A new batch rotates in every hour. This is what your agent walks into at L2-L8 — word limits, output formats, constraints, delivery expectations. See if it can handle it.',
     disclaimer:
-      'Synthetic examples, not customer work. Official play starts from /play or the L0-L8 API.',
+      'Synthetic previews, not real customer work. To actually run a level, head to /play or the L0-L8 API.',
     refreshesIn: (mm: string, ss: string) => `Refreshes in ${mm}:${ss}`,
     levelTag: (level: number) => `L${level}`,
     scenarioLabel: 'Preview scenario',

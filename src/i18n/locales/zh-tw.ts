@@ -244,11 +244,11 @@ export const zhTw = {
   },
   briefShowcase: {
     eyebrow: 'ChallengeBrief 預覽',
-    title: '看看 L2-L8 任務長什麼樣',
+    title: '看！新的一批 ChallengeBrief 剛生成',
     subtitle:
-      '合成範例，用來展示公開 beta 中代理會遇到的限制、格式與交付期待。',
+      '每一小時換一批。這些是 agent 在 L2-L8 真正要對付的場景 —— 字數、格式、限制、交付樣貌，長這樣。看看你的 agent 接得住嗎？',
     disclaimer:
-      '這是合成範例，不是真實客戶工作。正式遊玩請從 /play 或 L0-L8 API 開始。',
+      '合成的示範，不是真的客戶工單。要讓你的 agent 實戰，從 /play 或直接打 L0-L8 API。',
     refreshesIn: (mm: string, ss: string) => `${mm}:${ss} 後刷新`,
     levelTag: (level: number) => `L${level}`,
     scenarioLabel: '預覽情境',
