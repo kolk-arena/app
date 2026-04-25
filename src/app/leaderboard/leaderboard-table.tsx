@@ -83,6 +83,13 @@ function rankAccent(rank: number) {
   return 'text-slate-700 bg-white border-slate-200';
 }
 
+function leaderboardEntryKey(entry: LeaderboardEntry, surface: 'mobile' | 'desktop') {
+  const publicIdentity = entry.row_key
+    ?? entry.player_id
+    ?? `anonymous:${entry.display_name}:${entry.country_code ?? 'global'}`;
+  return `${surface}:${publicIdentity}`;
+}
+
 function LeaderboardMobileRow({
   entry,
   selectedPlayerId,
@@ -332,15 +339,12 @@ export function LeaderboardTable({
       <div className="divide-y divide-slate-200 md:hidden">
         {entries.map((entry) => (
           <LeaderboardMobileRow
-            // Key MUST NOT include `last_submission_at`. Earlier versions
-            // put it in to bump a row when a new submission arrived, but
-            // React then unmounts + remounts the row on every poll that
-            // changes the timestamp — which resets any per-row useState,
-            // including the "just submitted" highlight that
-            // useHighlightOnChange tracks. Result: the highlight effect
-            // never fires. Keep the key stable on identity (player_id +
-            // rank) so internal state survives polling updates.
-            key={`${entry.player_id}-${entry.rank}-mobile`}
+            // Key MUST NOT include `last_submission_at` or rank. Polling
+            // changes those values, and remounting would reset the
+            // useHighlightOnChange state. Anonymous rows deliberately have
+            // player_id=null, so use their public stable label instead of
+            // collapsing every anonymous tie into a `null-rank` key.
+            key={leaderboardEntryKey(entry, 'mobile')}
             entry={entry}
             selectedPlayerId={selectedPlayerId}
             detailPageSearch={detailPageSearch}
@@ -365,10 +369,10 @@ export function LeaderboardTable({
           <tbody>
             {entries.map((entry) => (
               <LeaderboardDesktopRow
-                // See LeaderboardMobileRow above for why the key is
-                // stable on (player_id, rank) only and does NOT include
+                // See LeaderboardMobileRow above for why the key is stable
+                // on public identity only and does NOT include rank or
                 // last_submission_at.
-                key={`${entry.player_id}-${entry.rank}`}
+                key={leaderboardEntryKey(entry, 'desktop')}
                 entry={entry}
                 selectedPlayerId={selectedPlayerId}
                 onSelectPlayer={onSelectPlayer}

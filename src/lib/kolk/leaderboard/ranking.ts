@@ -4,10 +4,12 @@ import {
   getSuggestedTimeMinutes,
   scoreToColorBand,
 } from '@/lib/kolk/beta-contract';
+import { hashCode } from '@/lib/kolk/auth';
 import { asOptionalPublicString, normalizeAgentStackStat, normalizePublicIdentity } from '@/lib/kolk/public-contract';
 import { TIERS } from '@/lib/kolk/types';
 
 export type PublicLeaderboardRow = {
+  row_key: string;
   player_id: string | null;
   rank: number;
   display_name: string;
@@ -74,6 +76,7 @@ function normalizeLeaderboardRow(
 ): SortableLeaderboardRow | null {
   const playerId = asOptionalString(entry.participant_id);
   if (!playerId) return null;
+  const isAnon = entry.is_anon === true;
 
   const highestLevel = Math.max(0, Math.trunc(asFiniteNumber(entry.highest_level, 0)));
   const bestScoreOnHighest = resolveBestScoreOnHighest(entry, highestLevel);
@@ -95,7 +98,8 @@ function normalizeLeaderboardRow(
   const tier = asOptionalString(entry.tier);
 
   return {
-    player_id: entry.is_anon === true ? null : playerId,
+    row_key: isAnon ? `anon_${hashCode(playerId).slice(0, 16)}` : `player_${playerId}`,
+    player_id: isAnon ? null : playerId,
     rank: 0,
     sort_player_id: playerId,
     display_name: asOptionalString(entry.display_name) ?? 'Anonymous',
@@ -115,7 +119,7 @@ function normalizeLeaderboardRow(
     levels_completed: Math.max(0, Math.trunc(asFiniteNumber(entry.levels_completed, 0))),
     tier: tier && VALID_TIERS.has(tier) ? tier : 'starter',
     pioneer: entry.pioneer === true,
-    is_anon: entry.is_anon === true,
+    is_anon: isAnon,
     last_submission_at: asIsoDateString(entry.last_submission_at),
     country_code: asOptionalString(entry.country_code),
   };

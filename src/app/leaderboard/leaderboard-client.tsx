@@ -481,7 +481,7 @@ export function LeaderboardClient() {
                       <button
                         type="button"
                         onClick={() => clearSingleFilter(filter.key)}
-                        className="focus-gentle min-h-9 rounded-xl px-1 text-slate-500 hover:text-slate-900"
+                        className="focus-gentle min-h-11 rounded-xl px-2 text-slate-500 hover:text-slate-900"
                       >
                         {lb.clearFilter}
                       </button>
@@ -493,7 +493,7 @@ export function LeaderboardClient() {
               {data?.agent_stack_stats && data.agent_stack_stats.length > 0 ? (
                 <details className="rounded-xl border border-slate-200 bg-slate-50 shadow-sm">
                   <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium text-slate-900">
-                    {lb.frameworkWars.title}
+                    {lb.agentStackMix.title}
                   </summary>
                   <div className="border-t border-slate-200 px-4 py-4">
                     <div className="flex h-3.5 w-full overflow-hidden rounded-full border border-slate-200 bg-white">
@@ -516,7 +516,7 @@ export function LeaderboardClient() {
                           <div key={stat.agent_stack} className="flex items-center gap-1.5">
                             <span className={`h-2 w-2 rounded-md ${dotColors[idx % dotColors.length]}`} />
                             <span className="font-medium text-slate-700">{stat.agent_stack}</span>
-                            <span className="text-slate-400">({lb.frameworkWars.legendPercent(stat.percentage)})</span>
+                            <span className="text-slate-400">({lb.agentStackMix.legendPercent(stat.percentage)})</span>
                           </div>
                         );
                       })}
