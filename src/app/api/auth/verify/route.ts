@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerSupabaseClient } from '@/lib/kolk/db';
 import { VerifyInputSchema } from '@/lib/kolk/types';
 import { syncArenaIdentityFromSupabaseUser } from '@/lib/kolk/auth/server';
-import { normalizeEmail } from '@/lib/kolk/auth';
+import { ANON_SESSION_COOKIE, normalizeEmail } from '@/lib/kolk/auth';
 import { normalizePublicIdentity } from '@/lib/kolk/public-contract';
 import { createIpRateLimiter, getClientIp } from '@/lib/kolk/rate-limit';
 
@@ -61,6 +61,7 @@ export async function POST(request: NextRequest) {
 
     const synced = await syncArenaIdentityFromSupabaseUser(data.user, {
       issueApiToken: true,
+      anonSessionToken: request.cookies.get(ANON_SESSION_COOKIE)?.value ?? null,
     });
 
     const response = NextResponse.json({

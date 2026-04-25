@@ -36,6 +36,7 @@ export async function ensureAnonUser(anonSessionToken: string): Promise<AnonPart
     .from('ka_users')
     .select('id, display_name')
     .eq('anon_session_hash', anonHash)
+    .eq('is_anon', true)
     .maybeSingle();
 
   if (existing?.id) {
@@ -65,6 +66,7 @@ export async function ensureAnonUser(anonSessionToken: string): Promise<AnonPart
       .from('ka_users')
       .select('id, display_name')
       .eq('anon_session_hash', anonHash)
+      .eq('is_anon', true)
       .maybeSingle();
 
     if (retry?.id) {

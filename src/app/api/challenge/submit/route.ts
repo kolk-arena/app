@@ -9,7 +9,8 @@
  * 5. Reject if already consumed by a prior passing submission (409 ATTEMPT_ALREADY_PASSED)
  * 6. Enforce 24h deadline (408 ATTEMPT_TOKEN_EXPIRED)
  * 7. Identity-bind: session owner must match caller
- * 8. Rate-limit per attemptToken (6/min, 40/hour) — not per account; 5xx refund via releaseClaimsOnServerFailure
+ * 8. Rate-limit per attemptToken (6/min, 40/hour, 10 non-refunded submits)
+ *    plus 99/day per identity; 5xx refund via releaseClaimsOnServerFailure
  * 9. Run scoring (L0 deterministic check or Layer 1 -> AI judge)
  * 10. Persist submission (multiple submissions per session allowed)
  * 11. Mark consumed_at only if Dual-Gate cleared
@@ -129,7 +130,7 @@ async function errorResponse({
   if (status < 500) {
     // Extend TTL from the 5-minute pending claim to the documented 24h
     // idempotency cache window so a retry with the same key is a cache hit.
-    void supabaseAdmin
+    const { error } = await supabaseAdmin
       .from('ka_idempotency_keys')
       .update({
         response: body,
@@ -137,8 +138,14 @@ async function errorResponse({
         expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       })
       .eq('key_hash', keyHash);
+    if (error) {
+      console.error('[submit] Failed to cache idempotent error response:', error);
+    }
   } else {
-    void supabaseAdmin.from('ka_idempotency_keys').delete().eq('key_hash', keyHash);
+    const { error } = await supabaseAdmin.from('ka_idempotency_keys').delete().eq('key_hash', keyHash);
+    if (error) {
+      console.error('[submit] Failed to release idempotency key after 5xx:', error);
+    }
   }
 
   return NextResponse.json(body, {
@@ -311,17 +318,19 @@ export async function POST(request: NextRequest) {
   // not eat their minute/hour/day quota. Paired with migration 00016.
   let claimedAttemptToken: string | null = null;
   let claimedIdentity: SubmissionIdentity | null = null;
+  let claimedIdentityDayBucketPt: string | null = null;
   const releaseClaimsOnServerFailure = async () => {
     const pendingAttempt = claimedAttemptToken
       ? releaseAttemptSubmitSlot(claimedAttemptToken)
       : Promise.resolve();
     const pendingIdentity = claimedIdentity
-      ? releaseIdentitySubmitAttempt(claimedIdentity)
+      ? releaseIdentitySubmitAttempt(claimedIdentity, claimedIdentityDayBucketPt ?? undefined)
       : Promise.resolve();
     // Clear BEFORE awaiting so a duplicate call (e.g. from the outer
     // catch firing after an inner release already ran) is a no-op.
     claimedAttemptToken = null;
     claimedIdentity = null;
+    claimedIdentityDayBucketPt = null;
     await Promise.allSettled([pendingAttempt, pendingIdentity]);
   };
 
@@ -354,6 +363,19 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (cached) {
+      const response = cached.response as { status?: unknown } | null;
+      if (cached.status_code === 202 || response?.status === 'pending') {
+        return NextResponse.json(
+          {
+            error: 'Request already in progress',
+            code: 'DUPLICATE_REQUEST',
+            fix_hint:
+              'A request with this Idempotency-Key is still being processed. Wait briefly, then retry the exact same body with the same key or start a new submit with a fresh key.',
+            retryAfter: 5,
+          },
+          { status: 409, headers: { 'Retry-After': '5' } },
+        );
+      }
       return NextResponse.json(cached.response, { status: cached.status_code });
     }
 
@@ -559,6 +581,7 @@ export async function POST(request: NextRequest) {
           message: `This Personal Access Token is missing the ${missing.join(', ')} scope required to submit for level ${challenge.level}.`,
           fixHint:
             'Your PAT is missing a required scope. Create a new token at /profile/api-tokens with the needed scope.',
+          bodyExtras: { missing_scopes: missing },
         });
       }
     }
@@ -621,6 +644,8 @@ export async function POST(request: NextRequest) {
         },
       });
     }
+    claimedIdentity = submissionIdentity;
+    claimedIdentityDayBucketPt = identityGuard.dayBucketPt;
 
     const attemptGuard = await claimAttemptSubmitSlot(attemptToken);
     if (!attemptGuard.allowed) {
@@ -671,7 +696,6 @@ export async function POST(request: NextRequest) {
     // Both rate-limit slots are now claimed. Track them so any subsequent
     // 5xx (SCORING_UNAVAILABLE, SUBMISSION_FAILED, uncaught) can release.
     claimedAttemptToken = attemptToken;
-    claimedIdentity = submissionIdentity;
 
     if (challenge.level === 5) {
       const l5Json = parseL5Json(primaryText);
@@ -1039,7 +1063,7 @@ export async function POST(request: NextRequest) {
     const responseBody = result as unknown as Record<string, unknown>;
     // Extend the 5-minute pending claim to the documented 24h idempotency cache
     // window so a retry with the same Idempotency-Key returns the cached body.
-    void supabaseAdmin
+    const { error: cacheError } = await supabaseAdmin
       .from('ka_idempotency_keys')
       .update({
         response: responseBody,
@@ -1047,6 +1071,9 @@ export async function POST(request: NextRequest) {
         expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       })
       .eq('key_hash', keyHash);
+    if (cacheError) {
+      console.error('[submit] Failed to cache idempotent success response:', cacheError);
+    }
 
     return NextResponse.json(responseBody);
   } catch (uncaughtErr) {

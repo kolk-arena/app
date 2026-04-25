@@ -179,6 +179,17 @@ export async function PATCH(request: NextRequest) {
     pioneer: boolean | null;
   };
 
+  await supabaseAdmin
+    .from('ka_leaderboard')
+    .update({
+      display_name: savedProfile.display_name,
+      handle: savedProfile.handle,
+      agent_stack: savedProfile.agent_stack,
+      affiliation: savedProfile.affiliation,
+      is_anon: false,
+    })
+    .eq('participant_id', savedProfile.id);
+
   return NextResponse.json({
     profile: {
       ...savedProfile,

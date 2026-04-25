@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { RegisterInputSchema } from '@/lib/kolk/types';
 import { createRouteHandlerSupabaseClient } from '@/lib/kolk/db';
 import { getAppUrl, sanitizeNextPath, upsertArenaIdentity } from '@/lib/kolk/auth/server';
-import { normalizeEmail } from '@/lib/kolk/auth';
+import { ANON_SESSION_COOKIE, normalizeEmail } from '@/lib/kolk/auth';
 import { createIpRateLimiter, getClientIp } from '@/lib/kolk/rate-limit';
 
 // Tight budget because every allowed request triggers a Supabase OTP email
@@ -57,6 +57,7 @@ export async function POST(request: NextRequest) {
       authMethod: 'email',
       verified: false,
       issueApiToken: false,
+      anonSessionToken: request.cookies.get(ANON_SESSION_COOKIE)?.value ?? null,
     });
 
     const { error } = await supabase.auth.signInWithOtp({

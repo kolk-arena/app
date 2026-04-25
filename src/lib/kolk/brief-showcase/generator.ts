@@ -29,6 +29,9 @@ const GeneratedBriefSchema = z.object({
 const GeneratedBriefsSchema = z.array(GeneratedBriefSchema).length(8);
 
 const TranslationItemSchema = z.object({
+  scenarioTitle: z.string().min(1),
+  industry: z.string().min(1),
+  requesterRole: z.string().min(1),
   requestContext: z.string().min(1),
   scoringFocus: z.array(z.string()).min(1),
   outputShape: z.array(z.string()).min(1),
@@ -196,17 +199,24 @@ const TRANSLATION_PROMPT = `Translate the following synthetic ChallengeBrief pre
 Maintain a professional, natural tone appropriate for the service industry.
 Preserve fictional names, URLs, Kolk Arena, ChallengeBrief, L0-L8, API, JSON, HTTP, attemptToken, and primaryText as-is.
 
+Translate scenarioTitle, industry, requesterRole, requestContext, scoringFocus, and outputShape.
+Preserve fictionalRequesterName exactly if it appears in the input.
+
 Output STRICTLY as a JSON array with the same order:
-[{ "requestContext": "...", "scoringFocus": ["..."], "outputShape": ["..."] }, ...]
+[{ "scenarioTitle": "...", "industry": "...", "requesterRole": "...", "requestContext": "...", "scoringFocus": ["..."], "outputShape": ["..."] }, ...]
 
 No markdown fences, no commentary.`;
 
 async function translateBriefs(
   briefs: GeneratedBrief[],
   locale: FrontendLocale,
-): Promise<Pick<GeneratedBrief, 'requestContext' | 'scoringFocus' | 'outputShape'>[]> {
+): Promise<Pick<GeneratedBrief, 'scenarioTitle' | 'industry' | 'requesterRole' | 'requestContext' | 'scoringFocus' | 'outputShape'>[]> {
   const provider = BRIEF_SHOWCASE_CONFIG.provider;
   const items = briefs.map((b) => ({
+    scenarioTitle: b.scenarioTitle,
+    industry: b.industry,
+    fictionalRequesterName: b.fictionalRequesterName,
+    requesterRole: b.requesterRole,
     requestContext: b.requestContext,
     scoringFocus: b.scoringFocus,
     outputShape: b.outputShape,
@@ -239,10 +249,10 @@ async function translateBriefs(
 }
 
 async function translateWithGemini(
-  items: Pick<GeneratedBrief, 'requestContext' | 'scoringFocus' | 'outputShape'>[],
+  items: Pick<GeneratedBrief, 'scenarioTitle' | 'industry' | 'fictionalRequesterName' | 'requesterRole' | 'requestContext' | 'scoringFocus' | 'outputShape'>[],
   locale: FrontendLocale,
   gemini: { apiKey: string; model: string; baseURL: string },
-): Promise<Pick<GeneratedBrief, 'requestContext' | 'scoringFocus' | 'outputShape'>[]> {
+): Promise<Pick<GeneratedBrief, 'scenarioTitle' | 'industry' | 'requesterRole' | 'requestContext' | 'scoringFocus' | 'outputShape'>[]> {
   const localeName =
     locale === 'zh-tw' ? 'Traditional Chinese (Taiwan)' :
     locale === 'es-mx' ? 'Mexican Spanish' : 'English';
@@ -274,7 +284,7 @@ async function translateWithGemini(
   return parseTranslationJson(raw);
 }
 
-function parseTranslationJson(raw: string): Pick<GeneratedBrief, 'requestContext' | 'scoringFocus' | 'outputShape'>[] {
+function parseTranslationJson(raw: string): Pick<GeneratedBrief, 'scenarioTitle' | 'industry' | 'requesterRole' | 'requestContext' | 'scoringFocus' | 'outputShape'>[] {
   const cleaned = raw.replace(/^\s*```json?\s*/, '').replace(/\s*```\s*$/, '').trim();
   let parsed: unknown;
   try {
@@ -297,20 +307,23 @@ function parseTranslationJson(raw: string): Pick<GeneratedBrief, 'requestContext
 
 export interface ShowcaseGenerationResult {
   briefs: GeneratedBrief[];
-  translations: Record<string, { request_context: string; scoring_focus: string[]; output_shape: string[] }[]>;
+  translations: Record<string, { title: string; industry: string; ceo_title: string; request_context: string; scoring_focus: string[]; output_shape: string[] }[]>;
 }
 
 export async function generateShowcaseBatch(): Promise<ShowcaseGenerationResult> {
   const levels = pickLevels(8);
   const englishBriefs = await generateEnglishBriefs(levels);
 
-  const translations: Record<string, { request_context: string; scoring_focus: string[]; output_shape: string[] }[]> = {};
+  const translations: Record<string, { title: string; industry: string; ceo_title: string; request_context: string; scoring_focus: string[]; output_shape: string[] }[]> = {};
 
   const targetLocales = BRIEF_SHOWCASE_CONFIG.locales.filter((l) => l !== 'en');
   for (const locale of targetLocales) {
     try {
       const translated = await translateBriefs(englishBriefs, locale);
       translations[locale] = translated.map((t) => ({
+        title: t.scenarioTitle,
+        industry: t.industry,
+        ceo_title: t.requesterRole,
         request_context: t.requestContext,
         scoring_focus: t.scoringFocus,
         output_shape: t.outputShape,
@@ -318,6 +331,9 @@ export async function generateShowcaseBatch(): Promise<ShowcaseGenerationResult>
     } catch (err) {
       console.error(`[brief-showcase] Translation failed for ${locale}:`, err);
       translations[locale] = englishBriefs.map((b) => ({
+        title: b.scenarioTitle,
+        industry: b.industry,
+        ceo_title: b.requesterRole,
         request_context: b.requestContext,
         scoring_focus: b.scoringFocus,
         output_shape: b.outputShape,

@@ -1,18 +1,20 @@
 import { hashCode, normalizeEmail } from '@/lib/kolk/auth';
+import {
+  SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN_PER_HOUR,
+  SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN_PER_MINUTE,
+  SUBMIT_RATE_LIMIT_PER_IDENTITY_PER_DAY,
+  SUBMIT_RETRY_CAP_PER_ATTEMPT_TOKEN,
+} from '@/lib/kolk/beta-contract';
 import { supabaseAdmin } from '@/lib/kolk/db';
 
 const PACIFIC_TIME_ZONE = 'America/Los_Angeles';
 
-// Launch-week relaxation (2026-04-20): raised from 2/20 → 6/40 because the
-// judge layer had intermittent 5xx and genuine players were hitting their
-// minute/hour cap while legitimately retrying after OUR failures. Pair with
-// migration 00016_launch_rate_limit_release.sql, which introduces
-// release RPCs that unwind a claim on any 5xx exit so server-side faults
-// no longer count against the player's quota.
-export const SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN_PER_MINUTE = 6;
-export const SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN_PER_HOUR = 40;
-export const SUBMIT_RETRY_CAP_PER_ATTEMPT_TOKEN = 10;
-export const SUBMIT_RATE_LIMIT_PER_IDENTITY_PER_DAY = 99;
+export {
+  SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN_PER_HOUR,
+  SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN_PER_MINUTE,
+  SUBMIT_RATE_LIMIT_PER_IDENTITY_PER_DAY,
+  SUBMIT_RETRY_CAP_PER_ATTEMPT_TOKEN,
+};
 
 type RpcClaimAttemptRow = {
   allowed: boolean;
@@ -55,6 +57,7 @@ export type SubmissionIdentity =
 
 export type IdentityLimitAllowed = {
   allowed: true;
+  dayBucketPt: string;
   day: {
     used: number;
     max: number;
@@ -64,6 +67,7 @@ export type IdentityLimitAllowed = {
 export type IdentityLimitBlocked = {
   allowed: false;
   code: 'ACCOUNT_FROZEN' | 'RATE_LIMIT_DAY';
+  dayBucketPt: string;
   retryAfterSeconds: number;
   frozenUntil?: string;
   reason?: string;
@@ -160,11 +164,12 @@ export function buildSubmissionIdentity(input: {
 }
 
 export async function claimIdentitySubmitAttempt(identity: SubmissionIdentity): Promise<IdentityLimitResult> {
+  const dayBucketPt = getPacificDayBucket();
   const { data, error } = await supabaseAdmin.rpc('ka_claim_identity_submit_attempt', {
     p_identity_key: identity.keyHash,
     p_identity_kind: identity.kind,
     p_user_id: identity.kind === 'user' ? identity.userId : null,
-    p_day_bucket_pt: getPacificDayBucket(),
+    p_day_bucket_pt: dayBucketPt,
     p_day_limit: SUBMIT_RATE_LIMIT_PER_IDENTITY_PER_DAY,
   });
 
@@ -179,6 +184,7 @@ export async function claimIdentitySubmitAttempt(identity: SubmissionIdentity): 
   if (!row || row.allowed !== false || !row.code) {
     return {
       allowed: true,
+      dayBucketPt,
       day: {
         used: dayUsed,
         max: dayMax,
@@ -190,6 +196,7 @@ export async function claimIdentitySubmitAttempt(identity: SubmissionIdentity): 
     return {
       allowed: false,
       code: 'ACCOUNT_FROZEN',
+      dayBucketPt,
       retryAfterSeconds: coercePositiveInt(row.retry_after_seconds, 5 * 60 * 60),
       frozenUntil: row.frozen_until ?? undefined,
       reason: row.reason ?? undefined,
@@ -209,6 +216,7 @@ export async function claimIdentitySubmitAttempt(identity: SubmissionIdentity): 
   return {
     allowed: false,
     code: 'RATE_LIMIT_DAY',
+    dayBucketPt,
     retryAfterSeconds: coercePositiveInt(row.retry_after_seconds, 60),
     day: {
       used: dayUsed,

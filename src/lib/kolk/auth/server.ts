@@ -7,6 +7,7 @@ import {
 } from '@/lib/kolk/db';
 import {
   detectAffiliation,
+  ANON_SESSION_COOKIE,
   extractToken,
   generateToken,
   hashCode,
@@ -43,6 +44,8 @@ export interface ArenaUserRecord {
   last_login_method: string | null;
   verified_at: string | null;
   pioneer: boolean;
+  is_anon: boolean;
+  anon_session_hash: string | null;
 }
 
 const ARENA_USER_SELECT = [
@@ -61,6 +64,8 @@ const ARENA_USER_SELECT = [
   'last_login_method',
   'verified_at',
   'pioneer',
+  'is_anon',
+  'anon_session_hash',
 ].join(', ');
 
 function dedupe(values: Array<string | null | undefined>): string[] {
@@ -141,10 +146,12 @@ export async function upsertArenaIdentity(input: {
   authUserId?: string | null;
   verified?: boolean;
   issueApiToken?: boolean;
+  anonSessionToken?: string | null;
 }) {
   const normalizedEmail = normalizeEmail(input.email);
   const affiliation = detectAffiliation(normalizedEmail);
   const now = new Date().toISOString();
+  const anonSessionHash = input.anonSessionToken ? hashCode(input.anonSessionToken) : null;
 
   // Look up by email first, then fall back to auth_user_ids (handles email changes)
   let existingRaw = null;
@@ -173,6 +180,22 @@ export async function upsertArenaIdentity(input: {
     }
   }
 
+  if (!existingRaw && anonSessionHash) {
+    // First-time sign-in after anonymous L1-L5 play: upgrade the existing
+    // anonymous row in-place so leaderboard/progression history stays on the
+    // same participant id. If an email/auth row already exists, we keep that
+    // canonical row and do not risk a cross-account merge here.
+    const { data: byAnonSession } = await supabaseAdmin
+      .from('ka_users')
+      .select(ARENA_USER_SELECT)
+      .eq('anon_session_hash', anonSessionHash)
+      .eq('is_anon', true)
+      .maybeSingle();
+    if (byAnonSession) {
+      existingRaw = byAnonSession;
+    }
+  }
+
   const existing = (existingRaw ?? null) as ArenaUserRecord | null;
 
   const authMethods = dedupe([
@@ -185,7 +208,7 @@ export async function upsertArenaIdentity(input: {
     input.authUserId ?? null,
   ]);
 
-  const displayName = existing?.display_name
+  const displayName = existing?.display_name && existing.is_anon !== true
     ? (input.displayName?.trim() ? sanitizeDisplayName(input.displayName, normalizedEmail) : existing.display_name)
     : sanitizeDisplayName(input.displayName, normalizedEmail);
 
@@ -206,6 +229,8 @@ export async function upsertArenaIdentity(input: {
     auth_user_ids: authUserIds,
     last_login_method: input.authMethod,
     token_hash: tokenHash,
+    is_anon: false,
+    anon_session_hash: null,
   };
 
   const query = existing
@@ -221,6 +246,17 @@ export async function upsertArenaIdentity(input: {
     throw error ?? new Error('Failed to upsert Kolk Arena identity');
   }
 
+  await supabaseAdmin
+    .from('ka_leaderboard')
+    .update({
+      display_name: data.display_name,
+      handle: data.handle,
+      agent_stack: data.agent_stack,
+      affiliation: data.affiliation,
+      is_anon: false,
+    })
+    .eq('participant_id', data.id);
+
   return {
     user: data as ArenaUserRecord,
     apiToken,
@@ -229,7 +265,7 @@ export async function upsertArenaIdentity(input: {
 
 export async function syncArenaIdentityFromSupabaseUser(
   user: User,
-  options?: { displayName?: string | null; issueApiToken?: boolean },
+  options?: { displayName?: string | null; issueApiToken?: boolean; anonSessionToken?: string | null },
 ) {
   const email = user.email;
   if (!email) {
@@ -252,7 +288,12 @@ export async function syncArenaIdentityFromSupabaseUser(
     authUserId: user.id,
     verified: shouldVerify,
     issueApiToken: options?.issueApiToken,
+    anonSessionToken: options?.anonSessionToken,
   });
+}
+
+function getAnonSessionToken(request: NextRequest): string | null {
+  return request.cookies.get(ANON_SESSION_COOKIE)?.value ?? null;
 }
 
 /**
@@ -308,7 +349,10 @@ export async function resolveArenaAuthContext(request: NextRequest): Promise<Are
     return null;
   }
 
-  const synced = await syncArenaIdentityFromSupabaseUser(data.user, { issueApiToken: false });
+  const synced = await syncArenaIdentityFromSupabaseUser(data.user, {
+    issueApiToken: false,
+    anonSessionToken: getAnonSessionToken(request),
+  });
   return { user: synced.user, apiTokenId: null, scopes: null };
 }
 

@@ -126,9 +126,10 @@ export async function GET(request: NextRequest) {
       const user = row.participant_id ? userMap.get(row.participant_id) : null;
       const colorBand = asColorBand(row.color_band);
       const solveTimeRaw = asFiniteNumber(row.solve_time_seconds, NaN);
+      const isAnon = user?.is_anon === true || !row.participant_id;
       return {
         id: String(row.id),
-        player_id: asOptionalString(row.participant_id),
+        player_id: isAnon ? null : asOptionalString(row.participant_id),
         level: Math.max(1, Math.trunc(asFiniteNumber(row.level, 1))),
         display_name: user?.display_name || 'Anonymous',
         ...normalizePublicIdentity({
@@ -142,7 +143,7 @@ export async function GET(request: NextRequest) {
         submitted_at: asIsoDateString(row.submitted_at),
         unlocked: row.unlocked === true,
         country_code: asOptionalString(row.country_code),
-        is_anon: user?.is_anon === true,
+        is_anon: isAnon,
       };
     });
 

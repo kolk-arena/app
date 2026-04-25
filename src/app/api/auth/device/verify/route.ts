@@ -176,9 +176,8 @@ export async function POST(request: NextRequest) {
       updatedCount,
       tokenId: tokenRowRaw.id,
     });
-    // Best-effort compensating revoke. Not awaited strictly — even if this
-    // also fails, the token still has its own expires_at + can be manually
-    // cleaned up from the orphan-kat_ recovery runbook.
+    // Best-effort compensating revoke. Even if this also fails, the token
+    // still has its own expires_at and can be handled by operator cleanup.
     await supabaseAdmin
       .from('ka_api_tokens')
       .update({ revoked_at: new Date().toISOString() })

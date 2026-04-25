@@ -28,7 +28,14 @@ export interface DbBriefShowcaseRow {
   quote: string;
   core_needs: string[];
   deliverables: string[];
-  translations: Record<string, { request_context: string; scoring_focus: string[]; output_shape: string[] }>;
+  translations: Record<string, {
+    title?: string;
+    industry?: string;
+    ceo_title?: string;
+    request_context: string;
+    scoring_focus: string[];
+    output_shape: string[];
+  }>;
   generated_at: string;
   expires_at: string;
   qc_status: 'passed' | 'failed';
@@ -48,7 +55,14 @@ export interface RawShowcaseRow {
   quote: string;
   core_needs: string[];
   deliverables: string[];
-  translations: Record<string, { request_context: string; scoring_focus: string[]; output_shape: string[] }>;
+  translations: Record<string, {
+    title?: string;
+    industry?: string;
+    ceo_title?: string;
+    request_context: string;
+    scoring_focus: string[];
+    output_shape: string[];
+  }>;
   generated_at: string;
   expires_at: string;
   qc_status: string;
@@ -144,10 +158,10 @@ export function toClientRequests(rows: RawShowcaseRow[], locale: string) {
     const tx = row.translations?.[normalizedLocale];
     return {
       level: row.level,
-      scenarioTitle: row.title,
-      industry: row.industry ?? '',
+      scenarioTitle: tx?.title ?? row.title,
+      industry: tx?.industry ?? row.industry ?? '',
       requesterName: row.ceo_name ?? '',
-      requesterRole: row.ceo_title ?? '',
+      requesterRole: tx?.ceo_title ?? row.ceo_title ?? '',
       requestContext: tx?.request_context ?? row.quote,
       scoringFocus: tx?.scoring_focus ?? row.core_needs,
       outputShape: tx?.output_shape ?? row.deliverables,

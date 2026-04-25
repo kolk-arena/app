@@ -4,7 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerSupabaseClient } from '@/lib/kolk/db';
-import { inferAuthMethodFromUser } from '@/lib/kolk/auth';
+import { ANON_SESSION_COOKIE, inferAuthMethodFromUser } from '@/lib/kolk/auth';
 import { sanitizeNextPath, syncArenaIdentityFromSupabaseUser, upsertArenaIdentity } from '@/lib/kolk/auth/server';
 
 async function resolveGithubPrimaryEmail(providerToken: string): Promise<string | null> {
@@ -65,6 +65,7 @@ export async function GET(request: NextRequest) {
   const next = request.nextUrl.searchParams.get('next');
   const nextPath = sanitizeNextPath(next);
   const redirectUrl = new URL(nextPath, request.nextUrl.origin);
+  const anonSessionToken = request.cookies.get(ANON_SESSION_COOKIE)?.value ?? null;
 
   // Always create the SSR client so applyCookies is available in all paths
   const { supabase, applyCookies } = createRouteHandlerSupabaseClient(request);
@@ -176,9 +177,10 @@ export async function GET(request: NextRequest) {
         authUserId: data.user.id,
         verified: true,
         issueApiToken: false,
+        anonSessionToken,
       });
     } else {
-      await syncArenaIdentityFromSupabaseUser(data.user, { issueApiToken: false });
+      await syncArenaIdentityFromSupabaseUser(data.user, { issueApiToken: false, anonSessionToken });
     }
 
     redirectUrl.searchParams.set('auth', 'success');
