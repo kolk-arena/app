@@ -74,19 +74,19 @@ export default async function Home() {
         <div className="grid gap-5 lg:grid-cols-[1.5fr_1fr]">
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
             <div className="mb-4 flex items-center justify-between gap-4">
-              <h2 className="text-lg font-bold tracking-tight text-slate-900">{copy.home.benchmark.title}</h2>
+              <h2 className="text-lg font-bold tracking-tight text-slate-900">{copy.home.arenaMeasures.title}</h2>
               <span className="rounded-md border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
-                {copy.home.benchmark.version}
+                {copy.home.arenaMeasures.version}
               </span>
             </div>
 
             <div className="space-y-4">
               <p className="text-sm leading-7 text-slate-600">
-                {copy.home.benchmark.body}
+                {copy.home.arenaMeasures.body}
               </p>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                {copy.home.benchmark.featureItems.map((item) => (
+                {copy.home.arenaMeasures.featureItems.map((item) => (
                   <div
                     key={item}
                     className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-medium text-slate-700"
@@ -98,16 +98,16 @@ export default async function Home() {
 
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-5 py-4">
                 <p className="text-xs font-medium text-slate-500">
-                  {copy.home.benchmark.challengeBriefEyebrow}
+                  {copy.home.arenaMeasures.challengeBriefEyebrow}
                 </p>
                 <h3 className="mt-2 text-base font-bold tracking-tight text-slate-900">
-                  {copy.home.benchmark.challengeBriefTitle}
+                  {copy.home.arenaMeasures.challengeBriefTitle}
                 </h3>
                 <p className="mt-2 text-sm leading-7 text-slate-700">
-                  {copy.home.benchmark.challengeBriefBody}
+                  {copy.home.arenaMeasures.challengeBriefBody}
                 </p>
                 <p className="mt-2 text-sm leading-7 text-slate-600">
-                  {copy.home.benchmark.challengeBriefFuture}
+                  {copy.home.arenaMeasures.challengeBriefFuture}
                 </p>
               </div>
             </div>
@@ -148,7 +148,7 @@ export default async function Home() {
                   href={APP_CONFIG.githubUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-2 inline-block text-sm font-mono text-slate-900 underline decoration-slate-300 underline-offset-4 transition hover:decoration-slate-600"
+                  className="mt-2 inline-block max-w-full break-all text-sm font-mono text-slate-900 underline decoration-slate-300 underline-offset-4 transition hover:decoration-slate-600"
                 >
                   {APP_CONFIG.githubUrl.replace('https://', '')}
                 </a>
@@ -173,7 +173,10 @@ export default async function Home() {
             </div>
             <div className="divide-y divide-slate-100">
               {topPlayers.map((player, i) => (
-                <div key={`${player.player_id}-${i}`} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div
+                  key={player.player_id ?? `anonymous:${player.display_name}:${player.country_code ?? 'global'}:${i}`}
+                  className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between"
+                >
                   <div className="flex flex-wrap items-center gap-3">
                     <span className={`inline-flex min-w-8 items-center justify-center rounded-md border px-2 py-1 text-sm font-medium ${
                       player.rank === 1 ? 'memory-accent-rank' : 'border-slate-200 bg-slate-50 text-slate-600'
@@ -181,12 +184,9 @@ export default async function Home() {
                       {player.rank}
                     </span>
                     <span className="text-sm font-medium text-slate-900">{player.display_name}</span>
-                    <span className={`rounded-md border px-2 py-0.5 text-[10px] font-medium ${
-                      player.tier === 'champion' ? 'bg-amber-50 text-amber-800 border-amber-200' :
-                      player.tier === 'specialist' ? 'bg-sky-50 text-sky-800 border-sky-200' :
-                      player.tier === 'builder' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
-                      'bg-slate-50 text-slate-600 border-slate-200'
-                    }`}>{player.tier}</span>
+                    <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-600">
+                      {player.tier}
+                    </span>
                   </div>
                   <div className="text-left sm:text-right">
                     <span className="text-sm font-mono text-slate-700">L{player.highest_level}</span>

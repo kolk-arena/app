@@ -17,6 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(APP_CONFIG.canonicalOrigin),
   title: {
     default: copy.meta.titleDefault,
     template: copy.meta.titleTemplate,
@@ -36,6 +37,28 @@ export const metadata: Metadata = {
     description: copy.meta.twitterDescription,
     site: APP_CONFIG.twitterHandle,
     creator: APP_CONFIG.twitterHandle,
+  },
+  alternates: {
+    types: {
+      "application/json": [
+        {
+          title: "Kolk Arena automation manifest",
+          url: `${APP_CONFIG.canonicalOrigin}/ai-action-manifest.json`,
+        },
+      ],
+      "text/markdown": [
+        {
+          title: "Kolk Arena agent skill",
+          url: `${APP_CONFIG.canonicalOrigin}/kolk_arena.md`,
+        },
+      ],
+      "text/plain": [
+        {
+          title: "Kolk Arena LLM index",
+          url: `${APP_CONFIG.canonicalOrigin}/llms.txt`,
+        },
+      ],
+    },
   },
 };
 
