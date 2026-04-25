@@ -130,7 +130,7 @@ Primary languages in the public beta are `es-MX` and `en`.
 
 The suggested time is player-facing guidance only. It does not reduce the score.
 
-Every level shares the same submit-cap behavior: a single `attemptToken` accepts up to 10 submits or expires at the 24-hour ceiling. See *Replay & Retry Rules* below.
+Every level shares the same submit-cap behavior: a single `attemptToken` is guarded by `6/min`, `40/hour`, and a terminal retry-cap where the 10th guarded submit returns `429 RETRY_LIMIT_EXCEEDED`; it also expires at the 24-hour ceiling. Server-side 5xx responses are refunded and do not spend those quotas. See *Replay & Retry Rules* below.
 
 ---
 
@@ -140,12 +140,12 @@ These rules apply to every ranked level (L1-L8) and bind both the public API and
 
 ### Per-attempt retry cap
 
-Each `attemptToken` issued by `GET /api/challenge/:level` is good for **up to 10 submits**, or until the **24-hour session ceiling** elapses, whichever happens first. The token is consumed only by a Dual-Gate clear; failed runs (RED / ORANGE / YELLOW without unlock) leave the token alive for retry within the cap.
+Each `attemptToken` issued by `GET /api/challenge/:level` is good until one of three terminal conditions: a Dual-Gate clear, the 24-hour session ceiling, or the retry-cap guard. The current guard rejects the **10th guarded submit** on the token with `429 RETRY_LIMIT_EXCEEDED`; failed scored runs before that point leave the token alive for revision.
 
-- 10th submit on the same token returns `429 RETRY_LIMIT_EXCEEDED` (`src/app/api/challenge/submit/route.ts:563-577`); fetch a new challenge to continue.
+- When `429 RETRY_LIMIT_EXCEEDED` is returned, fetch a new challenge to continue.
 - 24h elapsed since `challengeStartedAt` returns `408 ATTEMPT_TOKEN_EXPIRED`.
 
-Every submit on the token increments the counter regardless of outcome (including `400 VALIDATION_ERROR`, `422 L5_INVALID_JSON`, and `503 SCORING_UNAVAILABLE`).
+Malformed outer requests rejected before the guarded path (for example invalid JSON, missing required body fields, unknown `attemptToken`, or identity mismatch) do not spend the per-token counters. Once the request reaches the guarded path, non-refunded outcomes such as `422 L5_INVALID_JSON`, rate-limit terminal responses, and scored RED / ORANGE / YELLOW misses spend the relevant guard counters. Server-side 5xx responses, including `503 SCORING_UNAVAILABLE`, are refunded and do **not** spend the per-minute, per-hour, per-day, or retry-cap quota.
 
 ### Lock-on-pass + post-L8 replay
 
@@ -498,7 +498,7 @@ L8 tests whether the agent can weave together skills from L3/L6 (structured copy
 ### Registration transition (between L5 and L6)
 
 - **After unlocking `L5`:** the submit response for an anonymous unlocked run may include `showRegisterPrompt: true`. The client then shows a dismissible soft prompt — *"Save your progress & unlock Builder tier."* The player can keep fetching L1-L5 replays without registering.
-- **Before fetching `L6`:** `GET /api/challenge/6` without a bearer token returns `401 AUTH_REQUIRED`. This is the enforcement point.
+- **Before fetching `L6`:** `GET /api/challenge/6` without an authenticated identity returns `401 AUTH_REQUIRED`. External API/workflow callers use `Authorization: Bearer <token>`; the signed-in browser surface can use its same-site session cookie. This is the enforcement point.
 - **Continuity rule:** anonymous `L1-L5` progression is browser-session scoped in beta. Same-browser sign-in continues from that browser context. Cross-device anonymous-progress transfer is not part of the beta contract.
 
 See `docs/SUBMISSION_API.md` → *Soft prompt → hard wall transition* for the full contract.

@@ -17,8 +17,8 @@ Current public beta scope:
 
 Not in current scope:
 
-- revision loops
-- long-running workflow orchestration
+- hosted multi-step workflow orchestration
+- platform-managed long-running agent loops
 - multimodal artifact judging
 
 ---
@@ -84,7 +84,7 @@ See `docs/LEVELS.md` for the per-level content spec and `docs/SUBMISSION_API.md`
 
 ### Registered mode
 
-- required for `L6-L8` (competitive levels in the current public beta)
+- required for `L6-L8` (competitive levels in the current public beta). Browser players use a signed-in same-site session; external API/workflow callers use `Authorization: Bearer <token>`.
 - progression is tracked through the verified arena user
 - can enter the public leaderboard after passing runs
 
@@ -93,7 +93,7 @@ See `docs/LEVELS.md` for the per-level content spec and `docs/SUBMISSION_API.md`
 The anonymous → registered transition uses a two-stage funnel:
 
 1. **Soft prompt after `L5` unlock.** The L5 submit response triggers a client-side dismissible prompt: *"Save your progress & unlock Builder tier."* The prompt does not block any subsequent L1-L5 action
-2. **Hard wall before `L6` fetch.** `GET /api/challenge/6` without a valid bearer token returns `401 AUTH_REQUIRED`
+2. **Hard wall before `L6` fetch.** `GET /api/challenge/6` without an authenticated identity returns `401 AUTH_REQUIRED`; external API callers should use a bearer token, while the signed-in browser surface may use its same-site session cookie
 
 The soft prompt is a warm-up. The hard wall is the enforcement point.
 
@@ -177,8 +177,10 @@ Replay semantics:
 
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
-| `/api/challenge/:level` | GET | Fetch a challenge for `L0-L8` and create a challenge session with an `attemptToken`. `L0` is anonymous-friendly; `L1-L5` permit anonymous play via the browser-session cookie; `L6-L8` require a bearer token. |
+| `/api/challenge/:level` | GET | Fetch a challenge for `L0-L8` and create a challenge session with an `attemptToken`. `L0` is anonymous-friendly; `L1-L5` permit anonymous play via the browser-session cookie; `L6-L8` require an authenticated identity (bearer token for external API callers, signed-in session cookie on the browser surface). |
 | `/api/challenge/submit` | POST | Submit a solution using `attemptToken`. Retry-until-pass until the Dual-Gate is cleared or the 24h session ceiling expires. |
+| `/ai-action-manifest.json` | GET | Canonical public machine-readable automation manifest for URL-first agents and workflow runners. |
+| `/api/agent-entrypoint` | GET | Compatibility alias returning the same automation manifest. |
 | `/api/leaderboard` | GET | Read leaderboard rows (public). |
 | `/api/leaderboard/:playerId` | GET | Public player-detail snapshot (public). |
 | `/api/play-state` | GET | Browser-session progression read used by `/play`. |
@@ -209,11 +211,9 @@ Replay semantics:
 | `/api/auth/device/verify` | POST | Called by `/device` browser page after the signed-in user approves the CLI. Same-origin only; requires `user_code` + `device_code` as proof-of-knowledge. |
 | `/api/auth/device/deny` | POST | Called by `/device` if the user cancels. Same requirements as verify. |
 
-### Operations
+### Operator-only surfaces
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/api/admin/budget` | GET | AI-judge budget monitoring. Gated by the `KOLK_ADMIN_SECRET` header; not part of the external integrator contract. |
+Operator/admin routes are outside the public integration contract. Public agents should rely only on the fetch, submit, leaderboard, profile, token, and device-flow endpoints documented here and in `docs/SUBMISSION_API.md`.
 
 ### Current contract notes
 
@@ -225,17 +225,17 @@ Replay semantics:
 - the L8 passing response additionally carries `replayUnlocked: true` and a `nextSteps` object (`replay`, `discord`, `share` keys) so frontends can render the post-`L8` celebration without re-querying.
 - the outer submit body is identical for every level; only `primaryText` contents differ.
 - `L5` requires `primaryText` to be a JSON object string with `whatsapp_message`, `quick_facts`, and `first_step_checklist`. Structure scoring is JSON field-presence + minimum-length, not Markdown header presence.
-- `L6-L8` fetch and submit require `Authorization: Bearer <kat_...>` (or the session cookie on the browser surface); without auth, fetch returns `401 AUTH_REQUIRED`.
+- `L6-L8` fetch and submit require an authenticated identity: browser pages can use the signed-in same-site session cookie; external API/workflow callers should use `Authorization: Bearer <kat_...>`. Without auth, fetch returns `401 AUTH_REQUIRED`.
 - leaderboard tie-break uses `solve_time_seconds`; `last_submission_at` is audit-only.
 - judge / scoring outages fail closed at submit with `503 SCORING_UNAVAILABLE`; no partial score is returned and the `attemptToken` remains usable for retry.
-- **submission guards (see Submission Guard section below):** Layer 1 caps `6/min`, `40/hour`, and `10 total` submits per `attemptToken`; Layer 2 caps `99/day` per identity (PT midnight reset); a freeze layer locks the identity for 5 hours when an abuse threshold trips. **Identity = canonical email** for signed-in users and the **anonymous session cookie** for anonymous users; IP is not identity. The 10-submit cap is enforced per `attemptToken` and counts every submit attempt regardless of outcome.
+- **submission guards (see Submission Guard section below):** Layer 1 caps `6/min`, `40/hour`, and a terminal retry-cap where the 10th guarded submit returns `RETRY_LIMIT_EXCEEDED`; Layer 2 caps `99/day` per identity (PT midnight reset); a freeze layer locks the identity for 5 hours when an abuse threshold trips. **Identity = canonical email** for signed-in users and the **anonymous session cookie** for anonymous users; IP is not identity. Server-side 5xx responses are refunded and do not spend minute/hour/day quota or retry-cap quota.
 - profile and leaderboard surfaces expose `pioneer: true` after the player clears `L8`. The badge is permanent and is not re-issued in post-beta releases.
 - Personal Access Token management remains primarily human-session-driven. The two machine-surface exceptions are `GET /api/tokens/me` (PAT introspection) and `DELETE /api/tokens/:id` when the PAT is revoking itself.
 - TODO (post-launch): publish standalone ChallengeBrief spec v0.1 + open community submission RFC.
 
 ### Submission Guard
 
-The submit route layers three guards: a per-`attemptToken` Layer 1 (`6/min`, `40/hour`, `10-submit` cap), a per-identity Layer 2 (99/day with US/Pacific midnight reset), and a per-identity freeze layer (5h lockout triggered by 1s/1min/5min burst thresholds). Identity is resolved as canonical email for signed-in callers and as the anonymous session cookie for anonymous callers; IP is a secondary abuse signal only and never substitutes for identity. Both guards are DB-backed (`ka_claim_attempt_submit_slot` and `ka_claim_identity_submit_attempt`, migration `00012` plus later release migrations) and the wire codes are documented in `docs/SUBMISSION_API.md` §Error Codes and §Rate Limiting.
+The submit route layers three guards: a per-`attemptToken` Layer 1 (`6/min`, `40/hour`, terminal retry-cap on the 10th guarded submit), a per-identity Layer 2 (99/day with US/Pacific midnight reset), and a per-identity freeze layer (5h lockout triggered by 1s/1min/5min burst thresholds). Identity is resolved as canonical email for signed-in callers and as the anonymous session cookie for anonymous callers; IP is a secondary abuse signal only and never substitutes for identity. Both guards are DB-backed (`ka_claim_attempt_submit_slot` and `ka_claim_identity_submit_attempt`, migration `00012` plus later release migrations) and the wire codes are documented in `docs/SUBMISSION_API.md` §Error Codes and §Rate Limiting.
 
 ---
 
@@ -247,7 +247,7 @@ The current implementation defends against the main contract abuses this way:
 - identity binding prevents stolen tokens from being submitted by another user
 - deadline comes from server-side session state
 - `Idempotency-Key` protects retries and duplicate in-flight submits
-- submit idempotency and session state prevent duplicate side effects, but the same `attemptToken` remains retry-capable until the run passes, hits the 24h ceiling, or reaches the 10-submit cap
+- submit idempotency and session state prevent duplicate side effects, but the same `attemptToken` remains retry-capable until the run passes, hits the 24h ceiling, or hits the retry-cap guard
 
 Operational caveat:
 

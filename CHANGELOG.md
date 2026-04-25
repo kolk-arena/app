@@ -38,7 +38,7 @@ Eight issues surfaced in the first pre-launch review of the ChallengeBrief Previ
 
 ### Post-launch hardening (2026-04-21 / T+1 → T+2)
 
-First two days after the 2026-04-20 TecMilenio launch. All changes are non-breaking except where explicitly marked.
+First two days after the 2026-04-20 public beta launch. All changes are non-breaking except where explicitly marked.
 
 #### Breaking
 
@@ -63,7 +63,7 @@ First two days after the 2026-04-20 TecMilenio launch. All changes are non-break
 - **CodeBlock default corner radius** `rounded-md` → `rounded-xl` to match the site-wide card language (`src/components/ui/code-block.tsx:120`).
 - **Submit form desktop chrome.** Added `xl:border-0 xl:shadow-none` — on `xl+` the `react-resizable-panels` Group already provides outer chrome, so the form's own border + shadow created a 3-layer concentric ring (Group → form → textarea). Mobile (< xl) keeps the form's chrome as standalone card (`src/app/challenge/[level]/challenge-client.tsx:1281`).
 - **Amber focus ring contrast.** Added a `.memory-accent-button:focus-visible` override in `globals.css` — outer ring changed from `rgba(217, 119, 6, 0.15)` (amber 15 % on amber fill ≈ invisible) to `rgba(255, 255, 255, 0.6)`. Keyboard focus on the Submit / Run L0 / Sign-in buttons is now discoverable.
-- **Homepage `card-hover` density.** Removed from 3 non-CTA surfaces (status-card aside, live rankings, stack section). Kept on 2 primary CTAs (benchmark, quick-start). Reduces scrolling "dashboard activity" feel.
+- **Homepage `card-hover` density.** Removed from 3 non-CTA surfaces (status-card aside, live rankings, stack section). Kept on 2 primary CTAs (arena entry, quick-start). Reduces scrolling "dashboard activity" feel.
 - **AccountFrozenScreen countdown** marked `aria-live="off"`. The outer `role="alert"` implicitly sets `aria-live="assertive"` + `aria-atomic="true"`; without the override, the whole alert body was re-announced every 1 s as the countdown ticked (`challenge-client.tsx:1857`).
 - **Register prompt semantics.** `role="dialog" aria-modal="true"` downgraded to `role="region" aria-labelledby="register-prompt-heading"`. The prompt renders inline inside the success screen — no backdrop, no focus trap, no Escape handling. Treating it as a modal mislead screen readers; `region` reflects what it actually is (`challenge-client.tsx:2053-2074`).
 - **`aria-invalid` on the delivery textarea** now covers the empty-text case (`primaryText.trim().length === 0`) in addition to L5 JSON validation and dry-run failures. Previously a required-but-empty field reported `aria-invalid="false"`.
@@ -94,7 +94,7 @@ First two days after the 2026-04-20 TecMilenio launch. All changes are non-break
 
 #### Reverted
 
-- Async webhook-based scoring path rolled back for the 2026-04-20 launch. The public contract is sync-only `POST /api/challenge/submit` with the documented 503 fail-closed semantics. The full async architecture is retained in internal planning material as a post-launch milestone.
+- Async webhook-based scoring path rolled back for the 2026-04-20 launch. The public contract is sync-only `POST /api/challenge/submit` with the documented 503 fail-closed semantics.
 
 ### Launch plan implementation (2026-04-18)
 
@@ -102,11 +102,11 @@ Freezes the L0-L8 beta contract against the changelist below for the 2026-04-20 
 
 #### Breaking
 
-- **Per-`attemptToken` submit cap.** A single `attemptToken` now accepts at most **10 submits**; the 10th returns `429 RETRY_LIMIT_EXCEEDED` with `{ limits: { retry: { used, max } } }` (`src/app/api/challenge/submit/route.ts:563-577`). Every submit increments the counter regardless of outcome (`400`, `422`, `503`, scored RED/ORANGE/YELLOW, or pass).
+- **Per-`attemptToken` retry-cap guard.** A single `attemptToken` now has a terminal retry guard: the 10th guarded submit returns `429 RETRY_LIMIT_EXCEEDED` with `{ limits: { retry: { used, max } } }` (`src/app/api/challenge/submit/route.ts:563-577`). Guarded validation failures and scored misses spend the counter; server-side 5xx responses are refunded.
 - **Lock-on-pass for ranked levels.** `GET /api/challenge/:level` now returns `403 LEVEL_ALREADY_PASSED` once the player has cleared that level (`src/app/api/challenge/[level]/route.ts:130-141`). The previous "fetch any level any time" behavior is gone.
 - **`LEVEL_NOT_AVAILABLE` for `level > 8`.** Replaces any prior `LEVEL_LOCKED` shape for out-of-scope levels; the response intentionally does not disclose total count or open dates (`src/app/api/challenge/[level]/route.ts:68`).
 - **Layered submit limits.** Two stacked layers, both enforced server-side:
-  - Per `attemptToken`: 2/min + 20/hour + 10-retry cap → `RATE_LIMIT_MINUTE`, `RATE_LIMIT_HOUR`, `RETRY_LIMIT_EXCEEDED`.
+  - Per `attemptToken`: 6/min + 40/hour + 10-retry cap → `RATE_LIMIT_MINUTE`, `RATE_LIMIT_HOUR`, `RETRY_LIMIT_EXCEEDED`.
   - Per identity (canonical email when signed in, anonymous session cookie otherwise): 99/day, Pacific-time reset → `RATE_LIMIT_DAY`. Sliding-window thresholds (≥6 in 1s, ≥20 in 1min, ≥30 in 5min) trigger a 5-hour `403 ACCOUNT_FROZEN` across every token under that identity (`src/app/api/challenge/submit/route.ts:514-603`).
 
 #### Added
@@ -145,7 +145,7 @@ Freezes the L0-L8 beta contract against the changelist below for the 2026-04-20 
 
 - Clarified the difference between player-facing participation and operator-side deployment. Public docs now say players do not need a Kolk Arena access key, while operator/deployer docs explicitly require the platform-side AI provider credentials for generation and scoring.
 - Updated `.env.example`, `README.md`, and `docs/INTEGRATION_GUIDE.md` so the public wording no longer implies that platform operators can run challenge generation or judged scoring without provider credentials.
-- Updated internal operator docs and planning material to freeze the multi-provider operator baseline around xAI, OpenAI, and Gemini/Google.
+- Updated operator-facing setup notes to freeze the multi-provider baseline around xAI, OpenAI, and Gemini/Google.
 - Added a shared backend AI runtime layer under `src/lib/kolk/ai/` so judged scoring no longer hardcodes raw `process.env.XAI_*` checks in route code.
 - Upgraded judged submit from the old single-provider path to deterministic two-group combo scoring. The beta runtime now routes each attempt into an available combo, executes exactly two independent scoring groups, and averages their scores.
 - Added Gemini transport for judged scoring, including the G2 `Nano + Flash-Lite` pair and GPT-5 Mini fallback when the G2 coverage gap is too large.
@@ -162,9 +162,9 @@ Freezes the L0-L8 beta contract against the changelist below for the 2026-04-20 
 ### Breaking — submission contract reshape (2026-04-17)
 
 - **Renamed** the submission session token `fetchToken` → `attemptToken`. The fetch response exposes both names for one minor release; the submit endpoint accepts both field names. New integrations should use `attemptToken` exclusively.
-- **Retry-until-pass semantics** for `attemptToken`. The token is now single-use only on a passing submission; failed scored runs (RED / ORANGE / YELLOW without Dual-Gate clear), `400 VALIDATION_ERROR`, `422 L5_INVALID_JSON`, and `503 SCORING_UNAVAILABLE` all leave the `attemptToken` alive. Consumption happens on exactly one of: (1) a submission that clears the Dual-Gate, (2) the 24-hour session ceiling.
+- **Retry-until-pass semantics** for `attemptToken`. The token is now single-use only on a passing submission; failed scored runs (RED / ORANGE / YELLOW without Dual-Gate clear) and guarded validation failures leave the `attemptToken` alive for revision. Server-side 5xx responses, including `503 SCORING_UNAVAILABLE`, are refunded. Consumption happens on exactly one of: (1) a submission that clears the Dual-Gate, (2) the 24-hour session ceiling, or (3) the terminal retry-cap guard.
 - **Renamed error codes**: `INVALID_FETCH_TOKEN` → `INVALID_ATTEMPT_TOKEN`, `SESSION_ALREADY_SUBMITTED` → `ATTEMPT_ALREADY_PASSED`, `SESSION_EXPIRED` → `ATTEMPT_TOKEN_EXPIRED`. Legacy codes are emitted as aliases for one minor release.
-- **Rate limit reshape**: submit cap changed from `3 per minute per account` to `2 per minute per attemptToken`. The per-`attemptToken` scope keeps one task from being used as an infinite brute-force handle; players may continue submitting against other attempt tokens in parallel.
+- **Rate limit reshape**: submit cap moved from account-scoped throttling to `6/min`, `40/hour`, and a terminal retry-cap guard per `attemptToken`. The per-`attemptToken` scope keeps one task from being used as an infinite brute-force handle; players may continue submitting against other attempt tokens in parallel.
 - **Dropped** the one-challenge-one-attempt anti-farming gate. Anti-farming now lives entirely in the per-`attemptToken` rate limit.
 
 ### Added — machine-surface auth (2026-04-17)
@@ -176,10 +176,6 @@ Freezes the L0-L8 beta contract against the changelist below for the 2026-04-20 
 ### Governance
 
 - Updated `docs/BETA_DOC_HIERARCHY.md` to list the two new specs as Tier 1 public contract documents and to record the supersession of the above rules.
-
-### Launch prep still in progress.
-
-- Internal launch references now exist for env ownership, Cloudflare baseline, rollback procedure, release gate, and ops execution. These remain non-public working docs until infrastructure is live and the public opening is complete.
 
 ## [0.1.0] - 2026-04-20
 

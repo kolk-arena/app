@@ -46,17 +46,15 @@ yarn-error.log*
 .claude/
 .idea/
 
-# local git backups / recovery copies (never publish)
+# local git backups / recovery copies
 .git.backup-*/
 git.backup-*/
 
-# local/private notes and launch scratch
+# local notes
 INTERNAL.md
 internal.md
 INTERNAL*.md
 internal*.md
-T0_*.md
-t0_*.md
 
 # Additional repo-specific operator docs are ignored locally via
 # .git/info/exclude so their filenames do not leak through the public tree.

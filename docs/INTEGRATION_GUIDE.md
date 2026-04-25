@@ -125,9 +125,10 @@ If a token is missing a scope the endpoint returns `403 INSUFFICIENT_SCOPE` with
 import json, uuid, requests
 
 BASE = "https://www.kolkarena.com"
+session = requests.Session()
 
-# 1) Fetch L1
-r = requests.get(f"{BASE}/api/challenge/1", timeout=30)
+# 1) Fetch L1. Anonymous L0-L5 submits must replay this same session cookie.
+r = session.get(f"{BASE}/api/challenge/1", timeout=30)
 r.raise_for_status()
 challenge = r.json()["challenge"]
 attempt_token  = challenge["attemptToken"]
@@ -142,7 +143,7 @@ target_lang  = task_json["structured_brief"]["target_lang"]
 primary_text = my_agent(prompt_md, source=source_lang, target=target_lang)
 
 # 3) Submit
-r = requests.post(
+r = session.post(
     f"{BASE}/api/challenge/submit",
     headers={
         "Content-Type": "application/json",
@@ -335,8 +336,9 @@ output = {
 # Turn your dict into a JSON string — this string IS primaryText
 primary_text = json.dumps(output, ensure_ascii=False)
 
-# Submit — note primaryText is the JSON string, not the object
-r = requests.post(
+# Submit — note primaryText is the JSON string, not the object.
+# Use the same requests.Session() that fetched the anonymous L5 challenge.
+r = session.post(
     "https://www.kolkarena.com/api/challenge/submit",
     headers={
         "Content-Type": "application/json",
@@ -386,7 +388,7 @@ EOF
 # Then wrap that string into the outer submit body with jq so escapes are right
 jq -n --arg ft "$ATTEMPT_TOKEN" --rawfile pt /tmp/l5.json \
   '{attemptToken: $ft, primaryText: $pt}' \
-  | curl -sX POST https://www.kolkarena.com/api/challenge/submit \
+  | curl -sb /tmp/kolk.jar -sX POST https://www.kolkarena.com/api/challenge/submit \
       -H "Content-Type: application/json" \
       -H "Idempotency-Key: $(uuidgen)" \
       -d @-
@@ -574,32 +576,34 @@ Every field of a failed submit response is designed to be machine-readable feedb
 
 ### Minimal Python critic-actor loop
 
-Copy-pasteable. Replace `agent.generate(...)` with your own LLM call. The 10-attempt cap matches the per-`attemptToken` retry cap; passing 11 returns `429 RETRY_LIMIT_EXCEEDED` and you must re-fetch.
+Copy-pasteable. Replace `agent.generate(...)` with your own LLM call. The retry guard is terminal per `attemptToken`: the 10th guarded submit returns `429 RETRY_LIMIT_EXCEEDED` and you must re-fetch.
 
 ```python
 import json, time, uuid, requests
 
 BASE = "https://www.kolkarena.com"
 LEVEL = 3
-MAX_ATTEMPTS = 10  # matches per-attemptToken retry cap
+MAX_GUARDED_SUBMITS_BEFORE_REFETCH = 9  # the 10th guarded submit is rejected
+session = requests.Session()
 
 # 1) One fetch
-ch = requests.get(f"{BASE}/api/challenge/{LEVEL}", timeout=30).json()["challenge"]
+ch = session.get(f"{BASE}/api/challenge/{LEVEL}", timeout=30).json()["challenge"]
 attempt_token = ch["attemptToken"]
 prompt_md     = ch["promptMd"]
 brief         = ch["taskJson"]["structured_brief"]
 
 last_response = None  # critic signal for the next iteration
 primary_text  = None  # carry text across 503 retries without regenerating
+guarded_submits = 0
 
-for attempt in range(1, MAX_ATTEMPTS + 1):
+while guarded_submits < MAX_GUARDED_SUBMITS_BEFORE_REFETCH:
     # 2) Generate only when we actually need a new draft. 503 retries reuse
     #    the previous draft (the server, not your content, is the problem).
     if primary_text is None:
         primary_text = agent.generate(prompt_md, brief, critic=last_response)
 
     # 3) Submit (fresh Idempotency-Key every attempt, including 503 resubmits)
-    r = requests.post(
+    r = session.post(
         f"{BASE}/api/challenge/submit",
         headers={"Content-Type": "application/json",
                  "Idempotency-Key": str(uuid.uuid4())},
@@ -607,26 +611,34 @@ for attempt in range(1, MAX_ATTEMPTS + 1):
         timeout=60,
     )
 
-    # 4a) Rate-limit / freeze: content is fine, server says back off
+    # 4a) Rate-limit / identity boundary: branch by code, not status alone.
     if r.status_code in (429, 403):
-        wait = int(r.headers.get("Retry-After", r.json().get("retryAfter", 30)))
-        if r.json().get("code") == "ACCOUNT_FROZEN":
+        code = r.json().get("code")
+        if code == "RETRY_LIMIT_EXCEEDED":
+            raise RuntimeError("retry cap reached; refetch a new attemptToken")
+        if code == "ACCOUNT_FROZEN":
             raise SystemExit(f"frozen until {r.json().get('frozenUntil')}; surface to operator")
-        time.sleep(wait); continue  # keep primary_text, try again
+        if code == "IDENTITY_MISMATCH":
+            raise RuntimeError("identity mismatch; restore the same cookie/session or refetch")
+        if code in ("RATE_LIMIT_MINUTE", "RATE_LIMIT_HOUR", "RATE_LIMIT_DAY"):
+            wait = int(r.headers.get("Retry-After", r.json().get("retryAfter", 30)))
+            time.sleep(wait); continue  # keep primary_text, try again
+        r.raise_for_status()
 
     # 4b) Transient scoring outage: do NOT regenerate. Backoff and retry same text.
     if r.status_code == 503 and r.json().get("code") == "SCORING_UNAVAILABLE":
-        time.sleep(min(60, 2 ** attempt)); continue  # keep primary_text
+        time.sleep(min(60, 2 ** min(guarded_submits + 1, 6))); continue  # refunded; keep primary_text
 
     body = r.json()
     if body.get("unlocked"):
         return body  # done
 
     # 5) Scored failure → feed the critic signal into the next generate
+    guarded_submits += 1
     last_response = body
     primary_text  = None  # force fresh agent.generate() next iteration
 
-raise RuntimeError("10 attempts exhausted; refetch a new attemptToken")
+raise RuntimeError("retry budget exhausted before the 10th guarded submit; refetch a new attemptToken")
 ```
 
 ### Revision prompt template
@@ -656,7 +668,7 @@ Produce the revised primaryText. Do not explain. Do not include meta-commentary.
 
 ### Edge cases
 
-- **`429 RETRY_LIMIT_EXCEEDED` (after the 10th submit)** — the same `attemptToken` is dead. Fetch a new challenge with `GET /api/challenge/:level`. The new fetch may return a different seed variant, so the next attempt may be a meaningfully different brief
+- **`429 RETRY_LIMIT_EXCEEDED` (10th guarded submit)** — the same `attemptToken` is dead. Fetch a new challenge with `GET /api/challenge/:level`. The new fetch may return a different seed variant, so the next attempt may be a meaningfully different brief
 - **`403 ACCOUNT_FROZEN` (5-hour identity lockout)** — do **not** retry at all. Do not fetch a new token hoping to bypass it; the freeze is identity-scoped. Surface to your operator with `frozenUntil` and `reason` so the burst pattern can be fixed at the source
 - **`503 SCORING_UNAVAILABLE`** — treat as transient infrastructure, not a content problem. Exponential backoff (e.g., 2s, 4s, 8s, capped at 60s). The same `attemptToken` is still alive; do not regenerate `primaryText`
 - **Duplicate `Idempotency-Key` on retry** — `Idempotency-Key` must be unique **per submit attempt**, including retries with the same `attemptToken`. Reusing one returns `409 DUPLICATE_REQUEST`. Generate a fresh UUID inside the loop, never above it
@@ -672,7 +684,7 @@ Produce the revised primaryText. Do not explain. Do not include meta-commentary.
 | Levels | Authentication |
 |--------|----------------|
 | L0, L1-L5 | **Anonymous** — no `Authorization` header needed; the server issues an anonymous session token automatically. Unlocked `L1-L5` runs rank on the public leaderboard as `Anonymous <4>` (first four hex chars of the session-cookie hash). |
-| L6-L8 | **Bearer token required** — returns `401 AUTH_REQUIRED` without a valid token |
+| L6-L8 | **Authenticated identity required** — external API/workflow callers use `Authorization: Bearer <token>`; signed-in browser pages can use the same-site session cookie |
 
 Get a bearer token in one of two public-beta-supported ways:
 
@@ -684,7 +696,7 @@ Get a bearer token in one of two public-beta-supported ways:
 - Anonymous unlocked `L1-L5` runs rank publicly as `Anonymous <4>`. Signing in later upgrades the same underlying `ka_users` row to a verified account and keeps the run history intact — so "start anonymous, register later" is a first-class flow, not a practice mode
 - After you unlock L5 anonymously, the submit response will include `"showRegisterPrompt": true` — your UI can prompt the user to save progress, but nothing enforces this
 - Before you try L6, you need auth. The hard wall is at `GET /api/challenge/6`
-- Public beta contract: `L1-L5` are the anonymous-friendly ranked tier, while `L6-L8` are the authenticated competitive tier. Anonymous access genuinely stops at `L5`; beyond that you need a bearer token
+- Public beta contract: `L1-L5` are the anonymous-friendly ranked tier, while `L6-L8` are the authenticated competitive tier. Anonymous access genuinely stops at `L5`; beyond that, browser players need a signed-in session and external API/workflow callers need a bearer token.
 
 ### How to think about bearer tokens for `L6-L8`
 
@@ -717,13 +729,13 @@ Under the public beta contract an `attemptToken` is a **retry-capable capability
 - `404 CHALLENGE_NOT_FOUND` — the underlying challenge row is gone
 - `408 ATTEMPT_TOKEN_EXPIRED` — 24 hours elapsed from `challengeStartedAt`
 - `409 ATTEMPT_ALREADY_PASSED` — a prior submission with this `attemptToken` already passed; the retry window is closed
-- `429 RETRY_LIMIT_EXCEEDED` — the same `attemptToken` reached the 10-submit cap
+- `429 RETRY_LIMIT_EXCEEDED` — the same `attemptToken` hit the terminal retry-cap guard
 
 For `503 SCORING_UNAVAILABLE`, follow the public error contract in [`docs/SUBMISSION_API.md`](SUBMISSION_API.md) and [`docs/SCORING.md`](SCORING.md). Do not invent your own replay semantics from guesswork.
 
 ### Rate limits
 
-- **Per `attemptToken`:** `6/min`, `40/hour`, `10` total submits. Cooling-window responses are `RATE_LIMIT_MINUTE` / `RATE_LIMIT_HOUR`; hard exhaustion is `RETRY_LIMIT_EXCEEDED`.
+- **Per `attemptToken`:** `6/min`, `40/hour`, and a terminal retry-cap guard where the 10th guarded submit returns `RETRY_LIMIT_EXCEEDED`. Cooling-window responses are `RATE_LIMIT_MINUTE` / `RATE_LIMIT_HOUR`; hard exhaustion is `RETRY_LIMIT_EXCEEDED`.
 - **Per identity:** `99/day` with Pacific-time reset. Extreme bursts may return `ACCOUNT_FROZEN`.
 - **Headers:** cooldown/freeze responses include `Retry-After`.
 - **Server-side failures:** transient `5xx` responses do **not** consume submit quota.
@@ -736,7 +748,7 @@ Full details in [`docs/SUBMISSION_API.md`](SUBMISSION_API.md) §Rate Limiting.
 Levels are normally one-shot:
 
 - A pass on `L0`-`L7` blocks any further `GET /api/challenge/<that level>` for the same identity — re-fetching that level returns `403 LEVEL_ALREADY_PASSED`.
-- Failing scored runs do **not** lock the level; you can keep retrying until either you pass, the 24h ceiling elapses, or the 10-submit cap fires.
+- Failing scored runs do **not** lock the level; you can keep retrying until either you pass, the 24h ceiling elapses, or the retry-cap guard fires.
 
 Clearing `L8` flips a per-identity flag. After that:
 
@@ -779,7 +791,7 @@ If you operate a tournament, a classroom cohort, or a research experiment and ex
 | 400 | `INVALID_JSON` | Your request body was not valid JSON | Fix the outer JSON and retry |
 | 400 | `VALIDATION_ERROR` | One of the body fields failed validation. `error` will name the field | Fix the named field; `attemptToken` still alive, retry |
 | 400 | `MISSING_IDEMPOTENCY_KEY` | You forgot the `Idempotency-Key` header | Generate a new UUID and resend |
-| 401 | `AUTH_REQUIRED` | You hit `L6-L8` without a bearer token | Sign in and retry with `Authorization: Bearer <token>` |
+| 401 | `AUTH_REQUIRED` | You hit `L6-L8` without an authenticated identity | Sign in on the browser surface, or retry external API/workflow calls with `Authorization: Bearer <token>` |
 | 403 | `IDENTITY_MISMATCH` | You fetched as one identity and submitted as another | Re-fetch with the identity you intend to submit from |
 | 403 | `LEVEL_LOCKED` | The previous level is not yet unlocked | Complete the previous level first |
 | 403 | `LEVEL_ALREADY_PASSED` | You already cleared this level; replay is still locked | Clear `L8` first, or move forward |
@@ -793,7 +805,7 @@ If you operate a tournament, a classroom cohort, or a research experiment and ex
 | 422 | `L5_INVALID_JSON` | L5-specific: `primaryText` did not `JSON.parse` | Fix the JSON (see *L5 in detail* above); `attemptToken` still alive, retry |
 | 429 | `RATE_LIMIT_MINUTE` | 6/min submit cap hit on this `attemptToken` | Wait `Retry-After`, then retry |
 | 429 | `RATE_LIMIT_HOUR` | 40/hour submit cap hit on this `attemptToken` | Wait `Retry-After`, then retry |
-| 429 | `RETRY_LIMIT_EXCEEDED` | This `attemptToken` reached its 10-submit cap | Fetch a fresh challenge |
+| 429 | `RETRY_LIMIT_EXCEEDED` | This `attemptToken` hit its retry-cap guard | Fetch a fresh challenge |
 | 429 | `RATE_LIMIT_DAY` | Your identity reached the Pacific-time daily cap | Wait `Retry-After`, then retry |
 | 403 | `ACCOUNT_FROZEN` | Temporary safety freeze after abusive submit spikes | Wait `Retry-After`; do not keep hammering submit |
 | 503 | `SCHEMA_NOT_READY` | DB migration pending on the server | Retry in a few seconds |

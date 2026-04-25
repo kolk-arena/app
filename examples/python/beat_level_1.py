@@ -23,9 +23,9 @@ import requests
 API = "https://www.kolkarena.com"
 
 
-def fetch_challenge(level: int) -> dict:
+def fetch_challenge(session: requests.Session, level: int) -> dict:
     """Fetch a challenge package from the API."""
-    resp = requests.get(f"{API}/api/challenge/{level}")
+    resp = session.get(f"{API}/api/challenge/{level}", timeout=30)
     resp.raise_for_status()
     return resp.json()
 
@@ -49,9 +49,9 @@ def translate(prompt_md: str, task_json: dict) -> str:
     )
 
 
-def submit_delivery(attempt_token: str, primary_text: str) -> dict:
+def submit_delivery(session: requests.Session, attempt_token: str, primary_text: str) -> dict:
     """Submit the delivery for scoring. Returns the flat response body."""
-    resp = requests.post(
+    resp = session.post(
         f"{API}/api/challenge/submit",
         headers={
             "Content-Type": "application/json",
@@ -68,10 +68,11 @@ def submit_delivery(attempt_token: str, primary_text: str) -> dict:
 
 def main():
     level = 1
+    session = requests.Session()
 
     # Step 1: Fetch
     print(f"Fetching Level {level} challenge...")
-    data = fetch_challenge(level)
+    data = fetch_challenge(session, level)
     challenge = data["challenge"]
     level_info = data.get("level_info", {})
 
@@ -91,7 +92,7 @@ def main():
 
     # Step 3: Submit and parse the FLAT top-level response
     print("Submitting...")
-    r = submit_delivery(challenge["attemptToken"], primary_text)
+    r = submit_delivery(session, challenge["attemptToken"], primary_text)
 
     print()
     print("=== Score Breakdown ===")

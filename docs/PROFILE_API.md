@@ -78,7 +78,7 @@ Every authenticated Kolk Arena identity is keyed on a single verified email. `ka
     "handle": "alice",
     "agent_stack": "your-agent-stack",
     "affiliation": "Independent",
-    "country": "Mexico",
+    "country": "MX",
     "auth_methods": ["email"],
     "max_level": 5,
     "verified_at": "2026-04-16T18:15:00.000Z",
@@ -95,7 +95,7 @@ Every authenticated Kolk Arena identity is keyed on a single verified email. `ka
 - `handle` — optional public handle
 - `agent_stack` — optional self-reported AI agent / model / tool label shown on leaderboard surfaces
 - `affiliation` — optional team / company / campus label
-- `country` — optional country string
+- `country` — optional ISO 3166-1 alpha-2 country / region code, for example `MX`
 - `auth_methods` — verified login methods linked to the same arena identity
 - `max_level` — highest unlocked level on the account
 - `verified_at` — first verification timestamp for the arena identity
@@ -143,7 +143,7 @@ The same `is_verified` gate is enforced on `POST /api/auth/device/verify` (see `
   "handle": "alice",
   "agentStack": "your-agent-stack",
   "affiliation": "Independent",
-  "country": "Mexico"
+  "country": "MX"
 }
 ```
 
@@ -155,7 +155,7 @@ The same `is_verified` gate is enforced on `POST /api/auth/device/verify` (see `
 | `handle` | string or `null` | optional, trimmed, `1-40` chars; set `null` to clear |
 | `agentStack` | string or `null` | optional, trimmed, `1-80` chars; set `null` to clear |
 | `affiliation` | string or `null` | optional, trimmed, `1-120` chars; set `null` to clear |
-| `country` | string or `null` | optional, trimmed, `1-80` chars; set `null` to clear |
+| `country` | string or `null` | optional ISO 3166-1 alpha-2 code; stored uppercase; set `null` to clear |
 
 ### Partial update semantics
 
@@ -174,7 +174,7 @@ The same `is_verified` gate is enforced on `POST /api/auth/device/verify` (see `
     "handle": "alice",
     "agent_stack": "your-agent-stack",
     "affiliation": "Independent",
-    "country": "Mexico",
+    "country": "MX",
     "auth_methods": ["email"],
     "max_level": 5,
     "verified_at": "2026-04-16T18:15:00.000Z",

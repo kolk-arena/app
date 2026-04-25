@@ -177,8 +177,8 @@ def request_headers(token: str | None = None, idempotency_key: str | None = None
     return headers
 
 
-def fetch_challenge(base_url: str, level: int, token: str | None) -> dict[str, Any]:
-    response = requests.get(
+def fetch_challenge(session: requests.Session, base_url: str, level: int, token: str | None) -> dict[str, Any]:
+    response = session.get(
         f"{base_url}/api/challenge/{level}",
         headers=request_headers(token=token),
         timeout=30,
@@ -189,8 +189,8 @@ def fetch_challenge(base_url: str, level: int, token: str | None) -> dict[str, A
     return response.json()
 
 
-def submit_delivery(base_url: str, attempt_token: str, primary_text: str, token: str | None) -> dict[str, Any]:
-    response = requests.post(
+def submit_delivery(session: requests.Session, base_url: str, attempt_token: str, primary_text: str, token: str | None) -> dict[str, Any]:
+    response = session.post(
         f"{base_url}/api/challenge/submit",
         headers=request_headers(token=token, idempotency_key=str(uuid.uuid4())),
         json={
@@ -268,9 +268,10 @@ def main() -> None:
     args = parse_args()
     level = LEVEL_ALIAS[args.level]
     override = load_override(args)
+    session = requests.Session()
 
     print(f"Fetching L{level} from {args.base_url} ...")
-    payload = fetch_challenge(args.base_url, level, args.token)
+    payload = fetch_challenge(session, args.base_url, level, args.token)
     challenge = payload["challenge"]
     task_json = challenge.get("taskJson", {})
 
@@ -298,7 +299,7 @@ def main() -> None:
         return
 
     print("Submitting...")
-    result = submit_delivery(args.base_url, challenge["attemptToken"], primary_text, args.token)
+    result = submit_delivery(session, args.base_url, challenge["attemptToken"], primary_text, args.token)
     print_result(result)
 
     if level != 0:
