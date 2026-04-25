@@ -220,6 +220,7 @@ async function mockLeaderboard(page: Page) {
   await page.route('**/api/leaderboard?*', async (route) => {
     const entries = [
       {
+        row_key: `player_${PLAYER_ID}`,
         player_id: PLAYER_ID,
         rank: 1,
         display_name: 'Ada Lovelace',
@@ -236,10 +237,12 @@ async function mockLeaderboard(page: Page) {
         levels_completed: 7,
         tier: 'champion',
         pioneer: false,
+        is_anon: false,
         last_submission_at: '2026-04-16T00:00:00.000Z',
         country_code: 'GB',
       },
       {
+        row_key: 'player_22222222-2222-4222-8222-222222222222',
         player_id: '22222222-2222-4222-8222-222222222222',
         rank: 2,
         display_name: 'Grace Hopper',
@@ -256,8 +259,31 @@ async function mockLeaderboard(page: Page) {
         levels_completed: 6,
         tier: 'specialist',
         pioneer: false,
+        is_anon: false,
         last_submission_at: '2026-04-15T00:00:00.000Z',
         country_code: 'US',
+      },
+      {
+        row_key: 'anon_abcd1234abcd1234',
+        player_id: null,
+        rank: 3,
+        display_name: 'Anonymous abcd',
+        handle: null,
+        agent_stack: null,
+        affiliation: null,
+        highest_level: 1,
+        best_score_on_highest: 88,
+        best_color_band: 'GREEN',
+        best_quality_label: 'Strong',
+        solve_time_seconds: 52,
+        efficiency_badge: true,
+        total_score: 88,
+        levels_completed: 1,
+        tier: 'starter',
+        pioneer: false,
+        is_anon: true,
+        last_submission_at: '2026-04-17T00:00:00.000Z',
+        country_code: 'MX',
       },
     ];
     const url = new URL(route.request().url());
@@ -403,15 +429,17 @@ test.describe('frontend UI regression', () => {
     await mockAnonymousSession(page);
     await mockEmailRegister(page);
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: /Load kolk_arena\.md into your agent first/i })).toBeVisible();
+    const agentSkill = page.locator('#agent-skill');
+    await expect(agentSkill.getByText(/Load kolk_arena\.md into your agent first/i)).toBeVisible();
+    await agentSkill.locator('summary').click();
     // The preview used to live inside a <details><summary>Preview
     // kolk_arena.md</summary> fold; the latest skill card renders the
     // CodeBlock inline with title="kolk_arena.md" — assert the filename
     // surfaces on the page rather than the old summary element.
-    await expect(page.getByText('kolk_arena.md', { exact: true }).first()).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Copy kolk_arena.md' }).first()).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Download kolk_arena.md' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Open kolk_arena.md' })).toBeVisible();
+    await expect(agentSkill.getByText('kolk_arena.md', { exact: true }).first()).toBeVisible();
+    await expect(agentSkill.getByRole('button', { name: 'Copy kolk_arena.md' }).first()).toBeVisible();
+    await expect(agentSkill.getByRole('button', { name: 'Download kolk_arena.md' })).toBeVisible();
+    await expect(agentSkill.getByRole('link', { name: 'Open kolk_arena.md' })).toBeVisible();
   });
 
   test('home anonymous flow renders sign-in panel and email success state', async ({ page }) => {
@@ -455,8 +483,10 @@ test.describe('frontend UI regression', () => {
     await page.getByRole('button', { name: 'Copy this step #1' }).first().click();
     await expect.poll(() => readClipboard(page)).toContain('ATTEMPT="$(jq -r \'.challenge.attemptToken\' /tmp/kolk_l0.json)"');
 
-    await expect(page.getByText('# Kolk Arena')).toBeVisible();
-    await page.getByRole('button', { name: 'Copy kolk_arena.md' }).first().click();
+    const agentSkill = page.locator('#agent-skill');
+    await agentSkill.locator('summary').click();
+    await expect(agentSkill.getByText('kolk_arena.md', { exact: true }).first()).toBeVisible();
+    await agentSkill.getByRole('button', { name: 'Copy kolk_arena.md' }).first().click();
     await expect.poll(() => readClipboard(page)).toContain('# Kolk Arena');
   });
 
@@ -466,6 +496,7 @@ test.describe('frontend UI regression', () => {
 
     await page.goto('/device?code=ABCD-1234');
 
+    await expect(page).toHaveURL(/\/device\?code=ABCD-1234$/);
     await expect(page.getByRole('heading', { name: 'Sign in to authorize your CLI' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Sign in with GitHub' })).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'Sign in with Google' })).toHaveCount(0);
@@ -528,7 +559,7 @@ test.describe('frontend UI regression', () => {
     await page.goto('/play');
 
     await expect(page.getByText('Anonymous browser-session progress detected up to')).toBeVisible();
-    await expect(page.getByText('Highest cleared: L3')).toBeVisible();
+    await expect(page.getByText('Highest cleared: L3').filter({ visible: true }).first()).toBeVisible();
     await expect(page.getByRole('link', { name: 'Continue to L4' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Start L4 →' })).toBeVisible();
     await expect(page.getByText('Locked · clear L4 first')).toBeVisible();
@@ -842,6 +873,16 @@ test.describe('frontend UI regression', () => {
     await expect(page.getByText('Strong structured delivery with clear coverage.')).toBeVisible();
   });
 
+  test('leaderboard renders anonymous ranked rows without exposing a player detail link', async ({ page }) => {
+    await mockLeaderboard(page);
+
+    await page.goto('/leaderboard');
+
+    await expect(page.locator('tbody').getByText('Anonymous abcd')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Open player detail for Anonymous abcd' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Open player page for Anonymous abcd' })).toHaveCount(0);
+  });
+
   test('mobile leaderboard cards keep navigation semantics instead of expand semantics', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await mockLeaderboard(page);
@@ -852,5 +893,7 @@ test.describe('frontend UI regression', () => {
     await expect(mobileCard).toBeVisible();
     await expect(mobileCard).not.toHaveAttribute('aria-controls', /.+/);
     await expect(mobileCard).not.toHaveAttribute('aria-expanded', /.+/);
+    await expect(page.locator('article[aria-label="Anonymous abcd"]')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Open player page for Anonymous abcd' })).toHaveCount(0);
   });
 });

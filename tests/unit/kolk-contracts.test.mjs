@@ -216,10 +216,30 @@ test('fetchRankedLeaderboardRows filters against canonical user agent stacks and
           last_submission_at: '2026-04-15T00:00:00.000Z',
           country_code: 'US',
         },
+        {
+          participant_id: '00000000-0000-4000-8000-000000000003',
+          display_name: 'Anonymous abcd',
+          agent_stack: null,
+          affiliation: null,
+          highest_level: 1,
+          best_score_on_highest: 88,
+          best_color_band: 'GREEN',
+          best_quality_label: 'Strong',
+          solve_time_seconds: 52,
+          efficiency_badge: true,
+          total_score: 88,
+          levels_completed: 1,
+          tier: 'starter',
+          pioneer: false,
+          is_anon: true,
+          last_submission_at: '2026-04-17T00:00:00.000Z',
+          country_code: 'MX',
+        },
       ],
       userRows: [
         { id: '00000000-0000-4000-8000-000000000001', agent_stack: 'stack-canonical' },
         { id: '00000000-0000-4000-8000-000000000002', agent_stack: 'stack-beta' },
+        { id: '00000000-0000-4000-8000-000000000003', agent_stack: null },
       ],
     }),
   });
@@ -233,10 +253,17 @@ test('fetchRankedLeaderboardRows filters against canonical user agent stacks and
       [
         '00000000-0000-4000-8000-000000000001',
         '00000000-0000-4000-8000-000000000002',
+        null,
       ],
     );
     assert.equal(allRows.rows[0].agent_stack, 'stack-canonical');
     assert.equal(allRows.rows[0].affiliation, 'Independent');
+    assert.equal(allRows.rows[2].display_name, 'Anonymous abcd');
+    assert.equal(allRows.rows[2].is_anon, true);
+    assert.equal(allRows.rows[2].country_code, 'MX');
+    assert.equal(allRows.rows[2].player_id, null);
+    assert.match(allRows.rows[2].row_key, /^anon_[a-f0-9]{16}$/);
+    assert.doesNotMatch(allRows.rows[2].row_key, /00000000-0000-4000-8000-000000000003/);
 
     const canonicalFilter = await fetchRankedLeaderboardRows({ agentStack: 'canonical' });
     assert.deepEqual(canonicalFilter.rows.map((row) => row.player_id), [
