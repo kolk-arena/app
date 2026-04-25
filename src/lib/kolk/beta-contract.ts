@@ -13,13 +13,17 @@ export const COVERAGE_QUALITY_GATE = 15;
 // the beta-contract surface don't have to dual-import.
 export { STRUCTURE_MAX, COVERAGE_MAX, QUALITY_MAX } from './constants';
 
-// Submit rate-limit numbers live in src/lib/kolk/submission-guards.ts
-// (SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN_PER_MINUTE / _PER_HOUR, plus
-// SUBMIT_RETRY_CAP_PER_ATTEMPT_TOKEN and SUBMIT_RATE_LIMIT_PER_IDENTITY_PER_DAY).
-// A single mirrored knob is kept here for callers that only reach the
-// beta-contract surface; the "keep in sync" discipline is documented there.
-// Launch-week relaxation (2026-04-20): raised 2 → 6.
-export const SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN = 6;
+// Frontend-safe public submit guard constants. The DB-backed enforcement lives
+// in submission-guards.ts, which re-exports these values for server callers.
+// Server-side 5xx responses are refunded and do not spend these quotas.
+export const SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN_PER_MINUTE = 6;
+export const SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN_PER_HOUR = 40;
+export const SUBMIT_RETRY_CAP_PER_ATTEMPT_TOKEN = 10;
+export const SUBMIT_RATE_LIMIT_PER_IDENTITY_PER_DAY = 99;
+
+// Legacy alias: kept for callers that only knew about the minute cap.
+export const SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN =
+  SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN_PER_MINUTE;
 
 export type ColorBand = 'RED' | 'ORANGE' | 'YELLOW' | 'GREEN' | 'BLUE';
 
@@ -128,4 +132,3 @@ export function isLeaderboardEligible(
     && (Boolean(participantId) || Boolean(anonToken))
   );
 }
-

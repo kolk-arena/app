@@ -6,9 +6,7 @@
  * dropped into a GitHub README, project landing page, or social bio so the
  * player's friends-of-friends compound back into Kolk Arena traffic.
  *
- * shields.io URL format reminder (see docs/Kolk_Arena_Launch_Plan_Optimization.md
- * §C2 for in-repo examples like
- * `https://img.shields.io/badge/status-beta-orange`):
+ * shields.io URL format reminder:
  *
  *   /badge/<left>-<right>-<color>
  *

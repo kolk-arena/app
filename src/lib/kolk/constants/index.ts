@@ -6,7 +6,7 @@
 export const JUDGE_BUDGET_MAX_PER_HOUR = 1_000;
 
 // Legacy rate-limit placeholders. Public beta submit limits are defined in
-// src/lib/kolk/beta-contract.ts (3 submissions / minute).
+// src/lib/kolk/submission-guards.ts.
 export const RATE_LIMIT_ANON_PER_HOUR = 30;
 export const RATE_LIMIT_REGISTERED_PER_HOUR = 60;
 

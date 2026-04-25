@@ -238,6 +238,7 @@ export const ProfileInputSchema = z
 // ============================================================================
 
 export interface LeaderboardEntry {
+  row_key: string;
   player_id: string | null;
   rank: number;
   display_name: string;

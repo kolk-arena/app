@@ -47,6 +47,7 @@ export function proxy(request: NextRequest) {
 
   if (request.method !== 'GET') return NextResponse.next();
   if (pathname.startsWith('/api/')) return NextResponse.next();
+  if (pathname === '/device') return NextResponse.next();
 
   // Supabase email flows can arrive with either:
   //   - `?code=<uuid>` (PKCE, new flow)
