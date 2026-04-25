@@ -17,17 +17,35 @@ type CredentialFile = {
   signed_in_at: string;
 };
 
+type CookieRecord = {
+  name: string;
+  value: string;
+  domain: string;
+  hostOnly: boolean;
+  path: string;
+  secure: boolean;
+  expiresAt: number | null;
+  updatedAt: string;
+};
+
+type CookieFile = {
+  version: 1;
+  cookies: CookieRecord[];
+};
+
 class CliApiError extends Error {
   status: number;
   code?: string;
   payload: Record<string, unknown>;
+  retryAfterSeconds?: number;
 
-  constructor(status: number, payload: Record<string, unknown>) {
+  constructor(status: number, payload: Record<string, unknown>, headers?: Headers) {
     super(typeof payload.error === 'string' ? payload.error : `API ${status} failed`);
     this.name = 'CliApiError';
     this.status = status;
     this.code = typeof payload.code === 'string' ? payload.code : undefined;
     this.payload = payload;
+    this.retryAfterSeconds = parseRetryAfter(headers?.get('retry-after') ?? null) ?? parseRetryAfterPayload(payload);
   }
 }
 
@@ -65,6 +83,10 @@ function configDir(): string {
 
 function credentialsPath(): string {
   return path.join(configDir(), 'credentials.json');
+}
+
+function anonymousCookiesPath(): string {
+  return path.join(configDir(), 'cookies.json');
 }
 
 async function ensureConfigDir(): Promise<void> {
@@ -106,6 +128,298 @@ async function deleteCredentialsFile(): Promise<void> {
   }
 }
 
+async function readCookieFile(file: string): Promise<CookieFile | null> {
+  try {
+    const stat = await fsp.stat(file);
+    if (process.platform !== 'win32') {
+      const mode = stat.mode & 0o777;
+      if ((mode & 0o077) !== 0) {
+        throw new Error(`Anonymous cookie file permissions are too open (${mode.toString(8)}). Fix to 600.`);
+      }
+    }
+
+    const content = await fsp.readFile(file, 'utf8');
+    const parsed = JSON.parse(content) as Partial<CookieFile>;
+    if (parsed.version !== 1 || !Array.isArray(parsed.cookies)) {
+      return { version: 1, cookies: [] };
+    }
+
+    return {
+      version: 1,
+      cookies: parsed.cookies.map(normalizeCookieRecord).filter((cookie): cookie is CookieRecord => cookie !== null),
+    };
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+    throw error;
+  }
+}
+
+async function writeCookieFile(file: string, cookies: CookieRecord[]): Promise<void> {
+  await ensureConfigDir();
+  const data: CookieFile = { version: 1, cookies };
+  await fsp.writeFile(file, `${JSON.stringify(data, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 });
+  if (process.platform !== 'win32') {
+    await fsp.chmod(file, 0o600);
+  }
+}
+
+function normalizeCookieRecord(input: unknown): CookieRecord | null {
+  if (!input || typeof input !== 'object') return null;
+  const raw = input as Partial<CookieRecord>;
+  if (
+    typeof raw.name !== 'string'
+    || typeof raw.value !== 'string'
+    || typeof raw.domain !== 'string'
+    || typeof raw.hostOnly !== 'boolean'
+    || typeof raw.path !== 'string'
+    || typeof raw.secure !== 'boolean'
+    || typeof raw.updatedAt !== 'string'
+  ) {
+    return null;
+  }
+
+  const expiresAt = raw.expiresAt === null || typeof raw.expiresAt === 'number' ? raw.expiresAt : null;
+  if (!isValidCookieName(raw.name) || !raw.domain || !raw.path.startsWith('/')) return null;
+  if (expiresAt !== null && expiresAt <= Date.now()) return null;
+
+  return {
+    name: raw.name,
+    value: raw.value,
+    domain: raw.domain.toLowerCase(),
+    hostOnly: raw.hostOnly,
+    path: raw.path,
+    secure: raw.secure,
+    expiresAt,
+    updatedAt: raw.updatedAt,
+  };
+}
+
+class AnonymousCookieJar {
+  private readonly cookies = new Map<string, CookieRecord>();
+
+  private constructor(private readonly file: string, cookies: CookieRecord[]) {
+    for (const cookie of cookies) {
+      this.cookies.set(cookieKey(cookie), cookie);
+    }
+  }
+
+  static async load(file: string): Promise<AnonymousCookieJar> {
+    const data = await readCookieFile(file);
+    return new AnonymousCookieJar(file, data?.cookies ?? []);
+  }
+
+  get size(): number {
+    this.pruneExpired();
+    return this.cookies.size;
+  }
+
+  getCookieHeader(url: URL): string | undefined {
+    this.pruneExpired();
+    const requestPath = url.pathname || '/';
+    const hostname = url.hostname.toLowerCase();
+    const matching = [...this.cookies.values()]
+      .filter((cookie) => {
+        if (cookie.secure && url.protocol !== 'https:') return false;
+        if (!domainMatches(cookie, hostname)) return false;
+        return pathMatches(requestPath, cookie.path);
+      })
+      .sort((a, b) => b.path.length - a.path.length);
+
+    if (matching.length === 0) return undefined;
+    return matching.map((cookie) => `${cookie.name}=${cookie.value}`).join('; ');
+  }
+
+  storeFromResponse(url: URL, headers: Headers): boolean {
+    const setCookieHeaders = getSetCookieHeaders(headers);
+    if (setCookieHeaders.length === 0) return false;
+
+    let changed = false;
+    for (const header of setCookieHeaders) {
+      const parsed = parseSetCookie(header, url);
+      if (!parsed) continue;
+
+      const key = cookieKey(parsed);
+      if (parsed.expiresAt !== null && parsed.expiresAt <= Date.now()) {
+        changed = this.cookies.delete(key) || changed;
+        continue;
+      }
+
+      this.cookies.set(key, parsed);
+      changed = true;
+    }
+
+    return changed || this.pruneExpired();
+  }
+
+  async save(): Promise<void> {
+    await writeCookieFile(this.file, [...this.cookies.values()]);
+  }
+
+  private pruneExpired(): boolean {
+    const now = Date.now();
+    let changed = false;
+    for (const [key, cookie] of this.cookies) {
+      if (cookie.expiresAt !== null && cookie.expiresAt <= now) {
+        this.cookies.delete(key);
+        changed = true;
+      }
+    }
+    return changed;
+  }
+}
+
+function cookieKey(cookie: Pick<CookieRecord, 'name' | 'domain' | 'path'>): string {
+  return `${cookie.domain}\t${cookie.path}\t${cookie.name}`;
+}
+
+function isValidCookieName(name: string): boolean {
+  return /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/.test(name);
+}
+
+function domainMatches(cookie: CookieRecord, hostname: string): boolean {
+  if (cookie.hostOnly) return hostname === cookie.domain;
+  return hostname === cookie.domain || hostname.endsWith(`.${cookie.domain}`);
+}
+
+function pathMatches(requestPath: string, cookiePath: string): boolean {
+  if (requestPath === cookiePath) return true;
+  if (!requestPath.startsWith(cookiePath)) return false;
+  return cookiePath.endsWith('/') || requestPath.charAt(cookiePath.length) === '/';
+}
+
+function defaultCookiePath(requestPath: string): string {
+  if (!requestPath.startsWith('/') || requestPath === '/') return '/';
+  const lastSlash = requestPath.lastIndexOf('/');
+  return lastSlash <= 0 ? '/' : requestPath.slice(0, lastSlash);
+}
+
+function getSetCookieHeaders(headers: Headers): string[] {
+  const withGetSetCookie = headers as Headers & { getSetCookie?: () => string[] };
+  if (typeof withGetSetCookie.getSetCookie === 'function') {
+    return withGetSetCookie.getSetCookie();
+  }
+
+  const combined = headers.get('set-cookie');
+  return combined ? splitSetCookieHeader(combined) : [];
+}
+
+function splitSetCookieHeader(header: string): string[] {
+  return header
+    .split(/,(?=\s*[!#$%&'*+\-.^_`|~0-9A-Za-z]+=)/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function parseSetCookie(header: string, url: URL): CookieRecord | null {
+  const parts = header.split(';');
+  const nameValue = parts.shift()?.trim();
+  if (!nameValue) return null;
+
+  const equalsIdx = nameValue.indexOf('=');
+  if (equalsIdx <= 0) return null;
+
+  const name = nameValue.slice(0, equalsIdx).trim();
+  const value = nameValue.slice(equalsIdx + 1).trim();
+  if (!isValidCookieName(name)) return null;
+
+  const originHost = url.hostname.toLowerCase();
+  let domain = originHost;
+  let hostOnly = true;
+  let cookiePath = defaultCookiePath(url.pathname || '/');
+  let secure = false;
+  let expiresAt: number | null = null;
+  let hasMaxAge = false;
+
+  for (const part of parts) {
+    const attr = part.trim();
+    if (!attr) continue;
+
+    const attrEqualsIdx = attr.indexOf('=');
+    const rawName = attrEqualsIdx >= 0 ? attr.slice(0, attrEqualsIdx).trim() : attr.trim();
+    const rawValue = attrEqualsIdx >= 0 ? attr.slice(attrEqualsIdx + 1).trim() : '';
+    const attrName = rawName.toLowerCase();
+
+    if (attrName === 'domain' && rawValue) {
+      const normalizedDomain = rawValue.replace(/^\./, '').toLowerCase();
+      if (originHost !== normalizedDomain && !originHost.endsWith(`.${normalizedDomain}`)) {
+        return null;
+      }
+      domain = normalizedDomain;
+      hostOnly = false;
+    } else if (attrName === 'path' && rawValue.startsWith('/')) {
+      cookiePath = rawValue;
+    } else if (attrName === 'secure') {
+      secure = true;
+    } else if (attrName === 'max-age') {
+      const seconds = Number.parseInt(rawValue, 10);
+      if (Number.isFinite(seconds)) {
+        hasMaxAge = true;
+        expiresAt = Date.now() + seconds * 1000;
+      }
+    } else if (attrName === 'expires' && !hasMaxAge) {
+      const parsed = Date.parse(rawValue);
+      if (Number.isFinite(parsed)) {
+        expiresAt = parsed;
+      }
+    }
+  }
+
+  return {
+    name,
+    value,
+    domain,
+    hostOnly,
+    path: cookiePath,
+    secure,
+    expiresAt,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function hasHeader(headers: Record<string, string>, name: string): boolean {
+  const lowerName = name.toLowerCase();
+  return Object.keys(headers).some((key) => key.toLowerCase() === lowerName);
+}
+
+function parseRetryAfter(raw: string | null): number | undefined {
+  if (!raw) return undefined;
+
+  const trimmed = raw.trim();
+  if (/^\d+$/.test(trimmed)) {
+    return Number.parseInt(trimmed, 10);
+  }
+
+  const retryAt = Date.parse(trimmed);
+  if (!Number.isFinite(retryAt)) return undefined;
+  return Math.max(0, Math.ceil((retryAt - Date.now()) / 1000));
+}
+
+function parseRetryAfterPayload(payload: Record<string, unknown>): number | undefined {
+  const raw = payload.retryAfter ?? payload.retry_after;
+  if (typeof raw === 'number' && Number.isFinite(raw)) return Math.max(0, Math.ceil(raw));
+  if (typeof raw === 'string') return parseRetryAfter(raw);
+  return undefined;
+}
+
+function formatDuration(seconds: number): string {
+  const safeSeconds = Math.max(0, Math.ceil(seconds));
+  if (safeSeconds < 60) return `${safeSeconds}s`;
+
+  const minutes = Math.floor(safeSeconds / 60);
+  const remainingSeconds = safeSeconds % 60;
+  if (minutes < 60) {
+    return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function resolveStoredToken(): Promise<string | undefined> {
   if (process.env.KOLK_TOKEN?.trim()) {
     return process.env.KOLK_TOKEN.trim();
@@ -128,7 +442,14 @@ async function resolveApiBaseUrl(): Promise<string> {
 
 async function api(
   pathName: string,
-  opts: { method?: string; body?: unknown; token?: string; headers?: Record<string, string>; baseUrl?: string } = {},
+  opts: {
+    method?: string;
+    body?: unknown;
+    token?: string;
+    headers?: Record<string, string>;
+    baseUrl?: string;
+    cookieJar?: AnonymousCookieJar;
+  } = {},
 ) {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -137,22 +458,59 @@ async function api(
   if (opts.token) headers.Authorization = `Bearer ${opts.token}`;
 
   const baseUrl = opts.baseUrl ?? await resolveApiBaseUrl();
+  const requestUrl = new URL(pathName, baseUrl);
+  const cookieHeader = opts.cookieJar?.getCookieHeader(requestUrl);
+  if (cookieHeader && !hasHeader(headers, 'cookie')) {
+    headers.Cookie = cookieHeader;
+  }
 
-  const res = await fetch(`${baseUrl}${pathName}`, {
+  const res = await fetch(requestUrl, {
     method: opts.method ?? 'GET',
     headers,
     body: opts.body ? JSON.stringify(opts.body) : undefined,
   });
 
+  if (opts.cookieJar?.storeFromResponse(requestUrl, res.headers)) {
+    await opts.cookieJar.save();
+  }
+
   const json = await res.json().catch(() => ({})) as Record<string, unknown>;
   if (!res.ok) {
-    throw new CliApiError(res.status, json);
+    throw new CliApiError(res.status, json, res.headers);
   }
   return json;
 }
 
 function isCliApiError(error: unknown): error is CliApiError {
   return error instanceof CliApiError;
+}
+
+function printApiErrorDetails(error: CliApiError): void {
+  const fixHint = typeof error.payload.fix_hint === 'string' ? error.payload.fix_hint : undefined;
+  if (fixHint) {
+    console.log(dim(`  Hint: ${fixHint}`));
+  }
+  if (error.retryAfterSeconds !== undefined) {
+    console.log(yellow(`  Retry-After: ${formatDuration(error.retryAfterSeconds)}`));
+  }
+}
+
+function isAttemptRateLimitCode(code: string | undefined): boolean {
+  return code === 'RATE_LIMIT_MINUTE' || code === 'RATE_LIMIT_HOUR';
+}
+
+function isIdentityPauseCode(code: string | undefined): boolean {
+  return code === 'RATE_LIMIT_DAY' || code === 'ACCOUNT_FROZEN';
+}
+
+async function waitForRetryAfter(error: CliApiError): Promise<boolean> {
+  if (error.retryAfterSeconds === undefined) return false;
+  if (!await promptYesNo(`  Wait ${formatDuration(error.retryAfterSeconds)} before continuing with the same attemptToken? (y/n) `)) {
+    return false;
+  }
+
+  await sleep(error.retryAfterSeconds * 1000);
+  return true;
 }
 
 function readStdin(prompt: string): Promise<string> {
@@ -346,7 +704,13 @@ async function cmdWhoAmI(token: string | undefined, baseUrl: string) {
   }
 }
 
+function markFailureExit() {
+  if (!process.exitCode) process.exitCode = 1;
+}
+
 async function cmdStart(startLevel: number, token: string | undefined, baseUrl: string) {
+  const cookieJar = token ? undefined : await AnonymousCookieJar.load(anonymousCookiesPath());
+
   console.log();
   console.log(bold('╔══════════════════════════════════════╗'));
   console.log(bold('║             KOLK ARENA               ║'));
@@ -354,7 +718,11 @@ async function cmdStart(startLevel: number, token: string | undefined, baseUrl: 
   console.log(bold('╚══════════════════════════════════════╝'));
   console.log();
   console.log(`  API: ${cyan(baseUrl)}`);
-  console.log(`  Auth: ${token ? green('authenticated') : yellow('anonymous (L1-L5; L6-L8 need login or --token)')}`);
+  console.log(`  Auth: ${token ? green('authenticated') : yellow('anonymous (L0-L5 via scoped cookie jar; L6-L8 need login or --token)')}`);
+  if (cookieJar) {
+    const cookieCount = cookieJar.size > 0 ? ` (${cookieJar.size} stored)` : '';
+    console.log(`  Anonymous cookie jar: ${dim(anonymousCookiesPath())}${cookieCount}`);
+  }
   console.log(`  Starting at: ${bold(`Level ${startLevel}`)}`);
   console.log();
 
@@ -367,22 +735,32 @@ async function cmdStart(startLevel: number, token: string | undefined, baseUrl: 
 
     let challenge: Record<string, unknown>;
     try {
-      challenge = await api(`/api/challenge/${level}`, { token, baseUrl }) as Record<string, unknown>;
+      challenge = await api(`/api/challenge/${level}`, { token, baseUrl, cookieJar }) as Record<string, unknown>;
     } catch (error) {
       const message = (error as Error).message;
       console.log(red(`  Failed to fetch challenge: ${message}`));
+      if (isCliApiError(error)) {
+        printApiErrorDetails(error);
+      }
       if (isCliApiError(error) && (error.status === 401 || error.code === 'AUTH_REQUIRED')) {
         console.log(yellow('\n  Sign-in required for L6-L8.'));
         console.log(dim('  Run `kolk-arena login`, or pass --token <kat_...>.'));
+      } else if (isCliApiError(error) && error.code === 'INSUFFICIENT_SCOPE') {
+        console.log(yellow('\n  This token cannot fetch challenges with its current scopes.'));
+        console.log(dim('  Create a PAT with fetch:challenge, submit:onboarding, and submit:ranked scopes.'));
       } else if (isCliApiError(error) && error.code === 'LEVEL_LOCKED') {
         console.log(yellow('\n  Progression gate not cleared — finish the previous level first.'));
+      } else if (isCliApiError(error) && error.retryAfterSeconds !== undefined) {
+        console.log(yellow('\n  The server asked this client to back off before fetching again.'));
       }
+      markFailureExit();
       break;
     }
 
     const chal = challenge.challenge as Record<string, unknown> | undefined;
     if (!chal) {
       console.log(red('  No challenge data returned'));
+      markFailureExit();
       break;
     }
 
@@ -432,6 +810,7 @@ async function cmdStart(startLevel: number, token: string | undefined, baseUrl: 
           method: 'POST',
           token,
           baseUrl,
+          cookieJar,
           headers: { 'Idempotency-Key': uuid() },
           body: {
             attemptToken: chal.attemptToken,
@@ -505,18 +884,58 @@ async function cmdStart(startLevel: number, token: string | undefined, baseUrl: 
           fetchFreshBrief = true;
           break;
         }
+        markFailureExit();
         return;
       } catch (error) {
         console.log(red(`  Submission failed: ${(error as Error).message}`));
 
         if (isCliApiError(error)) {
+          printApiErrorDetails(error);
+
           if (error.code === 'AUTH_REQUIRED') {
             console.log(yellow('  Sign-in required for this level. Run `kolk-arena login` first.'));
+            markFailureExit();
+            return;
+          }
+
+          if (error.code === 'INSUFFICIENT_SCOPE') {
+            console.log(yellow('  This token is missing a required submit scope.'));
+            console.log(dim('  L0 requires submit:onboarding; L1-L8 require submit:ranked.'));
+            markFailureExit();
             return;
           }
 
           if (error.code === 'IDENTITY_MISMATCH') {
             console.log(yellow('  This attemptToken is bound to a different identity. Re-authenticate or fetch again.'));
+            if (!token) {
+              console.log(dim(`  Anonymous L0-L5 submissions require the same scoped cookie jar used during fetch: ${anonymousCookiesPath()}`));
+            }
+            markFailureExit();
+            return;
+          }
+
+          if (isIdentityPauseCode(error.code)) {
+            console.log(yellow('  Submissions for this identity are paused. Do not fetch a new brief; wait for the server backoff window.'));
+            markFailureExit();
+            return;
+          }
+
+          if (isAttemptRateLimitCode(error.code)) {
+            console.log(yellow('  This attemptToken is rate-limited. Keep the token and honor Retry-After before trying again.'));
+            if (await waitForRetryAfter(error)) {
+              continue;
+            }
+            markFailureExit();
+            return;
+          }
+
+          if (error.code === 'RETRY_LIMIT_EXCEEDED') {
+            console.log(yellow('  This attemptToken has reached its retry cap.'));
+            if (await promptYesNo('  Fetch a fresh brief for this level? (y/n) ')) {
+              fetchFreshBrief = true;
+              break;
+            }
+            markFailureExit();
             return;
           }
 
@@ -525,6 +944,7 @@ async function cmdStart(startLevel: number, token: string | undefined, baseUrl: 
               fetchFreshBrief = true;
               break;
             }
+            markFailureExit();
             return;
           }
 
@@ -532,6 +952,8 @@ async function cmdStart(startLevel: number, token: string | undefined, baseUrl: 
             error.code === 'VALIDATION_ERROR'
             || error.code === 'L5_INVALID_JSON'
             || error.code === 'RATE_LIMITED'
+            || error.code === 'TEXT_TOO_LONG'
+            || error.code === 'INVALID_JSON'
             || error.code === 'SCORING_UNAVAILABLE'
             || error.code === 'DUPLICATE_REQUEST'
           ) {
@@ -542,6 +964,7 @@ async function cmdStart(startLevel: number, token: string | undefined, baseUrl: 
               fetchFreshBrief = true;
               break;
             }
+            markFailureExit();
             return;
           }
         }
@@ -553,6 +976,7 @@ async function cmdStart(startLevel: number, token: string | undefined, baseUrl: 
           fetchFreshBrief = true;
           break;
         }
+        markFailureExit();
         return;
       }
     }
@@ -635,6 +1059,11 @@ async function main() {
     case 'start': {
       const levelIdx = args.indexOf('--level');
       const level = levelIdx >= 0 ? parseInt(args[levelIdx + 1]!, 10) : 0;
+      if (!Number.isInteger(level) || level < 0 || level > PUBLIC_BETA_MAX_LEVEL) {
+        console.log(red(`Invalid --level. Use an integer from 0 to ${PUBLIC_BETA_MAX_LEVEL}.`));
+        markFailureExit();
+        break;
+      }
       await cmdStart(level, token, baseUrl);
       break;
     }
@@ -674,9 +1103,13 @@ ${bold('Credential sources (in order):')}
   2. KOLK_TOKEN
   3. ${credentialsPath()}
 
+${bold('Anonymous session:')}
+  L0-L5 fetch/submit use a scoped cookie jar at ${anonymousCookiesPath()}
+  Use the same config dir to preserve anonymous progression across CLI runs.
+
 ${bold('Public beta scope:')} L0-L8
   L0:      onboarding connectivity check (not AI-judged)
-  L1-L5:   anonymous play OK; L5 uses JSON-in-primaryText
+  L1-L5:   anonymous play OK through the CLI cookie jar; L5 uses JSON-in-primaryText
   L6-L8:   authenticated play (run \`kolk-arena login\` first)
 `);
   }
