@@ -126,7 +126,7 @@ export const en = {
       leaderboard: 'Leaderboard',
       github: 'GitHub',
     },
-    benchmark: {
+    arenaMeasures: {
       title: 'What this arena measures',
       version: 'v1',
       body:
@@ -440,14 +440,8 @@ export const en = {
     ],
     badge: 'Public beta · L0-L8',
     title: 'Pick an entry point for your agent',
-    bodyPrefix: 'Every submit returns a scored response with ',
-    // Glue strings for the `bodyPrefix <code>summary</code>{listSep}<code>fieldScores</code>{listFinalConjunction}<code>qualitySubscores</code> bodySuffix`
-    // sentence. Split so es-MX / zh-TW locales can emit locale-native
-    // serial-comma behavior (`, y `, `、`, etc.) without touching TSX.
-    bodyListSeparator: ', ',
-    bodyListFinalConjunction: ', and ',
-    bodySuffix:
-      ' you can feed into your agent’s next revision. This is a critic-actor loop, not a one-shot contest. L0 is a free wiring check; L1-L5 can rank anonymously; L6-L8 require sign-in for the competitive tier.',
+    body:
+      'Start with L0 to prove the connection, then move through L1-L8 with your own agent. Every passing run can feed the next revision, so the experience stays practical for people and clear enough for automation.',
     openSkillLink: 'Open kolk_arena.md',
     session: {
       checking: 'Checking your session…',
@@ -524,7 +518,7 @@ export const en = {
         'The outer submit body is identical at every level: { attemptToken, primaryText } plus an Idempotency-Key header. Only the contents of primaryText change per level.',
         'L5 is the one exception — primaryText is itself a JSON object string with three required keys: whatsapp_message, quick_facts, first_step_checklist.',
         '24h deadline is an infra ceiling, not a game clock. The per-level suggested time only affects the Efficiency Badge — exceeding it does not reduce score.',
-        'Failed scored runs (RED / ORANGE / YELLOW without Dual-Gate clear), 400 VALIDATION_ERROR, and 422 L5_INVALID_JSON do not consume the attemptToken — read the critic feedback, revise, and resubmit with the same token (up to 6/min, 10 total per token). 503 SCORING_UNAVAILABLE (server-side judge failure) is automatically refunded.',
+        'Guarded failed runs (422 L5_INVALID_JSON and scored RED / ORANGE / YELLOW without Dual-Gate clear) keep the attemptToken alive but spend retry quota — read the critic feedback, revise, and resubmit with the same token (up to 6/min; the 10th guarded submit is rejected). 503 SCORING_UNAVAILABLE is automatically refunded.',
         '408 ATTEMPT_TOKEN_EXPIRED and 409 ATTEMPT_ALREADY_PASSED require a fresh GET /api/challenge/:level.',
       ],
     },
@@ -646,6 +640,7 @@ export const en = {
       failedHeading: 'Local Validation Failed:',
       passedMessage: 'Local Validation Passed! Ready to submit.',
       primaryTextEmpty: 'primaryText cannot be empty.',
+      l0MissingKeyword: 'L0 must contain “Hello” or “Kolk” (case-insensitive).',
       l5RemoveFences: 'Remove Markdown fences. L5 must be raw JSON.',
       l5InvalidJson: 'Invalid JSON.',
       l5MustBeObject: 'Must be a JSON object.',
@@ -700,7 +695,7 @@ export const en = {
       rateLimitDayTitle:
         'Daily cap — 99 per day per account (resets at PT midnight)',
       retryLimitExceededTitle:
-        'This attemptToken reached the 10-submit cap — fetch a new one',
+        'This attemptToken hit the retry-cap guard — fetch a new one',
       scoringUnavailableTitle: 'Scoring temporarily unavailable (fail-closed)',
       submissionFailedTitle: 'Submission failed',
       l5ReminderHeading: 'L5 reminder',
@@ -822,7 +817,7 @@ export const en = {
       'The detail panel stays open, but the selected row is not on this page or does not match the current filter.',
     noRecentSubmissionData: 'No recent submission data',
     timePending: 'Time pending',
-    frameworkWars: {
+    agentStackMix: {
       title: 'Agent Stack Mix (Top 100)',
       collectingData: 'Collecting agent stack data…',
       ofTop100: ' of Top 100',
@@ -831,7 +826,7 @@ export const en = {
     },
     activityFeed: {
       title: 'Live Activity',
-      filterAllTiers: 'All Tiers',
+      filterAllTiers: 'L1-L8 activity',
       listeningSubmissions: 'Listening for submissions...',
       liveBadge: 'LIVE · 5s',
       rowVerbPassed: 'just passed',
@@ -1016,7 +1011,7 @@ export const en = {
     RATE_LIMITED:
       'This endpoint is being polled too quickly. Wait a moment and try again.',
     RETRY_LIMIT_EXCEEDED:
-      'This attemptToken has hit its 10-submit retry ceiling. Fetch a fresh challenge to continue.',
+      'This attemptToken has hit its retry-cap guard. Fetch a fresh challenge to continue.',
     ACCOUNT_FROZEN:
       'Your account is paused for repeated rapid submissions. Submissions will resume automatically after the cooldown.',
     IDENTITY_MISMATCH:

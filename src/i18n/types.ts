@@ -135,7 +135,7 @@ export interface FrontendCatalog {
       leaderboard: string;
       github: string;
     };
-    benchmark: {
+    arenaMeasures: {
       title: string;
       version: string;
       body: string;
@@ -343,10 +343,7 @@ export interface FrontendCatalog {
     }[];
     badge: string;
     title: string;
-    bodyPrefix: string;
-    bodyListSeparator: string;
-    bodyListFinalConjunction: string;
-    bodySuffix: string;
+    body: string;
     openSkillLink: string;
     session: {
       checking: string;
@@ -524,6 +521,7 @@ export interface FrontendCatalog {
       // dryRunValidation). Templates take the dynamic bits and return the
       // final message.
       primaryTextEmpty: string;
+      l0MissingKeyword: string;
       l5RemoveFences: string;
       l5InvalidJson: string;
       l5MustBeObject: string;
@@ -675,7 +673,7 @@ export interface FrontendCatalog {
     detailOutsideViewBody: string;
     noRecentSubmissionData: string;
     timePending: string;
-    frameworkWars: {
+    agentStackMix: {
       title: string;
       collectingData: string;
       ofTop100: string;

@@ -136,7 +136,7 @@ export const esMx = {
       leaderboard: 'Clasificación',
       github: 'GitHub',
     },
-    benchmark: {
+    arenaMeasures: {
       title: 'Lo que esta arena mide',
       version: 'v1',
       body:
@@ -448,11 +448,8 @@ export const esMx = {
     ],
     badge: 'Beta pública · L0-L8',
     title: 'Elige un punto de entrada para tu agente',
-    bodyPrefix: 'Cada envío devuelve una respuesta calificada con ',
-    bodyListSeparator: ', ',
-    bodyListFinalConjunction: ' y ',
-    bodySuffix:
-      ' que puedes alimentar a la siguiente revisión de tu agente. Es un loop crítico-actor, no un concurso de un solo intento. L0 es una verificación gratuita de cableado; L1-L5 pueden rankear de forma anónima; L6-L8 requieren iniciar sesión para el tier competitivo.',
+    body:
+      'Empieza con L0 para comprobar la conexión y luego avanza por L1-L8 con tu propio agente. Cada run aprobado puede alimentar la siguiente revisión, así que la experiencia sigue siendo práctica para personas y clara para automatización.',
     openSkillLink: 'Abrir kolk_arena.md',
     session: {
       checking: 'Verificando tu sesión…',
@@ -529,7 +526,7 @@ export const esMx = {
         'El cuerpo externo del envío es idéntico en cada nivel: { attemptToken, primaryText } más un header Idempotency-Key. Solo cambia el contenido de primaryText por nivel.',
         'L5 es la única excepción — primaryText es en sí una cadena de objeto JSON con tres keys obligatorias: whatsapp_message, quick_facts, first_step_checklist.',
         'El plazo de 24h es un techo de infra, no un reloj de juego. El tiempo sugerido por nivel solo afecta la Efficiency Badge — excederlo no reduce el puntaje.',
-        'Los runs fallidos (RED / ORANGE / YELLOW sin Dual-Gate), 400 VALIDATION_ERROR y 422 L5_INVALID_JSON no consumen el attemptToken — lee la retroalimentación del crítico, revisa y reenvía con el mismo token (hasta 6/min, 10 totales por token). 503 SCORING_UNAVAILABLE (falla del juez del lado del servidor) se reembolsa automáticamente.',
+        'Los runs fallidos que entran al guard (422 L5_INVALID_JSON y RED / ORANGE / YELLOW sin Dual-Gate) mantienen vivo el attemptToken, pero consumen cuota de reintento — lee la retroalimentación del crítico, revisa y reenvía con el mismo token (hasta 6/min; el 10º envío protegido se rechaza). 503 SCORING_UNAVAILABLE se reembolsa automáticamente.',
         '408 ATTEMPT_TOKEN_EXPIRED y 409 ATTEMPT_ALREADY_PASSED requieren un nuevo GET /api/challenge/:level.',
       ],
     },
@@ -651,6 +648,7 @@ export const esMx = {
       failedHeading: 'Validación local fallida:',
       passedMessage: '¡Validación local exitosa! Listo para enviar.',
       primaryTextEmpty: 'primaryText no puede estar vacío.',
+      l0MissingKeyword: 'L0 debe contener “Hello” o “Kolk” (sin importar mayúsculas).',
       l5RemoveFences: 'Quita las cercas Markdown. L5 debe ser JSON crudo.',
       l5InvalidJson: 'JSON inválido.',
       l5MustBeObject: 'Debe ser un objeto JSON.',
@@ -705,7 +703,7 @@ export const esMx = {
       rateLimitDayTitle:
         'Tope diario — 99 por día por cuenta (se resetea a medianoche PT)',
       retryLimitExceededTitle:
-        'Este attemptToken alcanzó el tope de 10 envíos — obtén uno nuevo',
+        'Este attemptToken alcanzó el guard de reintentos — obtén uno nuevo',
       scoringUnavailableTitle: 'Calificación temporalmente no disponible (fail-closed)',
       submissionFailedTitle: 'Envío fallido',
       l5ReminderHeading: 'Recordatorio L5',
@@ -827,8 +825,8 @@ export const esMx = {
       'El panel de detalle sigue abierto, pero la fila seleccionada no está en esta página o no coincide con el filtro actual.',
     noRecentSubmissionData: 'Sin datos de envíos recientes',
     timePending: 'Tiempo pendiente',
-    frameworkWars: {
-      title: 'Mezcla de stacks de agentes (Top 100)',
+    agentStackMix: {
+      title: 'Distribución de agent stack (Top 100)',
       collectingData: 'Recolectando datos de stacks…',
       ofTop100: ' del Top 100',
       legendCount: (count: number) => `${count} entradas`,
@@ -836,7 +834,7 @@ export const esMx = {
     },
     activityFeed: {
       title: 'Actividad en vivo',
-      filterAllTiers: 'Todos los tiers',
+      filterAllTiers: 'Actividad L1-L8',
       listeningSubmissions: 'Escuchando envíos...',
       liveBadge: 'EN VIVO · 5s',
       rowVerbPassed: 'acaba de pasar',
@@ -1021,7 +1019,7 @@ export const esMx = {
     RATE_LIMITED:
       'Este endpoint está siendo consultado demasiado rápido. Espera un momento e intenta otra vez.',
     RETRY_LIMIT_EXCEEDED:
-      'Este attemptToken alcanzó el techo de 10 reintentos. Obtén un reto nuevo para continuar.',
+      'Este attemptToken alcanzó el guard de reintentos. Obtén un reto nuevo para continuar.',
     ACCOUNT_FROZEN:
       'Tu cuenta está pausada por envíos rápidos repetidos. Los envíos se reanudarán automáticamente tras el cooldown.',
     IDENTITY_MISMATCH:

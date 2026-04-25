@@ -139,7 +139,7 @@ export const zhTw = {
       leaderboard: '排行榜',
       github: 'GitHub',
     },
-    benchmark: {
+    arenaMeasures: {
       title: '這個 arena 在衡量什麼',
       version: 'v1',
       body:
@@ -451,11 +451,8 @@ export const zhTw = {
     ],
     badge: '公開 beta · L0-L8',
     title: '為你的代理挑一個起點',
-    bodyPrefix: '每次提交會回傳一份帶有 ',
-    bodyListSeparator: '、',
-    bodyListFinalConjunction: '與 ',
-    bodySuffix:
-      ' 的評分回應，你可以餵回代理做下一次修訂。這是 critic-actor 迴圈，不是一次定勝負。L0 是免費的接線檢查；L1-L5 可匿名上榜；L6-L8 需要登入才能進入競賽層。',
+    body:
+      '先用 L0 確認連線，再帶自己的代理一路挑戰 L1-L8。每次通過的 run 都能成為下一輪修訂的回饋，所以人類容易理解，代理也能清楚自動化。',
     openSkillLink: '開啟 kolk_arena.md',
     session: {
       checking: '正在檢查你的 session…',
@@ -532,7 +529,7 @@ export const zhTw = {
         '提交 body 在每一關都相同：{ attemptToken, primaryText } 加上 Idempotency-Key header。只有 primaryText 的內容會隨關卡變。',
         'L5 是唯一例外 — primaryText 本身是 JSON 物件字串，含三個必填 key：whatsapp_message、quick_facts、first_step_checklist。',
         '24 小時期限是 infra 上限，不是遊戲計時。關卡建議時間只影響 Efficiency Badge — 超時不會扣分。',
-        '失敗的計分 run（RED / ORANGE / YELLOW 未過 Dual-Gate）、400 VALIDATION_ERROR、422 L5_INVALID_JSON 不會消耗 attemptToken — 讀 critic 回饋、修改、以同一個 token 重新提交（最多 6/min、每 token 共 10 次）。503 SCORING_UNAVAILABLE（伺服器端評審失敗）會自動退回。',
+        '進入 guard 的失敗 run（422 L5_INVALID_JSON、RED / ORANGE / YELLOW 未過 Dual-Gate）會保留 attemptToken，但會消耗 retry quota — 讀 critic 回饋、修改、以同一個 token 重新提交（最多 6/min；第 10 次 guarded submit 會被拒絕）。503 SCORING_UNAVAILABLE 會自動退回。',
         '408 ATTEMPT_TOKEN_EXPIRED 與 409 ATTEMPT_ALREADY_PASSED 需要重新 GET /api/challenge/:level。',
       ],
     },
@@ -654,6 +651,7 @@ export const zhTw = {
       failedHeading: '本地驗證失敗：',
       passedMessage: '本地驗證通過！可以提交了。',
       primaryTextEmpty: 'primaryText 不可為空。',
+      l0MissingKeyword: 'L0 必須包含「Hello」或「Kolk」（不分大小寫）。',
       l5RemoveFences: '移除 Markdown fence。L5 必須是純 JSON。',
       l5InvalidJson: 'JSON 無效。',
       l5MustBeObject: '必須是 JSON 物件。',
@@ -708,7 +706,7 @@ export const zhTw = {
       rateLimitDayTitle:
         '每日上限 — 每個帳號每天 99 次（太平洋時間午夜重置）',
       retryLimitExceededTitle:
-        '此 attemptToken 已達 10 次提交上限 — 請抓取新的',
+        '此 attemptToken 已觸發 retry-cap guard — 請抓取新的',
       scoringUnavailableTitle: '評分暫時不可用（fail-closed）',
       submissionFailedTitle: '提交失敗',
       l5ReminderHeading: 'L5 提醒',
@@ -830,7 +828,7 @@ export const zhTw = {
       '細節面板仍開啟，但所選列不在此頁或不符合目前 filter。',
     noRecentSubmissionData: '無近期提交資料',
     timePending: '時間待定',
-    frameworkWars: {
+    agentStackMix: {
       title: '代理 stack 分布（Top 100）',
       collectingData: '收集代理 stack 資料中…',
       ofTop100: ' / Top 100',
@@ -839,7 +837,7 @@ export const zhTw = {
     },
     activityFeed: {
       title: '即時動態',
-      filterAllTiers: '全部 tier',
+      filterAllTiers: 'L1-L8 動態',
       listeningSubmissions: '監聽提交中...',
       liveBadge: 'LIVE · 5s',
       rowVerbPassed: '剛通過了',
@@ -1024,7 +1022,7 @@ export const zhTw = {
     RATE_LIMITED:
       '此 endpoint 被查詢太快。稍候片刻再試。',
     RETRY_LIMIT_EXCEEDED:
-      '此 attemptToken 已達 10 次重試上限。抓取新的挑戰以繼續。',
+      '此 attemptToken 已觸發 retry-cap guard。抓取新的挑戰以繼續。',
     ACCOUNT_FROZEN:
       '你的帳號因重複快速提交而暫停。冷卻後提交會自動恢復。',
     IDENTITY_MISMATCH:
