@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent }
 import { Group, Panel, Separator, useDefaultLayout } from 'react-resizable-panels';
 import { CodeBlock } from '@/components/ui/code-block';
 import { CopyButton } from '@/components/ui/copy-button';
-import { QuickActionButton, getQuickActionButtonClassName } from '@/components/ui/quick-action-button';
+import { QuickActionButton } from '@/components/ui/quick-action-button';
 import {
   useLocalizedDateTimeFormatter,
   useLocalizedTimeFormatter,
@@ -35,7 +35,15 @@ import {
   getAgentRules,
   dryRunValidation,
 } from '@/lib/frontend/agent-handoff';
+import { serializeJsonForInlineScript } from '@/lib/frontend/inline-json';
 import { MAX_PRIMARY_TEXT_CHARS } from '@/lib/kolk/constants';
+import {
+  ANONYMOUS_BETA_MAX_LEVEL,
+  SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN_PER_HOUR,
+  SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN_PER_MINUTE,
+  SUBMIT_RATE_LIMIT_PER_IDENTITY_PER_DAY,
+  SUBMIT_RETRY_CAP_PER_ATTEMPT_TOKEN,
+} from '@/lib/kolk/beta-contract';
 
 /**
  * Map a server-emitted error code → localized UI message. The wire-side
@@ -182,9 +190,8 @@ const panelLayoutStorage = {
   },
 };
 
-function stringifyJson(value: unknown) {
-  return JSON.stringify(value, null, 2);
-}
+const REFETCH_REQUIRED_ERROR_CODES = new Set(['INVALID_ATTEMPT_TOKEN', 'CHALLENGE_NOT_FOUND']);
+
 const L5_REQUIRED_KEYS = ['whatsapp_message', 'quick_facts', 'first_step_checklist'] as const;
 
 // ============================================================================
@@ -258,7 +265,9 @@ export function ChallengeClient({ level }: { level: number }) {
   const [isTextareaFocused, setIsTextareaFocused] = useState(false);
   const [dryRunResult, setDryRunResult] = useState<{valid: boolean; errors: string[]; warnings: string[]} | null>(null);
   const [shareStatus, setShareStatus] = useState<'idle' | 'shared' | 'failed'>('idle');
+  const [hasNativeShare, setHasNativeShare] = useState(false);
   const idempotencyKeyRef = useRef<string>('');
+  const submitBodySignatureRef = useRef<string>('');
   const submitFormRef = useRef<HTMLFormElement | null>(null);
   const submitTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const scriptTabRefs = useRef<Record<ScriptLang, HTMLButtonElement | null>>({
@@ -295,6 +304,10 @@ export function ChallengeClient({ level }: { level: number }) {
     return () => mediaQuery.removeListener(update);
   }, []);
 
+  useEffect(() => {
+    setHasNativeShare(typeof navigator !== 'undefined' && typeof navigator.share === 'function');
+  }, []);
+
   const downloadFile = (filename: string, content: string) => {
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
@@ -315,13 +328,18 @@ export function ChallengeClient({ level }: { level: number }) {
     setShareStatus('idle');
     setIsTextareaFocused(false);
     idempotencyKeyRef.current = randomIdempotencyKey();
+    submitBodySignatureRef.current = '';
     setRefreshNonce((current) => current + 1);
   }, [level]);
 
   const scrollElementIntoView = useCallback((element: HTMLElement | null, focusTextarea = false) => {
     if (!element) return;
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     element.scrollIntoView({
-      behavior: 'smooth',
+      behavior: prefersReducedMotion ? 'auto' : 'smooth',
       block: isCompactLayout ? 'center' : 'start',
     });
 
@@ -333,6 +351,13 @@ export function ChallengeClient({ level }: { level: number }) {
   const scrollToSubmitCard = useCallback(() => {
     scrollElementIntoView(submitFormRef.current, true);
   }, [scrollElementIntoView]);
+
+  const retrySameAttempt = useCallback(() => {
+    setSubmitStatus({ kind: 'idle' });
+    setDryRunResult(null);
+    idempotencyKeyRef.current = randomIdempotencyKey();
+    window.setTimeout(() => scrollToSubmitCard(), 0);
+  }, [scrollToSubmitCard]);
 
   const scrollToSection = useCallback((id: string) => {
     scrollElementIntoView(document.getElementById(id));
@@ -375,6 +400,7 @@ export function ChallengeClient({ level }: { level: number }) {
         if (resp.ok) {
           setFetchState({ kind: 'ready', data: payload as FetchResponse });
           idempotencyKeyRef.current = randomIdempotencyKey();
+          submitBodySignatureRef.current = '';
           if (level === 0) {
             setPrimaryText((current) => (current.trim().length > 0 ? current : 'Hello, Kolk Arena!'));
           }
@@ -468,8 +494,14 @@ export function ChallengeClient({ level }: { level: number }) {
 
       setSubmitStatus({ kind: 'submitting' });
 
-      if (!idempotencyKeyRef.current) {
+      const submitBody = JSON.stringify({
+        attemptToken: fetchState.data.challenge.attemptToken,
+        primaryText,
+      });
+
+      if (!idempotencyKeyRef.current || submitBodySignatureRef.current !== submitBody) {
         idempotencyKeyRef.current = randomIdempotencyKey();
+        submitBodySignatureRef.current = submitBody;
       }
 
       try {
@@ -480,10 +512,7 @@ export function ChallengeClient({ level }: { level: number }) {
             'Content-Type': 'application/json',
             'Idempotency-Key': idempotencyKeyRef.current,
           },
-          body: JSON.stringify({
-            attemptToken: fetchState.data.challenge.attemptToken,
-            primaryText,
-          }),
+          body: submitBody,
         });
 
         const payload = await resp.json().catch(() => ({}));
@@ -555,6 +584,12 @@ export function ChallengeClient({ level }: { level: number }) {
           return;
         }
 
+        if (resp.status === 404 && code && REFETCH_REQUIRED_ERROR_CODES.has(code)) {
+          idempotencyKeyRef.current = randomIdempotencyKey();
+          setSubmitStatus({ kind: 'error', message, code });
+          return;
+        }
+
         // Layered rate-limit / freeze surface. The submit route now emits four
         // distinct 429 codes + a 403 ACCOUNT_FROZEN, each with its own body
         // shape (see docs/SUBMISSION_API.md §Error Codes). The UI renders
@@ -576,6 +611,7 @@ export function ChallengeClient({ level }: { level: number }) {
             : undefined;
 
         if (resp.status === 403 && code === 'ACCOUNT_FROZEN') {
+          idempotencyKeyRef.current = randomIdempotencyKey();
           const frozenUntil =
             typeof (payload as { frozenUntil?: unknown })?.frozenUntil === 'string'
               ? (payload as { frozenUntil: string }).frozenUntil
@@ -589,6 +625,7 @@ export function ChallengeClient({ level }: { level: number }) {
         }
 
         if (resp.status === 429) {
+          idempotencyKeyRef.current = randomIdempotencyKey();
           if (code === 'RATE_LIMIT_MINUTE') {
             setSubmitStatus({ kind: 'rate_limit_minute', message, retryAfterSeconds, limits: bodyLimits });
             return;
@@ -612,6 +649,7 @@ export function ChallengeClient({ level }: { level: number }) {
         }
 
         if (resp.status === 503 && (code === 'SCORING_UNAVAILABLE' || code === 'SCHEMA_NOT_READY')) {
+          idempotencyKeyRef.current = randomIdempotencyKey();
           setSubmitStatus({ kind: 'scoring_unavailable', message });
           return;
         }
@@ -784,30 +822,24 @@ export function ChallengeClient({ level }: { level: number }) {
   });
   const activeScriptLang = scriptTab;
   const scriptBundle = getChallengeScriptBundle(activeScriptLang, handoffLevel);
-  const scriptTabPanelId = `challenge-script-panel-l${level}`;
-  const secondaryActionButtonClass = getQuickActionButtonClassName({
-    variant: 'secondary',
-    tone: 'sans',
-    size: 'md',
-    width: 'stack',
-  });
-  const compactActionButtonClass = getQuickActionButtonClassName({
-    variant: 'secondary',
-    tone: 'sans',
-    size: 'sm',
-    width: 'auto',
-  });
-  const primaryActionButtonClass = getQuickActionButtonClassName({
-    variant: 'primary',
-    tone: 'sans',
-    size: 'md',
-    width: 'stack',
-    className: 'memory-accent-button',
-  });
+  const secondaryActionButtonClass = [
+    'inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-950 transition-colors duration-150 sm:w-auto',
+    'hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-gentle disabled:pointer-events-none disabled:opacity-50',
+  ].join(' ');
+  const compactActionButtonClass = [
+    'inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-950 transition-colors duration-150',
+    'hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-gentle disabled:pointer-events-none disabled:opacity-50',
+  ].join(' ');
+  const primaryActionButtonClass = [
+    'memory-accent-button inline-flex min-h-11 w-full items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors duration-150 sm:w-auto',
+    'focus-visible:outline-none focus-gentle disabled:pointer-events-none disabled:opacity-50',
+  ].join(' ');
   const scriptTabButtonClass = (lang: ScriptLang) =>
-    `${compactActionButtonClass} ${scriptTab === lang ? 'bg-slate-950 text-white' : 'bg-white text-slate-950 hover:bg-slate-950 hover:text-white'}`;
+    `${compactActionButtonClass} ${scriptTab === lang ? 'bg-slate-950 text-white' : 'bg-white text-slate-950 hover:bg-slate-100'}`;
 
   const deliveryRule = getLevelDeliveryInstruction(handoffLevel);
+  const authRequiredLevel = level > ANONYMOUS_BETA_MAX_LEVEL;
+  const identityMode = authRequiredLevel ? 'signed_in_browser_session' : 'browser_session_cookie';
 
   const deliveryPlaceholder =
     level === 0
@@ -816,34 +848,12 @@ export function ChallengeClient({ level }: { level: number }) {
       ? copy.challenge.deliveryRules.placeholderLevel5
       : copy.challenge.deliveryRules.placeholderDefault;
   const hasDraftText = primaryText.trim().length > 0;
-  const submitFormId = `challenge-submit-form-l${level}`;
-  const submitButtonId = `challenge-submit-button-l${level}`;
-  const deliveryInputId = `challenge-delivery-input-l${level}`;
-  const deliveryHintId = `challenge-delivery-hint-l${level}`;
-  const deliveryCountId = `challenge-delivery-count-l${level}`;
-  const l5ValidationId = `challenge-l5-validation-l${level}`;
-  const dryRunErrorsId = `challenge-dry-run-errors-l${level}`;
-  const dryRunWarningsId = `challenge-dry-run-warnings-l${level}`;
-  const dryRunPassedId = `challenge-dry-run-passed-l${level}`;
-  const deliveryInputDescribedBy = [
-    deliveryHintId,
-    deliveryCountId,
-    level === 5 && l5LocalValidation !== null ? l5ValidationId : null,
-    dryRunResult && !dryRunResult.valid ? dryRunErrorsId : null,
-    dryRunResult?.warnings.length ? dryRunWarningsId : null,
-    dryRunResult && dryRunResult.valid && dryRunResult.warnings.length === 0 ? dryRunPassedId : null,
-  ]
-    .filter(Boolean)
-    .join(' ');
+  const submitFormIdBase = `challenge-submit-form-l${level}`;
+  const activeSurface = isCompactLayout ? 'mobile' : 'desktop';
+  const activeSubmitFormId = `${submitFormIdBase}-${activeSurface}`;
   const deliveryInputInvalid =
     (level === 5 && l5LocalValidation?.ok === false) ||
     Boolean(dryRunResult && !dryRunResult.valid);
-  const hasNativeShare =
-    typeof navigator !== 'undefined' &&
-    typeof navigator.share === 'function' &&
-    typeof navigator.canShare === 'function'
-      ? navigator.canShare({ url: challengePageUrl })
-      : typeof navigator !== 'undefined' && typeof navigator.share === 'function';
   const sharePrimaryLabel =
     shareStatus === 'shared'
       ? hasNativeShare
@@ -856,32 +866,164 @@ export function ChallengeClient({ level }: { level: number }) {
       : hasNativeShare
       ? copy.challenge.agentPanel.shareToAi
       : copy.challenge.agentPanel.copyChallengeUrl;
-  const portableSolveBrief = [
-    `Solve Kolk Arena L${level} — ${level_info.name}`,
+  const challengeUrlShareText = [
+    `Kolk Arena L${level} — ${level_info.name}`,
     `Challenge URL: ${challengePageUrl}`,
     '',
-    'Return ONLY the final primaryText payload.',
-    level >= 6
-      ? 'If you later automate submit, use the same bearer token from fetch through submit.'
-      : 'Do not submit directly from another app for anonymous L0-L5. Paste the final output back into the original Kolk Arena page, or submit from the same browser session that fetched the challenge.',
-    '',
-    '--- BRIEF ---',
-    challenge.promptMd,
-    '',
-    '--- DATA ---',
-    stringifyJson(extractStructuredBrief(challenge.taskJson) ?? challenge.taskJson),
+    'Give this challenge URL to your browser agent. The page owns the browser session and exposes #kolk-challenge-state.',
+    'Ask the agent to return only primaryText, then submit from this same page.',
   ].join('\n');
+  const browserSubmitHeaders = authRequiredLevel
+    ? {
+        'Content-Type': 'application/json',
+        'Idempotency-Key': '<uuid>',
+        Cookie: '<same signed-in browser session cookie; browser page only>',
+      }
+    : {
+        'Content-Type': 'application/json',
+        'Idempotency-Key': '<uuid>',
+        Cookie: '<same anonymous browser session cookie>',
+      };
+  const apiSubmitHeaders = authRequiredLevel
+    ? {
+        'Content-Type': 'application/json',
+        'Idempotency-Key': '<uuid>',
+        Authorization: 'Bearer <token>',
+      }
+    : {
+        'Content-Type': 'application/json',
+        'Idempotency-Key': '<uuid>',
+        Cookie: '<same cookie jar used for fetch>',
+      };
+  const challengeRuntimeState = {
+    schemaVersion: 'kolk-challenge-state.v1',
+    pageType: 'challenge',
+    canonicalOrigin: APP_CONFIG.canonicalOrigin,
+    challengeUrl: challengePageUrl,
+    apiUrl: `${APP_CONFIG.canonicalOrigin}/api/challenge/${level}`,
+    level,
+    levelName: level_info.name,
+    identityMode,
+    apiIdentityMode: authRequiredLevel ? 'bearer_token' : 'anonymous_cookie',
+    sameIdentityRequired: true,
+    sameSessionRequired: true,
+    sourceOfTruth: {
+      promptMd: challenge.promptMd,
+      taskJson: challenge.taskJson,
+      structuredBrief: structuredBrief ?? null,
+    },
+    attempt: {
+      attemptToken: challenge.attemptToken,
+      sensitive: true,
+      sensitiveReason: authRequiredLevel
+        ? 'Bound to the signed-in identity that fetched this challenge. Browser agents should submit from this page; external API/workflow clients need the same bearer identity.'
+        : 'Bound to the anonymous session cookie that fetched this challenge; submit from the same browser session or cookie jar.',
+      ttlHours: challenge.timeLimitMinutes / 60,
+      deadlineUtc: challenge.deadlineUtc,
+      challengeStartedAt: challenge.challengeStartedAt,
+      challengeId: challenge.challengeId,
+      seed: challenge.seed ?? null,
+      variant: challenge.variant ?? null,
+    },
+    output: {
+      field: 'primaryText',
+      type: 'string',
+      ruleSummary: deliveryRule,
+      template: outputTemplate,
+      maxChars: MAX_PRIMARY_TEXT_CHARS,
+    },
+    submit: {
+      method: 'POST',
+      url: `${APP_CONFIG.canonicalOrigin}/api/challenge/submit`,
+      headers: browserSubmitHeaders,
+      apiHeaders: apiSubmitHeaders,
+      browserSessionNote: authRequiredLevel
+        ? 'The page can submit with the signed-in HttpOnly browser session cookie. Do not try to export that cookie for workflow automation.'
+        : 'Anonymous browser submit must keep the same HttpOnly session cookie that fetched this challenge.',
+      externalAutomationNote: authRequiredLevel
+        ? 'Workflow/API clients for L6-L8 should fetch and submit with Authorization: Bearer <token>, not an attemptToken alone or a copied browser token fingerprint.'
+        : 'Workflow/API clients for anonymous L0-L5 must preserve the cookie jar from fetch through submit.',
+      body: {
+        attemptToken: '<from attempt.attemptToken>',
+        primaryText: '<final delivery text only>',
+      },
+      schema: {
+        attemptToken: 'string',
+        primaryText: 'string',
+        repoUrl: 'optional string',
+        commitHash: 'optional string',
+      },
+      primaryTextMaxChars: MAX_PRIMARY_TEXT_CHARS,
+    },
+    selectors: {
+      state: 'script#kolk-challenge-state[type="application/vnd.kolk.challenge+json"]',
+      activeSurface: '[data-kolk-surface="active"]',
+      brief: '[data-kolk-surface="active"] [data-kolk-section="brief"]',
+      structuredBrief: '[data-kolk-surface="active"] [data-kolk-section="structured-brief"]',
+      primaryText: '[data-kolk-surface="active"] textarea[name="primaryText"][data-kolk-field="primaryText"]',
+      dryRun: '[data-kolk-surface="active"] [data-kolk-action="dry-run"]',
+      submit: '[data-kolk-surface="active"] [data-kolk-action="submit"]',
+      refetch: '[data-kolk-surface="active"] [data-kolk-action="refetch"]',
+      retrySameAttempt: '[data-kolk-action="retry-same-attempt"]',
+      submitResult: 'script#kolk-submit-result[type="application/vnd.kolk.submit-result+json"]',
+      result: '[data-kolk-section="result"]',
+      error: '[data-kolk-surface="active"] [data-kolk-section="submit-error"]',
+    },
+    retryPolicy: {
+      sameAttemptToken: [
+        'VALIDATION_ERROR',
+        'TEXT_TOO_LONG',
+        'INVALID_JSON',
+        'L5_INVALID_JSON',
+        'DUPLICATE_REQUEST',
+        'RATE_LIMIT_MINUTE',
+        'RATE_LIMIT_HOUR',
+        'RATE_LIMIT_DAY',
+        'ACCOUNT_FROZEN',
+        'SCORING_UNAVAILABLE',
+        'unlocked_false',
+      ],
+      refetch: [
+        'INVALID_ATTEMPT_TOKEN',
+        'CHALLENGE_NOT_FOUND',
+        'ATTEMPT_TOKEN_EXPIRED',
+        'ATTEMPT_ALREADY_PASSED',
+        'RETRY_LIMIT_EXCEEDED',
+      ],
+      freshIdempotencyKeyForChangedPrimaryText: true,
+      reuseIdempotencyKeyOnlyForExactOutcomeUnknownRetry: true,
+      doNotRefetchAfterUnlockedFalse: true,
+      honorRetryAfter: true,
+      maxSubmitsPerAttemptToken: SUBMIT_RETRY_CAP_PER_ATTEMPT_TOKEN,
+      perAttemptMinuteLimit: SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN_PER_MINUTE,
+      perAttemptHourLimit: SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN_PER_HOUR,
+      perIdentityDayLimit: SUBMIT_RATE_LIMIT_PER_IDENTITY_PER_DAY,
+    },
+  };
+  const challengeRuntimeStateScript = (
+    <script
+      id="kolk-challenge-state"
+      type="application/vnd.kolk.challenge+json"
+      dangerouslySetInnerHTML={{ __html: serializeJsonForInlineScript(challengeRuntimeState) }}
+    />
+  );
 
   async function handleShareToAi() {
+    const sharePayload = {
+      title: `${APP_CONFIG.name} · L${level}`,
+      text: challengeUrlShareText,
+      url: challengePageUrl,
+    };
+
     try {
-      if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
-        await navigator.share({
-          title: `${APP_CONFIG.name} · L${level}`,
-          text: portableSolveBrief,
-          url: challengePageUrl,
-        });
+      if (
+        typeof navigator !== 'undefined' &&
+        typeof navigator.share === 'function' &&
+        (typeof navigator.canShare !== 'function' || navigator.canShare(sharePayload))
+      ) {
+        await navigator.share(sharePayload);
       } else if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(portableSolveBrief);
+        await navigator.clipboard.writeText(challengePageUrl);
       } else {
         throw new Error('share_unavailable');
       }
@@ -892,10 +1034,39 @@ export function ChallengeClient({ level }: { level: number }) {
       if (error instanceof DOMException && error.name === 'AbortError') {
         return;
       }
+      try {
+        if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(challengePageUrl);
+          setShareStatus('shared');
+          window.setTimeout(() => setShareStatus('idle'), 2000);
+          return;
+        }
+      } catch {
+        // Fall through to failure state.
+      }
       setShareStatus('failed');
       window.setTimeout(() => setShareStatus('idle'), 2000);
     }
   }
+
+  const renderChallengeUrlAction = (className: string) =>
+    hasNativeShare ? (
+      <button
+        type="button"
+        onClick={handleShareToAi}
+        className={className}
+      >
+        {sharePrimaryLabel}
+      </button>
+    ) : (
+      <CopyButton
+        value={challengePageUrl}
+        idleLabel={copy.challenge.agentPanel.copyChallengeUrl}
+        copiedLabel={copy.challenge.agentPanel.copiedChallengeUrl}
+        failedLabel={copy.challenge.agentPanel.copyFailed}
+        className={className}
+      />
+    );
 
   function handleMobilePrimaryAction() {
     if (hasDraftText) {
@@ -936,7 +1107,7 @@ export function ChallengeClient({ level }: { level: number }) {
   );
 
   const briefCard = (
-    <div id="mobile-brief-anchor" className="scroll-mt-28">
+    <div id="mobile-brief-anchor" data-kolk-section="brief" className="scroll-mt-28">
       <CodeBlock
         eyebrow={copy.challenge.cards.brief}
         code={challenge.promptMd}
@@ -1008,20 +1179,22 @@ export function ChallengeClient({ level }: { level: number }) {
           {copy.challenge.agentPanel.directActionsBody}
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
+          {renderChallengeUrlAction(hasDraftText ? secondaryActionButtonClass : primaryActionButtonClass)}
           <CopyButton
             value={agentBrief}
             idleLabel={copy.challenge.agentPanel.copyAgentBrief}
             copiedLabel={copy.challenge.agentPanel.copiedAgentBrief}
             failedLabel={copy.challenge.agentPanel.copyFailed}
-            className={primaryActionButtonClass}
+            className={secondaryActionButtonClass}
           />
-          <QuickActionButton
+          <button
+            data-kolk-action="refetch"
             type="button"
-            onClick={handleShareToAi}
+            onClick={requestFreshChallenge}
             className={secondaryActionButtonClass}
           >
-            {sharePrimaryLabel}
-          </QuickActionButton>
+            {copy.challenge.deliveryRules.refetch}
+          </button>
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs leading-6 text-slate-600">
           <a
@@ -1052,9 +1225,12 @@ export function ChallengeClient({ level }: { level: number }) {
         }
       : {};
 
-  const advancedToolsCard = (
-    <section id="mobile-tools-anchor" className="scroll-mt-28 space-y-4">
-      <details className="rounded-md border border-slate-200 bg-white" {...getMobileDetailProps(0)}>
+  const renderAdvancedToolsCard = (surface: 'mobile' | 'desktop') => {
+    const scriptTabPanelId = `challenge-script-panel-l${level}-${surface}`;
+
+    return (
+    <section id={surface === 'mobile' ? 'mobile-tools-anchor' : undefined} className="scroll-mt-28 space-y-4">
+      <details data-kolk-section="structured-brief" className="rounded-md border border-slate-200 bg-white" {...getMobileDetailProps(0)}>
         <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-slate-900">
           {structuredBrief ? copy.challenge.agentPanel.structuredBriefTitle : copy.challenge.agentPanel.taskJsonTitle}
         </summary>
@@ -1086,39 +1262,39 @@ export function ChallengeClient({ level }: { level: number }) {
           </p>
           {isCompactLayout ? (
             <div className="mt-4 space-y-3">
-              <QuickActionButton
+              <button
                 type="button"
                 onClick={() => downloadFile(`kolk-l${level}-handoff.json`, handoffBundle)}
                 className={secondaryActionButtonClass}
               >
                 {copy.challenge.agentPanel.downloadHandoffBundle}
-              </QuickActionButton>
+              </button>
               <details className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3">
                 <summary className="cursor-pointer text-sm font-medium text-slate-900">
                   {copy.challenge.agentPanel.moreAssetsSummary}
                 </summary>
                 <div className="mt-3 flex flex-wrap gap-3">
-                  <QuickActionButton
+                  <button
                     type="button"
                     onClick={() => downloadFile(`kolk-l${level}-claude-code.md`, claudeCodeTask)}
                     className={secondaryActionButtonClass}
                   >
                     {copy.challenge.agentPanel.downloadClaudeCodeTask}
-                  </QuickActionButton>
-                  <QuickActionButton
+                  </button>
+                  <button
                     type="button"
                     onClick={() => downloadFile(`kolk-l${level}-n8n-starter.json`, n8nStarterBundle)}
                     className={secondaryActionButtonClass}
                   >
                     {copy.challenge.agentPanel.downloadN8nStarter}
-                  </QuickActionButton>
-                  <QuickActionButton
+                  </button>
+                  <button
                     type="button"
                     onClick={() => downloadFile(`kolk-l${level}-cursor-task.md`, cursorTaskBundle)}
                     className={secondaryActionButtonClass}
                   >
                     {copy.challenge.agentPanel.downloadCursorTask}
-                  </QuickActionButton>
+                  </button>
                   <CopyButton
                     value={submitContractSnippet}
                     idleLabel={copy.challenge.agentPanel.copySubmitContract}
@@ -1133,39 +1309,47 @@ export function ChallengeClient({ level }: { level: number }) {
                     failedLabel={copy.challenge.agentPanel.copyFailed}
                     className={secondaryActionButtonClass}
                   />
+                  <button
+                    data-kolk-action="refetch"
+                    type="button"
+                    onClick={requestFreshChallenge}
+                    className={secondaryActionButtonClass}
+                  >
+                    {copy.challenge.deliveryRules.refetch}
+                  </button>
                 </div>
               </details>
             </div>
           ) : (
             <div className="mt-4 flex flex-wrap gap-3">
-              <QuickActionButton
+              <button
                 type="button"
                 onClick={() => downloadFile(`kolk-l${level}-handoff.json`, handoffBundle)}
                 className={secondaryActionButtonClass}
               >
                 {copy.challenge.agentPanel.downloadHandoffBundle}
-              </QuickActionButton>
-              <QuickActionButton
+              </button>
+              <button
                 type="button"
                 onClick={() => downloadFile(`kolk-l${level}-claude-code.md`, claudeCodeTask)}
                 className={secondaryActionButtonClass}
               >
                 {copy.challenge.agentPanel.downloadClaudeCodeTask}
-              </QuickActionButton>
-              <QuickActionButton
+              </button>
+              <button
                 type="button"
                 onClick={() => downloadFile(`kolk-l${level}-n8n-starter.json`, n8nStarterBundle)}
                 className={secondaryActionButtonClass}
               >
                 {copy.challenge.agentPanel.downloadN8nStarter}
-              </QuickActionButton>
-              <QuickActionButton
+              </button>
+              <button
                 type="button"
                 onClick={() => downloadFile(`kolk-l${level}-cursor-task.md`, cursorTaskBundle)}
                 className={secondaryActionButtonClass}
               >
                 {copy.challenge.agentPanel.downloadCursorTask}
-              </QuickActionButton>
+              </button>
               <CopyButton
                 value={submitContractSnippet}
                 idleLabel={copy.challenge.agentPanel.copySubmitContract}
@@ -1180,6 +1364,14 @@ export function ChallengeClient({ level }: { level: number }) {
                 failedLabel={copy.challenge.agentPanel.copyFailed}
                 className={secondaryActionButtonClass}
               />
+              <button
+                data-kolk-action="refetch"
+                type="button"
+                onClick={requestFreshChallenge}
+                className={secondaryActionButtonClass}
+              >
+                {copy.challenge.deliveryRules.refetch}
+              </button>
             </div>
           )}
         </div>
@@ -1201,24 +1393,20 @@ export function ChallengeClient({ level }: { level: number }) {
               failedLabel={copy.challenge.agentPanel.copyScriptFailed}
               className={compactActionButtonClass}
             />
-            <QuickActionButton
+            <button
               type="button"
               onClick={() => downloadFile(scriptBundle.filename, scriptBundle.code)}
               className={compactActionButtonClass}
-              size="sm"
-              width="auto"
             >
               {copy.challenge.agentPanel.downloadScriptButton}
-            </QuickActionButton>
-            <QuickActionButton
+            </button>
+            <button
               type="button"
               onClick={() => downloadFile(copy.challenge.agentPanel.agentRulesFilename, getAgentRules())}
               className={compactActionButtonClass}
-              size="sm"
-              width="auto"
             >
               {copy.challenge.agentPanel.downloadAgentRules}
-            </QuickActionButton>
+            </button>
           </div>
         </div>
         <div className="bg-slate-50 px-4 py-3">
@@ -1235,7 +1423,7 @@ export function ChallengeClient({ level }: { level: number }) {
                 }}
                 type="button"
                 role="tab"
-                id={`challenge-script-tab-${lang}`}
+                id={`challenge-script-tab-${surface}-${lang}`}
                 aria-controls={scriptTabPanelId}
                 aria-selected={scriptTab === lang}
                 tabIndex={scriptTab === lang ? 0 : -1}
@@ -1248,7 +1436,7 @@ export function ChallengeClient({ level }: { level: number }) {
             ))}
           </div>
         </div>
-        <div id={scriptTabPanelId} role="tabpanel" aria-labelledby={`challenge-script-tab-${scriptTab}`} className="min-w-0 space-y-4 p-4">
+        <div id={scriptTabPanelId} role="tabpanel" aria-labelledby={`challenge-script-tab-${surface}-${scriptTab}`} className="min-w-0 space-y-4 p-4">
           {scriptBundle.steps.map((step, index) => (
             <CodeBlock
               key={`${scriptTab}-${step.title}`}
@@ -1267,151 +1455,177 @@ export function ChallengeClient({ level }: { level: number }) {
         </div>
       </details>
     </section>
-  );
+    );
+  };
 
-  const submitCard = (
-    <form
-      id={submitFormId}
-      ref={submitFormRef}
-      onSubmit={handleSubmit}
-      aria-busy={submitStatus.kind === 'submitting'}
-      className="scroll-mt-28 space-y-4 rounded-md border border-slate-200 bg-white p-6 sm:p-8"
-    >
-      <SubmitErrorBanner status={submitStatus} level={level} onRefetch={requestFreshChallenge} />
+  const renderSubmitCard = (surface: 'mobile' | 'desktop') => {
+    const isActiveSurface = activeSurface === surface;
+    const submitFormId = `${submitFormIdBase}-${surface}`;
+    const submitButtonId = `challenge-submit-button-l${level}-${surface}`;
+    const deliveryInputId = `challenge-delivery-input-l${level}-${surface}`;
+    const deliveryHintId = `challenge-delivery-hint-l${level}-${surface}`;
+    const deliveryCountId = `challenge-delivery-count-l${level}-${surface}`;
+    const l5ValidationId = `challenge-l5-validation-l${level}-${surface}`;
+    const dryRunErrorsId = `challenge-dry-run-errors-l${level}-${surface}`;
+    const dryRunWarningsId = `challenge-dry-run-warnings-l${level}-${surface}`;
+    const dryRunPassedId = `challenge-dry-run-passed-l${level}-${surface}`;
+    const deliveryInputDescribedBy = [
+      deliveryHintId,
+      deliveryCountId,
+      level === 5 && l5LocalValidation !== null ? l5ValidationId : null,
+      dryRunResult && !dryRunResult.valid ? dryRunErrorsId : null,
+      dryRunResult?.warnings.length ? dryRunWarningsId : null,
+      dryRunResult && dryRunResult.valid && dryRunResult.warnings.length === 0 ? dryRunPassedId : null,
+    ]
+      .filter(Boolean)
+      .join(' ');
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <label htmlFor={deliveryInputId} className="text-xs font-medium text-slate-500">
-            {copy.challenge.cards.yourDelivery}
-          </label>
-          <p id={deliveryHintId} className="mt-1 text-sm font-medium text-slate-900">
-            {deliveryRule}
+    return (
+      <form
+        id={submitFormId}
+        ref={isActiveSurface ? submitFormRef : null}
+        data-kolk-form={isActiveSurface ? 'submit' : undefined}
+        onSubmit={handleSubmit}
+        aria-busy={submitStatus.kind === 'submitting'}
+        className="scroll-mt-28 space-y-4 rounded-md border border-slate-200 bg-white p-6 sm:p-8"
+      >
+        <SubmitErrorBanner status={submitStatus} level={level} onRefetch={requestFreshChallenge} />
+
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <label htmlFor={deliveryInputId} className="text-xs font-medium text-slate-500">
+              {copy.challenge.cards.yourDelivery}
+            </label>
+            <p id={deliveryHintId} className="mt-1 text-sm font-medium text-slate-900">
+              {deliveryRule}
+            </p>
+          </div>
+          <span id={deliveryCountId} className="text-xs font-medium text-slate-600">
+            {copy.challenge.deliveryRules.chars(formatNumber(primaryText.length))}
+          </span>
+        </div>
+
+        <textarea
+          id={deliveryInputId}
+          name="primaryText"
+          data-kolk-field={isActiveSurface ? 'primaryText' : undefined}
+          ref={isActiveSurface ? submitTextareaRef : null}
+          value={primaryText}
+          onChange={(e) => setPrimaryText(e.target.value)}
+          onFocus={() => setIsTextareaFocused(true)}
+          onBlur={() => setIsTextareaFocused(false)}
+          rows={level === 5 ? 12 : 14}
+          spellCheck={level !== 5}
+          aria-describedby={deliveryInputDescribedBy}
+          aria-invalid={deliveryInputInvalid}
+          // Matches the server cap in `src/lib/kolk/constants/index.ts`. The
+          // submit route still hard-enforces via HTTP 422 TEXT_TOO_LONG, but
+          // stopping over-long pastes at the input saves the round-trip and
+          // makes the failure mode legible to the user.
+          maxLength={MAX_PRIMARY_TEXT_CHARS}
+          className="w-full rounded-md border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950"
+          placeholder={deliveryPlaceholder}
+        />
+
+        {level === 5 && l5LocalValidation && !l5LocalValidation.ok ? (
+          <p
+            id={l5ValidationId}
+            role="alert"
+            className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-900"
+          >
+            {copy.challenge.deliveryRules.localJsonInvalid(l5LocalValidation.message)}
           </p>
+        ) : null}
+        {level === 5 && l5LocalValidation && l5LocalValidation.ok ? (
+          <p
+            id={l5ValidationId}
+            role="status"
+            className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800"
+          >
+            {copy.challenge.deliveryRules.localJsonValid}
+          </p>
+        ) : null}
+
+        {dryRunResult && !dryRunResult.valid && (
+          <div
+            id={dryRunErrorsId}
+            role="alert"
+            className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-900"
+          >
+            <p className="font-semibold">{copy.challenge.dryRun.failedHeading}</p>
+            <ul className="mt-1 list-inside list-disc space-y-0.5">
+              {dryRunResult.errors.map(err => <li key={err}>{err}</li>)}
+            </ul>
+          </div>
+        )}
+        {dryRunResult?.warnings.length ? (
+          <div
+            id={dryRunWarningsId}
+            role="status"
+            className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-xs font-medium text-sky-900"
+          >
+            <p className="font-semibold">{copy.challenge.dryRun.warningHeading}</p>
+            <ul className="mt-1 list-inside list-disc space-y-0.5">
+              {dryRunResult.warnings.map((warning) => <li key={warning}>{warning}</li>)}
+            </ul>
+          </div>
+        ) : null}
+        {dryRunResult && dryRunResult.valid && dryRunResult.warnings.length === 0 && (
+          <p
+            id={dryRunPassedId}
+            role="status"
+            className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800"
+          >
+            {copy.challenge.dryRun.passedMessage}
+          </p>
+        )}
+
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            data-kolk-action={isActiveSurface ? 'dry-run' : undefined}
+            type="button"
+            onClick={handleDryRun}
+            className={secondaryActionButtonClass}
+          >
+            {copy.challenge.dryRun.validateButton}
+          </button>
+          <button
+            id={submitButtonId}
+            data-kolk-action={isActiveSurface ? 'submit' : undefined}
+            type="submit"
+            disabled={submitStatus.kind === 'submitting' || primaryText.trim().length === 0}
+            className="memory-accent-button inline-flex items-center rounded-md border px-6 py-3 text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {submitStatus.kind === 'submitting' ? copy.challenge.deliveryRules.scoring : copy.challenge.deliveryRules.submit}
+          </button>
         </div>
-        <span id={deliveryCountId} className="text-xs font-medium text-slate-600">
-          {copy.challenge.deliveryRules.chars(formatNumber(primaryText.length))}
-        </span>
-      </div>
-
-      <textarea
-        id={deliveryInputId}
-        ref={submitTextareaRef}
-        value={primaryText}
-        onChange={(e) => setPrimaryText(e.target.value)}
-        onFocus={() => setIsTextareaFocused(true)}
-        onBlur={() => setIsTextareaFocused(false)}
-        rows={level === 5 ? 12 : 14}
-        spellCheck={level !== 5}
-        aria-describedby={deliveryInputDescribedBy}
-        aria-invalid={deliveryInputInvalid}
-        // Matches the server cap in `src/lib/kolk/constants/index.ts`. The
-        // submit route still hard-enforces via HTTP 422 TEXT_TOO_LONG, but
-        // stopping over-long pastes at the input saves the round-trip and
-        // makes the failure mode legible to the user.
-        maxLength={MAX_PRIMARY_TEXT_CHARS}
-        className="w-full rounded-md border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-950 outline-none transition focus:ring-2 focus:ring-slate-950"
-        placeholder={deliveryPlaceholder}
-      />
-
-      {level === 5 && l5LocalValidation && !l5LocalValidation.ok ? (
-        <p
-          id={l5ValidationId}
-          role="alert"
-          className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-900"
-        >
-          {copy.challenge.deliveryRules.localJsonInvalid(l5LocalValidation.message)}
+        <p className="text-xs leading-5 text-slate-600">
+          {copy.challenge.cards.attemptTokenFingerprint}: <code className="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-950">{challenge.attemptToken.slice(0, 12)}…</code>
+          {' '}· {copy.challenge.cards.challengeId}: <code className="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-950">{challenge.challengeId.slice(0, 8)}…</code>
         </p>
-      ) : null}
-      {level === 5 && l5LocalValidation && l5LocalValidation.ok ? (
-        <p
-          id={l5ValidationId}
-          role="status"
-          className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800"
-        >
-          {copy.challenge.deliveryRules.localJsonValid}
-        </p>
-      ) : null}
-
-      {dryRunResult && !dryRunResult.valid && (
-        <div
-          id={dryRunErrorsId}
-          role="alert"
-          className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-900"
-        >
-          <p className="font-semibold">{copy.challenge.dryRun.failedHeading}</p>
-          <ul className="mt-1 list-inside list-disc space-y-0.5">
-            {dryRunResult.errors.map(err => <li key={err}>{err}</li>)}
-          </ul>
-        </div>
-      )}
-      {dryRunResult?.warnings.length ? (
-        <div
-          id={dryRunWarningsId}
-          role="status"
-          className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-xs font-medium text-sky-900"
-        >
-          <p className="font-semibold">{copy.challenge.dryRun.warningHeading}</p>
-          <ul className="mt-1 list-inside list-disc space-y-0.5">
-            {dryRunResult.warnings.map((warning) => <li key={warning}>{warning}</li>)}
-          </ul>
-        </div>
-      ) : null}
-      {dryRunResult && dryRunResult.valid && dryRunResult.warnings.length === 0 && (
-        <p
-          id={dryRunPassedId}
-          role="status"
-          className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800"
-        >
-          {copy.challenge.dryRun.passedMessage}
-        </p>
-      )}
-
-      <div className="flex flex-wrap items-center gap-3">
-        <QuickActionButton
-          type="button"
-          onClick={handleDryRun}
-          className={secondaryActionButtonClass}
-        >
-          {copy.challenge.dryRun.validateButton}
-        </QuickActionButton>
-        <button
-          id={submitButtonId}
-          type="submit"
-          disabled={submitStatus.kind === 'submitting' || primaryText.trim().length === 0}
-          className="memory-accent-button inline-flex items-center rounded-md border px-6 py-3 text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {submitStatus.kind === 'submitting' ? copy.challenge.deliveryRules.scoring : copy.challenge.deliveryRules.submit}
-        </button>
-        <QuickActionButton
-          type="button"
-          onClick={requestFreshChallenge}
-          className={secondaryActionButtonClass}
-        >
-          {copy.challenge.deliveryRules.refetch}
-        </QuickActionButton>
-      </div>
-      <p className="text-xs leading-5 text-slate-600">
-        {copy.challenge.cards.attemptTokenFingerprint}: <code className="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-950">{challenge.attemptToken.slice(0, 12)}…</code>
-        {' '}· {copy.challenge.cards.challengeId}: <code className="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-950">{challenge.challengeId.slice(0, 8)}…</code>
-      </p>
-    </form>
-  );
+      </form>
+    );
+  };
 
   // Success overlay — render result card instead of the form
   if (submitStatus.kind === 'success') {
     return (
-      <ResultCard
-        result={submitStatus.result}
-        levelName={level_info.name}
-        registerPromptOpen={registerPromptOpen}
-        onDismissRegisterPrompt={() => setRegisterPromptOpen(false)}
-        onRetry={requestFreshChallenge}
-      />
+      <>
+        {challengeRuntimeStateScript}
+        <ResultCard
+          result={submitStatus.result}
+          levelName={level_info.name}
+          registerPromptOpen={registerPromptOpen}
+          onDismissRegisterPrompt={() => setRegisterPromptOpen(false)}
+          onRetry={submitStatus.result.unlocked ? requestFreshChallenge : retrySameAttempt}
+        />
+      </>
     );
   }
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
+      {challengeRuntimeStateScript}
       <section className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
         <header className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -1439,15 +1653,18 @@ export function ChallengeClient({ level }: { level: number }) {
           ) : null}
         </header>
 
-        <div className="min-w-0 space-y-8 xl:hidden px-1">
+        <div
+          data-kolk-surface={isCompactLayout ? 'active' : 'inactive'}
+          className="min-w-0 space-y-8 xl:hidden px-1"
+        >
           {timerCards}
           {briefCard}
           {handoffCard}
-          {submitCard}
-          {advancedToolsCard}
+          {renderSubmitCard('mobile')}
+          {renderAdvancedToolsCard('mobile')}
         </div>
 
-        <div className="hidden xl:block">
+        <div data-kolk-surface={isCompactLayout ? 'inactive' : 'active'} className="hidden xl:block">
           <Group
             id={`challenge-layout-l${level}`}
             orientation="horizontal"
@@ -1476,93 +1693,53 @@ export function ChallengeClient({ level }: { level: number }) {
             <Panel id="challenge-console-pane" defaultSize={52} minSize={36}>
               <div className="h-full min-w-0 overflow-y-auto bg-slate-50 p-6 xl:p-8 space-y-6">
                 {handoffCard}
-                {submitCard}
-                {advancedToolsCard}
+                {renderSubmitCard('desktop')}
+                {renderAdvancedToolsCard('desktop')}
               </div>
             </Panel>
           </Group>
         </div>
       </section>
       <div className="xl:hidden">
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur-sm">
-          {!isTextareaFocused ? (
-            <div className="mb-3 flex overflow-x-auto gap-2 pb-1 scroll-smooth">
-              <button
-                type="button"
-                onClick={() => scrollToSection('mobile-brief-anchor')}
-                className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200"
-              >
-                {copy.challenge.agentPanel.mobileNavBrief}
-              </button>
-              <button
-                type="button"
-                onClick={() => scrollToSection('mobile-agent-anchor')}
-                className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200"
-              >
-                {copy.challenge.agentPanel.mobileNavAgent}
-              </button>
-              <button
-                type="button"
-                onClick={scrollToSubmitCard}
-                className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200"
-              >
-                {copy.challenge.agentPanel.mobileNavDelivery}
-              </button>
-              <button
-                type="button"
-                onClick={() => scrollToSection('mobile-tools-anchor')}
-                className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200"
-              >
-                {copy.challenge.agentPanel.mobileNavTools}
-              </button>
+        {!isTextareaFocused ? (
+          <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur-sm">
+            <div className="mx-auto flex max-w-7xl flex-col gap-2 sm:flex-row">
+              {hasDraftText ? (
+                <>
+                  <button
+                    data-kolk-action="submit"
+                    type="button"
+                    onClick={handleMobilePrimaryAction}
+                    disabled={submitStatus.kind === 'submitting'}
+                    aria-controls={activeSubmitFormId}
+                    className="memory-accent-button inline-flex min-h-11 flex-1 items-center justify-center rounded-md border px-4 py-3 text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {submitStatus.kind === 'submitting' ? copy.challenge.deliveryRules.scoring : copy.challenge.deliveryRules.submit}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => scrollToSection('mobile-brief-anchor')}
+                    className={`${secondaryActionButtonClass} flex-1 sm:w-auto`}
+                  >
+                    {copy.challenge.agentPanel.mobileNavBrief}
+                  </button>
+                </>
+              ) : (
+                <>
+                  {renderChallengeUrlAction(`${primaryActionButtonClass} flex-1 sm:w-auto`)}
+                  <button
+                    type="button"
+                    onClick={scrollToSubmitCard}
+                    className={`${secondaryActionButtonClass} flex-1 sm:w-auto`}
+                  >
+                    {copy.challenge.agentPanel.jumpToEditor}
+                  </button>
+                </>
+              )}
             </div>
-          ) : null}
-          <div className="mx-auto flex max-w-7xl flex-col gap-2 sm:flex-row">
-            {hasDraftText ? (
-              <>
-                <button
-                  type="button"
-                  onClick={handleMobilePrimaryAction}
-                  disabled={submitStatus.kind === 'submitting'}
-                  aria-controls={submitFormId}
-                  className="memory-accent-button inline-flex min-h-11 items-center justify-center rounded-md border px-4 py-3 text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {submitStatus.kind === 'submitting' ? copy.challenge.deliveryRules.scoring : copy.challenge.deliveryRules.submit}
-                </button>
-                {!isTextareaFocused ? (
-                  <CopyButton
-                    value={agentBrief}
-                    idleLabel={copy.challenge.agentPanel.copyAgentBrief}
-                    copiedLabel={copy.challenge.agentPanel.copiedAgentBrief}
-                    failedLabel={copy.challenge.agentPanel.copyFailed}
-                    className={secondaryActionButtonClass}
-                  />
-                ) : null}
-              </>
-            ) : (
-              <>
-                <CopyButton
-                  value={agentBrief}
-                  idleLabel={copy.challenge.agentPanel.copyAgentBrief}
-                  copiedLabel={copy.challenge.agentPanel.copiedAgentBrief}
-                  failedLabel={copy.challenge.agentPanel.copyFailed}
-                  className={primaryActionButtonClass}
-                />
-                <QuickActionButton
-                  type="button"
-                  onClick={scrollToSubmitCard}
-                  variant="secondary"
-                  tone="sans"
-                  size="md"
-                  width="full"
-                >
-                  {copy.challenge.agentPanel.jumpToEditor}
-                </QuickActionButton>
-              </>
-            )}
           </div>
-        </div>
-        <div className="h-36 sm:h-28" aria-hidden="true" />
+        ) : null}
+        {!isTextareaFocused ? <div className="h-24 sm:h-20" aria-hidden="true" /> : null}
       </div>
     </main>
   );
@@ -1674,6 +1851,49 @@ function LimitCounter({ label, used, max }: { label: string; used?: number; max?
   );
 }
 
+function submitStatusWireCode(status: SubmitStatus): string | undefined {
+  switch (status.kind) {
+    case 'validation_error':
+      return status.isL5JsonError ? 'L5_INVALID_JSON' : 'VALIDATION_ERROR';
+    case 'auth_required':
+      return 'AUTH_REQUIRED';
+    case 'identity_mismatch':
+      return 'IDENTITY_MISMATCH';
+    case 'session_expired':
+      return 'ATTEMPT_TOKEN_EXPIRED';
+    case 'session_already_submitted':
+      return 'ATTEMPT_ALREADY_PASSED';
+    case 'rate_limit_minute':
+      return 'RATE_LIMIT_MINUTE';
+    case 'rate_limit_hour':
+      return 'RATE_LIMIT_HOUR';
+    case 'rate_limit_day':
+      return 'RATE_LIMIT_DAY';
+    case 'retry_limit_exceeded':
+      return 'RETRY_LIMIT_EXCEEDED';
+    case 'account_frozen':
+      return 'ACCOUNT_FROZEN';
+    case 'scoring_unavailable':
+      return 'SCORING_UNAVAILABLE';
+    case 'error':
+      return status.code;
+    default:
+      return undefined;
+  }
+}
+
+function submitStatusRetryAfter(status: SubmitStatus): number | undefined {
+  if (
+    status.kind === 'rate_limit_minute'
+    || status.kind === 'rate_limit_hour'
+    || status.kind === 'rate_limit_day'
+    || status.kind === 'account_frozen'
+  ) {
+    return status.retryAfterSeconds;
+  }
+  return undefined;
+}
+
 function SubmitErrorBanner({
   status,
   level,
@@ -1695,9 +1915,9 @@ function SubmitErrorBanner({
     status.kind === 'session_expired'
     || status.kind === 'session_already_submitted'
     || status.kind === 'identity_mismatch'
-    || status.kind === 'scoring_unavailable'
     || status.kind === 'auth_required'
-    || status.kind === 'retry_limit_exceeded';
+    || status.kind === 'retry_limit_exceeded'
+    || (status.kind === 'error' && status.code != null && REFETCH_REQUIRED_ERROR_CODES.has(status.code));
 
   const isCooldown =
     status.kind === 'rate_limit_minute'
@@ -1740,9 +1960,17 @@ function SubmitErrorBanner({
       : sb.submissionFailedTitle;
 
   const limits = isCooldown || status.kind === 'retry_limit_exceeded' ? status.limits : undefined;
+  const wireCode = submitStatusWireCode(status);
+  const retryAfter = submitStatusRetryAfter(status);
 
   return (
-    <div role="alert" className={`rounded-xl px-5 py-4 shadow-sm ${tone}`}>
+    <div
+      role="alert"
+      data-kolk-section="submit-error"
+      data-kolk-error-code={wireCode}
+      data-kolk-retry-after={retryAfter}
+      className={`rounded-xl px-5 py-4 shadow-sm ${tone}`}
+    >
       <p className="text-sm font-semibold">{title}</p>
       <p className="mt-1 text-sm leading-6">{status.message}</p>
 
@@ -1779,6 +2007,7 @@ function SubmitErrorBanner({
       {requiresRefetch ? (
         <div className="mt-3 flex flex-wrap gap-2">
           <button
+            data-kolk-action="refetch"
             type="button"
             onClick={onRefetch}
             className="memory-accent-button inline-flex items-center rounded-md border px-4 py-2 text-xs font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2"
@@ -1840,7 +2069,13 @@ function AccountFrozenScreen({
   const af = copy.challenge.accountFrozen;
   const sb = copy.challenge.submitBanner;
   return (
-    <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-6 py-8 text-rose-900 shadow-sm">
+    <div
+      role="alert"
+      data-kolk-section="submit-error"
+      data-kolk-error-code={submitStatusWireCode(status)}
+      data-kolk-retry-after={submitStatusRetryAfter(status)}
+      className="rounded-xl border border-rose-200 bg-rose-50 px-6 py-8 text-rose-900 shadow-sm"
+    >
       <p className="text-xl font-bold tracking-tight">{af.title}</p>
       <p className="mt-2 text-sm leading-6">{af.body}</p>
       {localTime ? (
@@ -1889,9 +2124,45 @@ function ResultCard({
       : result.failReason === 'QUALITY_FLOOR'
       ? r.qualityFloorFailed
       : null;
+  const resultRuntimeState = {
+    schemaVersion: 'kolk-submit-result.v1',
+    level: result.level,
+    submissionId: result.submissionId,
+    unlocked,
+    totalScore: result.totalScore,
+    structureScore: result.structureScore ?? null,
+    coverageScore: result.coverageScore ?? null,
+    qualityScore: result.qualityScore ?? null,
+    colorBand: result.colorBand,
+    qualityLabel: result.qualityLabel,
+    summary: result.summary,
+    failReason: result.failReason ?? null,
+    flags: result.flags,
+    fieldScores: result.fieldScores ?? [],
+    qualitySubscores: result.qualitySubscores ?? null,
+    levelUnlocked: result.levelUnlocked ?? null,
+    percentile: result.percentile ?? null,
+    solveTimeSeconds: result.solveTimeSeconds ?? null,
+    efficiencyBadge: result.efficiencyBadge ?? false,
+    leaderboardEligible: result.leaderboardEligible ?? false,
+    retry: unlocked
+      ? {
+          nextAction: 'fetch_fresh_challenge',
+          attemptTokenReusable: false,
+        }
+      : {
+          nextAction: 'revise_primaryText_same_attempt',
+          attemptTokenReusable: true,
+        },
+  };
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
+      <script
+        id="kolk-submit-result"
+        type="application/vnd.kolk.submit-result+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonForInlineScript(resultRuntimeState) }}
+      />
       <section className="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
         <header className="flex flex-wrap items-center gap-2">
           <Link
@@ -1905,7 +2176,13 @@ function ResultCard({
           </span>
         </header>
 
-        <div className="rounded-md border border-slate-200 bg-white p-6 sm:p-10">
+        <div
+          data-kolk-section="result"
+          data-kolk-level={result.level}
+          data-kolk-submission-id={result.submissionId}
+          data-kolk-unlocked={unlocked ? 'true' : 'false'}
+          className="rounded-md border border-slate-200 bg-white p-6 sm:p-10"
+        >
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <p className="text-xs font-medium text-slate-500">{r.eyebrow}</p>
@@ -1996,6 +2273,7 @@ function ResultCard({
               </Link>
             ) : null}
             <button
+              data-kolk-action={unlocked ? 'refetch' : 'retry-same-attempt'}
               type="button"
               onClick={onRetry}
               className="inline-flex items-center rounded-md border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950"
