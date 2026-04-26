@@ -88,13 +88,13 @@ const React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
 const { BriefShowcaseSlider } = require(path.join(srcRoot, 'components/home/brief-showcase-slider.tsx'));
 
-function renderBriefShowcaseTitle(scenarioTitle) {
+function renderBriefShowcaseTitle(scenarioTitle, requestContext = 'Need help by Friday.') {
   const request = {
     level: 1,
     scenarioTitle,
     industry: 'Retail',
     requesterName: 'Test Requester',
-    requestContext: 'Need help by Friday.',
+    requestContext,
     scoringFocus: ['Match the client ask'],
     outputShape: ['A concise deliverable'],
   };
@@ -166,6 +166,17 @@ test('brief showcase renders extracted budget only once', () => {
   assert.equal(countOccurrences(html, '$95'), 1, 'budget should render once in the budget pill');
 });
 
+test('brief showcase renders budget from request context without duplicating title', () => {
+  const html = renderBriefShowcaseTitle(
+    'Need High-Converting Sales Email Sequence',
+    'I am behind schedule and need this sent before tomorrow morning. Budget is $95. Deliver the final email sequence ready to paste.',
+  );
+
+  assert.ok(html.includes('Need High-Converting Sales Email Sequence'));
+  assert.ok(html.includes('sr-only">Budget </span>$95'), 'context budget should render in the budget pill');
+  assert.equal(html.includes('Need High-Converting Sales Email Sequence $95'), false);
+});
+
 test('brief showcase cleans common budget separators from displayed title', () => {
   const cases = [
     {
@@ -214,6 +225,24 @@ test('brief showcase leaves titles without USD budgets unchanged', () => {
 
   assert.ok(html.includes('Translate a customer update'));
   assert.equal(html.includes('rounded-full bg-green-50'), false, 'budget pill should not render without a USD budget');
+});
+
+test('fallback gig titles keep budget out of scenarioTitle', () => {
+  const source = read('src/app/api/brief-showcase/route.ts');
+  const titleLines = source
+    .split('\n')
+    .filter((line) => line.includes('scenarioTitle:'));
+
+  assert.ok(titleLines.length > 0);
+  assert.equal(titleLines.some((line) => /\$\d/.test(line)), false);
+});
+
+test('gig generator prompts keep budget in requestContext only', () => {
+  const source = read('src/lib/kolk/brief-showcase/generator.ts');
+
+  assert.match(source, /synthetic Gig postings/);
+  assert.match(source, /Do NOT include the budget in the title/);
+  assert.match(source, /Put the budget exactly once in requestContext only/);
 });
 
 test('brief showcase budget pill has accessible context', () => {

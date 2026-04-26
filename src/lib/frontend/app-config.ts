@@ -15,7 +15,7 @@
  * must use the www form.
  */
 export const APP_CONFIG = {
-  name: 'Kolk Arena',
+  name: 'Kolk',
   canonicalOrigin: 'https://www.kolkarena.com',
   githubUrl: 'https://github.com/kolk-arena/app',
   docsOrigin: 'https://github.com/kolk-arena/app/blob/main/docs',

@@ -1,5 +1,5 @@
 /**
- * ChallengeBrief Preview — Supabase data layer
+ * Gig preview — Supabase data layer
  *
  * Hardening (2026-04-23):
  *

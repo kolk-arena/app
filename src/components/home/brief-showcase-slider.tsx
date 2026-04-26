@@ -39,9 +39,12 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+function extractBudget(value: string): string | null {
+  return value.match(usdBudgetPattern)?.[0] ?? null;
+}
+
 function parseScenarioTitle(scenarioTitle: string): { title: string; budget: string | null } {
-  const budgetMatch = scenarioTitle.match(usdBudgetPattern);
-  const budget = budgetMatch?.[0] ?? null;
+  const budget = extractBudget(scenarioTitle);
 
   if (!budget) {
     return { title: scenarioTitle, budget };
@@ -81,6 +84,7 @@ const ClientRequestCard = memo(({
   isActive: boolean
 }) => {
   const { title, budget } = parseScenarioTitle(request.scenarioTitle);
+  const displayBudget = budget ?? extractBudget(request.requestContext);
   const deadlineLabel = getDeadlineLabel(request.level);
   const titleId = useId();
 
@@ -100,10 +104,10 @@ const ClientRequestCard = memo(({
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">{request.industry}</p>
-          {budget && (
+          {displayBudget && (
             <span className="inline-flex items-center rounded-full bg-green-50 px-3 py-1 text-sm font-semibold text-green-700 ring-1 ring-green-100">
               <span className="sr-only">Budget </span>
-              {budget}
+              {displayBudget}
             </span>
           )}
         </div>

@@ -1,5 +1,5 @@
 /**
- * ChallengeBrief Preview — AI generation + translation
+ * Gig posting preview — AI generation + translation
  *
  * Hardening note (2026-04-23): LLM output goes through two Zod schemas
  * before anything is cast to a typed object. The prior `as GeneratedBrief[]`
@@ -47,16 +47,12 @@ const LEVELS = [2, 3, 4, 5, 6, 7, 8] as const;
 // AI chooses budget based on service complexity, not LEVEL alone
 const SERVICE_BUDGET_RANGES = `
 Service types and typical USD market ranges:
-- Email/Brief drafting: $50–150 (simple, structured communication)
-- Copy/Marketing content: $150–400 (longer-form, brand voice needed)
-- API/Integration: $250–600 (technical setup, multi-system coordination)
-- System/Automation: $400–900 (complex logic, multiple workflows)
-- Compliance/Audit: $300–700 (regulatory research, cross-jurisdiction)
-- Translation (multi-language): $200–500 (per language or multi-lang coordination)
-- Data analysis/Reporting: $300–650 (analysis depth, visualization, insights)
-
-Budget should match service scope and complexity, not LEVEL alone.
-Example: A simple email draft (L2) = $80. A multi-country compliance system (L4) = $600.
+- Email/Copywriting: $50–150 (urgent communication, brand voice matching)
+- API/Integration: $250–600 (technical setup, webhook coordination)
+- System/Automation: $400–900 (complex logic, multi-step scripts)
+- Compliance/Audit: $300–700 (regulatory checks, formatting)
+- Translation/Localization: $200–500 (context-aware translation)
+- Data Analysis/Reporting: $300–650 (data extraction, visualization, insights)
 ` as const;
 
 function isOpenAiReasoningModel(provider: 'xai' | 'openai', model: string) {
@@ -103,45 +99,40 @@ function pickLevels(count: number): number[] {
   return result;
 }
 
-const SYSTEM_PROMPT = `You generate synthetic ChallengeBrief previews for Kolk Arena.
-Kolk Arena is a public beta where AI agents demonstrate capability by tackling realistic business problems at L0-L8.
-These briefs showcase real-world scenarios: what humans request, what agents must deliver, and what matters for scoring.
+const SYSTEM_PROMPT = `You generate synthetic Gig postings for the Kolk AI Workspace.
+Kolk is an AI gig economy platform where AI agents build a commercial track record by taking on real-world business tasks, shipping code/assets via API, and getting paid.
+These gigs must perfectly mimic job postings on platforms like Upwork or Fiverr: what the client urgently needs, strict acceptance criteria, and exact deliverables.
 
 ${SERVICE_BUDGET_RANGES}
 
-Each brief must:
-- Use a "scenarioTitle" in the voice of a requester with a SPECIFIC BUDGET IN USD: \"Fix my X! Paying $Y\" or \"Build my X! Need by Friday\" style (direct, urgent, specific budget or deadline).
-- Choose the budget based on the SERVICE TYPE complexity, not the LEVEL alone. A simple email might be $80 even at higher levels; a complex system might be $700 at L4.
-- Feature a fictional requester with a real business problem (not a tutorial, not abstract).
-- requestContext should:
-  * Sound like the requester speaking (first person, conversational).
-  * Lead with the business pain or deadline (not the background).
-  * Include 1–2 concrete constraints (budget/USD, timeline, tool limits, audience size, compliance requirement).
-  * End by specifying exactly what they need delivered.
-  * Be 2–4 sentences, punchy and direct.
-- scoringFocus (2–3 items): What the requester actually cares about (speed, accuracy, compliance, user satisfaction, ROI—not generic "quality").
-- outputShape (2–4 items): Concrete deliverables (\"Email draft in plain text\", \"CSV file with columns X, Y, Z\", \"JSON response with structure {...}\", not vague \"output file\").
+Each gig must follow these rules:
+1. scenarioTitle: Write it like a catchy freelancer job board title. Focus on the ACTION and URGENCY. Examples: "URGENT: Python Script for Web Scraping" or "Need High-Converting Sales Email Sequence". Do NOT include the budget in the title.
+2. requestContext: Write in the voice of a stressed, busy business client. Lead with their pain point, tight schedule, and explicitly state what they expect to be shipped. Include exactly one USD budget in this field as a natural client sentence, e.g. "Budget is $300." or "I can pay $300 for this."
+3. budget: Choose a realistic USD amount based on the SERVICE TYPE complexity, not the level alone. Since the JSON shape has no budget key, the chosen budget must appear in requestContext and must not appear in scenarioTitle.
+4. scoringFocus (maps to "Acceptance Criteria" in UI): Provide 2–3 strict, measurable business requirements. Examples: "Zero syntax errors", "Must pass CAN-SPAM compliance", "Load time under 200ms".
+5. outputShape (maps to "Deliverables" in UI): Provide 2–4 concrete assets the AI must return. Examples: "1x fully commented .py file", "JSON object with extracted fields", "HTML email template".
 
 Output STRICTLY as a JSON array of 8 objects with this shape:
 [{
   "level": number (2-8),
-  "scenarioTitle": string (requester's voice with USD budget, e.g. \"Fix my email flow! Paying $95\" or \"Build system! Need $650. Deadline: 3 weeks\"),
+  "scenarioTitle": string,
   "industry": string,
   "fictionalRequesterName": string,
   "requesterRole": string,
-  "requestContext": string (human-sounding, 2-5 sentences, include budget in USD where relevant),
+  "requestContext": string,
   "scoringFocus": string[],
   "outputShape": string[]
 }]
 
 Rules:
 - Match the requested level list exactly.
-- Always use USD for currency in all briefs (no currency symbol, just the amount, e.g., \"Paying $300\").
-- Budget should reflect service complexity and scope, NOT LEVEL. Refer to the service budget ranges above.
+- Always use USD for currency in all gigs, written with a dollar sign in requestContext, e.g. "$300".
+- Budget should reflect service complexity and scope.
+- Do not include budget, price, "USD", "$", or payment language in scenarioTitle.
 - No markdown fences or commentary outside the JSON.
-- Vary industries, organization sizes, and tones freely.
-- scenarioTitle should sound like a real request with urgency, budget in USD, or deadline (be direct and specific).
-- Do not include active challenge IDs, attempt tokens, scoring rubrics, or internal implementation details.`;
+- Vary industries, startup vs enterprise contexts, and client tones (frustrated, precise, hurried).
+- scenarioTitle should sound like a real marketplace gig title with urgency or deadline (be direct and specific).
+- Do not include active challenge IDs, attempt tokens, scoring rubrics, benchmark language, testing language, or internal implementation details.`;
 
 async function generateEnglishBriefs(levels: number[]): Promise<GeneratedBrief[]> {
   const provider = BRIEF_SHOWCASE_CONFIG.provider;
@@ -159,10 +150,10 @@ async function generateEnglishBriefs(levels: number[]): Promise<GeneratedBrief[]
     buildOpenAiCompatibleParams(
       runtime,
       SYSTEM_PROMPT,
-      `Generate 8 briefs with these levels in order: ${JSON.stringify(levels)}.
-For each brief, choose a USD budget based on the SERVICE TYPE (not the LEVEL alone).
-Refer to the service budget ranges in the system prompt.
-Include the budget in the scenarioTitle and requestContext for each brief.
+      `Generate 8 live gig postings matching these levels in order: ${JSON.stringify(levels)}.
+For each gig, assign a realistic USD budget based on the SERVICE TYPE (refer to the system prompt ranges).
+Make the requestContext sound like a real client who needs this done ASAP.
+Put the budget exactly once in requestContext only; do not include the budget in scenarioTitle.
 Return ONLY the JSON array.`,
       0.9,
     ),
@@ -185,10 +176,10 @@ async function generateWithGemini(
       contents: [
         {
           parts: [
-            { text: `Generate 8 briefs with these levels in order: ${JSON.stringify(levels)}.
-For each brief, choose a USD budget based on the SERVICE TYPE (not the LEVEL alone).
-Refer to the service budget ranges in the system prompt.
-Include the budget in the scenarioTitle and requestContext for each brief.
+            { text: `Generate 8 live gig postings matching these levels in order: ${JSON.stringify(levels)}.
+For each gig, assign a realistic USD budget based on the SERVICE TYPE (refer to the system prompt ranges).
+Make the requestContext sound like a real client who needs this done ASAP.
+Put the budget exactly once in requestContext only; do not include the budget in scenarioTitle.
 Return ONLY the JSON array.` },
           ],
         },
@@ -228,9 +219,10 @@ function parseBriefJson(raw: string): GeneratedBrief[] {
 // Translation
 // ---------------------------------------------------------------------------
 
-const TRANSLATION_PROMPT = `Translate the following synthetic ChallengeBrief previews into the target locale.
+const TRANSLATION_PROMPT = `Translate the following synthetic gig posting previews into the target locale.
 Maintain a professional, natural tone appropriate for the service industry.
-Preserve fictional names, URLs, Kolk Arena, ChallengeBrief, L0-L8, API, JSON, HTTP, attemptToken, and primaryText as-is.
+Preserve fictional names, URLs, Kolk AI Workspace, Kolk, L0-L8, API, JSON, HTTP, attemptToken, and primaryText as-is.
+Preserve the rule that scenarioTitle contains no budget while requestContext contains the USD budget.
 
 Translate scenarioTitle, industry, requesterRole, requestContext, scoringFocus, and outputShape.
 Preserve fictionalRequesterName exactly if it appears in the input.

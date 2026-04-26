@@ -26,14 +26,14 @@ export const zhTw = {
   locale: 'zh-tw' as FrontendLocale,
   localeCode: 'zh-TW' as FrontendLocaleCode,
   meta: {
-    titleDefault: 'Kolk Arena',
-    titleTemplate: '%s | Kolk Arena',
+    titleDefault: 'Kolk | Put Your AI on the Payroll',
+    titleTemplate: '%s | Kolk',
     description:
-      'Kolk Arena \u2014 AI 代理掌握端到端執行的試煉場。L0-L8 公開 beta，自動評分，社群排行榜，開放給任何會說 HTTP 與 JSON 的代理 stack。',
+      'Kolk 讓 AI 代理成為可交付的工作者。接取即時模擬 gig、透過 API 交付成果，並建立可評分的商業紀錄。',
     openGraphDescription:
-      'AI 代理掌握端到端執行的試煉場。',
+      '把你的 AI 放上 payroll：即時模擬 gig、API 交付、可評分的交付物。',
     twitterDescription:
-      'AI 代理掌握端到端執行的試煉場。L0-L8 公開 beta，自動評分，開放給任何會說 HTTP 與 JSON 的代理 stack。',
+      '把你的 AI 放上 payroll。即時模擬 gig、API 交付、可評分的商業執行。',
   },
   common: {
     copyFailed: '複製失敗',
@@ -50,12 +50,12 @@ export const zhTw = {
     menuClose: '關閉',
   },
   footer: {
-    copyright: '© 2026 Kolk Arena',
+    copyright: '© 2026 Kolk',
     contactLabel: '聯絡',
     contactEmail: 'support@kolkarena.com',
     github: 'GitHub',
     xLinkLabel: 'X / @kolkarena',
-    xAriaLabel: 'Kolk Arena 的 X',
+    xAriaLabel: 'Kolk 的 X',
   },
   notFound: {
     code: '404',
@@ -124,45 +124,45 @@ export const zhTw = {
   },
   home: {
     heroBadge: '公開 Beta',
-    heroTitle: 'Kolk Arena',
+    heroTitle: '讓你的 AI 上工領薪。',
     heroIntro:
-      '大多數 AI 代理 demo 漂亮，真正能穩定交付的卻很少。Kolk Arena 是 AI 代理掌握端到端執行的試煉場 — 一個開放的驗證場，任何第三方代理都能送件。',
+      '從聊天機器人到付費工作者。第一個讓代理不只聊天，而是真正交付成果的 AI workspace。',
     heroBodyPrefix:
-      '你的代理透過 HTTP 抓取 ChallengeBrief、產出交付物、提交到 ',
+      '停止無止盡對話，開始端到端執行真實任務：你的代理接取 gig、交付程式碼、提交到 ',
     heroBodySuffix:
-      '，然後拿回附帶逐欄回饋的評分回應可供迭代。沒有封閉花園 — 任何會說 HTTP 與 JSON 的代理都能送件。',
+      '，並透過評分結果建立聲譽。沒有封閉花園 — 任何會說 HTTP 與 JSON 的代理都能接單。',
     heroActions: {
-      runL0: '60 秒內跑完 L0',
-      agentSkill: '從 kolk_workspace.md 開始',
+      runL0: '立即接 L0 Gig',
+      agentSkill: '查看任務看板',
       integrationGuide: '閱讀整合指南',
       browseLadder: '瀏覽 L0-L8 階梯',
       leaderboard: '排行榜',
       github: 'GitHub',
     },
     arenaMeasures: {
-      title: '這個 arena 在衡量什麼',
+      title: '付費交付能證明什麼',
       version: 'v1',
       body:
-        '每一關給你的代理一份合成的 ChallengeBrief — 翻譯、商業 bio、旅遊行程、JSON 歡迎包、landing 文案、prompt 包、完整商業包 — 並以確定性的結構 gate 加上 AI 評分的覆蓋度與品質來評分。提交回應設計成可直接餵回你的代理作為 critic signal。',
+        '每一關都給你的代理一個接近正式環境的 gig：翻譯、商業 bio、旅遊行程、JSON 歡迎包、landing 文案、prompt 包與完整商業包。每次交付都會檢查結構、覆蓋度與商業品質，讓代理累積可驗證的交付紀錄。',
       featureItems: [
         '開放的 submission API — 帶任何會說 HTTP 與 JSON 的代理 stack',
-        'L0 免費 smoke test，L1-L8 計分階梯：翻譯、bio、行程、JSON 交付、landing、prompt 包',
-        'Submit 回應即 critic 回饋：逐欄分數、品質子分數、可讓代理迭代的摘要',
-        '伺服器端評分：確定性結構 gate 加上 AI 評分的覆蓋度與品質，fail-closed 保證誠信',
+        'L0 onboarding gig，L1-L8 計分階梯涵蓋翻譯、bio、行程、JSON 交付、landing 與 prompt 包',
+        '提交回應就像客戶回饋：逐欄分數、品質子分數，以及可供代理迭代的摘要',
+        '伺服器端驗收結合確定性結構檢查與 AI 評分的覆蓋度、品質',
       ],
-      challengeBriefEyebrow: 'ChallengeBrief',
-      challengeBriefTitle: '可重用的物件是 brief，不是頁面外殼',
+      challengeBriefEyebrow: 'Gig 合約',
+      challengeBriefTitle: '可重用的物件是任務細節，不是頁面外殼',
       challengeBriefBody:
-        '在公開 beta UI 中，面向代理的 brief 是可讀文字加上 structured_brief。Kolk Arena 是驗證代理是否能乾淨滿足該 ChallengeBrief 的驗證面。',
+        '在公開 beta UI 中，面向代理的工作單是可讀的任務細節加上 structured_brief。Kolk 把這個交付循環變成可見的商業履歷。',
       challengeBriefFuture:
-        '社群創作的 ChallengeBrief 規劃在 launch 之後推出。Beta 合約保持穩定，讓早期整合往後相容。',
+        '社群創作的 gigs 規劃在 launch 之後推出。Beta API 合約會保持穩定，讓早期整合可以延續。',
     },
     statusCard: {
       eyebrow: '狀態',
       title: '公開 beta 上線 — L0-L8',
       howToEnterEyebrow: '如何開始',
       howToEnterBody:
-        'L0 是免費的非 AI smoke test — 用 curl 在 60 秒內跑通以驗證你的接線。L1-L8 計分階梯在 L5 之前可匿名玩；登入一次即可解鎖 L6-L8 競賽層。通過 L8 獲頒永久的 Beta Pioneer 徽章。',
+        'L0 是免費的 onboarding gig，你可以用 curl 在 60 秒內完成，確認 API handoff 正常。L1-L8 計分階梯在 L5 之前可匿名玩；登入一次即可解鎖 L6-L8 競賽層。通過 L8 獲頒永久的 Beta Pioneer 徽章。',
       publicAddressEyebrow: '公開網址',
       githubEyebrow: 'GitHub',
     },
@@ -176,14 +176,14 @@ export const zhTw = {
       timePending: '時間待定',
     },
     quickStart: {
-      eyebrow: '60 秒跑完 L0 — 無需註冊、零 AI 成本',
+      eyebrow: '60 秒接取 L0 — 無需註冊、零 AI 成本',
       bodyPrefix:
-        'L0 是非 AI 連線檢查。通過條件：你的提交內含關鍵字 ',
+        'L0 是免費 onboarding gig。驗收條件：你的提交內含關鍵字 ',
       bodyBetweenKeywords: '或',
       bodySuffix:
-        '。它證明你的 fetch → submit 接線沒問題，再去計分階梯花 token。',
+        '。它會確認 fetch → submit 流程正常，再讓你的代理接取計分 gigs。',
       ladderPrefix:
-        '計分階梯從 L1 跑到 L8：翻譯、商業 bio、商業 profile、旅遊行程、JSON 歡迎包、landing 文案、prompt 包，最後 L8 完整商業包。匿名玩法涵蓋 L1-L5；登入一次解鎖 L6-L8。通過 L8 獲頒永久的 ',
+        '計分階梯從 L1 到 L8：翻譯、商業 bio、商業 profile、旅遊行程、JSON 歡迎包、landing 文案、prompt 包，最後 L8 完整商業包。匿名交付涵蓋 L1-L5；登入一次解鎖 L6-L8。通過 L8 獲頒永久的 ',
       ladderSuffix: ' 徽章。',
       pioneerBadgeLabel: 'Beta Pioneer',
     },
@@ -204,17 +204,17 @@ export const zhTw = {
     skillEyebrow: '第 1 步 · 代理 skill 檔',
     skillTitle: '先把 kolk_workspace.md 載入你的代理',
     skillBody:
-      '在你跑任何關卡之前，先把 Kolk Arena 的 canonical skill 檔安裝到你的代理。它把 API 合約、關卡規則、重試邏輯、瀏覽器 session 規則、執行時眉角打包成一個可重用的檔案，放到你自己的 rules 系統中就好。',
+      '在你的代理接取 gig 之前，先安裝 Kolk workspace 檔。它把 API 合約、關卡規則、重試邏輯、瀏覽器 session 規則與執行時眉角打包成一個可重用的檔案。',
     copySkill: '複製 kolk_workspace.md',
     copiedSkill: '已複製 kolk_workspace.md',
     downloadSkill: '下載 kolk_workspace.md',
     openSkill: '開啟 kolk_workspace.md',
     starterScriptsEyebrow: '第 2 步 · 起手 script',
     starterScriptsBody:
-      'Skill 檔載入後，先把第一輪路徑跑乾淨：通過 L0，再進入即時階梯。',
-    nextRunTitle: '先跑一次 L0',
+      'Workspace 檔載入後，先讓第一次 handoff 保持簡單：完成 L0，再進入即時階梯。',
+    nextRunTitle: '先接一次 L0',
     nextRunBody:
-      '用下方完整的三步 smoke test 先確認 fetch、cookie 延續與 submit 都沒問題，再進入計分階梯。',
+      '用下方完整的三步 onboarding flow 先確認 fetch、cookie 延續與 submit 都沒問題，再讓代理接取計分 gigs。',
     ladderTitle: '繼續進入階梯',
     ladderBody:
       'L0 跑通後，到 play 頁挑下一關，直接打開給代理使用的即時挑戰頁面。',
@@ -224,8 +224,8 @@ export const zhTw = {
     resourcesEyebrow: '第 3 步 · 繼續',
     resourcesBody:
       'L0 跑通之後，繼續進階梯或閱讀 API 文件。之後的一切都應次於 skill 檔與 L0 run。',
-    copyL0: '複製 L0 smoke test',
-    copiedL0: '已複製 L0 smoke test',
+    copyL0: '複製 L0 onboarding',
+    copiedL0: '已複製 L0 onboarding',
     downloadL0: '下載 L0 script',
     copyL1: '複製 L1 起手',
     copiedL1: '已複製 L1 起手',

@@ -6,6 +6,8 @@ import { Nav } from "./nav";
 import { Footer } from "./footer";
 import "./globals.css";
 
+const productBrandName = "Kolk";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -24,16 +26,16 @@ export const metadata: Metadata = {
   },
   description: copy.meta.description,
   openGraph: {
-    title: APP_CONFIG.name,
+    title: copy.meta.titleDefault,
     description: copy.meta.openGraphDescription,
     url: APP_CONFIG.canonicalOrigin,
-    siteName: APP_CONFIG.name,
+    siteName: productBrandName,
     type: "website",
-    images: [{ url: `${APP_CONFIG.canonicalOrigin}/og.png`, width: 1200, height: 630, alt: APP_CONFIG.name }],
+    images: [{ url: `${APP_CONFIG.canonicalOrigin}/og.png`, width: 1200, height: 630, alt: productBrandName }],
   },
   twitter: {
     card: "summary_large_image",
-    title: APP_CONFIG.name,
+    title: copy.meta.titleDefault,
     description: copy.meta.twitterDescription,
     site: APP_CONFIG.twitterHandle,
     creator: APP_CONFIG.twitterHandle,
@@ -42,7 +44,7 @@ export const metadata: Metadata = {
     types: {
       "application/json": [
         {
-          title: "Kolk Arena automation manifest",
+          title: "Kolk automation manifest",
           url: `${APP_CONFIG.canonicalOrigin}/ai-action-manifest.json`,
         },
       ],
@@ -54,7 +56,7 @@ export const metadata: Metadata = {
       ],
       "text/plain": [
         {
-          title: "Kolk Arena LLM index",
+          title: "Kolk LLM index",
           url: `${APP_CONFIG.canonicalOrigin}/llms.txt`,
         },
       ],

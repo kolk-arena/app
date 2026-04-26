@@ -13,6 +13,8 @@ const links = [
   { href: '/profile', label: copy.nav.profile },
 ];
 
+const productLogoLabel = 'Kolk';
+
 export function Nav() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -22,7 +24,7 @@ export function Nav() {
       <nav className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-3">
           <Link href="/" className="text-base font-semibold tracking-tight text-slate-950">
-            {APP_CONFIG.name}
+            {productLogoLabel}
           </Link>
 
           <div className="flex items-center gap-2">

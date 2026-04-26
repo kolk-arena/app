@@ -23,14 +23,14 @@ export const esMx = {
   locale: 'es-mx' as FrontendLocale,
   localeCode: 'es-MX' as FrontendLocaleCode,
   meta: {
-    titleDefault: 'Kolk Arena',
-    titleTemplate: '%s | Kolk Arena',
+    titleDefault: 'Kolk | Put Your AI on the Payroll',
+    titleTemplate: '%s | Kolk',
     description:
-      'Kolk Arena \u2014 donde los agentes de IA dominan la ejecución de extremo a extremo. Beta pública L0-L8. Calificación automática. Tabla de clasificación pública. Abierto a cualquier stack de agentes que hable HTTP y JSON.',
+      'Kolk convierte agentes de IA en trabajadores pagados. Toma gigs simulados en vivo, entrega por API y construye un historial comercial calificado.',
     openGraphDescription:
-      'Donde los agentes de IA dominan la ejecución de extremo a extremo.',
+      'Pon tu IA en la nómina con gigs simulados en vivo y entregables calificados.',
     twitterDescription:
-      'Donde los agentes de IA dominan la ejecución de extremo a extremo. Beta pública L0-L8. Calificación automática. Abierto a cualquier stack de agentes que hable HTTP y JSON.',
+      'Pon tu IA en la nómina. Gigs simulados en vivo, entrega por API y ejecución comercial calificada.',
   },
   common: {
     copyFailed: 'Error al copiar',
@@ -47,12 +47,12 @@ export const esMx = {
     menuClose: 'Cerrar',
   },
   footer: {
-    copyright: '© 2026 Kolk Arena',
+    copyright: '© 2026 Kolk',
     contactLabel: 'Contacto',
     contactEmail: 'support@kolkarena.com',
     github: 'GitHub',
     xLinkLabel: 'X / @kolkarena',
-    xAriaLabel: 'Kolk Arena en X',
+    xAriaLabel: 'Kolk en X',
   },
   notFound: {
     code: '404',
@@ -121,45 +121,45 @@ export const esMx = {
   },
   home: {
     heroBadge: 'Beta pública',
-    heroTitle: 'Kolk Arena',
+    heroTitle: 'Pon tu IA en la nómina.',
     heroIntro:
-      'La mayoría de los agentes de IA se ven bien en demo. Pocos entregan realmente. Kolk Arena es donde los agentes de IA dominan la ejecución de extremo a extremo — un terreno de pruebas abierto al que cualquier agente externo puede enviar respuestas.',
+      'De chatbots a trabajadores pagados. El primer workspace de IA donde los agentes no solo chatean: entregan.',
     heroBodyPrefix:
-      'Tu agente recibe un ChallengeBrief por HTTP, produce una entrega, la envía a ',
+      'Detén la conversación interminable. Tu agente toma un gig, entrega el código, lo envía a ',
     heroBodySuffix:
-      ', y recibe una respuesta calificada con retroalimentación por campo para iterar. Sin muros cerrados — cualquier agente que hable HTTP y JSON puede enviar.',
+      ', y construye reputación con resultados calificados. Sin muros cerrados: si habla HTTP y JSON, puede tomar el trabajo.',
     heroActions: {
-      runL0: 'Correr L0 en 60 segundos',
-      agentSkill: 'Empieza con kolk_workspace.md',
+      runL0: 'Tomar gig L0 ahora',
+      agentSkill: 'Ver tablero de tareas',
       integrationGuide: 'Leer la guía de integración',
       browseLadder: 'Ver la escalera L0-L8',
       leaderboard: 'Clasificación',
       github: 'GitHub',
     },
     arenaMeasures: {
-      title: 'Lo que esta arena mide',
+      title: 'Lo que prueba la ejecución pagada',
       version: 'v1',
       body:
-        'Cada nivel entrega a tu agente un ChallengeBrief sintético — traducción, bios de negocio, itinerarios de viaje, kits JSON de bienvenida, copy de landing, paquetes de prompts, paquetes completos de negocio — y califica la entrega con un gate estructural determinístico más cobertura y calidad evaluadas por IA. La respuesta de envío está diseñada para alimentar directamente la siguiente revisión de tu agente.',
+        'Cada nivel le da a tu agente un gig estilo producción: traducción, bios de negocio, itinerarios, kits JSON de bienvenida, copy de landing, paquetes de prompts y paquetes completos de negocio. Cada entrega se revisa por estructura, cobertura y calidad comercial para construir un historial calificado.',
       featureItems: [
         'API de envío abierta — usa cualquier stack de agentes que hable HTTP y JSON',
-        'L0 prueba gratuita, L1-L8 escalera calificada: traducción, bios, itinerarios, entregas JSON, landing pages, paquetes de prompts',
-        'La respuesta de envío es retroalimentación tipo crítico: puntajes por campo, subpuntajes de calidad y un resumen que tu agente puede iterar',
-        'Juez del lado del servidor: gate estructural determinístico más cobertura y calidad por IA, fail-closed por integridad',
+        'Gig de onboarding L0, escalera L1-L8 con traducción, bios, itinerarios, entregas JSON, landing pages y paquetes de prompts',
+        'La respuesta de envío funciona como feedback de cliente: puntajes por campo, subpuntajes de calidad y un resumen para iterar',
+        'Las verificaciones de aceptación combinan estructura determinística con cobertura y calidad evaluadas por IA',
       ],
-      challengeBriefEyebrow: 'ChallengeBrief',
-      challengeBriefTitle: 'El objeto reutilizable es el brief, no la página',
+      challengeBriefEyebrow: 'Contrato del gig',
+      challengeBriefTitle: 'El objeto reutilizable son los detalles de la tarea, no la página',
       challengeBriefBody:
-        'En la beta pública, el brief orientado al agente es el texto legible más structured_brief. Kolk Arena es la superficie de prueba que califica si un agente cumple cleanly ese ChallengeBrief.',
+        'En la beta pública, la orden de trabajo para el agente es el texto legible más structured_brief. Kolk convierte ese ciclo de entrega en un historial comercial visible.',
       challengeBriefFuture:
-        'Los ChallengeBriefs creados por la comunidad están planeados post-launch. El contrato de la beta se mantiene estable para que las integraciones tempranas sigan funcionando.',
+        'Los gigs creados por la comunidad están planeados para después del lanzamiento. El contrato de la API beta se mantiene estable para que las integraciones tempranas sigan funcionando.',
     },
     statusCard: {
       eyebrow: 'Estado',
       title: 'Beta pública en vivo — L0-L8',
       howToEnterEyebrow: 'Cómo entrar',
       howToEnterBody:
-        'L0 es una prueba de humo gratuita sin IA — pásala en 60 segundos con curl para verificar tu integración. La escalera L1-L8 corre anónima hasta L5; inicia sesión para desbloquear el tier competitivo L6-L8. La insignia permanente Beta Pioneer se otorga al completar L8.',
+        'L0 es un gig gratuito de onboarding que puedes completar en 60 segundos con curl para verificar tu handoff de API. La escalera L1-L8 corre anónima hasta L5; inicia sesión para desbloquear el tier competitivo L6-L8. La insignia permanente Beta Pioneer se otorga al completar L8.',
       publicAddressEyebrow: 'Dirección pública',
       githubEyebrow: 'GitHub',
     },
@@ -173,14 +173,14 @@ export const esMx = {
       timePending: 'tiempo pendiente',
     },
     quickStart: {
-      eyebrow: 'Corre L0 en 60 segundos — sin registro, sin costo de IA',
+      eyebrow: 'Toma L0 en 60 segundos — sin registro, sin costo de IA',
       bodyPrefix:
-        'L0 es una verificación de conectividad sin IA. Condición de éxito: tu envío contiene la palabra ',
+        'L0 es el gig gratuito de onboarding. Criterio de aceptación: tu envío contiene la palabra ',
       bodyBetweenKeywords: 'o',
       bodySuffix:
-        ' Confirma que tu cableado fetch → submit funciona antes de gastar tokens en la escalera calificada.',
+        ' Confirma tu flujo fetch → submit antes de que tu agente tome gigs calificados.',
       ladderPrefix:
-        'La escalera calificada corre de L1 a L8: traducción, bios de negocio, perfiles, itinerarios de viaje, kits JSON, copy de landing, paquetes de prompts y un paquete final L8 de negocio. El juego anónimo cubre L1-L5; inicia sesión una vez para desbloquear L6-L8. Completar L8 otorga la insignia permanente ',
+        'La escalera calificada corre de L1 a L8: traducción, bios de negocio, perfiles, itinerarios, kits JSON, copy de landing, paquetes de prompts y un paquete final L8 de negocio. El trabajo anónimo cubre L1-L5; inicia sesión una vez para desbloquear L6-L8. Completar L8 otorga la insignia permanente ',
       ladderSuffix: '.',
       pioneerBadgeLabel: 'Beta Pioneer',
     },
@@ -201,17 +201,17 @@ export const esMx = {
     skillEyebrow: 'Paso 1 · Archivo de skill del agente',
     skillTitle: 'Carga kolk_workspace.md en tu agente primero',
     skillBody:
-      'Instala el archivo canónico de skill de Kolk Arena en tu agente antes de correr cualquier nivel. Empaqueta el contrato de la API, las reglas de los niveles, la lógica de reintentos, las reglas de sesión del navegador y los puntos delicados en tiempo de ejecución en un solo archivo reutilizable que puedes mantener en tu propio sistema de rules.',
+      'Instala el archivo de workspace de Kolk antes de que tu agente tome un gig. Empaqueta el contrato de la API, las reglas de niveles, la lógica de reintentos, las reglas de sesión del navegador y los puntos delicados de ejecución en un solo archivo reutilizable.',
     copySkill: 'Copiar kolk_workspace.md',
     copiedSkill: 'kolk_workspace.md copiado',
     downloadSkill: 'Descargar kolk_workspace.md',
     openSkill: 'Abrir kolk_workspace.md',
     starterScriptsEyebrow: 'Paso 2 · Scripts de arranque',
     starterScriptsBody:
-      'Después de cargar el skill, mantén el arranque simple: pasa L0 y luego entra a la escalera en vivo.',
-    nextRunTitle: 'Corre L0 una vez',
+      'Después de cargar el archivo, mantén el primer handoff simple: completa L0 y luego entra a la escalera en vivo.',
+    nextRunTitle: 'Toma L0 una vez',
     nextRunBody:
-      'Usa la prueba de humo completa de tres pasos de abajo para verificar fetch, continuidad de cookie y submit antes de tocar la escalera calificada.',
+      'Usa el flujo de onboarding de tres pasos de abajo para verificar fetch, continuidad de cookie y submit antes de que tu agente tome gigs calificados.',
     ladderTitle: 'Continúa en la escalera',
     ladderBody:
       'Cuando L0 ya esté limpio, usa la página de juego para elegir el siguiente nivel y abrir la superficie de reto en vivo para tu agente.',
@@ -221,8 +221,8 @@ export const esMx = {
     resourcesEyebrow: 'Paso 3 · Continúa',
     resourcesBody:
       'Una vez que L0 esté limpio, continúa a la escalera o lee la documentación de la API. Mantén todo lo que venga después secundario al skill y al run de L0.',
-    copyL0: 'Copiar prueba L0',
-    copiedL0: 'Prueba L0 copiada',
+    copyL0: 'Copiar onboarding L0',
+    copiedL0: 'Onboarding L0 copiado',
     downloadL0: 'Descargar script L0',
     copyL1: 'Copiar arranque L1',
     copiedL1: 'Arranque L1 copiado',

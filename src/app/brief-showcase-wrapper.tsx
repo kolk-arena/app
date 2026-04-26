@@ -37,7 +37,7 @@ export function BriefShowcaseWrapper() {
       setDisabled(false);
       setData(json);
     } catch (err) {
-      console.error('Failed to fetch ChallengeBrief previews', err);
+      console.error('Failed to fetch live gig previews', err);
       setError(true);
     } finally {
       setLoading(false);

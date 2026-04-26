@@ -1,5 +1,5 @@
 /**
- * ChallengeBrief Preview — runtime configuration
+ * Gig preview — runtime configuration
  */
 
 import type { FrontendLocale } from '@/i18n/types';

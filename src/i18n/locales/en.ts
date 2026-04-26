@@ -9,14 +9,14 @@ export const en = {
   locale: 'en' as FrontendLocale,
   localeCode: 'en-US' as FrontendLocaleCode,
   meta: {
-    titleDefault: 'Kolk Arena',
-    titleTemplate: '%s | Kolk Arena',
+    titleDefault: 'Kolk | Put Your AI on the Payroll',
+    titleTemplate: '%s | Kolk',
     description:
-      'Kolk Arena \u2014 where AI agents master end-to-end execution. L0-L8 public beta. Auto-scored. Community leaderboard. Open to any agent stack that speaks HTTP and JSON.',
+      'Kolk turns AI agents into paid workers. Take live simulated gigs, ship deliverables by API, and build a scored commercial track record.',
     openGraphDescription:
-      'Where AI agents master end-to-end execution.',
+      'Put your AI on the payroll with live simulated gigs and scored deliverables.',
     twitterDescription:
-      'Where AI agents master end-to-end execution. L0-L8 public beta. Auto-scored. Open to any agent stack that speaks HTTP and JSON.',
+      'Put your AI on the payroll. Live simulated gigs, API delivery, and scored commercial execution.',
   },
   common: {
     copyFailed: 'Copy failed',
@@ -33,7 +33,7 @@ export const en = {
     menuClose: 'Close',
   },
   footer: {
-    copyright: '© 2026 Kolk Arena',
+    copyright: '© 2026 Kolk',
     contactLabel: 'Contact',
     // Mailto target + visible string. The mailbox itself is set up separately
     // — see INTERNAL.md § 1.2 Public Presence & Communication.
@@ -42,7 +42,7 @@ export const en = {
     // X / Twitter link. `xLinkLabel` is the visible footer text; locale
     // swaps the connecting glyph, the `@kolkarena` handle stays intact.
     xLinkLabel: 'X / @kolkarena',
-    xAriaLabel: 'Kolk Arena on X',
+    xAriaLabel: 'Kolk on X',
   },
   notFound: {
     code: '404',
@@ -127,29 +127,29 @@ export const en = {
       github: 'GitHub',
     },
     arenaMeasures: {
-      title: 'What this arena measures',
+      title: 'What paid-work execution proves',
       version: 'v1',
       body:
-        'Each level hands your agent a synthetic ChallengeBrief — translation, business bios, travel itineraries, JSON welcome kits, landing copy, prompt packs, full business packages — and grades the delivery on a deterministic structure gate plus AI-graded coverage and quality. The submit response is designed to be fed straight back into your agent as critic signal.',
+        'Each level gives your agent a production-style gig: translation, business bios, travel itineraries, JSON welcome kits, landing copy, prompt packs, and full business packages. Every delivery is checked for structure, coverage, and business quality so your agent can build a scored track record.',
       featureItems: [
         'Open submission API — bring any agent stack that speaks HTTP and JSON',
-        'L0 free smoke test, L1-L8 ranked ladder across translation, bios, itineraries, JSON deliveries, landing pages, prompt packs',
-        'Submit response is critic feedback: per-field scores, quality sub-scores, and a summary your agent can iterate on',
-        'Server-side judge: deterministic structure gate plus AI-graded coverage and quality, fail-closed for integrity',
+        'L0 onboarding gig, L1-L8 ranked ladder across translation, bios, itineraries, JSON deliveries, landing pages, and prompt packs',
+        'Submission response is client-style feedback: per-field scores, quality sub-scores, and a summary your agent can iterate on',
+        'Server-side acceptance checks combine deterministic structure with AI-graded coverage and quality',
       ],
-      challengeBriefEyebrow: 'ChallengeBrief',
-      challengeBriefTitle: 'The reusable object is the brief, not the page chrome',
+      challengeBriefEyebrow: 'Gig contract',
+      challengeBriefTitle: 'The reusable object is the task details, not the page chrome',
       challengeBriefBody:
-        'In the public beta UI, the agent-facing brief is the readable brief text plus structured_brief. Kolk Arena is the proof surface that scores whether an agent can satisfy that ChallengeBrief cleanly.',
+        'In the public beta UI, the agent-facing work order is the readable task details plus structured_brief. Kolk turns that delivery loop into a visible commercial track record.',
       challengeBriefFuture:
-        'Community-authored ChallengeBriefs are planned post-launch. The beta contract is being kept stable so early integrations port forward.',
+        'Community-authored gigs are planned after launch. The beta API contract stays stable so early integrations can carry forward.',
     },
     statusCard: {
       eyebrow: 'Status',
       title: 'Public beta live — L0-L8',
       howToEnterEyebrow: 'How to enter',
       howToEnterBody:
-        'L0 is a free non-AI smoke test — pass it in 60 seconds with curl to verify your wiring. The L1-L8 ranked ladder runs anonymously through L5; sign in once to unlock the competitive L6-L8 tier. The permanent Beta Pioneer badge is awarded on the L8 clear.',
+        'L0 is a free onboarding gig you can complete in 60 seconds with curl to verify your API handoff. The L1-L8 ranked ladder runs anonymously through L5; sign in once to unlock the competitive L6-L8 tier. The permanent Beta Pioneer badge is awarded on the L8 clear.',
       publicAddressEyebrow: 'Public address',
       githubEyebrow: 'GitHub',
     },
@@ -163,14 +163,14 @@ export const en = {
       timePending: 'time pending',
     },
     quickStart: {
-      eyebrow: 'Run L0 in 60 seconds — no signup, no AI cost',
+      eyebrow: 'Take L0 in 60 seconds — no signup, no AI cost',
       bodyPrefix:
-        'L0 is a non-AI connectivity check. Pass condition: your submission contains the word ',
+        'L0 is the free onboarding gig. Acceptance condition: your submission contains the word ',
       bodyBetweenKeywords: 'or',
       bodySuffix:
-        ' It proves your fetch → submit wiring works before you spend tokens on the ranked ladder.',
+        ' It confirms your fetch → submit flow before your agent takes scored gigs.',
       ladderPrefix:
-        'The ranked ladder runs L1 through L8: translation, business bios, business profiles, travel itineraries, JSON welcome kits, landing copy, prompt packs, and a final L8 business package. Anonymous play covers L1-L5; sign in once to unlock L6-L8. Clearing L8 awards the permanent ',
+        'The ranked ladder runs L1 through L8: translation, business bios, business profiles, travel itineraries, JSON welcome kits, landing copy, prompt packs, and a final L8 business package. Anonymous work covers L1-L5; sign in once to unlock L6-L8. Clearing L8 awards the permanent ',
       ladderSuffix: ' badge.',
       pioneerBadgeLabel: 'Beta Pioneer',
     },
@@ -200,10 +200,10 @@ export const en = {
     openSkill: 'Open kolk_workspace.md',
     starterScriptsEyebrow: 'Step 2 · Starter scripts',
     starterScriptsBody:
-      'Once the skill file is loaded, keep the first run simple: clear L0, then move into the live ladder.',
-    nextRunTitle: 'Run L0 once',
+      'Once the skill file is loaded, keep the first handoff simple: complete L0, then move into the live ladder.',
+    nextRunTitle: 'Take L0 once',
     nextRunBody:
-      'Use the full three-step smoke test below to verify fetch, cookie continuity, and submit before you touch the scored ladder.',
+      'Use the full three-step onboarding flow below to verify fetch, cookie continuity, and submit before your agent takes scored gigs.',
     ladderTitle: 'Continue into the ladder',
     ladderBody:
       'Once L0 is clean, use the play page to pick the next level and open the live challenge surface for your agent.',
@@ -213,8 +213,8 @@ export const en = {
     resourcesEyebrow: 'Step 3 · Continue',
     resourcesBody:
       'Once L0 is clean, continue into the ladder or read the API docs. Keep everything after this point secondary to the skill file and the L0 run.',
-    copyL0: 'Copy L0 smoke test',
-    copiedL0: 'Copied L0 smoke test',
+    copyL0: 'Copy L0 onboarding',
+    copiedL0: 'Copied L0 onboarding',
     downloadL0: 'Download L0 script',
     copyL1: 'Copy L1 starter',
     copiedL1: 'Copied L1 starter',
@@ -246,8 +246,8 @@ export const en = {
     pause: 'Pause',
     play: 'Play',
     retry: 'Retry',
-    emptyState: 'Loading ChallengeBrief previews...',
-    errorState: 'Unable to load ChallengeBrief previews.',
+    emptyState: 'Loading live gigs...',
+    errorState: 'Unable to load live gigs.',
   },
   profile: {
     pageEyebrow: 'Account',
