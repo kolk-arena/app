@@ -405,13 +405,13 @@ function playerDetailPayload() {
 test.describe('frontend UI regression', () => {
   test.describe.configure({ timeout: 60_000 });
 
-  test('agent skill surfaces are discoverable (kolk_arena.md + llms.txt + homepage card)', async ({ page, request }) => {
+  test('agent workspace surfaces are discoverable (kolk_workspace.md + llms.txt + homepage card)', async ({ page, request }) => {
     // The two canonical static agent surfaces served from `public/`:
-    // `/kolk_arena.md` is the full skill file; `/llms.txt` is the short
+    // `/kolk_workspace.md` is the public workspace file; `/llms.txt` is the short
     // LLM-crawler index. Both are served verbatim from the Next.js static
     // handler, so a 200 + canonical marker in the body is proof that the
     // file is live and the content has not drifted.
-    const skillResponse = await request.get('/kolk_arena.md');
+    const skillResponse = await request.get('/kolk_workspace.md');
     expect(skillResponse.status()).toBe(200);
     const skillBody = await skillResponse.text();
     expect(skillBody).toContain('# Kolk Arena — Agent Skill');
@@ -422,7 +422,7 @@ test.describe('frontend UI regression', () => {
     expect(llmsResponse.status()).toBe(200);
     const llmsBody = await llmsResponse.text();
     expect(llmsBody).toContain('# Kolk Arena');
-    expect(llmsBody).toContain('kolk_arena.md');
+    expect(llmsBody).toContain('kolk_workspace.md');
 
     // Homepage has to surface the skill CTA as the first interactive card
     // the visitor lands on — that is the whole point of promoting it.
@@ -430,16 +430,16 @@ test.describe('frontend UI regression', () => {
     await mockEmailRegister(page);
     await page.goto('/');
     const agentSkill = page.locator('#agent-skill');
-    await expect(agentSkill.getByText(/Load kolk_arena\.md into your agent first/i)).toBeVisible();
+    await expect(agentSkill.getByText(/Load kolk_workspace\.md into your agent first/i)).toBeVisible();
     await agentSkill.locator('summary').click();
     // The preview used to live inside a <details><summary>Preview
-    // kolk_arena.md</summary> fold; the latest skill card renders the
-    // CodeBlock inline with title="kolk_arena.md" — assert the filename
+    // kolk_workspace.md</summary> fold; the latest skill card renders the
+    // CodeBlock inline with title="kolk_workspace.md" — assert the filename
     // surfaces on the page rather than the old summary element.
-    await expect(agentSkill.getByText('kolk_arena.md', { exact: true }).first()).toBeVisible();
-    await expect(agentSkill.getByRole('button', { name: 'Copy kolk_arena.md' }).first()).toBeVisible();
-    await expect(agentSkill.getByRole('button', { name: 'Download kolk_arena.md' })).toBeVisible();
-    await expect(agentSkill.getByRole('link', { name: 'Open kolk_arena.md' })).toBeVisible();
+    await expect(agentSkill.getByText('kolk_workspace.md', { exact: true }).first()).toBeVisible();
+    await expect(agentSkill.getByRole('button', { name: 'Copy kolk_workspace.md' }).first()).toBeVisible();
+    await expect(agentSkill.getByRole('button', { name: 'Download kolk_workspace.md' })).toBeVisible();
+    await expect(agentSkill.getByRole('link', { name: 'Open kolk_workspace.md' })).toBeVisible();
   });
 
   test('home anonymous flow renders sign-in panel and email success state', async ({ page }) => {
@@ -448,7 +448,7 @@ test.describe('frontend UI regression', () => {
 
     await page.goto('/');
 
-    await expect(page.getByRole('heading', { name: 'Kolk Arena' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Put Your AI on the Payroll.' })).toBeVisible();
     const emailSignInSection = page.locator('#email-sign-in');
     await expect(emailSignInSection.getByText('Sign in required')).toBeVisible();
     await expect(emailSignInSection.getByRole('link', { name: 'Sign in with GitHub' })).toHaveCount(0);
@@ -485,8 +485,8 @@ test.describe('frontend UI regression', () => {
 
     const agentSkill = page.locator('#agent-skill');
     await agentSkill.locator('summary').click();
-    await expect(agentSkill.getByText('kolk_arena.md', { exact: true }).first()).toBeVisible();
-    await agentSkill.getByRole('button', { name: 'Copy kolk_arena.md' }).first().click();
+    await expect(agentSkill.getByText('kolk_workspace.md', { exact: true }).first()).toBeVisible();
+    await agentSkill.getByRole('button', { name: 'Copy kolk_workspace.md' }).first().click();
     await expect.poll(() => readClipboard(page)).toContain('# Kolk Arena');
   });
 
@@ -755,7 +755,7 @@ test.describe('frontend UI regression', () => {
     await page.getByRole('button', { name: 'Copy submit contract' }).filter({ visible: true }).first().click();
     await expect.poll(() => readClipboard(page)).toContain('"attemptToken": "attempt-token-copy-tools"');
 
-    await expect(page.getByRole('link', { name: 'Open kolk_arena.md' }).filter({ visible: true }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Open kolk_workspace.md' }).filter({ visible: true }).first()).toBeVisible();
 
     await page.locator('summary:visible').filter({ hasText: 'Local scripts' }).click();
     await page.getByRole('tab', { name: 'Python' }).filter({ visible: true }).first().click();

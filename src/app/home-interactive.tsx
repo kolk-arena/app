@@ -8,11 +8,11 @@ import { copy } from '@/i18n';
 import { usePublicTextAsset } from '@/lib/frontend/use-public-text-asset';
 
 export function HomeInteractive() {
-  const skillContent = usePublicTextAsset('/kolk_arena.md');
+  const skillContent = usePublicTextAsset('/kolk_workspace.md');
   const skillPreview =
     skillContent.trim().length > 0
       ? `${skillContent.split('\n').slice(0, 18).join('\n')}\n\n...`
-      : '# kolk_arena.md\n\nLoading canonical agent skill...';
+      : '# kolk_workspace.md\n\nLoading workspace onboarding file...';
 
   const handleDownload = useCallback((filename: string, content: string) => {
     const blob = new Blob([content], { type: 'text/plain' });
@@ -58,7 +58,7 @@ export function HomeInteractive() {
         <div className="mt-4 flex flex-wrap gap-3">
           <QuickActionButton
             type="button"
-            onClick={() => skillContent && handleDownload('kolk_arena.md', skillContent)}
+            onClick={() => skillContent && handleDownload('kolk_workspace.md', skillContent)}
             disabled={!skillContent}
             className="memory-accent-button rounded-md"
           >
@@ -73,7 +73,7 @@ export function HomeInteractive() {
             disabled={!skillContent}
           />
           <QuickActionButton
-            href="/kolk_arena.md"
+            href="/kolk_workspace.md"
             target="_blank"
             rel="noreferrer"
             className={actionButtonClass}
@@ -86,7 +86,7 @@ export function HomeInteractive() {
         <CodeBlock
           code={skillPreview}
           language="markdown"
-          title="kolk_arena.md"
+          title="kolk_workspace.md"
           tone="light"
           copyValue={skillContent}
           copyLabel={copy.homeInteractive.copySkill}

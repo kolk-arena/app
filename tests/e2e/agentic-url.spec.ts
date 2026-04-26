@@ -282,7 +282,7 @@ test.describe('agentic URL surfaces', () => {
     });
     expect(playState.docs).toMatchObject({
       manifest: 'https://www.kolkarena.com/ai-action-manifest.json',
-      skill: 'https://www.kolkarena.com/kolk_arena.md',
+      skill: 'https://www.kolkarena.com/kolk_workspace.md',
       llms: 'https://www.kolkarena.com/llms.txt',
     });
     await expect(page.locator(playState.selectors.primaryCta).first()).toBeVisible();

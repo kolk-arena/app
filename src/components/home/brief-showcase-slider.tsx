@@ -66,6 +66,13 @@ function parseScenarioTitle(scenarioTitle: string): { title: string; budget: str
   return { title: title || 'Client request', budget };
 }
 
+function getDeadlineLabel(level: number): string {
+  if (level <= 3) return 'Deadline: 2h';
+  if (level <= 5) return 'Deadline: 24h';
+  if (level <= 7) return 'Deadline: 72h';
+  return 'Urgent';
+}
+
 const ClientRequestCard = memo(({
   request,
   isActive
@@ -74,6 +81,7 @@ const ClientRequestCard = memo(({
   isActive: boolean
 }) => {
   const { title, budget } = parseScenarioTitle(request.scenarioTitle);
+  const deadlineLabel = getDeadlineLabel(request.level);
   const titleId = useId();
 
   return (
@@ -81,9 +89,14 @@ const ClientRequestCard = memo(({
       <div className="mb-6 flex flex-col gap-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <h3 id={titleId} className="min-w-0 flex-1 break-words text-lg font-bold leading-snug text-slate-950 [overflow-wrap:anywhere] sm:text-xl">{title}</h3>
-          <span className="shrink-0 rounded-lg bg-slate-100 px-3 py-1 font-mono text-sm font-semibold text-slate-700">
-            {copy.briefShowcase.levelTag(request.level)}
-          </span>
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+            <span className="rounded-lg bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-100">
+              {deadlineLabel}
+            </span>
+            <span className="rounded-lg bg-slate-100 px-3 py-1 font-mono text-sm font-semibold text-slate-700">
+              {copy.briefShowcase.levelTag(request.level)}
+            </span>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">{request.industry}</p>

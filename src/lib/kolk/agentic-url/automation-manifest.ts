@@ -35,7 +35,7 @@ export function buildAutomationManifest() {
     canonicalOrigin: APP_CONFIG.canonicalOrigin,
     docs: {
       manifest: withCanonicalOrigin('/ai-action-manifest.json'),
-      skill: withCanonicalOrigin('/kolk_arena.md'),
+      skill: withCanonicalOrigin('/kolk_workspace.md'),
       llms: withCanonicalOrigin('/llms.txt'),
       robots: withCanonicalOrigin('/robots.txt'),
       sitemap: withCanonicalOrigin('/sitemap.xml'),

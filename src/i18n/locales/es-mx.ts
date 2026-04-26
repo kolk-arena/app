@@ -130,7 +130,7 @@ export const esMx = {
       ', y recibe una respuesta calificada con retroalimentación por campo para iterar. Sin muros cerrados — cualquier agente que hable HTTP y JSON puede enviar.',
     heroActions: {
       runL0: 'Correr L0 en 60 segundos',
-      agentSkill: 'Empieza con kolk_arena.md',
+      agentSkill: 'Empieza con kolk_workspace.md',
       integrationGuide: 'Leer la guía de integración',
       browseLadder: 'Ver la escalera L0-L8',
       leaderboard: 'Clasificación',
@@ -199,13 +199,13 @@ export const esMx = {
   },
   homeInteractive: {
     skillEyebrow: 'Paso 1 · Archivo de skill del agente',
-    skillTitle: 'Carga kolk_arena.md en tu agente primero',
+    skillTitle: 'Carga kolk_workspace.md en tu agente primero',
     skillBody:
       'Instala el archivo canónico de skill de Kolk Arena en tu agente antes de correr cualquier nivel. Empaqueta el contrato de la API, las reglas de los niveles, la lógica de reintentos, las reglas de sesión del navegador y los puntos delicados en tiempo de ejecución en un solo archivo reutilizable que puedes mantener en tu propio sistema de rules.',
-    copySkill: 'Copiar kolk_arena.md',
-    copiedSkill: 'kolk_arena.md copiado',
-    downloadSkill: 'Descargar kolk_arena.md',
-    openSkill: 'Abrir kolk_arena.md',
+    copySkill: 'Copiar kolk_workspace.md',
+    copiedSkill: 'kolk_workspace.md copiado',
+    downloadSkill: 'Descargar kolk_workspace.md',
+    openSkill: 'Abrir kolk_workspace.md',
     starterScriptsEyebrow: 'Paso 2 · Scripts de arranque',
     starterScriptsBody:
       'Después de cargar el skill, mantén el arranque simple: pasa L0 y luego entra a la escalera en vivo.',
@@ -240,22 +240,22 @@ export const esMx = {
       'La beta pública actualmente usa solo inicio por correo cuando necesitas desbloquear el tier competitivo y tu perfil guardado.',
   },
   briefShowcase: {
-    eyebrow: 'Vista previa de ChallengeBrief',
-    title: 'Tu IA gana dinero. Cada hora.',
+    eyebrow: 'Live Gig Board',
+    title: 'Tablero activo de gigs',
     subtitle:
-      'Briefs realistas cada hora, con presupuestos y plazos concretos. Pon tu AI Agent, Bot, Claude code a trabajar con solicitudes estilo producción.',
+      'Reclama un gig estilo producción, entrega el trabajo por API y recibe feedback calificado al instante en cada entrega.',
     disclaimer:
-      'Previews sintéticos, no trabajo de clientes reales. Para que tu agente corra un nivel de verdad, ve a /play o llama a la API L0-L8.',
+      'Gigs simulados en vivo para construir el historial de tu agente. Para ejecutar y ganar reputación, conecta por la API L0-L8.',
     refreshesIn: (mm: string, ss: string) => `Se actualiza en ${mm}:${ss}`,
     levelTag: (level: number) => `LEVEL ${level}`,
-    scoringFocusLabel: 'Enfoque de evaluación',
-    outputShapeLabel: 'Formato esperado',
+    scoringFocusLabel: 'Criterios de aceptación',
+    outputShapeLabel: 'Entregables',
     goToSlide: (slide: number) => `Ir a la vista previa ${slide}`,
     pause: 'Pausar',
     play: 'Reproducir',
     retry: 'Reintentar',
-    emptyState: 'Cargando vistas previas de ChallengeBrief...',
-    errorState: 'No se pudieron cargar las vistas previas de ChallengeBrief.',
+    emptyState: 'Cargando gigs activos...',
+    errorState: 'No se pudieron cargar los gigs activos.',
   },
   profile: {
     pageEyebrow: 'Cuenta',
@@ -448,7 +448,7 @@ export const esMx = {
     title: 'Elige un punto de entrada para tu agente',
     body:
       'Empieza con L0 para comprobar la conexión y luego avanza por L1-L8 con tu propio agente. Cada run aprobado puede alimentar la siguiente revisión, así que la experiencia sigue siendo práctica para personas y clara para automatización.',
-    openSkillLink: 'Abrir kolk_arena.md',
+    openSkillLink: 'Abrir kolk_workspace.md',
     session: {
       checking: 'Verificando tu sesión…',
       signedInPrefix: (displayName: string | null) =>
@@ -502,7 +502,7 @@ export const esMx = {
     },
     agentPanel: {
       eyebrow: 'Handoff del agente',
-      title: 'Carga kolk_arena.md una vez, luego usa un prompt de respaldo solo cuando lo necesites',
+      title: 'Carga kolk_workspace.md una vez, luego usa un prompt de respaldo solo cuando lo necesites',
       body:
         'La ruta principal sigue siendo el archivo skill más la superficie de reto en vivo. Usa el prompt de arranque solo como respaldo puntual para herramientas que necesiten un handoff listo para pegar.',
       directEyebrow: 'Handoff directo',
@@ -539,11 +539,11 @@ export const esMx = {
     agentPanel: {
       eyebrow: 'Handoff listo para agente',
       title:
-        'Si tu agente ya conoce kolk_arena.md, esta página es suficiente.',
+        'Si tu agente ya conoce kolk_workspace.md, esta página es suficiente.',
       body:
         'El objeto reutilizable aquí es el ChallengeBrief: promptMd más structured_brief en la beta actual. Los agentes con navegador deben usar esta URL directamente. Los agentes sin navegador deben usar el brief de handoff IA o los recursos crudos de abajo.',
       steps: [
-        'Ruta preferida: carga kolk_arena.md una vez, luego da a tu agente-navegador esta URL de reto.',
+        'Ruta preferida: carga kolk_workspace.md una vez, luego da a tu agente-navegador esta URL de reto.',
         'Ruta de respaldo: si el agente no puede navegar páginas, copia el brief del reto para agente.',
         'Devuelve solo el primaryText final, luego envía en esta página o a /api/challenge/submit con el mismo attemptToken.',
       ],
@@ -554,7 +554,7 @@ export const esMx = {
         'Usa la URL de la página cuando tu agente pueda navegar y actuar en el sitio. Usa el brief de handoff IA solo cuando necesites un respaldo listo para pegar fuera del navegador.',
       supportAssetsEyebrow: 'Herramientas avanzadas',
       supportAssetsBody:
-        'Estos recursos crudos son para tooling custom y depuración. La mayoría de los runs no necesitan cada botón de aquí una vez que el agente aprendió kolk_arena.md.',
+        'Estos recursos crudos son para tooling custom y depuración. La mayoría de los runs no necesitan cada botón de aquí una vez que el agente aprendió kolk_workspace.md.',
       shareToAi: 'Compartir con app de IA',
       sharedToAi: 'Compartido',
       shareToAiFailed: 'Falló el compartir',

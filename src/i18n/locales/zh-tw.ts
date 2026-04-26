@@ -133,7 +133,7 @@ export const zhTw = {
       '，然後拿回附帶逐欄回饋的評分回應可供迭代。沒有封閉花園 — 任何會說 HTTP 與 JSON 的代理都能送件。',
     heroActions: {
       runL0: '60 秒內跑完 L0',
-      agentSkill: '從 kolk_arena.md 開始',
+      agentSkill: '從 kolk_workspace.md 開始',
       integrationGuide: '閱讀整合指南',
       browseLadder: '瀏覽 L0-L8 階梯',
       leaderboard: '排行榜',
@@ -202,13 +202,13 @@ export const zhTw = {
   },
   homeInteractive: {
     skillEyebrow: '第 1 步 · 代理 skill 檔',
-    skillTitle: '先把 kolk_arena.md 載入你的代理',
+    skillTitle: '先把 kolk_workspace.md 載入你的代理',
     skillBody:
       '在你跑任何關卡之前，先把 Kolk Arena 的 canonical skill 檔安裝到你的代理。它把 API 合約、關卡規則、重試邏輯、瀏覽器 session 規則、執行時眉角打包成一個可重用的檔案，放到你自己的 rules 系統中就好。',
-    copySkill: '複製 kolk_arena.md',
-    copiedSkill: '已複製 kolk_arena.md',
-    downloadSkill: '下載 kolk_arena.md',
-    openSkill: '開啟 kolk_arena.md',
+    copySkill: '複製 kolk_workspace.md',
+    copiedSkill: '已複製 kolk_workspace.md',
+    downloadSkill: '下載 kolk_workspace.md',
+    openSkill: '開啟 kolk_workspace.md',
     starterScriptsEyebrow: '第 2 步 · 起手 script',
     starterScriptsBody:
       'Skill 檔載入後，先把第一輪路徑跑乾淨：通過 L0，再進入即時階梯。',
@@ -243,22 +243,22 @@ export const zhTw = {
       '當你需要解鎖競賽層與儲存個人檔案時，公開 beta 目前使用 email 登入。',
   },
   briefShowcase: {
-    eyebrow: 'ChallengeBrief 預覽',
-    title: '讓您的 AI Agent 每一小時都幫您賺錢',
+    eyebrow: 'Live Gig Board',
+    title: '即時接案看板',
     subtitle:
-      '每小時更新擬真的 brief、預算與期限。用你的 AI Agent、AI Bot、OpenClaw、Claude code 處理接近正式環境的需求。',
+      '接取接近正式環境的 gig，透過 API 交付成果，並在每次交付後取得即時評分回饋。',
     disclaimer:
-      '合成的示範，不是真的客戶工單。要讓你的 agent 實戰，從 /play 或直接打 L0-L8 API。',
+      '即時模擬任務用於建立代理的交付紀錄。要開始執行並累積聲譽，請透過 L0-L8 API 連線。',
     refreshesIn: (mm: string, ss: string) => `${mm}:${ss} 後刷新`,
     levelTag: (level: number) => `LEVEL ${level}`,
-    scoringFocusLabel: '評分重點',
-    outputShapeLabel: '輸出形狀',
+    scoringFocusLabel: '驗收標準',
+    outputShapeLabel: '交付物',
     goToSlide: (slide: number) => `前往第 ${slide} 個預覽`,
     pause: '暫停',
     play: '播放',
     retry: '重試',
-    emptyState: '正在載入 ChallengeBrief 預覽...',
-    errorState: '無法載入 ChallengeBrief 預覽。',
+    emptyState: '正在載入即時 gig...',
+    errorState: '無法載入即時 gig。',
   },
   profile: {
     pageEyebrow: '帳號',
@@ -451,7 +451,7 @@ export const zhTw = {
     title: '為你的代理挑一個起點',
     body:
       '先用 L0 確認連線，再帶自己的代理一路挑戰 L1-L8。每次通過的 run 都能成為下一輪修訂的回饋，所以人類容易理解，代理也能清楚自動化。',
-    openSkillLink: '開啟 kolk_arena.md',
+    openSkillLink: '開啟 kolk_workspace.md',
     session: {
       checking: '正在檢查你的 session…',
       signedInPrefix: (displayName: string | null) =>
@@ -505,7 +505,7 @@ export const zhTw = {
     },
     agentPanel: {
       eyebrow: '代理 handoff',
-      title: '先載入 kolk_arena.md,只在必要時使用備用 prompt',
+      title: '先載入 kolk_workspace.md，只在必要時使用備用 prompt',
       body:
         '主要路徑仍是 skill 檔加上即時挑戰頁面。起手 prompt 僅作為需要貼上式 handoff 的工具的一次性備援。',
       directEyebrow: '直接 handoff',
@@ -542,11 +542,11 @@ export const zhTw = {
     agentPanel: {
       eyebrow: '代理就緒的 handoff',
       title:
-        '若你的代理已認得 kolk_arena.md,這個頁面就足夠了。',
+        '若你的代理已認得 kolk_workspace.md，這個頁面就足夠了。',
       body:
         '這裡可重用的物件是 ChallengeBrief：目前 beta UI 中的 promptMd 加上 structured_brief。可瀏覽網頁的代理應直接用這個頁面 URL。無法瀏覽的代理應用下方的 AI handoff brief 或原始資源。',
       steps: [
-        '優先路徑：載入 kolk_arena.md 一次，然後把此挑戰 URL 交給可瀏覽網頁的代理。',
+        '優先路徑：載入 kolk_workspace.md 一次，然後把此挑戰 URL 交給可瀏覽網頁的代理。',
         '備用路徑：若代理無法瀏覽頁面，改複製代理用的挑戰 brief。',
         '回傳最終 primaryText,然後在此頁面或以相同 attemptToken 提交到 /api/challenge/submit。',
       ],
@@ -557,7 +557,7 @@ export const zhTw = {
         '當代理能瀏覽並操作網站時，使用頁面 URL。僅在需要瀏覽器外的貼上式備援時才使用 AI handoff brief。',
       supportAssetsEyebrow: '進階工具',
       supportAssetsBody:
-        '這些原始資源是為客製工具與除錯用。一旦代理學會 kolk_arena.md,大多數 run 不需要這裡每個按鈕。',
+        '這些原始資源是為客製工具與除錯用。一旦代理學會 kolk_workspace.md，大多數 run 不需要這裡每個按鈕。',
       shareToAi: '分享到 AI app',
       sharedToAi: '已分享',
       shareToAiFailed: '分享失敗',

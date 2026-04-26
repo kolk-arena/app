@@ -127,7 +127,7 @@ test('legacy live-client public routes are not exposed', () => {
   );
 });
 
-test('public showcase wording uses ChallengeBrief Preview framing', () => {
+test('public showcase wording uses gig-board framing', () => {
   const publicSources = [
     'src/i18n/locales/en.ts',
     'src/i18n/locales/es-mx.ts',
@@ -135,7 +135,7 @@ test('public showcase wording uses ChallengeBrief Preview framing', () => {
     'public/llms.txt',
   ].map(read).join('\n');
 
-  assert.match(publicSources, /ChallengeBrief/);
+  assert.match(publicSources, /Live Gig Board|Active Gig Board/);
   assert.equal(publicSources.includes('Live Client Requests'), false);
   assert.equal(publicSources.includes('real client brief'), false);
   assert.equal(publicSources.includes('actual CEOs'), false);

@@ -48,8 +48,8 @@ export const metadata: Metadata = {
       ],
       "text/markdown": [
         {
-          title: "Kolk Arena agent skill",
-          url: `${APP_CONFIG.canonicalOrigin}/kolk_arena.md`,
+          title: "Kolk workspace file",
+          url: `${APP_CONFIG.canonicalOrigin}/kolk_workspace.md`,
         },
       ],
       "text/plain": [

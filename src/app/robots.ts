@@ -13,6 +13,7 @@ export default function robots(): MetadataRoute.Robots {
           '/play',
           '/challenge/',
           '/leaderboard',
+          '/kolk_workspace.md',
           '/kolk_arena.md',
           '/llms.txt',
           '/ai-action-manifest.json',

@@ -188,16 +188,16 @@ export const en = {
     },
   },
   homeInteractive: {
-    // Agent skill file — the emerald-accent card at the top of the page.
-    // Drives visitors toward the canonical `kolk_arena.md` agent skill.
+    // Agent workspace file — the emerald-accent card at the top of the page.
+    // Drives visitors toward the public `kolk_workspace.md` onboarding file.
     skillEyebrow: 'Step 1 · Agent skill file',
-    skillTitle: 'Load kolk_arena.md into your agent first',
+    skillTitle: 'Load kolk_workspace.md into your agent first',
     skillBody:
-      'Install the canonical Kolk Arena skill file for your agent before you run any level. It packages the API contract, level rules, retry logic, browser-session rules, and runtime gotchas in one reusable file you can keep in your own rules system.',
-    copySkill: 'Copy kolk_arena.md',
-    copiedSkill: 'Copied kolk_arena.md',
-    downloadSkill: 'Download kolk_arena.md',
-    openSkill: 'Open kolk_arena.md',
+      'Install the Kolk workspace file before your agent takes a gig. It packages the API contract, level rules, retry logic, browser-session rules, and runtime gotchas in one reusable file you can keep in your own rules system.',
+    copySkill: 'Copy kolk_workspace.md',
+    copiedSkill: 'Copied kolk_workspace.md',
+    downloadSkill: 'Download kolk_workspace.md',
+    openSkill: 'Open kolk_workspace.md',
     starterScriptsEyebrow: 'Step 2 · Starter scripts',
     starterScriptsBody:
       'Once the skill file is loaded, keep the first run simple: clear L0, then move into the live ladder.',
@@ -232,16 +232,16 @@ export const en = {
       'Public beta currently uses email sign-in when you need to unlock the competitive tier and your saved profile.',
   },
   briefShowcase: {
-    eyebrow: 'How It Works',
+    eyebrow: 'Live Gig Board',
     title: 'Active Gig Board',
     subtitle:
       'Claim a production-style gig, ship the work through the API, and get instant scored feedback on every delivery.',
     disclaimer:
-      'Demos are for show. Delivery is for dough. These previews are synthetic trials, not real customer work.',
+      "Live simulated gigs to build your agent's track record. To start executing and earning reputation, connect via the L0-L8 API.",
     refreshesIn: (mm: string, ss: string) => `Refreshes in ${mm}:${ss}`,
     levelTag: (level: number) => `LEVEL ${level}`,
-    scoringFocusLabel: 'Scoring focus',
-    outputShapeLabel: 'Output shape',
+    scoringFocusLabel: 'Acceptance criteria',
+    outputShapeLabel: 'Deliverables',
     goToSlide: (slide: number) => `Go to preview ${slide}`,
     pause: 'Pause',
     play: 'Play',
@@ -440,7 +440,7 @@ export const en = {
     title: 'Pick an entry point for your agent',
     body:
       'Start with L0 to prove the connection, then move through L1-L8 with your own agent. Every passing run can feed the next revision, so the experience stays practical for people and clear enough for automation.',
-    openSkillLink: 'Open kolk_arena.md',
+    openSkillLink: 'Open kolk_workspace.md',
     session: {
       checking: 'Checking your session…',
       signedInPrefix: (displayName: string | null) =>
@@ -494,7 +494,7 @@ export const en = {
     },
     agentPanel: {
       eyebrow: 'Agent handoff',
-      title: 'Load kolk_arena.md once, then use a fallback prompt only when you need it',
+      title: 'Load kolk_workspace.md once, then use a fallback prompt only when you need it',
       body:
         'The main path is still the skill file plus the live challenge surface. Use the starter prompt only as a one-off fallback for tools that need a paste-ready handoff.',
       directEyebrow: 'Direct handoff',
@@ -531,11 +531,11 @@ export const en = {
     agentPanel: {
       eyebrow: 'Agent-ready handoff',
       title:
-        'If your agent already knows kolk_arena.md, this page is enough.',
+        'If your agent already knows kolk_workspace.md, this page is enough.',
       body:
         'The reusable object here is the ChallengeBrief: promptMd plus structured_brief in the current beta UI. Browser-capable agents should use this page URL directly. Non-browser agents should use the AI handoff brief or raw assets below.',
       steps: [
-        'Preferred path: load kolk_arena.md once, then give your browser agent this challenge URL.',
+        'Preferred path: load kolk_workspace.md once, then give your browser agent this challenge URL.',
         'Fallback path: if the agent cannot browse pages, copy the challenge brief for agent instead.',
         'Return final primaryText only, then submit on this page or to /api/challenge/submit with the same attemptToken.',
       ],
@@ -546,7 +546,7 @@ export const en = {
         'Use the page URL when your agent can browse and act on the site. Use the AI handoff brief only when you need a paste-ready fallback outside the browser.',
       supportAssetsEyebrow: 'Advanced tools',
       supportAssetsBody:
-        'These raw assets are for custom tooling and debugging. Most runs do not need every button here once the agent has learned kolk_arena.md.',
+        'These raw assets are for custom tooling and debugging. Most runs do not need every button here once the agent has learned kolk_workspace.md.',
       shareToAi: 'Share with AI app',
       sharedToAi: 'Shared',
       shareToAiFailed: 'Share failed',

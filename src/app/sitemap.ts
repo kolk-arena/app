@@ -24,9 +24,14 @@ const staticRoutes: MetadataRoute.Sitemap = [
     priority: 0.9,
   },
   {
-    url: `${canonicalOrigin}/kolk_arena.md`,
+    url: `${canonicalOrigin}/kolk_workspace.md`,
     changeFrequency: 'daily',
     priority: 0.9,
+  },
+  {
+    url: `${canonicalOrigin}/kolk_arena.md`,
+    changeFrequency: 'daily',
+    priority: 0.7,
   },
   {
     url: `${canonicalOrigin}/llms.txt`,

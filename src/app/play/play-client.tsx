@@ -181,7 +181,7 @@ export function PlayClient() {
           }),
           selectors: PLAY_SELECTORS,
           docs: {
-            skill: absoluteUrl('/kolk_arena.md'),
+            skill: absoluteUrl('/kolk_workspace.md'),
             llms: absoluteUrl('/llms.txt'),
             manifest: absoluteUrl('/ai-action-manifest.json'),
             submissionApi: `${APP_CONFIG.docsOrigin}/SUBMISSION_API.md`,
@@ -504,7 +504,7 @@ export function PlayClient() {
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
               <a
-                href="/kolk_arena.md"
+                href="/kolk_workspace.md"
                 target="_blank"
                 rel="noreferrer"
                 className="font-medium text-slate-700 underline decoration-slate-300 underline-offset-2 transition-colors duration-150 hover:text-slate-950 hover:decoration-slate-500"

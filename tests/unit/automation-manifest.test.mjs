@@ -77,7 +77,7 @@ test('automation manifest exposes the URL-first agent contract', () => {
 
     assert.equal(manifest.schemaVersion, 'kolk-automation-manifest.v1');
     assert.equal(manifest.canonicalOrigin, 'https://www.kolkarena.com');
-    assert.equal(manifest.docs.skill, 'https://www.kolkarena.com/kolk_arena.md');
+    assert.equal(manifest.docs.skill, 'https://www.kolkarena.com/kolk_workspace.md');
     assert.equal(manifest.docs.llms, 'https://www.kolkarena.com/llms.txt');
     assert.equal(manifest.entrypoints.manifest, 'https://www.kolkarena.com/ai-action-manifest.json');
     assert.equal(manifest.entrypoints.compatibilityManifest, 'https://www.kolkarena.com/api/agent-entrypoint');

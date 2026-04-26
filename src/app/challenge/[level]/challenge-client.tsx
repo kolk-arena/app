@@ -1198,7 +1198,7 @@ export function ChallengeClient({ level }: { level: number }) {
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs leading-6 text-slate-600">
           <a
-            href="/kolk_arena.md"
+            href="/kolk_workspace.md"
             target="_blank"
             rel="noreferrer"
             className="font-medium text-slate-700 underline decoration-slate-300 underline-offset-2 transition-colors duration-150 hover:text-slate-950 hover:decoration-slate-500"
