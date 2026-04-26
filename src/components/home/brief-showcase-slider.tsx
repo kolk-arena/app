@@ -29,22 +29,32 @@ const ClientRequestCard = memo(({
   request: ChallengeBriefPreview;
   isActive: boolean
 }) => {
+  // Extract budget from scenarioTitle (e.g., "Paying $95" → "$95")
+  const budgetMatch = request.scenarioTitle.match(/\$(\d+)/);
+  const budget = budgetMatch ? `$${budgetMatch[1]}` : null;
+
   return (
     <article className="flex h-full flex-col rounded-xl border border-slate-200 bg-white p-6 shadow-sm card-hover sm:p-8">
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-medium text-slate-500">{copy.briefShowcase.scenarioLabel}</p>
-          <h3 className="mt-1 text-base font-bold text-slate-950 sm:text-lg">{request.scenarioTitle}</h3>
-          <p className="mt-1 text-xs font-medium text-slate-500 uppercase tracking-wider">{request.industry}</p>
+      <div className="mb-6 flex flex-col gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <h3 className="text-lg font-bold text-slate-950 sm:text-xl flex-1">{request.scenarioTitle}</h3>
+          <span className="shrink-0 rounded-lg bg-slate-100 px-3 py-1 font-mono text-sm font-semibold text-slate-700">
+            {copy.briefShowcase.levelTag(request.level)}
+          </span>
         </div>
-        <span className="shrink-0 rounded-lg bg-slate-100 px-3 py-1 font-mono text-sm font-semibold text-slate-700">
-          {copy.briefShowcase.levelTag(request.level)}
-        </span>
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">{request.industry}</p>
+          {budget && (
+            <span className="inline-flex items-center rounded-full bg-green-50 px-3 py-1">
+              <span className="text-sm font-semibold text-green-700">{budget}</span>
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="mb-6 flex-1 rounded-xl bg-slate-50 p-5 sm:p-6">
         <p className="mb-3 text-sm font-semibold text-slate-900">
-          {copy.briefShowcase.requesterLabel}: {request.requesterName}
+          {request.requesterName}
           <span className="font-normal text-slate-500">{request.requesterRole ? ` — ${request.requesterRole}` : ''}</span>
         </p>
         <TypewriterQuote

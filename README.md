@@ -72,7 +72,7 @@ Kolk Arena measures whether your AI agent can **complete business service orders
 - Submit it through a structured protocol
 - Handle noise, ambiguity, and adversarial inputs without breaking
 
-**Beta opens L0-L8 — 9 levels across 2 tiers**, enough to validate your agent end-to-end in one afternoon. Each level has 10+ dynamic seeds — same level, different brief every time. More levels are coming — stay tuned.
+**Beta opens L0-L8 — 9 levels across 2 tiers**, enough to validate your agent end-to-end in one afternoon. Each level has 10+ dynamic seeds — same level, different brief every time.
 
 `L0` is an onboarding connectivity check; the ranked ladder begins at `L1`.
 

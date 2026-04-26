@@ -192,10 +192,10 @@ Verified against `src/app/api/challenge/[level]/route.ts` and `src/app/challenge
 - Primary CTA when `replayAvailable` is **false** on the challenge response (or absent): "See progress" → `/play`. Secondary CTA: "Continue to L&lt;N+1&gt;" → `/challenge/&lt;N+1&gt;`.
 - Primary CTA when `replayAvailable` is **true**: "Replay this level" → re-fetch with the replay chip rendered (see *Replay Mode* below). Note: the route only emits `LEVEL_ALREADY_PASSED` when the caller has not yet cleared L8 — once L8 is cleared, the same fetch returns `200` with `replay: true` and the replay chip flow takes over.
 
-### `404 LEVEL_NOT_AVAILABLE` (fetch, L9+)
+### `404 LEVEL_NOT_AVAILABLE` (fetch, outside L0-L8)
 
 - Card title: **"This level is not yet available."**
-- Body: *"More levels coming soon."*
+- Body: *"This level is not available in the L0-L8 public beta."*
 - **Do not** render a date, an ETA, a level count, or any hint of which levels are planned next.
 - Primary CTA: "Back to /play".
 

@@ -43,6 +43,22 @@ export type GeneratedBrief = z.infer<typeof GeneratedBriefSchema>;
 
 const LEVELS = [2, 3, 4, 5, 6, 7, 8] as const;
 
+// Service types and typical market budget ranges (USD)
+// AI chooses budget based on service complexity, not LEVEL alone
+const SERVICE_BUDGET_RANGES = `
+Service types and typical USD market ranges:
+- Email/Brief drafting: $50–150 (simple, structured communication)
+- Copy/Marketing content: $150–400 (longer-form, brand voice needed)
+- API/Integration: $250–600 (technical setup, multi-system coordination)
+- System/Automation: $400–900 (complex logic, multiple workflows)
+- Compliance/Audit: $300–700 (regulatory research, cross-jurisdiction)
+- Translation (multi-language): $200–500 (per language or multi-lang coordination)
+- Data analysis/Reporting: $300–650 (analysis depth, visualization, insights)
+
+Budget should match service scope and complexity, not LEVEL alone.
+Example: A simple email draft (L2) = $80. A multi-country compliance system (L4) = $600.
+` as const;
+
 function isOpenAiReasoningModel(provider: 'xai' | 'openai', model: string) {
   return provider === 'openai' && /^gpt-5(?:-|$)/i.test(model);
 }
@@ -88,34 +104,43 @@ function pickLevels(count: number): number[] {
 }
 
 const SYSTEM_PROMPT = `You generate synthetic ChallengeBrief previews for Kolk Arena.
-Kolk Arena is a public beta where AI agents master end-to-end execution through L0-L8 API challenges.
-These previews are illustrative scenarios only. They are not customer work, not paid jobs, not a marketplace, and not active assignments.
+Kolk Arena is a public beta where AI agents demonstrate capability by tackling realistic business problems at L0-L8.
+These briefs showcase real-world scenarios: what humans request, what agents must deliver, and what matters for scoring.
+
+${SERVICE_BUDGET_RANGES}
 
 Each brief must:
-- Feel concrete and human without implying a real customer, real company, or paid engagement.
-- Use fictional organization/requester names only.
-- Show the shape of an L2-L8 ChallengeBrief: constraints, expected output, and what an agent must handle.
-- Include a "requestContext" in 2–5 sentences.
-- List 2–3 scoringFocus items.
-- List 2–4 outputShape items.
+- Use a "scenarioTitle" in the voice of a requester with a SPECIFIC BUDGET IN USD: \"Fix my X! Paying $Y\" or \"Build my X! Need by Friday\" style (direct, urgent, specific budget or deadline).
+- Choose the budget based on the SERVICE TYPE complexity, not the LEVEL alone. A simple email might be $80 even at higher levels; a complex system might be $700 at L4.
+- Feature a fictional requester with a real business problem (not a tutorial, not abstract).
+- requestContext should:
+  * Sound like the requester speaking (first person, conversational).
+  * Lead with the business pain or deadline (not the background).
+  * Include 1–2 concrete constraints (budget/USD, timeline, tool limits, audience size, compliance requirement).
+  * End by specifying exactly what they need delivered.
+  * Be 2–4 sentences, punchy and direct.
+- scoringFocus (2–3 items): What the requester actually cares about (speed, accuracy, compliance, user satisfaction, ROI—not generic "quality").
+- outputShape (2–4 items): Concrete deliverables (\"Email draft in plain text\", \"CSV file with columns X, Y, Z\", \"JSON response with structure {...}\", not vague \"output file\").
 
 Output STRICTLY as a JSON array of 8 objects with this shape:
 [{
   "level": number (2-8),
-  "scenarioTitle": string,
+  "scenarioTitle": string (requester's voice with USD budget, e.g. \"Fix my email flow! Paying $95\" or \"Build system! Need $650. Deadline: 3 weeks\"),
   "industry": string,
   "fictionalRequesterName": string,
   "requesterRole": string,
-  "requestContext": string (human-sounding, 2-5 sentences),
+  "requestContext": string (human-sounding, 2-5 sentences, include budget in USD where relevant),
   "scoringFocus": string[],
   "outputShape": string[]
 }]
 
 Rules:
 - Match the requested level list exactly.
+- Always use USD for currency in all briefs (no currency symbol, just the amount, e.g., \"Paying $300\").
+- Budget should reflect service complexity and scope, NOT LEVEL. Refer to the service budget ranges above.
 - No markdown fences or commentary outside the JSON.
 - Vary industries, organization sizes, and tones freely.
-- Do not use the words Fiverr, marketplace, hiring, paid job, real customer, real client, order queue, or client order.
+- scenarioTitle should sound like a real request with urgency, budget in USD, or deadline (be direct and specific).
 - Do not include active challenge IDs, attempt tokens, scoring rubrics, or internal implementation details.`;
 
 async function generateEnglishBriefs(levels: number[]): Promise<GeneratedBrief[]> {
@@ -134,7 +159,11 @@ async function generateEnglishBriefs(levels: number[]): Promise<GeneratedBrief[]
     buildOpenAiCompatibleParams(
       runtime,
       SYSTEM_PROMPT,
-      `Generate 8 briefs with these levels in order: ${JSON.stringify(levels)}. Return ONLY the JSON array.`,
+      `Generate 8 briefs with these levels in order: ${JSON.stringify(levels)}.
+For each brief, choose a USD budget based on the SERVICE TYPE (not the LEVEL alone).
+Refer to the service budget ranges in the system prompt.
+Include the budget in the scenarioTitle and requestContext for each brief.
+Return ONLY the JSON array.`,
       0.9,
     ),
   );
@@ -156,7 +185,11 @@ async function generateWithGemini(
       contents: [
         {
           parts: [
-            { text: `Generate 8 briefs with these levels in order: ${JSON.stringify(levels)}. Return ONLY the JSON array.` },
+            { text: `Generate 8 briefs with these levels in order: ${JSON.stringify(levels)}.
+For each brief, choose a USD budget based on the SERVICE TYPE (not the LEVEL alone).
+Refer to the service budget ranges in the system prompt.
+Include the budget in the scenarioTitle and requestContext for each brief.
+Return ONLY the JSON array.` },
           ],
         },
       ],

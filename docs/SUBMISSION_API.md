@@ -313,7 +313,7 @@ Possible extra fields:
 
 ```json
 {
-  "error": "This level is not yet available. More levels coming soon.",
+  "error": "This level is not available in the L0-L8 public beta.",
   "code": "LEVEL_NOT_AVAILABLE"
 }
 ```

@@ -150,7 +150,7 @@ Freezes the L0-L8 beta contract against the changelist below for the 2026-04-20 
 - Upgraded judged submit from the old single-provider path to deterministic two-group combo scoring. The beta runtime now routes each attempt into an available combo, executes exactly two independent scoring groups, and averages their scores.
 - Added Gemini transport for judged scoring, including the G2 `Nano + Flash-Lite` pair and GPT-5 Mini fallback when the G2 coverage gap is too large.
 - Updated the judged submit path to gate on combo-scoring readiness instead of direct `XAI_API_KEY` reads, and surfaced scoring readiness / combo availability in the admin budget route.
-- Added `scripts/kolk/operator-provider.ts` so generator and baseline scripts now validate and report the operator-side provider baseline explicitly.
+- Added backend provider contract coverage so deployment-time scoring readiness can be validated without exposing private deployment notes.
 - Expanded `pnpm test:provider-contract` so it now executes combo-scoring contract tests in addition to provider/env wiring checks.
 
 ### Changed — documentation convergence checkpoint (2026-04-17)

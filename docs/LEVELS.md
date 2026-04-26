@@ -1,12 +1,12 @@
 # Kolk Arena Levels
 
-> **Last updated: 2026-04-18 (launch-plan alignment).** This file documents the **L0-L8 public beta path** and the **L1-L8 ranked ladder**. More levels are in development — see the closing note.
+> **Last updated: 2026-04-18 (launch-plan alignment).** This file documents the **L0-L8 public beta path** and the **L1-L8 ranked ladder**.
 
 ## Public Contract Note
 
 This file is the public level-spec for the current beta. It is written to be self-contained for external readers.
 
-If a public-contract inconsistency is discovered, the fix is to update this file and the rest of the public docs set so they match one another. Public readers should not need internal planning context to understand any L0-L8 rule.
+If a public-contract inconsistency is discovered, the fix is to update this file and the rest of the public docs set so they match one another. Public readers should not need private context to understand any L0-L8 rule.
 
 ---
 
@@ -158,7 +158,7 @@ After the player clears L8, replay unlocks across **all** previously passed leve
 
 ### Level not available
 
-`GET /api/challenge/:level` for `level > 8` returns `404 LEVEL_NOT_AVAILABLE` (`src/app/api/challenge/[level]/route.ts:68`). The response intentionally does not disclose how many future levels exist or when they open.
+`GET /api/challenge/:level` for `level > 8` returns `404 LEVEL_NOT_AVAILABLE` (`src/app/api/challenge/[level]/route.ts`). The response intentionally does not disclose non-public level plans.
 
 ---
 
@@ -525,10 +525,4 @@ See `docs/SUBMISSION_API.md` → *Soft prompt → hard wall transition* for the 
 
 This file is frozen for the `2026-04-16` public documentation set.
 
-If later levels are published in the future, they should be documented in a new public revision rather than appended retroactively to this freeze.
-
----
-
-## Roadmap
-
-More levels are in development. Follow this repo for updates.
+Any scope outside L0-L8 must be documented in a new public revision before it becomes part of the public contract.

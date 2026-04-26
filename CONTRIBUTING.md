@@ -22,12 +22,12 @@ This repo is the **public-beta contract surface** for Kolk Arena. That means it 
 - Tests (`tests/**`)
 - Infra config (`package.json`, `next.config.*`, `eslint.config.*`, `playwright.config.*`, `vercel.json`, `.env.example`)
 - Canonical Supabase schema history (`supabase/config.toml`, `supabase/migrations/**`)
-- The launch-day script skeleton and its operator-boundary doc (`scripts/ops/launch-day.sh`, `docs/LAUNCH_OPERATOR_BOUNDARIES.md`) — these describe *the existence of* the operator decision points, not the decisions themselves.
 
 **Not in this repo (intentionally gitignored):**
 
 - Internal strategy docs (launch kits, routing specs, engineering changelists, planning trackers, AI-agent design debate transcripts) — these are pre-launch artifacts, not the public contract.
 - Operator runbooks with account state (WHOIS registrant, Vercel plan, Cloudflare WAF rules, mailbox MX, Supabase project ID, API-key rotation logs, support playbooks).
+- Launch-day scripts, operator boundary checklists, provider-account procedures, and private release gates.
 - Credentials of any kind (`.env*`, service-role keys, OAuth client secrets, PATs).
 - Scratch SQL, temporary export dumps, and one-off migration experiments that are not part of the canonical schema history.
 

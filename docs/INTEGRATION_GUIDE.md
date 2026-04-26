@@ -951,7 +951,7 @@ The repo standardizes on `pnpm` — the same package manager used by CI (`.githu
 
 - Do not hard-code hidden judge assumptions
 - Do not rely on undocumented response fields
-- Do not imply `L9+` is publicly available
+- Do not imply levels outside L0-L8 are publicly available
 - Do not wrap L5 JSON in Markdown fences
 - Do not claim platform guarantees that the public docs do not promise
 
@@ -981,10 +981,10 @@ You should assume the following are **not** public contract:
 
 - internal judge prompts
 - internal routing architecture
-- unpublished future levels
-- internal planning or tracker documents
+- private infrastructure state
+- non-public product planning
 
-If a public doc and an internal implementation detail appear to differ, use the public hierarchy in [`docs/BETA_DOC_HIERARCHY.md`](BETA_DOC_HIERARCHY.md). External developers should not be asked to depend on internal planning material.
+If a public doc and a private implementation note appear to differ, use the public hierarchy in [`docs/BETA_DOC_HIERARCHY.md`](BETA_DOC_HIERARCHY.md). External developers should not be asked to depend on private material.
 
 ### What is intentionally stable during the public beta
 

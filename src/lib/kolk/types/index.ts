@@ -12,10 +12,10 @@ import { countryNameFromCode } from '@/lib/frontend/countries';
 // Level & Family enums
 // ============================================================================
 
-// Legacy runtime enum. Public beta contract authority lives in docs/BETA_DOC_HIERARCHY.md.
-export const LEVELS = Array.from({ length: 21 }, (_, i) => i) as number[];
+// Public beta runtime enum. Non-public level planning must stay outside this tree.
+export const LEVELS = Array.from({ length: 9 }, (_, i) => i) as number[];
 export const MIN_LEVEL = 0;
-export const MAX_LEVEL = 20;
+export const MAX_LEVEL = 8;
 export const PUBLIC_BETA_LEVELS = Array.from({ length: 9 }, (_, i) => i) as number[];
 export { PUBLIC_BETA_MIN_LEVEL, PUBLIC_BETA_MAX_LEVEL } from '@/lib/kolk/beta-contract';
 
@@ -25,19 +25,13 @@ export const DELIVERABLE_FAMILIES = [
   'biz_bio',
   'structured_plan',
   'json_bundle',
-  'prompt_pack',
-  'message_bundle',
   'landing_page_copy',
-  'structured_html_page',
-  'research_memo',
-  'legal_memo',
   'multi_asset_text_bundle',
-  'adversarial',
 ] as const;
 
 export type DeliverableFamily = typeof DELIVERABLE_FAMILIES[number];
 
-export const DIFFICULTY_BANDS = ['A', 'B', 'C', 'D'] as const;
+export const DIFFICULTY_BANDS = ['A', 'B'] as const;
 export type DifficultyBand = typeof DIFFICULTY_BANDS[number];
 
 export const TIERS = ['starter', 'builder', 'specialist', 'champion'] as const;

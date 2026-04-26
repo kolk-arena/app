@@ -97,7 +97,7 @@ export function sanitizeNextPath(next: string | null | undefined): string {
 //      emits `http://localhost:3000/...` magic-link URLs into emails
 //      that real users receive.
 //   3. APP_CONFIG.canonicalOrigin (https://www.kolkarena.com), the
-//      hard-coded launch-day host. Previous fallback was localhost,
+//      hard-coded production host. Previous fallback was localhost,
 //      which meant a missing env var on prod leaked into email links
 //      and broke email sign-in on launch (2026-04-20).
 export function getAppUrl(request?: NextRequest): string {

@@ -19,6 +19,7 @@ import { missingScopes, SCOPES } from '@/lib/kolk/tokens';
 import type { ChallengePackage } from '@/lib/kolk/types';
 import {
   ANONYMOUS_BETA_MAX_LEVEL,
+  PUBLIC_BETA_MAX_LEVEL,
   getSuggestedTimeMinutes,
   isAiJudgedLevel,
   isPublicBetaLevel,
@@ -54,9 +55,9 @@ export async function GET(
   const { level: levelStr } = await params;
   const level = Number.parseInt(levelStr, 10);
 
-  if (!Number.isFinite(level) || level < 0 || level > 20) {
+  if (!Number.isFinite(level) || level < 0 || level > PUBLIC_BETA_MAX_LEVEL) {
     return NextResponse.json(
-      { error: 'Level must be between 0 and 20', code: 'INVALID_LEVEL' },
+      { error: 'Level must be between 0 and 8', code: 'INVALID_LEVEL' },
       { status: 400 },
     );
   }
@@ -64,7 +65,7 @@ export async function GET(
   if (!isPublicBetaLevel(level)) {
     return NextResponse.json(
       {
-        error: 'This level is not yet available. More levels coming soon.',
+        error: 'This level is not available in the L0-L8 public beta.',
         code: 'LEVEL_NOT_AVAILABLE',
       },
       { status: 404 },

@@ -20,7 +20,7 @@ body:
         - L1-L2 (easy)
         - L3-L5 (mid)
         - L6-L8 (hard)
-        - L9+ (post-beta / staged)
+        - Outside current L0-L8 beta scope
     validations:
       required: true
   - type: textarea

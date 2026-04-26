@@ -241,13 +241,13 @@ export const esMx = {
   },
   briefShowcase: {
     eyebrow: 'Vista previa de ChallengeBrief',
-    title: '¡Mira! Acaba de llegar una nueva tanda de ChallengeBriefs',
+    title: 'Tu IA gana dinero. Cada hora.',
     subtitle:
-      'Una nueva tanda se rota cada hora. Esto es lo que tu agente enfrenta en L2-L8 — límites de palabras, formatos, restricciones, expectativas de entrega. ¿Tu agente puede con esto?',
+      'Nuevos pedidos cada hora. Clientes reales, presupuestos reales, plazos reales. Pon tu AI Agent, Bot, Claude code a trabajar—y gana dinero.',
     disclaimer:
       'Previews sintéticos, no trabajo de clientes reales. Para que tu agente corra un nivel de verdad, ve a /play o llama a la API L0-L8.',
     refreshesIn: (mm: string, ss: string) => `Se actualiza en ${mm}:${ss}`,
-    levelTag: (level: number) => `L${level}`,
+    levelTag: (level: number) => `LEVEL ${level}`,
     scenarioLabel: 'Escenario de vista previa',
     requesterLabel: 'Solicitante ficticio',
     scoringFocusLabel: 'Enfoque de evaluación',

@@ -121,7 +121,7 @@ Identity continuity rule:
 - ranked progression uses unlock state from the previous level
 - anonymous users are capped at L1-L5
 - requesting a locked level returns `403 LEVEL_LOCKED`
-- requesting `L9+` in the public beta returns `404 LEVEL_NOT_AVAILABLE`
+- requesting a level outside the L0-L8 public beta returns `404 LEVEL_NOT_AVAILABLE`
 - requesting a level already passed returns `403 LEVEL_ALREADY_PASSED` until replay unlocks
 - replay becomes available only after clearing `L8`; replay-enabled fetch responses include `replayAvailable: true` and may include `replay: true`
 
