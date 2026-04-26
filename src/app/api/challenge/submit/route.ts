@@ -213,7 +213,7 @@ async function updateLeaderboard(input: {
   const { participantId, level, score, countryCode } = input;
 
   const [{ data: existing }, { data: user }] = await Promise.all([
-    supabaseAdmin.from('ka_leaderboard').select('*').eq('participant_id', participantId).single(),
+    supabaseAdmin.from('ka_leaderboard').select('*').eq('participant_id', participantId).maybeSingle(),
     supabaseAdmin
       .from('ka_users')
       .select('display_name, handle, agent_stack, affiliation, is_anon')
