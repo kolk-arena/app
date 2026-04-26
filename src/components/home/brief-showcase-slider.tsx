@@ -22,7 +22,14 @@ type BriefShowcaseSliderProps = {
   expiresAt?: string;
 };
 
-const usdBudgetPattern = /(?:US\s*)?\$(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?/i;
+const budgetAmountPattern = String.raw`(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?`;
+const budgetPatterns = [
+  new RegExp(String.raw`\bUSD\s*\$?\s*${budgetAmountPattern}\b`, 'gi'),
+  new RegExp(String.raw`(?:US\s*)?\$\s*${budgetAmountPattern}`, 'gi'),
+  new RegExp(String.raw`\b${budgetAmountPattern}\s*(?:USD|美元|美金)(?=\s|$|[,.!?;:，。！？；：])`, 'gi'),
+] as const;
+const budgetKeywordPattern =
+  /\b(?:budget|budgeted|pay|paying|paid|fee|rate|compensation|worth|usd|presupuesto|pagar|pago|honorarios)\b|預算|预算|報酬|报酬|支付|付款|酬勞|酬劳/gi;
 const budgetPhraseWords = [
   'paying',
   'pay',
@@ -33,14 +40,75 @@ const budgetPhraseWords = [
   'at',
   'usd',
   'usd\\s+budget',
+  '預算(?:是)?',
+  '预算(?:是)?',
+  '報酬',
+  '报酬',
+  '支付',
+  '付款',
 ] as const;
+
+type BudgetMatch = {
+  label: string;
+  index: number;
+  score: number;
+};
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+function scoreBudgetMatch(value: string, matchIndex: number): number {
+  const contextStart = Math.max(0, matchIndex - 48);
+  const contextEnd = Math.min(value.length, matchIndex + 64);
+  const context = value.slice(contextStart, contextEnd);
+  const localMatchIndex = matchIndex - contextStart;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  let keywordBefore = false;
+
+  budgetKeywordPattern.lastIndex = 0;
+  let keyword: RegExpExecArray | null;
+  while ((keyword = budgetKeywordPattern.exec(context)) !== null) {
+    const distance = Math.abs(keyword.index - localMatchIndex);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      keywordBefore = keyword.index <= localMatchIndex;
+    }
+  }
+
+  if (!Number.isFinite(bestDistance)) return 0;
+  return 1_000 - bestDistance + (keywordBefore ? 50 : 0);
+}
+
+function findBudgetMatches(value: string): BudgetMatch[] {
+  const matches: BudgetMatch[] = [];
+
+  for (const pattern of budgetPatterns) {
+    pattern.lastIndex = 0;
+    let match: RegExpExecArray | null;
+    while ((match = pattern.exec(value)) !== null) {
+      const label = match[0].replace(/\s+/g, ' ').trim();
+      const previous = value[match.index - 1];
+      if (label.startsWith('$') && previous && /[A-Z]/.test(previous)) {
+        continue;
+      }
+      matches.push({
+        label,
+        index: match.index,
+        score: scoreBudgetMatch(value, match.index),
+      });
+    }
+  }
+
+  return matches;
+}
+
 function extractBudget(value: string): string | null {
-  return value.match(usdBudgetPattern)?.[0] ?? null;
+  const matches = findBudgetMatches(value);
+  if (matches.length === 0) return null;
+
+  matches.sort((a, b) => b.score - a.score || b.index - a.index);
+  return matches[0].label;
 }
 
 function parseScenarioTitle(scenarioTitle: string): { title: string; budget: string | null } {
@@ -51,11 +119,12 @@ function parseScenarioTitle(scenarioTitle: string): { title: string; budget: str
   }
 
   const escapedBudget = escapeRegExp(budget);
+  const budgetBoundary = String.raw`(?=\s|$|[,.!?;:，。！？；：])`;
   const phrasePattern = new RegExp(
-    `\\s*(?:[-–—:|]\\s*)?(?:${budgetPhraseWords.join('|')})\\s*:?\\s*${escapedBudget}\\b\\.?`,
+    `\\s*(?:[-–—:|]\\s*)?(?:${budgetPhraseWords.join('|')})\\s*:?\\s*${escapedBudget}${budgetBoundary}\\.?`,
     'i',
   );
-  const standalonePattern = new RegExp(`\\s*(?:[-–—:]\\s*)?${escapedBudget}\\b\\.?`, 'i');
+  const standalonePattern = new RegExp(`\\s*(?:[-–—:]\\s*)?${escapedBudget}${budgetBoundary}\\.?`, 'i');
 
   const title = scenarioTitle
     .replace(phrasePattern, '')

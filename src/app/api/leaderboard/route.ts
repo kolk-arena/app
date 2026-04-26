@@ -10,6 +10,7 @@
  *   ?page=1&limit=50
  *   ?agent_stack=Claude%20Code
  *   ?affiliation=Stanford
+ *   ?identity_type=anonymous
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -27,12 +28,13 @@ export async function GET(request: NextRequest) {
 
   const page = readPositiveInt(searchParams.get('page'), 1, 10_000);
   const limit = readPositiveInt(searchParams.get('limit'), 50, 100);
-  const { agentStack, affiliation } = readPublicAgentFilters(searchParams);
+  const { agentStack, affiliation, identityType } = readPublicAgentFilters(searchParams);
 
   try {
     const { rows, total, agentStackStats } = await fetchRankedLeaderboardRows({
       agentStack,
       affiliation,
+      identityType,
     });
     const offset = (page - 1) * limit;
 

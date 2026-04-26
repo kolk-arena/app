@@ -17,7 +17,7 @@ type LeaderboardEntry = SharedLeaderboardResponse['leaderboard'][number];
 
 type AgentStackStat = { agent_stack: string; count: number; percentage: number };
 type ActiveFilter = {
-  key: 'agent_stack' | 'affiliation';
+  key: 'agent_stack' | 'affiliation' | 'identity_type';
   label: string;
   value: string;
 };
@@ -86,7 +86,7 @@ export function LeaderboardClient() {
   const searchParams = useSearchParams();
 
   const page = readPositiveInt(searchParams.get('page'), 1);
-  const { agentStack, affiliation } = readPublicAgentFilters(searchParams);
+  const { agentStack, affiliation, identityType } = readPublicAgentFilters(searchParams);
   const limit = readPositiveInt(searchParams.get('limit'), DEFAULT_LIMIT);
   const selectedPlayerParam = searchParams.get('player');
   const selectedPlayerId = asValidPlayerId(selectedPlayerParam);
@@ -94,17 +94,18 @@ export function LeaderboardClient() {
   // Mutually exclusive with `?player=` — `handleSelectAnonymous` clears the
   // player selection, and `handleSelectPlayer` clears the activity selection.
   const selectedActivityId = asValidPlayerId(searchParams.get('activity'));
-  const activityDetailRegionId = useId();
 
   const currentQueryKey = JSON.stringify({
     page,
     limit,
     agentStack: agentStack ?? null,
     affiliation: affiliation ?? null,
+    identityType: identityType ?? null,
   });
   const appliedFilterKey = JSON.stringify({
     agentStack: agentStack ?? null,
     affiliation: affiliation ?? null,
+    identityType: identityType ?? null,
   });
   const [requestState, setRequestState] = useState<{
     queryKey: string | null;
@@ -121,6 +122,7 @@ export function LeaderboardClient() {
     appliedFilterKey,
     agentStackInput: agentStack ?? '',
     affiliationInput: affiliation ?? '',
+    identityTypeInput: identityType ?? '',
   });
   const [isPending, startTransition] = useTransition();
   const detailRegionId = useId();
@@ -133,6 +135,10 @@ export function LeaderboardClient() {
     filterDraftState.appliedFilterKey === appliedFilterKey
       ? filterDraftState.affiliationInput
       : (affiliation ?? '');
+  const identityTypeInput =
+    filterDraftState.appliedFilterKey === appliedFilterKey
+      ? filterDraftState.identityTypeInput
+      : (identityType ?? '');
   const loading = requestState.queryKey !== currentQueryKey;
   const data = requestState.data;
   const error = requestState.queryKey === currentQueryKey ? requestState.error : null;
@@ -163,6 +169,7 @@ export function LeaderboardClient() {
       limit: String(limit),
       agent_stack: agentStack || null,
       affiliation: affiliation || null,
+      identity_type: identityType || null,
     });
 
     const fetchLeaderboard = () => {
@@ -210,7 +217,7 @@ export function LeaderboardClient() {
       controller.abort();
       clearInterval(interval);
     };
-  }, [page, agentStack, affiliation, limit, currentQueryKey]);
+  }, [page, agentStack, affiliation, identityType, limit, currentQueryKey]);
 
   useEffect(() => {
     let active = true;
@@ -251,8 +258,10 @@ export function LeaderboardClient() {
   const topEntry = entries[0] ?? null;
   const topTier = topEntry?.tier ?? 'starter';
   const selectedPlayerOnPage = entries.some((entry) => entry.player_id != null && entry.player_id === selectedPlayerId);
+  const selectedActivityEntry = entries.find((entry) => entry.activity_submission_id === selectedActivityId) ?? null;
   const detailPageSearch = buildQueryString(new URLSearchParams(searchParams.toString()), {
     player: null,
+    activity: null,
   });
   const lb = copy.leaderboard;
   const activeFilters: ActiveFilter[] = [];
@@ -273,6 +282,14 @@ export function LeaderboardClient() {
     });
   }
 
+  if (identityType) {
+    activeFilters.push({
+      key: 'identity_type',
+      label: lb.activeFilterIdentityType,
+      value: identityType === 'anonymous' ? lb.identityTypeAnonymous : lb.identityTypeRegistered,
+    });
+  }
+
   function navigate(updates: Record<string, string | null>) {
     startTransition(() => {
       const query = buildQueryString(new URLSearchParams(searchParams.toString()), updates);
@@ -285,6 +302,7 @@ export function LeaderboardClient() {
     navigate({
       agent_stack: agentStackInput.trim() || null,
       affiliation: affiliationInput.trim() || null,
+      identity_type: identityTypeInput || null,
       page: '1',
     });
   }
@@ -294,10 +312,12 @@ export function LeaderboardClient() {
       appliedFilterKey,
       agentStackInput: '',
       affiliationInput: '',
+      identityTypeInput: '',
     });
     navigate({
       agent_stack: null,
       affiliation: null,
+      identity_type: null,
       page: '1',
     });
   }
@@ -326,12 +346,13 @@ export function LeaderboardClient() {
     });
   }
 
-  function clearSingleFilter(filterKey: 'agent_stack' | 'affiliation') {
+  function clearSingleFilter(filterKey: 'agent_stack' | 'affiliation' | 'identity_type') {
     if (filterKey === 'agent_stack') {
       setFilterDraftState({
         appliedFilterKey,
         agentStackInput: '',
         affiliationInput,
+        identityTypeInput,
       });
       navigate({
         agent_stack: null,
@@ -340,13 +361,28 @@ export function LeaderboardClient() {
       return;
     }
 
+    if (filterKey === 'affiliation') {
+      setFilterDraftState({
+        appliedFilterKey,
+        agentStackInput,
+        affiliationInput: '',
+        identityTypeInput,
+      });
+      navigate({
+        affiliation: null,
+        page: '1',
+      });
+      return;
+    }
+
     setFilterDraftState({
       appliedFilterKey,
       agentStackInput,
-      affiliationInput: '',
+      affiliationInput,
+      identityTypeInput: '',
     });
     navigate({
-      affiliation: null,
+      identity_type: null,
       page: '1',
     });
   }
@@ -419,7 +455,7 @@ export function LeaderboardClient() {
 
           <div className="grid gap-4 px-4 py-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
             <div className="space-y-3">
-              <form onSubmit={handleFilterSubmit} className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
+              <form onSubmit={handleFilterSubmit} className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(12rem,0.5fr)_auto] lg:items-end">
                 <label className="flex min-w-0 flex-1 flex-col gap-1.5">
                   <span className="text-xs font-medium text-slate-500">{lb.agentStackFilter}</span>
                   <input
@@ -428,10 +464,29 @@ export function LeaderboardClient() {
                       appliedFilterKey,
                       agentStackInput: event.target.value,
                       affiliationInput,
+                      identityTypeInput,
                     })}
                     placeholder={lb.agentStackPlaceholder}
                     className="focus-gentle min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-base text-slate-900 outline-none transition sm:text-sm"
                   />
+                </label>
+
+                <label className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  <span className="text-xs font-medium text-slate-500">{lb.identityTypeFilter}</span>
+                  <select
+                    value={identityTypeInput}
+                    onChange={(event) => setFilterDraftState({
+                      appliedFilterKey,
+                      agentStackInput,
+                      affiliationInput,
+                      identityTypeInput: event.target.value,
+                    })}
+                    className="focus-gentle min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-base text-slate-900 outline-none transition sm:text-sm"
+                  >
+                    <option value="">{lb.identityTypeAll}</option>
+                    <option value="anonymous">{lb.identityTypeAnonymous}</option>
+                    <option value="registered">{lb.identityTypeRegistered}</option>
+                  </select>
                 </label>
 
                 <label className="flex min-w-0 flex-1 flex-col gap-1.5">
@@ -442,6 +497,7 @@ export function LeaderboardClient() {
                       appliedFilterKey,
                       agentStackInput,
                       affiliationInput: event.target.value,
+                      identityTypeInput,
                     })}
                     placeholder={lb.affiliationPlaceholder}
                     className="focus-gentle min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-base text-slate-900 outline-none transition sm:text-sm"
@@ -534,7 +590,7 @@ export function LeaderboardClient() {
               <p className="mt-1 text-xs leading-5 text-slate-500">
                 {lb.sortExplainer}
               </p>
-              {selectedPlayerId ? (
+              {selectedPlayerId || selectedActivityId ? (
                 <p className="mt-2 text-xs leading-5 text-slate-500">
                   {lb.detailSelectionStorage}
                 </p>
@@ -607,7 +663,9 @@ export function LeaderboardClient() {
                 <LeaderboardTable
                   entries={entries}
                   selectedPlayerId={selectedPlayerId}
+                  selectedActivityId={selectedActivityId}
                   onSelectPlayer={handleSelectPlayer}
+                  onSelectAnonymous={handleSelectAnonymous}
                   detailRegionId={detailRegionId}
                   detailPageSearch={detailPageSearch}
                 />
@@ -644,26 +702,27 @@ export function LeaderboardClient() {
           </div>
 
           <div className="xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)] xl:self-start xl:overflow-auto space-y-4">
-            <PlayerDetailPanel
-              key={`${selectedPlayerId ?? 'no-player-selected'}-${detailRetryNonce}`}
-              playerId={selectedPlayerId}
-              onClear={clearSelectedPlayer}
-              onRetry={retrySelectedPlayer}
-              panelId={detailRegionId}
-              detailPageSearch={detailPageSearch}
-              outsideCurrentView={!loading && Boolean(selectedPlayerId) && !selectedPlayerOnPage && !selectionMessage}
-            />
-
             {selectedActivityId && !selectedPlayerId ? (
               <div ref={activityDetailRef}>
                 <ActivityDetailPanel
                   submissionId={selectedActivityId}
                   onClear={clearSelectedActivity}
-                  panelId={activityDetailRegionId}
+                  panelId={detailRegionId}
                   detailPageSearch={detailPageSearch}
+                  leaderboardEntry={selectedActivityEntry}
                 />
               </div>
-            ) : null}
+            ) : (
+              <PlayerDetailPanel
+                key={`${selectedPlayerId ?? 'no-player-selected'}-${detailRetryNonce}`}
+                playerId={selectedPlayerId}
+                onClear={clearSelectedPlayer}
+                onRetry={retrySelectedPlayer}
+                panelId={detailRegionId}
+                detailPageSearch={detailPageSearch}
+                outsideCurrentView={!loading && Boolean(selectedPlayerId) && !selectedPlayerOnPage && !selectionMessage}
+              />
+            )}
 
             <section
               aria-label={lb.activityFeed.title}

@@ -234,6 +234,7 @@ export const ProfileInputSchema = z
 export interface LeaderboardEntry {
   row_key: string;
   player_id: string | null;
+  activity_submission_id: string | null;
   rank: number;
   display_name: string;
   handle: string | null;
@@ -260,12 +261,14 @@ export const LeaderboardQuerySchema = z
     limit: z.coerce.number().int().min(1).max(100).default(50),
     agent_stack: z.string().trim().min(1).optional(),
     affiliation: z.string().trim().min(1).optional(),
+    identity_type: z.enum(['anonymous', 'registered']).optional(),
   })
   .transform((input) => ({
     page: input.page,
     limit: input.limit,
     agent_stack: input.agent_stack,
     affiliation: input.affiliation,
+    identity_type: input.identity_type,
   }));
 
 export interface AgentStackStat {

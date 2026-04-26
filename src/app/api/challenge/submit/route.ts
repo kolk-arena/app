@@ -188,107 +188,139 @@ async function computePercentile(level: number, totalScore: number): Promise<num
   return Math.min(99, Math.max(0, Math.floor((beaten / scores.length) * 100)));
 }
 
-async function loadBestLeaderboardRun(participantId: string, level: number) {
-  const { data } = await supabaseAdmin
-    .from('ka_submissions')
-    .select('total_score, color_band, quality_label, solve_time_seconds, efficiency_badge, submitted_at')
-    .eq('participant_id', participantId)
-    .eq('level', level)
-    .eq('unlocked', true)
-    .order('total_score', { ascending: false })
-    .order('solve_time_seconds', { ascending: true, nullsFirst: false })
-    .order('submitted_at', { ascending: true })
-    .limit(1)
-    .maybeSingle();
+type LeaderboardSubmissionRun = {
+  id: string;
+  level: number | string | null;
+  total_score: number | string | null;
+  color_band: string | null;
+  quality_label: string | null;
+  solve_time_seconds: number | string | null;
+  efficiency_badge: boolean | null;
+  submitted_at: string | null;
+  country_code: string | null;
+};
 
-  return data ?? null;
+function asFiniteNumber(value: unknown, fallback = 0) {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-async function updateLeaderboard(input: {
-  participantId: string;
-  level: number;
-  score: number;
-  countryCode?: string | null;
-}) {
-  const { participantId, level, score, countryCode } = input;
+function asOptionalString(value: unknown) {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
 
-  const [{ data: existing, error: existingError }, { data: user, error: userError }] = await Promise.all([
-    supabaseAdmin.from('ka_leaderboard').select('*').eq('participant_id', participantId).maybeSingle(),
+function compareLeaderboardRuns(a: LeaderboardSubmissionRun, b: LeaderboardSubmissionRun) {
+  const scoreDelta = asFiniteNumber(b.total_score, 0) - asFiniteNumber(a.total_score, 0);
+  if (scoreDelta !== 0) return scoreDelta;
+
+  const aTime = asFiniteNumber(a.solve_time_seconds, Number.POSITIVE_INFINITY);
+  const bTime = asFiniteNumber(b.solve_time_seconds, Number.POSITIVE_INFINITY);
+  if (aTime !== bTime) return aTime - bTime;
+
+  const aSubmitted = new Date(asOptionalString(a.submitted_at) ?? 0).getTime();
+  const bSubmitted = new Date(asOptionalString(b.submitted_at) ?? 0).getTime();
+  return aSubmitted - bSubmitted;
+}
+
+function shouldFallbackAfterLeaderboardRpcError(error: { code?: string; message?: string } | null) {
+  if (!error) return false;
+  return error.code === 'PGRST202' || /function .*refresh_ka_leaderboard_participant/i.test(error.message ?? '');
+}
+
+async function refreshLeaderboardWithSql(participantId: string) {
+  const { error } = await supabaseAdmin.rpc('refresh_ka_leaderboard_participant', {
+    p_participant_id: participantId,
+  });
+
+  if (!error) return true;
+  if (shouldFallbackAfterLeaderboardRpcError(error)) {
+    console.warn('[submit] Leaderboard refresh RPC missing; using app-side fallback:', error);
+    return false;
+  }
+  throw error;
+}
+
+async function updateLeaderboardFallback(participantId: string) {
+  const [{ data: user, error: userError }, { data: runs, error: runsError }] = await Promise.all([
     supabaseAdmin
       .from('ka_users')
       .select('display_name, handle, agent_stack, affiliation, is_anon')
       .eq('id', participantId)
       .single(),
+    supabaseAdmin
+      .from('ka_submissions')
+      .select('id, level, total_score, color_band, quality_label, solve_time_seconds, efficiency_badge, submitted_at, country_code')
+      .eq('participant_id', participantId)
+      .eq('leaderboard_eligible', true)
+      .eq('unlocked', true)
+      .gte('level', 1)
+      .range(0, 9999),
   ]);
 
-  if (existingError) {
-    throw existingError;
+  if (userError) throw userError;
+  if (runsError) throw runsError;
+
+  const bestByLevel = new Map<number, LeaderboardSubmissionRun>();
+  for (const run of (runs ?? []) as LeaderboardSubmissionRun[]) {
+    const level = Math.max(0, Math.trunc(asFiniteNumber(run.level, 0)));
+    if (level <= 0) continue;
+    const currentBest = bestByLevel.get(level);
+    if (!currentBest || compareLeaderboardRuns(run, currentBest) < 0) {
+      bestByLevel.set(level, run);
+    }
   }
 
-  if (userError) {
-    throw userError;
+  const levels = [...bestByLevel.keys()].sort((a, b) => a - b);
+  if (levels.length === 0) return;
+
+  const bestScores: Record<string, number> = {};
+  for (const [level, run] of bestByLevel.entries()) {
+    bestScores[String(level)] = asFiniteNumber(run.total_score, 0);
   }
 
-  const bestScores = existing && existing.best_scores && typeof existing.best_scores === 'object'
-    ? { ...(existing.best_scores as Record<string, number>) }
-    : {};
+  const highestLevel = Math.max(...levels);
+  const bestRun = bestByLevel.get(highestLevel);
+  if (!bestRun) return;
 
-  if (score > Number(bestScores[String(level)] ?? 0)) {
-    bestScores[String(level)] = score;
-  }
+  const totalScore = Object.values(bestScores).reduce((sum, value) => sum + value, 0);
+  const levelsCompleted = levels.length;
 
-  const totalScore = Object.values(bestScores).reduce((sum, value) => sum + Number(value), 0);
-  const levelsCompleted = Object.keys(bestScores).length;
-  const highestLevel = Math.max(0, ...Object.keys(bestScores).map(Number));
-  const bestRun = highestLevel > 0 ? await loadBestLeaderboardRun(participantId, highestLevel) : null;
-
-  const payload: Record<string, unknown> = {
-    total_score: totalScore,
-    levels_completed: levelsCompleted,
-    highest_level: highestLevel,
-    best_scores: bestScores,
-    best_score_on_highest: bestRun?.total_score ?? Number(bestScores[String(highestLevel)] ?? 0),
-    best_color_band: typeof bestRun?.color_band === 'string' ? bestRun.color_band : null,
-    best_quality_label: typeof bestRun?.quality_label === 'string' ? bestRun.quality_label : null,
-    solve_time_seconds:
-      typeof bestRun?.solve_time_seconds === 'number'
-        ? bestRun.solve_time_seconds
-        : bestRun?.solve_time_seconds != null
-        ? Number(bestRun.solve_time_seconds)
-        : null,
-    efficiency_badge: bestRun?.efficiency_badge === true,
-    tier: computeTier(highestLevel, levelsCompleted),
-    display_name: user?.display_name ?? null,
-    handle: user?.handle ?? null,
-    agent_stack: user?.agent_stack ?? null,
-    affiliation: user?.affiliation ?? null,
-    is_anon: user?.is_anon === true,
-    pioneer: highestLevel >= 8,
-    last_submission_at: bestRun?.submitted_at ?? new Date().toISOString(),
-  };
-
-  if (countryCode) {
-    payload.country_code = countryCode;
-  }
-
-  // Upsert atomically on the UNIQUE(participant_id) constraint. The
-  // previous if (existing) UPDATE else INSERT pattern had a two-tab
-  // first-submit race: both calls read existing=null, both INSERT, and
-  // the second one 23505-errored — which cascaded to the outer catch
-  // and corrupted the idempotency cache (E4 from the T+2 audit).
-  //
-  // Note: this fixes the 23505 case only. A deeper concurrency gap
-  // remains: two in-flight updates can each compute `bestScores` from
-  // a stale read and the later upsert will overwrite the earlier's
-  // payload, potentially losing a just-won score on a DIFFERENT level.
-  // Fixing that requires a DB-side jsonb merge or an RPC with row
-  // locking; deferred to a later hardening pass.
   const { error: upsertError } = await supabaseAdmin
     .from('ka_leaderboard')
-    .upsert({ participant_id: participantId, ...payload }, { onConflict: 'participant_id' });
+    .upsert({
+      participant_id: participantId,
+      total_score: totalScore,
+      levels_completed: levelsCompleted,
+      highest_level: highestLevel,
+      best_scores: bestScores,
+      best_score_on_highest: asFiniteNumber(bestRun.total_score, 0),
+      best_color_band: asOptionalString(bestRun.color_band),
+      best_quality_label: asOptionalString(bestRun.quality_label),
+      solve_time_seconds: Number.isFinite(asFiniteNumber(bestRun.solve_time_seconds, NaN))
+        ? Math.max(0, Math.trunc(asFiniteNumber(bestRun.solve_time_seconds, 0)))
+        : null,
+      efficiency_badge: bestRun.efficiency_badge === true,
+      tier: computeTier(highestLevel, levelsCompleted),
+      display_name: user?.display_name ?? null,
+      handle: user?.handle ?? null,
+      agent_stack: user?.agent_stack ?? null,
+      affiliation: user?.affiliation ?? null,
+      is_anon: user?.is_anon === true,
+      pioneer: highestLevel >= 8,
+      last_submission_at: bestRun.submitted_at ?? new Date().toISOString(),
+      country_code: asOptionalString(bestRun.country_code),
+      activity_submission_id: bestRun.id,
+    }, { onConflict: 'participant_id' });
 
-  if (upsertError) {
-    throw upsertError;
+  if (upsertError) throw upsertError;
+}
+
+async function updateLeaderboard(input: { participantId: string }) {
+  const refreshedWithSql = await refreshLeaderboardWithSql(input.participantId);
+  if (!refreshedWithSql) {
+    await updateLeaderboardFallback(input.participantId);
   }
 }
 
@@ -918,12 +950,38 @@ export async function POST(request: NextRequest) {
         }
       : undefined;
 
+    // Anonymous leaderboard-eligible runs must have a participant before the
+    // submission is inserted. Otherwise Live Activity can expose a passing row
+    // that Standings can never roll up because participant_id stayed null.
+    let effectiveParticipantId = participantId;
+    if (!effectiveParticipantId && anonToken && leaderboardEligible) {
+      try {
+        const anonUser = await ensureAnonUser(anonToken);
+        effectiveParticipantId = anonUser.id;
+      } catch (anonErr) {
+        try {
+          console.warn('[submit] ensureAnonUser first attempt failed, retrying before insert:', anonErr);
+          const anonUserRetry = await ensureAnonUser(anonToken);
+          effectiveParticipantId = anonUserRetry.id;
+        } catch (retryErr) {
+          console.error('[submit] ensureAnonUser failed before anonymous leaderboard insert:', retryErr);
+          await releaseClaimsOnServerFailure();
+          return errorResponse({
+            keyHash,
+            status: 500,
+            code: 'ANON_PARTICIPANT_FAILED',
+            message: 'Failed to create anonymous leaderboard identity. Please retry with the same cookie jar.',
+          });
+        }
+      }
+    }
+
     const { data: submission, error: insertError } = await supabaseAdmin
       .from('ka_submissions')
       .insert({
         challenge_session_id: session.id,
         challenge_id: challengeId,
-        participant_id: participantId,
+        participant_id: effectiveParticipantId,
         anon_token: anonToken,
         idempotency_key: idempotencyKey,
         primary_text: primaryText,
@@ -993,56 +1051,10 @@ export async function POST(request: NextRequest) {
           .is('consumed_at', null);
       }
 
-      // For anonymous L1+ unlocked runs, mint (or reuse) a lightweight
-      // ka_users row keyed on the sha256 of the kolk_anon_session cookie
-      // so the leaderboard FK is satisfied and different anonymous
-      // browsers stay distinguishable on the public ranking. See
-      // src/lib/kolk/auth/anon-user.ts for the identity contract.
-      let effectiveParticipantId = participantId;
-      if (!effectiveParticipantId && anonToken && leaderboardEligible) {
-        try {
-          const anonUser = await ensureAnonUser(anonToken);
-          effectiveParticipantId = anonUser.id;
-
-          // Backfill participant_id on the persisted submission so the
-          // 30-day cohort window used by computePercentile and the
-          // activity-feed join both see the anonymous participant.
-          const { error: backfillError } = await supabaseAdmin
-            .from('ka_submissions')
-            .update({ participant_id: effectiveParticipantId })
-            .eq('id', submission.id);
-          if (backfillError) {
-            throw backfillError;
-          }
-        } catch (anonErr) {
-          // Retry once: concurrent inserts may race the unique constraint.
-          // If this also fails, log as error (leaderboard eligible run lost).
-          try {
-            console.warn('[submit] ensureAnonUser first attempt failed, retrying:', anonErr);
-            const anonUserRetry = await ensureAnonUser(anonToken);
-            effectiveParticipantId = anonUserRetry.id;
-            const { error: retryBackfillError } = await supabaseAdmin
-              .from('ka_submissions')
-              .update({ participant_id: effectiveParticipantId })
-              .eq('id', submission.id);
-            if (retryBackfillError) {
-              throw retryBackfillError;
-            }
-            console.info('[submit] ensureAnonUser succeeded on retry');
-          } catch (retryErr) {
-            console.error('[submit] ensureAnonUser failed on retry (anonymous run will not rank this submit):', retryErr);
-            effectiveParticipantId = null;
-          }
-        }
-      }
-
       if (leaderboardEligible && effectiveParticipantId) {
         try {
           await updateLeaderboard({
             participantId: effectiveParticipantId,
-            level: challenge.level,
-            score: totalScore,
-            countryCode: requesterCountryCode,
           });
           if (!participantId) {
             console.info('[submit] Anonymous leaderboard entry created/updated', {

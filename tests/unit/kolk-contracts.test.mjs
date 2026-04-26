@@ -151,6 +151,9 @@ function makeSupabaseMock({ leaderboardRows, userRows, submissionRows = [] }) {
             }
             return buildSubmissionQuery(rows);
           },
+          in(column, values) {
+            return buildSubmissionQuery(rows.filter((row) => values.includes(row[column])));
+          },
           range() {
             return {
               data: rows,
@@ -193,12 +196,17 @@ test('LeaderboardQuerySchema normalizes public agent_stack and affiliation filte
   const restore = installTsLoader();
   try {
     const { LeaderboardQuerySchema } = require(path.join(srcRoot, 'lib/kolk/types/index.ts'));
-    const parsed = LeaderboardQuerySchema.parse({ agent_stack: ' stack-alpha ', affiliation: ' team-alpha ' });
+    const parsed = LeaderboardQuerySchema.parse({
+      agent_stack: ' stack-alpha ',
+      affiliation: ' team-alpha ',
+      identity_type: 'anonymous',
+    });
 
     assert.equal(parsed.page, 1);
     assert.equal(parsed.limit, 50);
     assert.equal(parsed.agent_stack, 'stack-alpha');
     assert.equal(parsed.affiliation, 'team-alpha');
+    assert.equal(parsed.identity_type, 'anonymous');
   } finally {
     restore();
   }
@@ -327,6 +335,7 @@ test('fetchRankedLeaderboardRows synthesizes missing anonymous leaderboard rows 
       ],
       submissionRows: [
         {
+          id: '10000000-0000-4000-8000-000000000004',
           participant_id: anonymousParticipantId,
           level: 4,
           total_score: 83,
@@ -340,6 +349,7 @@ test('fetchRankedLeaderboardRows synthesizes missing anonymous leaderboard rows 
           country_code: 'FI',
         },
         {
+          id: '10000000-0000-4000-8000-000000000005',
           participant_id: anonymousParticipantId,
           level: 5,
           total_score: 91,
@@ -371,8 +381,134 @@ test('fetchRankedLeaderboardRows synthesizes missing anonymous leaderboard rows 
     assert.equal(rows.rows[0].total_score, 174);
     assert.equal(rows.rows[0].levels_completed, 2);
     assert.equal(rows.rows[0].country_code, 'FI');
+    assert.equal(rows.rows[0].activity_submission_id, '10000000-0000-4000-8000-000000000005');
     assert.match(rows.rows[0].row_key, /^anon_[a-f0-9]{16}$/);
   } finally {
     restore();
   }
+});
+
+test('fetchRankedLeaderboardRows replaces stale anonymous materialized rows with canonical submissions', async () => {
+  const anonymousParticipantId = '00000000-0000-4000-8000-000000000090';
+  const restore = installTsLoader({
+    dbMock: makeSupabaseMock({
+      leaderboardRows: [
+        {
+          participant_id: anonymousParticipantId,
+          display_name: 'Anonymous 90ff',
+          handle: null,
+          agent_stack: null,
+          affiliation: null,
+          highest_level: 1,
+          best_score_on_highest: 70,
+          best_color_band: 'YELLOW',
+          best_quality_label: 'Usable',
+          solve_time_seconds: 300,
+          efficiency_badge: false,
+          total_score: 70,
+          levels_completed: 1,
+          tier: 'starter',
+          pioneer: false,
+          is_anon: true,
+          last_submission_at: '2026-04-26T01:00:00.000Z',
+          country_code: 'US',
+        },
+      ],
+      userRows: [
+        {
+          id: anonymousParticipantId,
+          display_name: 'Anonymous 90ff',
+          handle: null,
+          agent_stack: null,
+          affiliation: null,
+          is_anon: true,
+        },
+      ],
+      submissionRows: [
+        {
+          id: '10000000-0000-4000-8000-000000000091',
+          participant_id: anonymousParticipantId,
+          level: 1,
+          total_score: 70,
+          color_band: 'YELLOW',
+          quality_label: 'Usable',
+          solve_time_seconds: 300,
+          efficiency_badge: false,
+          submitted_at: '2026-04-26T01:00:00.000Z',
+          leaderboard_eligible: true,
+          unlocked: true,
+          country_code: 'US',
+        },
+        {
+          id: '10000000-0000-4000-8000-000000000092',
+          participant_id: anonymousParticipantId,
+          level: 2,
+          total_score: 92,
+          color_band: 'BLUE',
+          quality_label: 'Exceptional',
+          solve_time_seconds: 120,
+          efficiency_badge: true,
+          submitted_at: '2026-04-26T01:05:00.000Z',
+          leaderboard_eligible: true,
+          unlocked: true,
+          country_code: 'US',
+        },
+      ],
+    }),
+  });
+
+  try {
+    const { fetchRankedLeaderboardRows } = require(path.join(srcRoot, 'lib/kolk/leaderboard/ranking.ts'));
+
+    const rows = await fetchRankedLeaderboardRows();
+
+    assert.equal(rows.total, 1);
+    assert.equal(rows.rows[0].is_anon, true);
+    assert.equal(rows.rows[0].player_id, null);
+    assert.equal(rows.rows[0].highest_level, 2);
+    assert.equal(rows.rows[0].best_score_on_highest, 92);
+    assert.equal(rows.rows[0].total_score, 162);
+    assert.equal(rows.rows[0].levels_completed, 2);
+    assert.equal(rows.rows[0].activity_submission_id, '10000000-0000-4000-8000-000000000092');
+
+    const anonymousOnly = await fetchRankedLeaderboardRows({ identityType: 'anonymous' });
+    assert.equal(anonymousOnly.total, 1);
+
+    const registeredOnly = await fetchRankedLeaderboardRows({ identityType: 'registered' });
+    assert.equal(registeredOnly.total, 0);
+  } finally {
+    restore();
+  }
+});
+
+test('anonymous submit path materializes participant before public submission insert', () => {
+  const source = readFileSync(path.join(srcRoot, 'app/api/challenge/submit/route.ts'), 'utf8');
+  const materializeIndex = source.indexOf('let effectiveParticipantId = participantId;');
+  const insertIndex = source.indexOf(".from('ka_submissions')", materializeIndex);
+
+  assert.ok(materializeIndex > 0, 'submit route should define effective participant before insert');
+  assert.ok(insertIndex > materializeIndex, 'ka_submissions insert should happen after anonymous participant materialization');
+  assert.ok(
+    source.includes('participant_id: effectiveParticipantId'),
+    'anonymous eligible submissions must be inserted with the materialized participant id',
+  );
+  assert.equal(
+    source.includes('.update({ participant_id: effectiveParticipantId })'),
+    false,
+    'anonymous leaderboard runs should not rely on post-insert participant_id backfill',
+  );
+});
+
+test('submit route refreshes leaderboard from canonical SQL rollup with app fallback', () => {
+  const routeSource = readFileSync(path.join(srcRoot, 'app/api/challenge/submit/route.ts'), 'utf8');
+  const migrationSource = readFileSync(
+    path.join(repoRoot, 'supabase/migrations/00023_refresh_leaderboard_rollup.sql'),
+    'utf8',
+  );
+
+  assert.ok(routeSource.includes("rpc('refresh_ka_leaderboard_participant'"));
+  assert.ok(routeSource.includes('updateLeaderboardFallback'));
+  assert.ok(migrationSource.includes('CREATE OR REPLACE FUNCTION public.refresh_ka_leaderboard_participant'));
+  assert.ok(migrationSource.includes('pg_advisory_xact_lock'));
+  assert.ok(migrationSource.includes('activity_submission_id'));
 });

@@ -640,12 +640,17 @@ export interface FrontendCatalog {
     agentStackPlaceholder: string;
     affiliationFilter: string;
     affiliationPlaceholder: string;
+    identityTypeFilter: string;
+    identityTypeAll: string;
+    identityTypeAnonymous: string;
+    identityTypeRegistered: string;
     applyFilter: string;
     clearFilter: string;
     allAgentStacks: string;
     activeFilterEyebrow: string;
     activeFilterAgentStack: string;
     activeFilterAffiliation: string;
+    activeFilterIdentityType: string;
     viewEyebrow: string;
     showingLabel: (from: number, to: number, total: number) => string;
     sortExplainer: string;
@@ -794,6 +799,7 @@ export interface FrontendCatalog {
       colTier: string;
       colLastSubmission: string;
       noPublicHandle: string;
+      anonymousSession: string;
       agentStackNotSet: string;
       globalCountryTooltip: string;
       frontierFallback: string;
@@ -812,6 +818,7 @@ export interface FrontendCatalog {
       noSubmissionsYet: string;
       noSubmissionFallback: string;
       openPlayerDetailAriaLabel: (name: string) => string;
+      openAnonymousDetailAriaLabel: (name: string) => string;
       openPlayerPageAriaLabel: (name: string) => string;
     };
   };

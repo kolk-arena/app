@@ -7,7 +7,7 @@ import { copy } from '@/i18n';
 import { formatClockSeconds, formatNumber } from '@/i18n/format';
 import { countryNameFromCode } from '@/lib/frontend/countries';
 import { getFlagEmoji } from '@/lib/frontend/flag';
-import type { ActivitySubmissionDetail } from '@/lib/kolk/types';
+import type { ActivitySubmissionDetail, LeaderboardEntry } from '@/lib/kolk/types';
 
 /**
  * ActivityDetailPanel
@@ -56,11 +56,13 @@ export function ActivityDetailPanel({
   onClear,
   panelId,
   detailPageSearch,
+  leaderboardEntry,
 }: {
   submissionId: string | null;
   onClear: () => void;
   panelId: string;
   detailPageSearch: string;
+  leaderboardEntry?: LeaderboardEntry | null;
 }) {
   // Pattern mirrors PlayerDetailPanel: effect only dispatches async
   // setState from fetch callbacks, never synchronously in the effect
@@ -234,6 +236,27 @@ export function ActivityDetailPanel({
               </dd>
             </div>
           </dl>
+
+          {leaderboardEntry ? (
+            <dl className="grid grid-cols-2 gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs shadow-sm sm:grid-cols-4">
+              <div>
+                <dt className="font-medium text-slate-500">{copy.leaderboard.table.highestLabel}</dt>
+                <dd className="mt-1 font-semibold text-slate-950 tabular-nums">L{leaderboardEntry.highest_level}</dd>
+              </div>
+              <div>
+                <dt className="font-medium text-slate-500">{copy.leaderboard.playerDetail.levelsCompleted}</dt>
+                <dd className="mt-1 font-semibold text-slate-950 tabular-nums">{leaderboardEntry.levels_completed}</dd>
+              </div>
+              <div>
+                <dt className="font-medium text-slate-500">{copy.leaderboard.playerDetail.totalScore}</dt>
+                <dd className="mt-1 font-semibold text-slate-950 tabular-nums">{formatScore(leaderboardEntry.total_score)}</dd>
+              </div>
+              <div>
+                <dt className="font-medium text-slate-500">{copy.leaderboard.table.frontierLabel}</dt>
+                <dd className="mt-1 font-semibold text-slate-950 tabular-nums">{formatScore(leaderboardEntry.best_score_on_highest)}</dd>
+              </div>
+            </dl>
+          ) : null}
 
           <dl className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
             <div>

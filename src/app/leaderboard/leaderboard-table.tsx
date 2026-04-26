@@ -93,15 +93,23 @@ function leaderboardEntryKey(entry: LeaderboardEntry, surface: 'mobile' | 'deskt
 function LeaderboardMobileRow({
   entry,
   selectedPlayerId,
+  selectedActivityId,
+  onSelectAnonymous,
   detailPageSearch,
 }: {
   entry: LeaderboardEntry;
   selectedPlayerId: string | null;
+  selectedActivityId: string | null;
+  onSelectAnonymous: (submissionId: string) => void;
   detailPageSearch: string;
 }) {
   const isUpdated = useHighlightOnChange(entry.last_submission_at);
   const hasPublicProfile = !entry.is_anon && Boolean(entry.player_id);
-  const isSelected = hasPublicProfile && selectedPlayerId === entry.player_id;
+  const anonymousSubmissionId = entry.is_anon ? entry.activity_submission_id : null;
+  const hasAnonymousDetail = Boolean(anonymousSubmissionId);
+  const isSelected = hasPublicProfile
+    ? selectedPlayerId === entry.player_id
+    : Boolean(hasAnonymousDetail && selectedActivityId === anonymousSubmissionId);
   const t = copy.leaderboard.table;
   const affiliation = entry.affiliation;
   const agentStack = entry.agent_stack;
@@ -139,16 +147,18 @@ function LeaderboardMobileRow({
               {entry.tier}
             </span>
           </div>
-          <p className="text-sm text-slate-500">{entry.handle ? `@${entry.handle}` : t.noPublicHandle}</p>
+          <p className="text-sm text-slate-500">
+            {entry.is_anon ? t.anonymousSession : entry.handle ? `@${entry.handle}` : t.noPublicHandle}
+          </p>
           <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
             <span>{agentStack ?? t.agentStackNotSet}</span>
             <span className="text-slate-300">·</span>
             <span>{affiliation ?? t.affiliationFallback}</span>
           </div>
         </div>
-        {hasPublicProfile ? (
+        {hasPublicProfile || hasAnonymousDetail ? (
           <span className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm">
-            {t.viewLabel}
+            {isSelected ? t.selectedLabel : t.viewLabel}
           </span>
         ) : null}
       </div>
@@ -183,6 +193,20 @@ function LeaderboardMobileRow({
     </>
   );
 
+  if (anonymousSubmissionId) {
+    return (
+      <button
+        type="button"
+        onClick={() => onSelectAnonymous(anonymousSubmissionId)}
+        aria-pressed={isSelected}
+        className={rowClassName}
+        aria-label={t.openAnonymousDetailAriaLabel(entry.display_name)}
+      >
+        {content}
+      </button>
+    );
+  }
+
   if (!hasPublicProfile || !entry.player_id) {
     return (
       <article className={rowClassName} aria-label={entry.display_name}>
@@ -205,17 +229,25 @@ function LeaderboardMobileRow({
 function LeaderboardDesktopRow({
   entry,
   selectedPlayerId,
+  selectedActivityId,
   onSelectPlayer,
+  onSelectAnonymous,
   detailRegionId,
 }: {
   entry: LeaderboardEntry;
   selectedPlayerId: string | null;
+  selectedActivityId: string | null;
   onSelectPlayer: (playerId: string) => void;
+  onSelectAnonymous: (submissionId: string) => void;
   detailRegionId: string;
 }) {
   const isUpdated = useHighlightOnChange(entry.last_submission_at);
   const hasPublicProfile = !entry.is_anon && Boolean(entry.player_id);
-  const isSelected = hasPublicProfile && selectedPlayerId === entry.player_id;
+  const anonymousSubmissionId = entry.is_anon ? entry.activity_submission_id : null;
+  const hasAnonymousDetail = Boolean(anonymousSubmissionId);
+  const isSelected = hasPublicProfile
+    ? selectedPlayerId === entry.player_id
+    : Boolean(hasAnonymousDetail && selectedActivityId === anonymousSubmissionId);
   const t = copy.leaderboard.table;
   const affiliation = entry.affiliation;
   const agentStack = entry.agent_stack;
@@ -257,6 +289,17 @@ function LeaderboardDesktopRow({
               >
                 {entry.display_name}
               </button>
+            ) : anonymousSubmissionId ? (
+              <button
+                type="button"
+                onClick={() => onSelectAnonymous(anonymousSubmissionId)}
+                className="focus-gentle rounded-xl break-words px-1 py-0.5 text-left font-semibold text-slate-900 underline-offset-4 outline-none transition hover:underline"
+                aria-controls={detailRegionId}
+                aria-expanded={isSelected}
+                aria-label={t.openAnonymousDetailAriaLabel(entry.display_name)}
+              >
+                {entry.display_name}
+              </button>
             ) : (
               <span className="rounded-xl px-1 py-0.5 font-semibold text-slate-900">
                 {entry.display_name}
@@ -267,13 +310,15 @@ function LeaderboardDesktopRow({
                 {t.pioneerBadge}
               </span>
             ) : null}
-            {hasPublicProfile ? (
+            {hasPublicProfile || hasAnonymousDetail ? (
               <span className="text-xs font-medium text-slate-400">
                 {isSelected ? t.selectedLabel : t.viewLabel}
               </span>
             ) : null}
           </div>
-          {entry.handle ? (
+          {entry.is_anon ? (
+            <span className="text-xs text-slate-500">{t.anonymousSession}</span>
+          ) : entry.handle ? (
             <span className="text-xs text-slate-500">@{entry.handle}</span>
           ) : (
             <span className="text-xs text-slate-400">{t.noPublicHandle}</span>
@@ -324,13 +369,17 @@ function LeaderboardDesktopRow({
 export function LeaderboardTable({
   entries,
   selectedPlayerId,
+  selectedActivityId,
   onSelectPlayer,
+  onSelectAnonymous,
   detailRegionId,
   detailPageSearch,
 }: {
   entries: LeaderboardEntry[];
   selectedPlayerId: string | null;
+  selectedActivityId: string | null;
   onSelectPlayer: (playerId: string) => void;
+  onSelectAnonymous: (submissionId: string) => void;
   detailRegionId: string;
   detailPageSearch: string;
 }) {
@@ -347,6 +396,8 @@ export function LeaderboardTable({
             key={leaderboardEntryKey(entry, 'mobile')}
             entry={entry}
             selectedPlayerId={selectedPlayerId}
+            selectedActivityId={selectedActivityId}
+            onSelectAnonymous={onSelectAnonymous}
             detailPageSearch={detailPageSearch}
           />
         ))}
@@ -375,7 +426,9 @@ export function LeaderboardTable({
                 key={leaderboardEntryKey(entry, 'desktop')}
                 entry={entry}
                 selectedPlayerId={selectedPlayerId}
+                selectedActivityId={selectedActivityId}
                 onSelectPlayer={onSelectPlayer}
+                onSelectAnonymous={onSelectAnonymous}
                 detailRegionId={detailRegionId}
               />
             ))}

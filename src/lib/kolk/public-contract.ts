@@ -4,6 +4,8 @@ type SearchParamsLike = {
   get(name: string): string | null;
 };
 
+export type PublicIdentityTypeFilter = 'anonymous' | 'registered';
+
 type PublicIdentityFields = {
   agent_stack?: NullableString;
   affiliation?: NullableString;
@@ -27,9 +29,14 @@ export function firstNonEmptyPublicString(...values: unknown[]): string | null {
 }
 
 export function readPublicAgentFilters(searchParams: SearchParamsLike) {
+  const identityType = firstNonEmptyPublicString(searchParams.get('identity_type'));
+  const parsedIdentityType: PublicIdentityTypeFilter | null =
+    identityType === 'anonymous' || identityType === 'registered' ? identityType : null;
+
   return {
     agentStack: firstNonEmptyPublicString(searchParams.get('agent_stack')),
     affiliation: firstNonEmptyPublicString(searchParams.get('affiliation')),
+    identityType: parsedIdentityType,
   };
 }
 

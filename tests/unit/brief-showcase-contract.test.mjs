@@ -207,7 +207,17 @@ test('brief showcase cleans common budget separators from displayed title', () =
     {
       scenarioTitle: 'Check compliance notes USD $700',
       cleanedTitle: 'Check compliance notes',
-      budget: '$700',
+      budget: 'USD $700',
+    },
+    {
+      scenarioTitle: 'Fix reporting workflow USD 300',
+      cleanedTitle: 'Fix reporting workflow',
+      budget: 'USD 300',
+    },
+    {
+      scenarioTitle: '急件：整理客服資料 預算是 300 美元',
+      cleanedTitle: '急件：整理客服資料',
+      budget: '300 美元',
     },
   ];
 
@@ -225,6 +235,30 @@ test('brief showcase leaves titles without USD budgets unchanged', () => {
 
   assert.ok(html.includes('Translate a customer update'));
   assert.equal(html.includes('rounded-full bg-green-50'), false, 'budget pill should not render without a USD budget');
+});
+
+test('brief showcase prefers the actual pay amount when context has multiple money values', () => {
+  const html = renderBriefShowcaseTitle(
+    'Fix my checkout follow-up',
+    "This is worth $80 internally, but I'll pay $300 if the final copy is ready before noon.",
+  );
+
+  assert.ok(html.includes('Fix my checkout follow-up'));
+  assert.ok(html.includes('sr-only">Budget </span>$300'), 'pay amount should win over unrelated first amount');
+  assert.equal(html.includes('sr-only">Budget </span>$80'), false);
+});
+
+test('brief showcase extracts localized USD budget formats from request context', () => {
+  const cases = [
+    ['Need API cleanup', 'I need this done today. USD 300 is approved if the endpoint list is clean.', 'USD 300'],
+    ['Need report formatting', 'Please turn the notes into a client report. Budget is 300 USD.', '300 USD'],
+    ['整理客服訊息', '今天要交付，預算是 300 美元，請直接給可貼上的版本。', '300 美元'],
+  ];
+
+  for (const [scenarioTitle, requestContext, budget] of cases) {
+    const html = renderBriefShowcaseTitle(scenarioTitle, requestContext);
+    assert.ok(html.includes(`sr-only">Budget </span>${budget}`), `expected budget ${budget}`);
+  }
 });
 
 test('fallback gig titles keep budget out of scenarioTitle', () => {
