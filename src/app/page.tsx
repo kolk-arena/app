@@ -26,7 +26,7 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
-      <section className="mx-auto flex max-w-6xl flex-col gap-12 px-6 py-14 sm:px-10 sm:py-20">
+      <section className="mx-auto flex max-w-7xl flex-col gap-12 px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
         <div className="flex flex-col gap-6">
           <div className="inline-flex w-fit items-center rounded-md border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
             {copy.home.heroBadge}

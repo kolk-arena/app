@@ -347,7 +347,7 @@ export function BriefShowcaseSlider({ requests, expiresAt }: BriefShowcaseSlider
 
   return (
     // Width + horizontal rhythm are inherited from page.tsx's section
-    // (`max-w-6xl … gap-12 px-6 …`). Do NOT reintroduce `py-8` or a
+    // (`max-w-7xl … gap-12 px-4 …`). Do NOT reintroduce `py-8` or a
     // width cap here — it breaks the vertical gap-12 and the visual
     // left edge alignment with the Hero heading.
     <section className="w-full" aria-labelledby="task-board-preview">
