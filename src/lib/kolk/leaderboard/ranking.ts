@@ -35,6 +35,29 @@ type SortableLeaderboardRow = PublicLeaderboardRow & {
   sort_player_id: string;
 };
 
+type RawLeaderboardEntry = Record<string, unknown>;
+
+type RawSubmissionEntry = {
+  participant_id?: string | null;
+  level?: number | string | null;
+  total_score?: number | string | null;
+  color_band?: string | null;
+  quality_label?: string | null;
+  solve_time_seconds?: number | string | null;
+  efficiency_badge?: boolean | null;
+  submitted_at?: string | null;
+  country_code?: string | null;
+};
+
+type UserProfileEntry = {
+  id: string;
+  display_name: string | null;
+  handle: string | null;
+  agent_stack: string | null;
+  affiliation: string | null;
+  is_anon: boolean | null;
+};
+
 const VALID_TIERS = new Set<string>(TIERS);
 
 function asFiniteNumber(value: unknown, fallback = 0) {
@@ -68,6 +91,95 @@ function resolveBestScoreOnHighest(entry: Record<string, unknown>, highestLevel:
 
   const bestScores = sanitizeBestScores(entry.best_scores);
   return asFiniteNumber(bestScores[String(highestLevel)], 0);
+}
+
+function computeTier(highestLevel: number, levelsCompleted: number): string {
+  if (highestLevel >= 8 && levelsCompleted >= 8) return 'builder';
+  if (highestLevel >= 6 && levelsCompleted >= 6) return 'builder';
+  return 'starter';
+}
+
+function compareSubmissionRuns(a: RawSubmissionEntry, b: RawSubmissionEntry) {
+  const scoreDelta = asFiniteNumber(b.total_score, 0) - asFiniteNumber(a.total_score, 0);
+  if (scoreDelta !== 0) return scoreDelta;
+
+  const aTime = asFiniteNumber(a.solve_time_seconds, Number.POSITIVE_INFINITY);
+  const bTime = asFiniteNumber(b.solve_time_seconds, Number.POSITIVE_INFINITY);
+  if (aTime !== bTime) return aTime - bTime;
+
+  const aSubmitted = new Date(asOptionalString(a.submitted_at) ?? 0).getTime();
+  const bSubmitted = new Date(asOptionalString(b.submitted_at) ?? 0).getTime();
+  return aSubmitted - bSubmitted;
+}
+
+function synthesizeLeaderboardRowsFromSubmissions(
+  submissions: RawSubmissionEntry[],
+  userProfilesByParticipantId: Map<string, UserProfileEntry>,
+): RawLeaderboardEntry[] {
+  const byParticipant = new Map<string, RawSubmissionEntry[]>();
+
+  for (const submission of submissions) {
+    const participantId = asOptionalString(submission.participant_id);
+    if (!participantId) continue;
+    const level = Math.max(0, Math.trunc(asFiniteNumber(submission.level, 0)));
+    if (level <= 0) continue;
+    const current = byParticipant.get(participantId) ?? [];
+    current.push(submission);
+    byParticipant.set(participantId, current);
+  }
+
+  const rows: RawLeaderboardEntry[] = [];
+
+  for (const [participantId, participantSubmissions] of byParticipant.entries()) {
+    const bestByLevel = new Map<number, RawSubmissionEntry>();
+
+    for (const submission of participantSubmissions) {
+      const level = Math.max(0, Math.trunc(asFiniteNumber(submission.level, 0)));
+      const currentBest = bestByLevel.get(level);
+      if (!currentBest || compareSubmissionRuns(submission, currentBest) < 0) {
+        bestByLevel.set(level, submission);
+      }
+    }
+
+    const levels = [...bestByLevel.keys()].sort((a, b) => a - b);
+    if (levels.length === 0) continue;
+
+    const bestScores: Record<string, number> = {};
+    for (const [level, submission] of bestByLevel.entries()) {
+      bestScores[String(level)] = asFiniteNumber(submission.total_score, 0);
+    }
+
+    const highestLevel = Math.max(...levels);
+    const frontierRun = bestByLevel.get(highestLevel);
+    if (!frontierRun) continue;
+
+    const user = userProfilesByParticipantId.get(participantId);
+    const totalScore = Object.values(bestScores).reduce((sum, value) => sum + value, 0);
+
+    rows.push({
+      participant_id: participantId,
+      display_name: user?.display_name ?? null,
+      handle: user?.handle ?? null,
+      agent_stack: user?.agent_stack ?? null,
+      affiliation: user?.affiliation ?? null,
+      is_anon: user?.is_anon === true,
+      highest_level: highestLevel,
+      best_scores: bestScores,
+      best_score_on_highest: asFiniteNumber(frontierRun.total_score, 0),
+      best_color_band: asOptionalString(frontierRun.color_band),
+      best_quality_label: asOptionalString(frontierRun.quality_label),
+      solve_time_seconds: asFiniteNumber(frontierRun.solve_time_seconds, NaN),
+      efficiency_badge: frontierRun.efficiency_badge === true,
+      total_score: totalScore,
+      levels_completed: levels.length,
+      tier: computeTier(highestLevel, levels.length),
+      pioneer: highestLevel >= 8,
+      last_submission_at: asIsoDateString(frontierRun.submitted_at),
+      country_code: asOptionalString(frontierRun.country_code),
+    });
+  }
+
+  return rows;
 }
 
 function normalizeLeaderboardRow(
@@ -214,35 +326,81 @@ export async function fetchRankedLeaderboardRows(options?: {
     );
   }
 
-  const { data: rawRows, count, error } = await query.range(0, 9999);
+  const { data: rawRows, error } = await query.range(0, 9999);
   if (error) throw error;
 
-  const participantIds = (rawRows ?? [])
-    .map((entry) => asOptionalString((entry as Record<string, unknown>).participant_id))
-    .filter((value): value is string => Boolean(value));
+  const materializedRows = (rawRows ?? []) as RawLeaderboardEntry[];
+  const materializedParticipantIds = new Set(
+    materializedRows
+      .map((entry) => asOptionalString(entry.participant_id))
+      .filter((value): value is string => Boolean(value)),
+  );
 
+  // Repair path: submit side-effects can fail after ka_submissions is already
+  // committed. The live activity feed then shows an anonymous pass while the
+  // materialized leaderboard is missing it. Read through eligible submissions
+  // and synthesize any missing participant rows so standings do not go blank.
+  const { data: orphanSubmissionRows, error: orphanSubmissionError } = await supabaseAdmin
+    .from('ka_submissions')
+    .select('participant_id, level, total_score, color_band, quality_label, solve_time_seconds, efficiency_badge, submitted_at, country_code')
+    .eq('leaderboard_eligible', true)
+    .eq('unlocked', true)
+    .gte('level', 1)
+    .not('participant_id', 'is', null)
+    .range(0, 9999);
+
+  if (orphanSubmissionError) throw orphanSubmissionError;
+
+  const orphanSubmissions = ((orphanSubmissionRows ?? []) as RawSubmissionEntry[])
+    .filter((row) => {
+      const participantId = asOptionalString(row.participant_id);
+      return participantId != null && !materializedParticipantIds.has(participantId);
+    });
+
+  const orphanParticipantIds = [
+    ...new Set(
+      orphanSubmissions
+        .map((entry) => asOptionalString(entry.participant_id))
+        .filter((value): value is string => Boolean(value)),
+    ),
+  ];
+
+  const participantIds = [
+    ...new Set([
+      ...materializedParticipantIds,
+      ...orphanParticipantIds,
+    ]),
+  ];
+
+  const userProfilesByParticipantId = new Map<string, UserProfileEntry>();
   const agentStackByParticipantId = new Map<string, string | null>();
 
   if (matchedAgentStackUsers) {
     for (const user of matchedAgentStackUsers) {
       agentStackByParticipantId.set(user.id, user.agent_stack);
     }
-  } else if (participantIds.length > 0) {
+  }
+
+  if (participantIds.length > 0) {
     const { data: users } = await supabaseAdmin
       .from('ka_users')
-      .select('id, agent_stack')
+      .select('id, display_name, handle, agent_stack, affiliation, is_anon')
       .in('id', participantIds);
 
-    for (const user of users ?? []) {
-      agentStackByParticipantId.set(user.id as string, asOptionalString(user.agent_stack));
+    for (const user of (users ?? []) as UserProfileEntry[]) {
+      userProfilesByParticipantId.set(user.id, user);
+      agentStackByParticipantId.set(user.id, asOptionalString(user.agent_stack));
     }
   }
 
-  const normalized = (rawRows ?? [])
-    .map((entry) => normalizeLeaderboardRow(entry as Record<string, unknown>, agentStackByParticipantId))
+  const synthesizedRows = synthesizeLeaderboardRowsFromSubmissions(orphanSubmissions, userProfilesByParticipantId);
+  const combinedRows = [...materializedRows, ...synthesizedRows];
+
+  const publicRows = combinedRows
+    .map((entry) => normalizeLeaderboardRow(entry, agentStackByParticipantId))
     .filter((entry): entry is SortableLeaderboardRow => entry !== null);
 
-  const filtered = normalized.filter((row) => {
+  const filtered = publicRows.filter((row) => {
     if (agentStackNeedle && !(row.agent_stack?.toLowerCase().includes(agentStackNeedle))) {
       return false;
     }
@@ -263,7 +421,7 @@ export async function fetchRankedLeaderboardRows(options?: {
       statCount++;
     }
   }
-  
+
   const agentStackStats = Array.from(agentStackCounts.entries())
     .map(([agent_stack, count]) => normalizeAgentStackStat({
       agent_stack,
@@ -274,7 +432,7 @@ export async function fetchRankedLeaderboardRows(options?: {
 
   return {
     rows: ranked,
-    total: agentStackNeedle || affiliationNeedle ? ranked.length : (count ?? ranked.length),
+    total: ranked.length,
     agentStackStats,
   };
 }

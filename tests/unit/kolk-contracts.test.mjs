@@ -75,7 +75,7 @@ function installTsLoader({ dbMock } = {}) {
   };
 }
 
-function makeSupabaseMock({ leaderboardRows, userRows }) {
+function makeSupabaseMock({ leaderboardRows, userRows, submissionRows = [] }) {
   return {
     from(table) {
       if (table === 'ka_leaderboard') {
@@ -132,6 +132,34 @@ function makeSupabaseMock({ leaderboardRows, userRows }) {
           },
         };
         return query;
+      }
+
+      if (table === 'ka_submissions') {
+        const buildSubmissionQuery = (rows) => ({
+          select() {
+            return buildSubmissionQuery(rows);
+          },
+          eq(column, value) {
+            return buildSubmissionQuery(rows.filter((row) => row[column] === value));
+          },
+          gte(column, value) {
+            return buildSubmissionQuery(rows.filter((row) => Number(row[column] ?? Number.NEGATIVE_INFINITY) >= Number(value)));
+          },
+          not(column, operator, value) {
+            if (operator === 'is' && value === null) {
+              return buildSubmissionQuery(rows.filter((row) => row[column] !== null && row[column] !== undefined));
+            }
+            return buildSubmissionQuery(rows);
+          },
+          range() {
+            return {
+              data: rows,
+              error: null,
+            };
+          },
+        });
+
+        return buildSubmissionQuery(submissionRows);
       }
 
       throw new Error(`Unexpected table in test mock: ${table}`);
@@ -277,6 +305,73 @@ test('fetchRankedLeaderboardRows filters against canonical user agent stacks and
 
     const affiliationFilter = await fetchRankedLeaderboardRows({ affiliation: 'Inde' });
     assert.equal(affiliationFilter.total, 2);
+  } finally {
+    restore();
+  }
+});
+
+test('fetchRankedLeaderboardRows synthesizes missing anonymous leaderboard rows from eligible submissions', async () => {
+  const anonymousParticipantId = '00000000-0000-4000-8000-000000000080';
+  const restore = installTsLoader({
+    dbMock: makeSupabaseMock({
+      leaderboardRows: [],
+      userRows: [
+        {
+          id: anonymousParticipantId,
+          display_name: 'Anonymous 80a2',
+          handle: null,
+          agent_stack: null,
+          affiliation: null,
+          is_anon: true,
+        },
+      ],
+      submissionRows: [
+        {
+          participant_id: anonymousParticipantId,
+          level: 4,
+          total_score: 83,
+          color_band: 'GREEN',
+          quality_label: 'Strong',
+          solve_time_seconds: 240,
+          efficiency_badge: true,
+          submitted_at: '2026-04-26T02:29:00.000Z',
+          leaderboard_eligible: true,
+          unlocked: true,
+          country_code: 'FI',
+        },
+        {
+          participant_id: anonymousParticipantId,
+          level: 5,
+          total_score: 91,
+          color_band: 'BLUE',
+          quality_label: 'Exceptional',
+          solve_time_seconds: 180,
+          efficiency_badge: true,
+          submitted_at: '2026-04-26T02:30:00.000Z',
+          leaderboard_eligible: true,
+          unlocked: true,
+          country_code: 'FI',
+        },
+      ],
+    }),
+  });
+
+  try {
+    const { fetchRankedLeaderboardRows } = require(path.join(srcRoot, 'lib/kolk/leaderboard/ranking.ts'));
+
+    const rows = await fetchRankedLeaderboardRows();
+
+    assert.equal(rows.total, 1);
+    assert.equal(rows.rows.length, 1);
+    assert.equal(rows.rows[0].player_id, null);
+    assert.equal(rows.rows[0].display_name, 'Anonymous 80a2');
+    assert.equal(rows.rows[0].is_anon, true);
+    assert.equal(rows.rows[0].highest_level, 5);
+    assert.equal(rows.rows[0].best_score_on_highest, 91);
+    assert.equal(rows.rows[0].total_score, 174);
+    assert.equal(rows.rows[0].levels_completed, 2);
+    assert.equal(rows.rows[0].country_code, 'FI');
+    assert.match(rows.rows[0].row_key, /^anon_[a-f0-9]{16}$/);
   } finally {
     restore();
   }

@@ -212,7 +212,7 @@ async function updateLeaderboard(input: {
 }) {
   const { participantId, level, score, countryCode } = input;
 
-  const [{ data: existing }, { data: user }] = await Promise.all([
+  const [{ data: existing, error: existingError }, { data: user, error: userError }] = await Promise.all([
     supabaseAdmin.from('ka_leaderboard').select('*').eq('participant_id', participantId).maybeSingle(),
     supabaseAdmin
       .from('ka_users')
@@ -220,6 +220,14 @@ async function updateLeaderboard(input: {
       .eq('id', participantId)
       .single(),
   ]);
+
+  if (existingError) {
+    throw existingError;
+  }
+
+  if (userError) {
+    throw userError;
+  }
 
   const bestScores = existing && existing.best_scores && typeof existing.best_scores === 'object'
     ? { ...(existing.best_scores as Record<string, number>) }
@@ -275,9 +283,13 @@ async function updateLeaderboard(input: {
   // payload, potentially losing a just-won score on a DIFFERENT level.
   // Fixing that requires a DB-side jsonb merge or an RPC with row
   // locking; deferred to a later hardening pass.
-  await supabaseAdmin
+  const { error: upsertError } = await supabaseAdmin
     .from('ka_leaderboard')
     .upsert({ participant_id: participantId, ...payload }, { onConflict: 'participant_id' });
+
+  if (upsertError) {
+    throw upsertError;
+  }
 }
 
 function normalizeCountryCode(value: string | null | undefined) {
@@ -995,10 +1007,13 @@ export async function POST(request: NextRequest) {
           // Backfill participant_id on the persisted submission so the
           // 30-day cohort window used by computePercentile and the
           // activity-feed join both see the anonymous participant.
-          await supabaseAdmin
+          const { error: backfillError } = await supabaseAdmin
             .from('ka_submissions')
             .update({ participant_id: effectiveParticipantId })
             .eq('id', submission.id);
+          if (backfillError) {
+            throw backfillError;
+          }
         } catch (anonErr) {
           // Retry once: concurrent inserts may race the unique constraint.
           // If this also fails, log as error (leaderboard eligible run lost).
@@ -1006,10 +1021,13 @@ export async function POST(request: NextRequest) {
             console.warn('[submit] ensureAnonUser first attempt failed, retrying:', anonErr);
             const anonUserRetry = await ensureAnonUser(anonToken);
             effectiveParticipantId = anonUserRetry.id;
-            await supabaseAdmin
+            const { error: retryBackfillError } = await supabaseAdmin
               .from('ka_submissions')
               .update({ participant_id: effectiveParticipantId })
               .eq('id', submission.id);
+            if (retryBackfillError) {
+              throw retryBackfillError;
+            }
             console.info('[submit] ensureAnonUser succeeded on retry');
           } catch (retryErr) {
             console.error('[submit] ensureAnonUser failed on retry (anonymous run will not rank this submit):', retryErr);
