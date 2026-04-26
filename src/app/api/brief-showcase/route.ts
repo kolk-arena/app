@@ -31,7 +31,7 @@ const FALLBACK_REQUESTS: Record<'en' | 'es-mx' | 'zh-tw', ShowcaseRequest[]> = {
   en: [
     {
       level: 2,
-      scenarioTitle: 'Translate a customer update',
+      scenarioTitle: 'Translate a customer update - $80',
       industry: 'Local services',
       requesterName: 'Marta Ruiz',
       requesterRole: 'Operations Lead',
@@ -41,7 +41,7 @@ const FALLBACK_REQUESTS: Record<'en' | 'es-mx' | 'zh-tw', ShowcaseRequest[]> = {
     },
     {
       level: 3,
-      scenarioTitle: 'Shape a small business profile',
+      scenarioTitle: 'Shape a small business profile - $180',
       industry: 'Advisory services',
       requesterName: 'Jordan Lee',
       requesterRole: 'Founder',
@@ -51,7 +51,7 @@ const FALLBACK_REQUESTS: Record<'en' | 'es-mx' | 'zh-tw', ShowcaseRequest[]> = {
     },
     {
       level: 4,
-      scenarioTitle: 'Turn notes into support copy',
+      scenarioTitle: 'Turn notes into support copy - $220',
       industry: 'Subscription software',
       requesterName: 'Elena Novak',
       requesterRole: 'Support Manager',
@@ -61,7 +61,7 @@ const FALLBACK_REQUESTS: Record<'en' | 'es-mx' | 'zh-tw', ShowcaseRequest[]> = {
     },
     {
       level: 5,
-      scenarioTitle: 'Write a welcome flow',
+      scenarioTitle: 'Write a welcome flow - $320',
       industry: 'Hospitality',
       requesterName: 'Luis Romero',
       requesterRole: 'Guest Experience Manager',
@@ -71,7 +71,7 @@ const FALLBACK_REQUESTS: Record<'en' | 'es-mx' | 'zh-tw', ShowcaseRequest[]> = {
     },
     {
       level: 6,
-      scenarioTitle: 'Create a launch note',
+      scenarioTitle: 'Create a launch note - $280',
       industry: 'Education',
       requesterName: 'Sofia Marin',
       requesterRole: 'Program Director',
@@ -81,7 +81,7 @@ const FALLBACK_REQUESTS: Record<'en' | 'es-mx' | 'zh-tw', ShowcaseRequest[]> = {
     },
     {
       level: 7,
-      scenarioTitle: 'Assemble a prompt pack',
+      scenarioTitle: 'Assemble a prompt pack - $450',
       industry: 'Retail operations',
       requesterName: 'Mina Park',
       requesterRole: 'Retail Ops Lead',
@@ -91,7 +91,7 @@ const FALLBACK_REQUESTS: Record<'en' | 'es-mx' | 'zh-tw', ShowcaseRequest[]> = {
     },
     {
       level: 8,
-      scenarioTitle: 'Build a compact delivery kit',
+      scenarioTitle: 'Build a compact delivery kit - $650',
       industry: 'Professional services',
       requesterName: 'Noah Chen',
       requesterRole: 'Client Success Lead',
@@ -101,7 +101,7 @@ const FALLBACK_REQUESTS: Record<'en' | 'es-mx' | 'zh-tw', ShowcaseRequest[]> = {
     },
     {
       level: 5,
-      scenarioTitle: 'Prepare a first-contact message',
+      scenarioTitle: 'Prepare a first-contact message - $240',
       industry: 'Wellness',
       requesterName: 'Camila Torres',
       requesterRole: 'Studio Manager',
@@ -113,7 +113,7 @@ const FALLBACK_REQUESTS: Record<'en' | 'es-mx' | 'zh-tw', ShowcaseRequest[]> = {
   'es-mx': [
     {
       level: 2,
-      scenarioTitle: 'Traducir una actualización para clientes',
+      scenarioTitle: 'Traducir una actualización para clientes - $80',
       industry: 'Servicios locales',
       requesterName: 'Marta Ruiz',
       requesterRole: 'Líder de operaciones',
@@ -123,7 +123,7 @@ const FALLBACK_REQUESTS: Record<'en' | 'es-mx' | 'zh-tw', ShowcaseRequest[]> = {
     },
     {
       level: 3,
-      scenarioTitle: 'Dar forma a un perfil de negocio',
+      scenarioTitle: 'Dar forma a un perfil de negocio - $180',
       industry: 'Servicios de asesoría',
       requesterName: 'Jordan Lee',
       requesterRole: 'Fundador',
@@ -133,7 +133,7 @@ const FALLBACK_REQUESTS: Record<'en' | 'es-mx' | 'zh-tw', ShowcaseRequest[]> = {
     },
     {
       level: 4,
-      scenarioTitle: 'Convertir notas en soporte al cliente',
+      scenarioTitle: 'Convertir notas en soporte al cliente - $220',
       industry: 'Software por suscripción',
       requesterName: 'Elena Novak',
       requesterRole: 'Gerente de soporte',
@@ -143,7 +143,7 @@ const FALLBACK_REQUESTS: Record<'en' | 'es-mx' | 'zh-tw', ShowcaseRequest[]> = {
     },
     {
       level: 5,
-      scenarioTitle: 'Escribir un flujo de bienvenida',
+      scenarioTitle: 'Escribir un flujo de bienvenida - $320',
       industry: 'Hospitalidad',
       requesterName: 'Luis Romero',
       requesterRole: 'Gerente de experiencia',
@@ -153,7 +153,7 @@ const FALLBACK_REQUESTS: Record<'en' | 'es-mx' | 'zh-tw', ShowcaseRequest[]> = {
     },
     {
       level: 6,
-      scenarioTitle: 'Crear una nota de lanzamiento',
+      scenarioTitle: 'Crear una nota de lanzamiento - $280',
       industry: 'Educación',
       requesterName: 'Sofia Marin',
       requesterRole: 'Directora de programa',
@@ -163,7 +163,7 @@ const FALLBACK_REQUESTS: Record<'en' | 'es-mx' | 'zh-tw', ShowcaseRequest[]> = {
     },
     {
       level: 7,
-      scenarioTitle: 'Armar un paquete de prompts',
+      scenarioTitle: 'Armar un paquete de prompts - $450',
       industry: 'Operaciones retail',
       requesterName: 'Mina Park',
       requesterRole: 'Líder de operaciones retail',
@@ -173,7 +173,7 @@ const FALLBACK_REQUESTS: Record<'en' | 'es-mx' | 'zh-tw', ShowcaseRequest[]> = {
     },
     {
       level: 8,
-      scenarioTitle: 'Construir un kit compacto de entrega',
+      scenarioTitle: 'Construir un kit compacto de entrega - $650',
       industry: 'Servicios profesionales',
       requesterName: 'Noah Chen',
       requesterRole: 'Líder de éxito del cliente',
@@ -183,7 +183,7 @@ const FALLBACK_REQUESTS: Record<'en' | 'es-mx' | 'zh-tw', ShowcaseRequest[]> = {
     },
     {
       level: 5,
-      scenarioTitle: 'Preparar un mensaje de primer contacto',
+      scenarioTitle: 'Preparar un mensaje de primer contacto - $240',
       industry: 'Bienestar',
       requesterName: 'Camila Torres',
       requesterRole: 'Gerente de estudio',
@@ -195,7 +195,7 @@ const FALLBACK_REQUESTS: Record<'en' | 'es-mx' | 'zh-tw', ShowcaseRequest[]> = {
   'zh-tw': [
     {
       level: 2,
-      scenarioTitle: '翻譯客戶更新訊息',
+      scenarioTitle: '翻譯客戶更新訊息 - $80',
       industry: '在地服務',
       requesterName: 'Marta Ruiz',
       requesterRole: '營運負責人',
@@ -205,7 +205,7 @@ const FALLBACK_REQUESTS: Record<'en' | 'es-mx' | 'zh-tw', ShowcaseRequest[]> = {
     },
     {
       level: 3,
-      scenarioTitle: '整理小型商業介紹',
+      scenarioTitle: '整理小型商業介紹 - $180',
       industry: '顧問服務',
       requesterName: 'Jordan Lee',
       requesterRole: '創辦人',
@@ -215,7 +215,7 @@ const FALLBACK_REQUESTS: Record<'en' | 'es-mx' | 'zh-tw', ShowcaseRequest[]> = {
     },
     {
       level: 4,
-      scenarioTitle: '把筆記整理成客服文案',
+      scenarioTitle: '把筆記整理成客服文案 - $220',
       industry: '訂閱制軟體',
       requesterName: 'Elena Novak',
       requesterRole: '客服經理',
@@ -225,7 +225,7 @@ const FALLBACK_REQUESTS: Record<'en' | 'es-mx' | 'zh-tw', ShowcaseRequest[]> = {
     },
     {
       level: 5,
-      scenarioTitle: '撰寫歡迎流程',
+      scenarioTitle: '撰寫歡迎流程 - $320',
       industry: '旅宿服務',
       requesterName: 'Luis Romero',
       requesterRole: '住客體驗經理',
@@ -235,7 +235,7 @@ const FALLBACK_REQUESTS: Record<'en' | 'es-mx' | 'zh-tw', ShowcaseRequest[]> = {
     },
     {
       level: 6,
-      scenarioTitle: '製作招生啟動說明',
+      scenarioTitle: '製作招生啟動說明 - $280',
       industry: '教育',
       requesterName: 'Sofia Marin',
       requesterRole: '專案主任',
@@ -245,7 +245,7 @@ const FALLBACK_REQUESTS: Record<'en' | 'es-mx' | 'zh-tw', ShowcaseRequest[]> = {
     },
     {
       level: 7,
-      scenarioTitle: '組裝 prompt pack',
+      scenarioTitle: '組裝 prompt pack - $450',
       industry: '零售營運',
       requesterName: 'Mina Park',
       requesterRole: '零售營運負責人',
@@ -255,7 +255,7 @@ const FALLBACK_REQUESTS: Record<'en' | 'es-mx' | 'zh-tw', ShowcaseRequest[]> = {
     },
     {
       level: 8,
-      scenarioTitle: '建立精簡交付套件',
+      scenarioTitle: '建立精簡交付套件 - $650',
       industry: '專業服務',
       requesterName: 'Noah Chen',
       requesterRole: '客戶成功負責人',
@@ -265,7 +265,7 @@ const FALLBACK_REQUESTS: Record<'en' | 'es-mx' | 'zh-tw', ShowcaseRequest[]> = {
     },
     {
       level: 5,
-      scenarioTitle: '準備第一次接觸訊息',
+      scenarioTitle: '準備第一次接觸訊息 - $240',
       industry: '身心健康',
       requesterName: 'Camila Torres',
       requesterRole: '工作室經理',

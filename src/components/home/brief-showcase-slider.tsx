@@ -2,7 +2,7 @@
 
 import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
-import { useCallback, useEffect, useMemo, useState, memo, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { useCallback, useEffect, useId, useMemo, useState, memo, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { copy } from '@/i18n';
 import { TypewriterQuote } from './typewriter-quote';
 
@@ -22,6 +22,50 @@ type BriefShowcaseSliderProps = {
   expiresAt?: string;
 };
 
+const usdBudgetPattern = /(?:US\s*)?\$(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?/i;
+const budgetPhraseWords = [
+  'paying',
+  'pay',
+  'budget(?:ed)?(?:\\s+at)?',
+  'budget',
+  'need(?:ed)?',
+  'for',
+  'at',
+  'usd',
+  'usd\\s+budget',
+] as const;
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function parseScenarioTitle(scenarioTitle: string): { title: string; budget: string | null } {
+  const budgetMatch = scenarioTitle.match(usdBudgetPattern);
+  const budget = budgetMatch?.[0] ?? null;
+
+  if (!budget) {
+    return { title: scenarioTitle, budget };
+  }
+
+  const escapedBudget = escapeRegExp(budget);
+  const phrasePattern = new RegExp(
+    `\\s*(?:[-–—:|]\\s*)?(?:${budgetPhraseWords.join('|')})\\s*:?\\s*${escapedBudget}\\b\\.?`,
+    'i',
+  );
+  const standalonePattern = new RegExp(`\\s*(?:[-–—:]\\s*)?${escapedBudget}\\b\\.?`, 'i');
+
+  const title = scenarioTitle
+    .replace(phrasePattern, '')
+    .replace(standalonePattern, '')
+    .replace(/\s+([,.!?;:])/g, '$1')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\s*[-–—:]\s*$/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+
+  return { title: title || 'Client request', budget };
+}
+
 const ClientRequestCard = memo(({
   request,
   isActive
@@ -29,15 +73,14 @@ const ClientRequestCard = memo(({
   request: ChallengeBriefPreview;
   isActive: boolean
 }) => {
-  // Extract budget from scenarioTitle (e.g., "Paying $95" → "$95")
-  const budgetMatch = request.scenarioTitle.match(/\$(\d+)/);
-  const budget = budgetMatch ? `$${budgetMatch[1]}` : null;
+  const { title, budget } = parseScenarioTitle(request.scenarioTitle);
+  const titleId = useId();
 
   return (
-    <article className="flex h-full flex-col rounded-xl border border-slate-200 bg-white p-6 shadow-sm card-hover sm:p-8">
+    <article aria-labelledby={titleId} className="flex h-full flex-col rounded-xl border border-slate-200 bg-white p-6 shadow-sm card-hover sm:p-8">
       <div className="mb-6 flex flex-col gap-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <h3 className="text-lg font-bold text-slate-950 sm:text-xl flex-1">{request.scenarioTitle}</h3>
+          <h3 id={titleId} className="min-w-0 flex-1 break-words text-lg font-bold leading-snug text-slate-950 [overflow-wrap:anywhere] sm:text-xl">{title}</h3>
           <span className="shrink-0 rounded-lg bg-slate-100 px-3 py-1 font-mono text-sm font-semibold text-slate-700">
             {copy.briefShowcase.levelTag(request.level)}
           </span>
@@ -45,8 +88,9 @@ const ClientRequestCard = memo(({
         <div className="flex flex-wrap items-center gap-3">
           <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">{request.industry}</p>
           {budget && (
-            <span className="inline-flex items-center rounded-full bg-green-50 px-3 py-1">
-              <span className="text-sm font-semibold text-green-700">{budget}</span>
+            <span className="inline-flex items-center rounded-full bg-green-50 px-3 py-1 text-sm font-semibold text-green-700 ring-1 ring-green-100">
+              <span className="sr-only">Budget </span>
+              {budget}
             </span>
           )}
         </div>
@@ -242,7 +286,7 @@ export function BriefShowcaseSlider({ requests, expiresAt }: BriefShowcaseSlider
               type="button"
               onClick={toggleAutoplay}
               aria-pressed={isPaused}
-              className="hidden rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50 focus-visible:outline-none focus-gentle sm:inline-flex"
+              className="inline-flex rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50 focus-visible:outline-none focus-gentle"
             >
               {isPaused ? copy.briefShowcase.play : copy.briefShowcase.pause}
             </button>
@@ -253,10 +297,10 @@ export function BriefShowcaseSlider({ requests, expiresAt }: BriefShowcaseSlider
               <button
                 key={index}
                 onClick={() => scrollTo(index)}
-                className={`h-2 rounded-full transition-all ${
+                className={`inline-flex h-8 items-center justify-center rounded-full transition-all ${
                   index === selectedIndex
-                    ? 'bg-slate-700 w-5'
-                    : 'bg-slate-300 hover:bg-slate-400 w-2'
+                    ? 'w-10 before:block before:h-2 before:w-5 before:rounded-full before:bg-slate-700'
+                    : 'w-8 before:block before:h-2 before:w-2 before:rounded-full before:bg-slate-300 hover:before:bg-slate-400'
                 }`}
                 aria-label={copy.briefShowcase.goToSlide(index + 1)}
                 aria-current={index === selectedIndex ? 'true' : undefined}

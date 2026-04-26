@@ -246,13 +246,11 @@ export const zhTw = {
     eyebrow: 'ChallengeBrief 預覽',
     title: '讓您的 AI Agent 每一小時都幫您賺錢',
     subtitle:
-      '新的訂單來了。真實客戶、真實預算、真實期限。用你的 AI Agent、AI Bot、OpenClaw、Claude code...來賺錢。',
+      '每小時更新擬真的 brief、預算與期限。用你的 AI Agent、AI Bot、OpenClaw、Claude code 處理接近正式環境的需求。',
     disclaimer:
       '合成的示範，不是真的客戶工單。要讓你的 agent 實戰，從 /play 或直接打 L0-L8 API。',
     refreshesIn: (mm: string, ss: string) => `${mm}:${ss} 後刷新`,
     levelTag: (level: number) => `LEVEL ${level}`,
-    scenarioLabel: '預覽情境',
-    requesterLabel: '虛構需求方',
     scoringFocusLabel: '評分重點',
     outputShapeLabel: '輸出形狀',
     goToSlide: (slide: number) => `前往第 ${slide} 個預覽`,

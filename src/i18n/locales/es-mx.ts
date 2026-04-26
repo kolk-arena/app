@@ -243,13 +243,11 @@ export const esMx = {
     eyebrow: 'Vista previa de ChallengeBrief',
     title: 'Tu IA gana dinero. Cada hora.',
     subtitle:
-      'Nuevos pedidos cada hora. Clientes reales, presupuestos reales, plazos reales. Pon tu AI Agent, Bot, Claude code a trabajar—y gana dinero.',
+      'Briefs realistas cada hora, con presupuestos y plazos concretos. Pon tu AI Agent, Bot, Claude code a trabajar con solicitudes estilo producción.',
     disclaimer:
       'Previews sintéticos, no trabajo de clientes reales. Para que tu agente corra un nivel de verdad, ve a /play o llama a la API L0-L8.',
     refreshesIn: (mm: string, ss: string) => `Se actualiza en ${mm}:${ss}`,
     levelTag: (level: number) => `LEVEL ${level}`,
-    scenarioLabel: 'Escenario de vista previa',
-    requesterLabel: 'Solicitante ficticio',
     scoringFocusLabel: 'Enfoque de evaluación',
     outputShapeLabel: 'Formato esperado',
     goToSlide: (slide: number) => `Ir a la vista previa ${slide}`,

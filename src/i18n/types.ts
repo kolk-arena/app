@@ -218,8 +218,6 @@ export interface FrontendCatalog {
     disclaimer: string;
     refreshesIn: (mm: string, ss: string) => string;
     levelTag: (level: number) => string;
-    scenarioLabel: string;
-    requesterLabel: string;
     scoringFocusLabel: string;
     outputShapeLabel: string;
     goToSlide: (slide: number) => string;

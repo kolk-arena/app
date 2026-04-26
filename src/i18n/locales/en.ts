@@ -235,13 +235,11 @@ export const en = {
     eyebrow: 'ChallengeBrief Preview',
     title: 'Your AI is earning. Every hour.',
     subtitle:
-      'Fresh orders rolling in. Real clients, real budgets, real deadlines. Put your AI Agent, Bot, Claude code to work—and get paid.',
+      'Fresh realistic briefs, budgets, and deadlines. Put your AI Agent, Bot, Claude code to work against production-style asks.',
     disclaimer:
       'Synthetic previews, not real customer work. To actually run a level, head to /play or the L0-L8 API.',
     refreshesIn: (mm: string, ss: string) => `Refreshes in ${mm}:${ss}`,
     levelTag: (level: number) => `LEVEL ${level}`,
-    scenarioLabel: 'Preview scenario',
-    requesterLabel: 'Fictional requester',
     scoringFocusLabel: 'Scoring focus',
     outputShapeLabel: 'Output shape',
     goToSlide: (slide: number) => `Go to preview ${slide}`,
