@@ -512,3 +512,15 @@ test('submit route refreshes leaderboard from canonical SQL rollup with app fall
   assert.ok(migrationSource.includes('pg_advisory_xact_lock'));
   assert.ok(migrationSource.includes('activity_submission_id'));
 });
+
+test('anonymous leaderboard backfill migration creates leaderboard pioneer column before writing it', () => {
+  const source = readFileSync(
+    path.join(repoRoot, 'supabase/migrations/00022_backfill_anonymous_leaderboard.sql'),
+    'utf8',
+  );
+  const addColumnIndex = source.indexOf('ADD COLUMN IF NOT EXISTS pioneer');
+  const insertColumnIndex = source.indexOf('  pioneer,');
+
+  assert.ok(addColumnIndex > 0, '00022 must add ka_leaderboard.pioneer for older databases');
+  assert.ok(insertColumnIndex > addColumnIndex, '00022 must add pioneer before INSERT references it');
+});

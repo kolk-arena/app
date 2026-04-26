@@ -9,6 +9,9 @@
 -- history for every participant that has an unlocked, leaderboard-eligible
 -- L1+ submission. It is idempotent and repairs anonymous and registered rows.
 
+ALTER TABLE public.ka_leaderboard
+  ADD COLUMN IF NOT EXISTS pioneer boolean NOT NULL DEFAULT false;
+
 WITH best_runs AS (
   SELECT DISTINCT ON (s.participant_id, s.level)
     s.participant_id,
