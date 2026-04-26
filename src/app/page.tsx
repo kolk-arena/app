@@ -59,7 +59,7 @@ export default async function Home() {
               {copy.home.heroActions.runL0}
             </Link>
             <Link
-              href="#agent-skill"
+              href="#task-board-preview"
               className="inline-flex items-center rounded-md border border-slate-300 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition-all hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
             >
               {copy.home.heroActions.agentSkill}

@@ -264,11 +264,11 @@ export function BriefShowcaseSlider({ requests, expiresAt }: BriefShowcaseSlider
     // (`max-w-6xl … gap-12 px-6 …`). Do NOT reintroduce `py-8` or a
     // width cap here — it breaks the vertical gap-12 and the visual
     // left edge alignment with the Hero heading.
-    <section className="w-full" aria-labelledby="challengebrief-preview-title">
+    <section className="w-full" aria-labelledby="task-board-preview">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-xs font-medium text-slate-500">{copy.briefShowcase.eyebrow}</p>
-          <h2 id="challengebrief-preview-title" className="mt-1 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+          <h2 id="task-board-preview" className="mt-1 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
             {copy.briefShowcase.title}
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{copy.briefShowcase.subtitle}</p>
