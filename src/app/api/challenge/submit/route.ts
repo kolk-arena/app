@@ -1000,18 +1000,44 @@ export async function POST(request: NextRequest) {
             .update({ participant_id: effectiveParticipantId })
             .eq('id', submission.id);
         } catch (anonErr) {
-          console.error('[submit] ensureAnonUser failed (anonymous run will not rank this submit):', anonErr);
-          effectiveParticipantId = null;
+          // Retry once: concurrent inserts may race the unique constraint.
+          // If this also fails, log as error (leaderboard eligible run lost).
+          try {
+            console.warn('[submit] ensureAnonUser first attempt failed, retrying:', anonErr);
+            const anonUserRetry = await ensureAnonUser(anonToken);
+            effectiveParticipantId = anonUserRetry.id;
+            await supabaseAdmin
+              .from('ka_submissions')
+              .update({ participant_id: effectiveParticipantId })
+              .eq('id', submission.id);
+            console.info('[submit] ensureAnonUser succeeded on retry');
+          } catch (retryErr) {
+            console.error('[submit] ensureAnonUser failed on retry (anonymous run will not rank this submit):', retryErr);
+            effectiveParticipantId = null;
+          }
         }
       }
 
       if (leaderboardEligible && effectiveParticipantId) {
-        await updateLeaderboard({
-          participantId: effectiveParticipantId,
-          level: challenge.level,
-          score: totalScore,
-          countryCode: requesterCountryCode,
-        });
+        try {
+          await updateLeaderboard({
+            participantId: effectiveParticipantId,
+            level: challenge.level,
+            score: totalScore,
+            countryCode: requesterCountryCode,
+          });
+          if (!participantId) {
+            console.info('[submit] Anonymous leaderboard entry created/updated', {
+              submissionId: submission.id,
+              anonParticipantId: effectiveParticipantId,
+              level: challenge.level,
+              score: totalScore,
+            });
+          }
+        } catch (leaderboardErr) {
+          console.error('[submit] updateLeaderboard failed for submission:', submission.id, 'participant:', effectiveParticipantId, 'error:', leaderboardErr);
+          throw leaderboardErr;
+        }
       }
 
       if (effectiveParticipantId && unlocked && isRankedBetaLevel(challenge.level)) {
