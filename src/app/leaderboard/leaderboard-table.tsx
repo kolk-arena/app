@@ -273,7 +273,7 @@ function LeaderboardDesktopRow({
         </span>
       </td>
       <td className="border-b border-slate-100 px-2 py-1.5">
-        <div className="flex min-w-[14rem] max-w-[18rem] flex-col gap-1">
+        <div className="flex min-w-[13rem] max-w-[17rem] flex-col gap-1">
           <div className="flex items-center gap-2">
             <span className="text-sm" title={entry.country_code || t.globalCountryTooltip}>
               {getFlagEmoji(entry.country_code)}
@@ -404,7 +404,7 @@ export function LeaderboardTable({
       </div>
 
       <div className="hidden max-h-[68vh] overflow-auto md:block">
-        <table className="w-full min-w-[58rem] border-collapse text-left text-sm text-slate-700">
+        <table className="w-full min-w-[51rem] border-collapse text-left text-sm text-slate-700">
           <thead className="sticky top-0 z-10 border-b border-slate-100 bg-slate-50 text-xs text-slate-500">
             <tr>
               <th className="border-b border-slate-100 px-2 py-1.5 font-medium">{copy.leaderboard.table.colRank}</th>

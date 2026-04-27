@@ -41,10 +41,10 @@ test('top-level app shells keep consistent site gutters and loading parity', () 
   assert.ok(profileSource.includes('min-h-screen bg-slate-50 text-slate-950'));
   assert.ok(profileSource.includes('mx-auto flex max-w-4xl flex-col gap-6 px-4 py-8 sm:px-6 sm:py-12 lg:px-8'));
 
-  const leaderboardShell = 'mx-auto flex max-w-[112rem] flex-col gap-5 px-4 py-6 sm:gap-6 sm:px-6 sm:py-8 lg:px-8';
+  const leaderboardShell = 'mx-auto flex max-w-7xl flex-col gap-5 px-4 py-6 sm:gap-6 sm:px-6 sm:py-8 lg:px-8';
   assert.ok(leaderboardPageSource.includes(leaderboardShell), 'leaderboard fallback should match the hydrated shell');
   assert.ok(leaderboardClientSource.includes(leaderboardShell), 'leaderboard client shell should stay aligned');
-  assert.ok(leaderboardClientSource.includes('2xl:grid-cols-[minmax(58rem,1fr)_minmax(22rem,0.55fr)]'), 'leaderboard detail split should only activate when the standings table has enough width');
+  assert.ok(leaderboardClientSource.includes('2xl:grid-cols-[minmax(52rem,1fr)_minmax(22rem,0.45fr)]'), 'leaderboard detail split should only activate when the standings table has enough width');
 
   assert.ok(challengeSource.includes('mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6 sm:py-12 lg:px-8'));
   assert.equal(challengeSource.includes('mx-auto flex max-w-5xl flex-col gap-6 px-4 py-10'), false);
