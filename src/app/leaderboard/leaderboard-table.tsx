@@ -137,7 +137,7 @@ function LeaderboardMobileRow({
             <span className="text-sm" title={entry.country_code || t.globalCountryTooltip}>
               {getFlagEmoji(entry.country_code)}
             </span>
-            <span className="text-base font-semibold text-slate-900">{entry.display_name}</span>
+            <span className="min-w-0 break-words text-base font-semibold text-slate-900 [overflow-wrap:anywhere]">{entry.display_name}</span>
             {entry.pioneer ? (
               <span className="memory-accent-chip inline-flex rounded-md border px-2.5 py-1 text-[11px] font-semibold">
                 {t.pioneerBadge}
@@ -147,13 +147,13 @@ function LeaderboardMobileRow({
               {entry.tier}
             </span>
           </div>
-          <p className="text-sm text-slate-500">
+          <p className="break-words text-sm text-slate-500 [overflow-wrap:anywhere]">
             {entry.is_anon ? t.anonymousSession : entry.handle ? `@${entry.handle}` : t.noPublicHandle}
           </p>
           <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
-            <span>{agentStack ?? t.agentStackNotSet}</span>
+            <span className="min-w-0 break-words [overflow-wrap:anywhere]">{agentStack ?? t.agentStackNotSet}</span>
             <span className="text-slate-300">·</span>
-            <span>{affiliation ?? t.affiliationFallback}</span>
+            <span className="min-w-0 break-words [overflow-wrap:anywhere]">{affiliation ?? t.affiliationFallback}</span>
           </div>
         </div>
         {hasPublicProfile || hasAnonymousDetail ? (
@@ -282,7 +282,7 @@ function LeaderboardDesktopRow({
               <button
                 type="button"
                 onClick={() => onSelectPlayer(entry.player_id!)}
-                className="focus-gentle rounded-xl break-words px-1 py-0.5 text-left font-semibold text-slate-900 underline-offset-4 outline-none transition hover:underline"
+                className="focus-gentle rounded-xl break-words px-1 py-0.5 text-left font-semibold text-slate-900 underline-offset-4 outline-none transition hover:underline [overflow-wrap:anywhere]"
                 aria-controls={detailRegionId}
                 aria-expanded={isSelected}
                 aria-label={t.openPlayerDetailAriaLabel(entry.display_name)}
@@ -293,7 +293,7 @@ function LeaderboardDesktopRow({
               <button
                 type="button"
                 onClick={() => onSelectAnonymous(anonymousSubmissionId)}
-                className="focus-gentle rounded-xl break-words px-1 py-0.5 text-left font-semibold text-slate-900 underline-offset-4 outline-none transition hover:underline"
+                className="focus-gentle rounded-xl break-words px-1 py-0.5 text-left font-semibold text-slate-900 underline-offset-4 outline-none transition hover:underline [overflow-wrap:anywhere]"
                 aria-controls={detailRegionId}
                 aria-expanded={isSelected}
                 aria-label={t.openAnonymousDetailAriaLabel(entry.display_name)}
@@ -301,7 +301,7 @@ function LeaderboardDesktopRow({
                 {entry.display_name}
               </button>
             ) : (
-              <span className="rounded-xl px-1 py-0.5 font-semibold text-slate-900">
+              <span className="break-words rounded-xl px-1 py-0.5 font-semibold text-slate-900 [overflow-wrap:anywhere]">
                 {entry.display_name}
               </span>
             )}
@@ -323,10 +323,10 @@ function LeaderboardDesktopRow({
           ) : (
             <span className="text-xs text-slate-400">{t.noPublicHandle}</span>
           )}
-          <span className="text-xs text-slate-400">{affiliation ?? t.affiliationFallback}</span>
+          <span className="break-words text-xs text-slate-400 [overflow-wrap:anywhere]">{affiliation ?? t.affiliationFallback}</span>
         </div>
       </td>
-      <td className="border-b border-slate-100 px-2 py-1.5 text-slate-600">
+      <td className="break-words border-b border-slate-100 px-2 py-1.5 text-slate-600 [overflow-wrap:anywhere]">
         {agentStack ?? t.agentStackNotSet}
       </td>
       <td className="border-b border-slate-100 px-2 py-1.5">

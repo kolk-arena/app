@@ -162,10 +162,10 @@ export function DeviceFlowPanel({
 
   const statusMessage =
     status.kind === 'error'
-      ? 'border-rose-200 bg-rose-50 text-rose-900'
+      ? 'status-error'
       : status.kind === 'success'
-      ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
-      : 'border-slate-200 bg-slate-50 text-slate-800';
+      ? 'status-success'
+      : 'status-neutral';
 
   return (
     <section className="space-y-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
@@ -180,7 +180,7 @@ export function DeviceFlowPanel({
       </div>
 
       {status.kind !== 'idle' ? (
-        <div className={`rounded-xl border px-4 py-3 text-sm shadow-sm ${statusMessage}`}>
+        <div className={`status-message ${statusMessage}`}>
           {status.message}
         </div>
       ) : null}
@@ -200,12 +200,12 @@ export function DeviceFlowPanel({
               value={codeInput}
               onChange={(event) => setCodeInput(event.target.value)}
               placeholder={copy.device.codePlaceholder}
-              className="min-h-12 flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 text-base uppercase tracking-[0.18em] text-slate-950 shadow-sm outline-none transition focus:border-slate-400 focus-gentle"
+              className="form-control focus-gentle flex-1 text-base uppercase tracking-[0.18em]"
             />
             <button
               type="button"
               onClick={openCode}
-              className="min-h-12 rounded-xl border border-slate-200 bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors duration-150 hover:bg-slate-800 focus-visible:outline-none focus-gentle"
+              className="action-button action-button-slate action-button-lg focus-visible:outline-none"
             >
               {copy.device.continue}
             </button>
@@ -214,7 +214,7 @@ export function DeviceFlowPanel({
       ) : null}
 
       {effectiveRequestStatus === 'invalid' ? (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-900 shadow-sm">
+        <div className="status-message status-error">
           {copy.device.invalidCodePrefix}
           <code className="rounded-lg border border-rose-200 bg-white px-1.5 py-0.5 font-mono text-xs">{copy.device.cliCommand}</code>
           {copy.device.invalidCodeSuffix}
@@ -222,7 +222,7 @@ export function DeviceFlowPanel({
       ) : null}
 
       {effectiveRequestStatus === 'expired' ? (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900 shadow-sm">
+        <div className="status-message status-warning">
           {copy.device.expiredCodePrefix}
           <code className="rounded-lg border border-amber-200 bg-white px-1.5 py-0.5 font-mono text-xs">{copy.device.cliCommand}</code>
           {copy.device.expiredCodeSuffix}
@@ -230,13 +230,13 @@ export function DeviceFlowPanel({
       ) : null}
 
       {effectiveRequestStatus === 'denied' ? (
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-800 shadow-sm">
+        <div className="status-message status-neutral">
           {copy.device.deniedRequest}
         </div>
       ) : null}
 
       {effectiveRequestStatus === 'verified' ? (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-900 shadow-sm">
+        <div className="status-message status-success">
           {copy.device.verifiedRequest}
         </div>
       ) : null}
@@ -297,7 +297,7 @@ export function DeviceFlowPanel({
               type="button"
               onClick={authorize}
               disabled={status.kind === 'submitting'}
-              className="min-h-12 rounded-xl border border-slate-200 bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors duration-150 hover:bg-slate-800 focus-visible:outline-none focus-gentle disabled:opacity-60 disabled:hover:bg-slate-950 disabled:hover:text-white"
+              className="action-button action-button-slate action-button-lg focus-visible:outline-none"
             >
               {copy.device.authorize}
             </button>
@@ -305,7 +305,7 @@ export function DeviceFlowPanel({
               type="button"
               onClick={deny}
               disabled={status.kind === 'submitting'}
-              className="min-h-12 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 shadow-sm transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950 focus-visible:outline-none focus-gentle disabled:opacity-60"
+              className="action-button action-button-secondary action-button-lg focus-visible:outline-none"
             >
               {copy.device.cancel}
             </button>

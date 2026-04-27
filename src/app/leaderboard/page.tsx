@@ -13,7 +13,7 @@ export default function LeaderboardPage() {
     <Suspense
       fallback={(
         <main className="min-h-screen bg-slate-50 text-slate-950">
-          <section className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
+          <section className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-6 sm:gap-6 sm:px-6 sm:py-8 lg:px-8">
             <div className="rounded-xl border border-slate-200 bg-white px-5 py-10 text-sm text-slate-500 shadow-sm sm:px-6">
               {copy.leaderboard.loading}
             </div>

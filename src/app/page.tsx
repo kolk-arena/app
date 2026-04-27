@@ -54,13 +54,13 @@ export default async function Home() {
             */}
             <Link
               href="#try-it"
-              className="memory-accent-button inline-flex items-center rounded-md border px-5 py-3 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2"
+              className="action-button action-button-accent action-button-lg focus-visible:outline-none"
             >
               {copy.home.heroActions.runL0}
             </Link>
             <Link
               href="#task-board-preview"
-              className="inline-flex items-center rounded-md border border-slate-300 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition-all hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
+              className="action-button action-button-secondary action-button-lg focus-visible:outline-none"
             >
               {copy.home.heroActions.agentSkill}
             </Link>
@@ -167,7 +167,7 @@ export default async function Home() {
                   {copy.home.liveRankings.publicRule}
                 </p>
               </div>
-              <Link href="/leaderboard" className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-all hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2">
+              <Link href="/leaderboard" className="action-button action-button-secondary action-button-sm focus-visible:outline-none">
                 {copy.home.liveRankings.cta}
               </Link>
             </div>
@@ -221,12 +221,12 @@ export default async function Home() {
                 idleLabel={copy.homeInteractive.copyL0}
                 copiedLabel={copy.homeInteractive.copiedL0}
                 failedLabel={copy.homeInteractive.copyFailed}
-                className="inline-flex w-full items-center justify-center rounded-md bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 sm:w-auto"
+                className="action-button action-button-slate action-button-md w-full focus-visible:outline-none sm:w-auto"
               />
               <a
                 href={`data:text/plain;charset=utf-8,${encodeURIComponent(l0QuickStartBundle.code)}`}
                 download={l0QuickStartBundle.filename}
-                className="inline-flex w-full items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-all hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 sm:w-auto"
+                className="action-button action-button-secondary action-button-md w-full focus-visible:outline-none sm:w-auto"
               >
                 {copy.homeInteractive.downloadL0}
               </a>

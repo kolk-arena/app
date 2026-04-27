@@ -73,7 +73,7 @@ export function BriefShowcaseWrapper() {
         <button
           type="button"
           onClick={fetchRequests}
-          className="mt-4 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
+          className="action-button action-button-secondary action-button-sm mt-4 focus-visible:outline-none"
         >
           {copy.briefShowcase.retry}
         </button>

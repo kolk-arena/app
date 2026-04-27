@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { MouseEventHandler, ReactNode } from 'react';
 
-export type QuickActionButtonVariant = 'primary' | 'secondary';
+export type QuickActionButtonVariant = 'primary' | 'secondary' | 'accent' | 'danger';
 export type QuickActionButtonTone = 'mono' | 'sans';
 export type QuickActionButtonSize = 'sm' | 'md' | 'lg';
 export type QuickActionButtonWidth = 'auto' | 'stack' | 'full';
@@ -21,21 +21,25 @@ export function getQuickActionButtonClassName({
 }) {
   const variantClasses =
     variant === 'primary'
-      ? 'border border-slate-200 bg-slate-950 text-white hover:bg-white hover:text-slate-950'
-      : 'border border-slate-200 bg-white text-slate-950 hover:bg-slate-950 hover:text-white';
-  const toneClasses = tone === 'sans' ? 'font-medium' : 'font-mono font-semibold';
+      ? 'action-button-slate'
+      : variant === 'accent'
+      ? 'action-button-accent'
+      : variant === 'danger'
+      ? 'action-button-danger'
+      : 'action-button-secondary';
+  const toneClasses = tone === 'sans' ? '' : 'font-mono font-semibold';
   const sizeClasses =
     size === 'sm'
-      ? 'min-h-10 px-3 py-1.5 text-xs'
+      ? 'action-button-sm'
       : size === 'lg'
-      ? 'min-h-12 px-6 py-3 text-sm'
-      : 'min-h-11 px-4 py-2.5 text-sm';
+      ? 'action-button-lg'
+      : 'action-button-md';
   const widthClasses =
     width === 'full' ? 'w-full' : width === 'auto' ? '' : 'w-full sm:w-auto';
 
   return [
-    'inline-flex items-center justify-center rounded-xl transition-colors duration-150',
-    'focus-visible:outline-none focus-gentle',
+    'action-button',
+    'focus-visible:outline-none',
     variantClasses,
     toneClasses,
     sizeClasses,

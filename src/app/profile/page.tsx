@@ -191,8 +191,8 @@ export default function ProfilePage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-950 sm:px-6 sm:py-12">
-      <section className="mx-auto max-w-4xl space-y-6">
+    <main className="min-h-screen bg-slate-50 text-slate-950">
+      <section className="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-xs font-medium text-slate-500">
@@ -205,7 +205,7 @@ export default function ProfilePage() {
               type="button"
               onClick={handleLogout}
               disabled={loggingOut}
-              className="focus-gentle rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950 disabled:opacity-60"
+              className="action-button action-button-secondary action-button-md focus-visible:outline-none"
             >
               {loggingOut ? p.loggingOut : p.logOut}
             </button>
@@ -219,14 +219,14 @@ export default function ProfilePage() {
         ) : null}
 
         {!loading && !profile && error ? (
-          <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm leading-7 text-rose-900">
+          <div className="status-message status-error p-6">
             <p className="font-semibold">{p.loadFailedTitle}</p>
             <p className="mt-2">{error}</p>
             <p className="mt-2 text-rose-800">{p.loadFailedHint}</p>
             <button
               type="button"
               onClick={() => setReloadNonce((current) => current + 1)}
-              className="focus-gentle mt-4 rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-medium text-rose-800 shadow-sm transition-colors duration-150 hover:bg-rose-100"
+              className="action-button action-button-danger action-button-md mt-4 focus-visible:outline-none"
             >
               {p.retry}
             </button>
@@ -300,7 +300,7 @@ export default function ProfilePage() {
                 </div>
                 <Link
                   href={`/leaderboard?player=${profile.id}`}
-                  className="focus-gentle rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950"
+                  className="action-button action-button-secondary action-button-md focus-visible:outline-none"
                 >
                   {p.progression.viewOnLeaderboard}
                 </Link>
@@ -345,7 +345,7 @@ export default function ProfilePage() {
                 <label className="space-y-2 text-sm text-slate-800">
                   <span className="text-xs font-medium text-slate-600">{p.publicProfile.displayName}</span>
                   <input
-                    className="focus-gentle w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none transition"
+                    className="form-control focus-gentle"
                     value={form.displayName}
                     placeholder={p.publicProfile.displayNamePlaceholder}
                     onChange={(event) => setForm((current) => ({ ...current, displayName: event.target.value }))}
@@ -355,7 +355,7 @@ export default function ProfilePage() {
                 <label className="space-y-2 text-sm text-slate-800">
                   <span className="text-xs font-medium text-slate-600">{p.publicProfile.handle}</span>
                   <input
-                    className="focus-gentle w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none transition"
+                    className="form-control focus-gentle"
                     value={form.handle}
                     placeholder={p.publicProfile.handlePlaceholder}
                     onChange={(event) => setForm((current) => ({ ...current, handle: event.target.value }))}
@@ -364,7 +364,7 @@ export default function ProfilePage() {
                 <label className="space-y-2 text-sm text-slate-800">
                   <span className="text-xs font-medium text-slate-600">{p.publicProfile.agentStack}</span>
                   <input
-                    className="focus-gentle w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none transition"
+                    className="form-control focus-gentle"
                     value={form.agentStack}
                     placeholder={p.publicProfile.agentStackPlaceholder}
                     onChange={(event) => setForm((current) => ({ ...current, agentStack: event.target.value }))}
@@ -373,7 +373,7 @@ export default function ProfilePage() {
                 <label className="space-y-2 text-sm text-slate-800">
                   <span className="text-xs font-medium text-slate-600">{p.publicProfile.affiliation}</span>
                   <input
-                    className="focus-gentle w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none transition"
+                    className="form-control focus-gentle"
                     value={form.affiliation}
                     placeholder={p.publicProfile.affiliationPlaceholder}
                     onChange={(event) => setForm((current) => ({ ...current, affiliation: event.target.value }))}
@@ -382,7 +382,7 @@ export default function ProfilePage() {
                 <label className="space-y-2 text-sm text-slate-800 sm:col-span-2">
                   <span className="text-xs font-medium text-slate-600">{p.publicProfile.country}</span>
                   <select
-                    className="focus-gentle w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none transition"
+                    className="form-control focus-gentle"
                     value={form.country}
                     onChange={(event) => setForm((current) => ({ ...current, country: event.target.value }))}
                   >
@@ -402,13 +402,13 @@ export default function ProfilePage() {
               </div>
 
               {showInlineError ? (
-                <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+                <div className="status-message status-error">
                   {error}
                 </div>
               ) : null}
 
               {saveSuccess ? (
-                <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900" aria-live="polite">
+                <div className="status-message status-success" aria-live="polite">
                   {p.publicProfile.success}
                 </div>
               ) : null}
@@ -416,7 +416,7 @@ export default function ProfilePage() {
               <button
                 type="submit"
                 disabled={saving || authRequired}
-                className="memory-accent-button focus-gentle rounded-xl border px-5 py-3 text-sm font-semibold transition-colors duration-150 focus-visible:outline-none disabled:opacity-60"
+                className="action-button action-button-accent action-button-lg focus-visible:outline-none"
               >
                 {saving ? p.publicProfile.saving : saveSuccess ? p.publicProfile.saved : p.publicProfile.save}
               </button>

@@ -26,8 +26,8 @@ export default function SegmentError({
   }, [error]);
 
   return (
-    <main className="mx-auto flex min-h-[60vh] max-w-3xl items-center bg-slate-50 px-4 py-16 text-slate-950 sm:px-6 lg:px-8">
-      <section className="w-full rounded-xl border border-rose-200 bg-rose-50 p-8 shadow-sm">
+    <main className="flex min-h-[60vh] items-center bg-slate-50 px-4 py-16 text-slate-950 sm:px-6 lg:px-8">
+      <section className="status-message status-error mx-auto w-full max-w-3xl p-8">
         <p className="text-xs font-medium tracking-[0.14em] text-rose-700">
           Application error
         </p>

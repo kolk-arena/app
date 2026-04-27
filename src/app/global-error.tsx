@@ -32,7 +32,7 @@ export default function GlobalError({
     <html lang="en">
       <body className="min-h-screen bg-slate-50 text-slate-950 antialiased">
         <main className="mx-auto flex min-h-screen max-w-3xl items-center px-4 py-16 sm:px-6 lg:px-8">
-          <section className="w-full rounded-xl border border-rose-200 bg-rose-50 p-8 shadow-sm">
+          <section className="status-message status-error w-full p-8">
             <p className="text-xs font-medium tracking-[0.14em] text-rose-700">
               Application error
             </p>
@@ -51,13 +51,13 @@ export default function GlobalError({
               <button
                 type="button"
                 onClick={reset}
-                className="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-200 bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition-colors duration-150 hover:bg-slate-800"
+                className="action-button action-button-slate action-button-lg focus-visible:outline-none"
               >
                 Retry
               </button>
               <Link
                 href="/"
-                className="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950"
+                className="action-button action-button-secondary action-button-lg focus-visible:outline-none"
               >
                 Back home
               </Link>

@@ -191,7 +191,7 @@ export function PlayClient() {
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
-      <section className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
+      <section className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
         <header className="space-y-3">
           <div className="inline-flex w-fit items-center rounded-md border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
             {copy.play.badge}
@@ -238,7 +238,7 @@ export function PlayClient() {
               data-kolk-action={!isCompactLayout ? primaryActionKolkAction : undefined}
               data-kolk-primary-cta={!isCompactLayout ? 'true' : undefined}
               data-kolk-level={recommendedLevel ?? undefined}
-              className="memory-accent-button hidden min-h-11 w-fit items-center justify-center rounded-md border px-5 py-3 text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2 sm:inline-flex"
+              className="action-button action-button-accent action-button-lg hidden w-fit focus-visible:outline-none sm:inline-flex"
             >
               {primaryAction.label}
             </Link>
@@ -356,7 +356,7 @@ export function PlayClient() {
                 href="/challenge/0"
                 data-kolk-action={!isCompactLayout ? 'open-recommended-challenge' : undefined}
                 data-kolk-level={l0Card.level}
-                className="memory-accent-button hidden min-h-11 w-full items-center justify-center rounded-md border px-5 py-3 text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2 sm:inline-flex sm:w-auto"
+                className="action-button action-button-accent action-button-lg hidden w-full focus-visible:outline-none sm:inline-flex sm:w-auto"
               >
                 {playUi.runLevel0}
               </Link>
@@ -403,8 +403,8 @@ export function PlayClient() {
                       L{card.level}
                     </span>
                     <div className="min-w-0">
-                      <h2 className="text-sm sm:text-base font-bold text-slate-950 truncate">{card.name}</h2>
-                      <p className="mt-0.5 sm:mt-1 text-xs leading-5 text-slate-600 truncate">
+                      <h2 className="line-clamp-2 text-sm font-bold text-slate-950 sm:text-base">{card.name}</h2>
+                      <p className="mt-0.5 line-clamp-2 text-xs leading-5 text-slate-600 sm:mt-1">
                         {playUi.bandLabel(card.band)} · {playUi.suggestedTime(card.suggestedTimeMinutes)}
                         <span className="hidden sm:inline"> · {tierLabel}</span>
                       </p>
@@ -445,10 +445,10 @@ export function PlayClient() {
                         isRecommended && !isCompactLayout ? 'open-recommended-challenge' : 'open-level'
                       }
                       data-kolk-level={card.level}
-                      className={`inline-flex min-h-11 w-full items-center justify-center rounded-md border px-4 py-2 text-sm transition-colors duration-150 sm:w-auto ${
+                      className={`action-button action-button-md w-full focus-visible:outline-none sm:w-auto ${
                         isRecommended
-                          ? 'memory-accent-button font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2'
-                          : 'border-slate-200 bg-white font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-950'
+                          ? 'action-button-accent'
+                          : 'action-button-secondary'
                       }`}
                     >
                       {playUi.startLevel(card.level)}
@@ -499,7 +499,7 @@ export function PlayClient() {
                 value={agentStarterPrompt}
                 idleLabel={copy.play.agentPanel.copyAgentPrompt}
                 copiedLabel={copy.play.agentPanel.copiedAgentPrompt}
-                className="memory-accent-button inline-flex w-full items-center justify-center rounded-md border px-4 py-2.5 text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2 sm:w-auto"
+                className="action-button action-button-accent action-button-md w-full focus-visible:outline-none sm:w-auto"
               />
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
@@ -548,7 +548,7 @@ export function PlayClient() {
               data-kolk-action={primaryActionKolkAction}
               data-kolk-primary-cta={isCompactLayout ? 'true' : undefined}
               data-kolk-level={recommendedLevel ?? undefined}
-              className="memory-accent-button inline-flex min-h-11 w-full items-center justify-center rounded-md border px-5 py-3 text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-memory)] focus-visible:ring-offset-2"
+              className="action-button action-button-accent action-button-lg w-full focus-visible:outline-none"
             >
               {primaryAction.label}
             </Link>

@@ -68,9 +68,9 @@ export function AuthSignInPanel({
     ? description
     : description.replace(/GitHub, Google, or email(?: OTP)?/g, 'email');
   const primaryButtonClass =
-    'memory-accent-button inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors duration-150 focus-visible:outline-none focus-gentle disabled:opacity-60';
+    'action-button action-button-accent action-button-md focus-visible:outline-none';
   const secondaryButtonClass =
-    'inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950 focus-visible:outline-none focus-gentle disabled:opacity-60';
+    'action-button action-button-secondary action-button-md focus-visible:outline-none';
 
   useEffect(() => {
     const controller = new AbortController();
@@ -174,10 +174,10 @@ export function AuthSignInPanel({
 
         {authStatusMessage ? (
           <div
-            className={`rounded-xl border px-4 py-3 text-sm shadow-sm ${
+            className={`status-message ${
               authStatusMessage.tone === 'success'
-                ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
-                : 'border-rose-200 bg-rose-50 text-rose-900'
+                ? 'status-success'
+                : 'status-error'
             }`}
           >
             <p className="font-semibold">{authStatusMessage.title}</p>
@@ -186,7 +186,7 @@ export function AuthSignInPanel({
         ) : null}
 
         {sessionState === 'checking' ? (
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 shadow-sm">
+          <div className="status-message status-neutral">
             {copy.auth.checkingSession}
           </div>
         ) : null}
@@ -215,7 +215,7 @@ export function AuthSignInPanel({
         ) : null}
 
         {sessionError && sessionState !== 'authenticated' ? (
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 shadow-sm">
+          <div className="status-message status-neutral">
             {copy.auth.sessionCheckFailed(sessionError)}
           </div>
         ) : null}
@@ -227,7 +227,7 @@ export function AuthSignInPanel({
                 {APP_CONFIG.publicGithubAuthEnabled ? (
                   <a
                     href={`/api/auth/oauth/github?next=${encodedNext}`}
-                    className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-950 px-5 py-3 text-center text-sm font-semibold text-white shadow-sm transition-colors duration-150 hover:bg-slate-800 focus-visible:outline-none focus-gentle"
+                    className="action-button action-button-slate action-button-lg w-full gap-2 text-center focus-visible:outline-none"
                   >
                     <GitHubIcon className="h-4 w-4" />
                     <span>{copy.auth.oauthGitHub}</span>
@@ -236,7 +236,7 @@ export function AuthSignInPanel({
                 {APP_CONFIG.publicGoogleAuthEnabled ? (
                   <a
                     href={`/api/auth/oauth/google?next=${encodedNext}`}
-                    className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-medium text-slate-700 shadow-sm transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950 focus-visible:outline-none focus-gentle"
+                    className="action-button action-button-secondary action-button-lg w-full gap-2 text-center focus-visible:outline-none"
                   >
                     <GoogleIcon className="h-4 w-4" />
                     <span>{copy.auth.oauthGoogle}</span>
@@ -267,7 +267,7 @@ export function AuthSignInPanel({
                       autoComplete="email"
                       inputMode="email"
                       spellCheck={false}
-                      className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base text-slate-950 shadow-sm outline-none transition focus:border-slate-400 focus-gentle sm:text-sm"
+                      className="form-control focus-gentle text-base sm:text-sm"
                       placeholder={copy.auth.emailPlaceholder}
                     />
                   </label>
@@ -279,7 +279,7 @@ export function AuthSignInPanel({
                       onChange={(event) => setDisplayName(event.target.value)}
                       autoComplete="nickname"
                       maxLength={60}
-                      className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base text-slate-950 shadow-sm outline-none transition focus:border-slate-400 focus-gentle sm:text-sm"
+                      className="form-control focus-gentle text-base sm:text-sm"
                       placeholder={copy.auth.displayNamePlaceholder}
                     />
                   </label>
@@ -295,13 +295,13 @@ export function AuthSignInPanel({
                 </form>
 
                 {emailState === 'success' ? (
-                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 shadow-sm" aria-live="polite">
+                  <div className="status-message status-success" aria-live="polite">
                     {emailMessage}
                   </div>
                 ) : null}
 
                 {emailState === 'error' ? (
-                  <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900 shadow-sm" aria-live="polite">
+                  <div className="status-message status-error" aria-live="polite">
                     {emailMessage}
                   </div>
                 ) : null}

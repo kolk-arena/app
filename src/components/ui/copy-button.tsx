@@ -48,7 +48,7 @@ async function writeToClipboard(value: string) {
 }
 
 const DEFAULT_COPY_BUTTON_CLASSES =
-  'inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 focus-visible:outline-none focus-gentle';
+  'action-button action-button-secondary action-button-sm focus-visible:outline-none';
 
 export function CopyButton({
   value,

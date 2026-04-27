@@ -467,7 +467,7 @@ export function LeaderboardClient() {
                       identityTypeInput,
                     })}
                     placeholder={lb.agentStackPlaceholder}
-                    className="focus-gentle min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-base text-slate-900 outline-none transition sm:text-sm"
+                    className="form-control focus-gentle text-base sm:text-sm"
                   />
                 </label>
 
@@ -481,7 +481,7 @@ export function LeaderboardClient() {
                       affiliationInput,
                       identityTypeInput: event.target.value,
                     })}
-                    className="focus-gentle min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-base text-slate-900 outline-none transition sm:text-sm"
+                    className="form-control focus-gentle text-base sm:text-sm"
                   >
                     <option value="">{lb.identityTypeAll}</option>
                     <option value="anonymous">{lb.identityTypeAnonymous}</option>
@@ -500,14 +500,14 @@ export function LeaderboardClient() {
                       identityTypeInput,
                     })}
                     placeholder={lb.affiliationPlaceholder}
-                    className="focus-gentle min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-base text-slate-900 outline-none transition sm:text-sm"
+                    className="form-control focus-gentle text-base sm:text-sm"
                   />
                 </label>
 
                 <div className="grid grid-cols-2 gap-2 sm:flex sm:items-end">
                   <button
                     type="submit"
-                    className="focus-gentle min-h-11 rounded-xl border border-slate-200 bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+                    className="action-button action-button-slate action-button-md focus-visible:outline-none"
                     disabled={isPending}
                   >
                     {lb.applyFilter}
@@ -515,7 +515,7 @@ export function LeaderboardClient() {
                   <button
                     type="button"
                     onClick={clearFilters}
-                    className="focus-gentle min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                    className="action-button action-button-secondary action-button-md focus-visible:outline-none"
                   >
                     {lb.clearFilter}
                   </button>
@@ -530,16 +530,17 @@ export function LeaderboardClient() {
                   {activeFilters.map((filter) => (
                     <span
                       key={filter.key}
-                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm"
+                      className="inline-flex max-w-full min-w-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm"
                     >
-                      <span className="text-slate-500">{filter.label}:</span>
-                      <span>{filter.value}</span>
+                      <span className="shrink-0 text-slate-500">{filter.label}:</span>
+                      <span className="min-w-0 break-words [overflow-wrap:anywhere]">{filter.value}</span>
                       <button
                         type="button"
                         onClick={() => clearSingleFilter(filter.key)}
-                        className="focus-gentle min-h-11 rounded-xl px-2 text-slate-500 hover:text-slate-900"
+                        className="focus-gentle inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                        aria-label={`${lb.clearFilter}: ${filter.label}`}
                       >
-                        {lb.clearFilter}
+                        <span aria-hidden="true">x</span>
                       </button>
                     </span>
                   ))}
@@ -600,14 +601,14 @@ export function LeaderboardClient() {
         </div>
 
         {error ? (
-          <div className="rounded-xl border border-slate-200 bg-rose-50 px-5 py-4 text-sm text-rose-900 shadow-sm">
+          <div className="status-message status-error">
             <p className="font-semibold">{lb.failedToLoad}</p>
             <p className="mt-1">{error}</p>
           </div>
         ) : null}
 
         {!error && selectionMessage ? (
-          <div className="rounded-xl border border-slate-200 bg-amber-50 px-5 py-4 text-sm text-amber-900 shadow-sm">
+          <div className="status-message status-warning">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="font-semibold">{lb.selectionUnavailableTitle}</p>
@@ -616,7 +617,7 @@ export function LeaderboardClient() {
               <button
                 type="button"
                 onClick={clearSelectedPlayer}
-                className="focus-gentle inline-flex items-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-amber-800 transition hover:bg-amber-100"
+                className="action-button action-button-secondary action-button-sm text-amber-800 hover:bg-amber-100"
               >
                 {lb.clearSelection}
               </button>

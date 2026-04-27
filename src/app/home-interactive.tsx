@@ -31,7 +31,6 @@ export function HomeInteractive() {
     tone: 'sans',
     size: 'md',
     width: 'stack',
-    className: 'rounded-md',
   });
   return (
     <>
@@ -60,7 +59,7 @@ export function HomeInteractive() {
             type="button"
             onClick={() => skillContent && handleDownload('kolk_workspace.md', skillContent)}
             disabled={!skillContent}
-            className="memory-accent-button rounded-md"
+            variant="accent"
           >
             {copy.homeInteractive.downloadSkill}
           </QuickActionButton>
@@ -111,7 +110,7 @@ export function HomeInteractive() {
               {copy.homeInteractive.nextRunBody}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
-              <QuickActionButton href="#try-it" className="memory-accent-button rounded-md">
+              <QuickActionButton href="#try-it" variant="accent">
                 {copy.home.heroActions.runL0}
               </QuickActionButton>
             </div>

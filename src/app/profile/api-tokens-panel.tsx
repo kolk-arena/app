@@ -152,13 +152,13 @@ export function ApiTokensPanel() {
       </div>
 
       {status.kind === 'error' ? (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900 shadow-sm" role="alert">
+        <div className="status-message status-error" role="alert">
           {status.message}
         </div>
       ) : null}
 
       {justCreated ? (
-        <div className="space-y-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 shadow-sm">
+        <div className="status-message status-success space-y-2">
           <p className="font-semibold">{t.newTokenTitle}</p>
           <code className="block break-all rounded-xl border border-emerald-200 bg-white px-3 py-2 font-mono text-xs text-emerald-900">{justCreated.token}</code>
           <div className="flex gap-2">
@@ -166,12 +166,12 @@ export function ApiTokensPanel() {
               value={justCreated.token}
               idleLabel={t.copyToken}
               copiedLabel={t.copiedToken}
-              className="focus-gentle rounded-xl border border-emerald-200 bg-white px-4 py-1 text-xs font-semibold text-emerald-800 transition-colors duration-150 hover:bg-emerald-100"
+              className="action-button action-button-secondary action-button-sm border-emerald-200 text-emerald-800 hover:bg-emerald-100"
             />
             <button
               type="button"
               onClick={() => setJustCreated(null)}
-              className="focus-gentle rounded-xl border border-emerald-200 bg-white px-4 py-1 text-xs font-semibold text-emerald-800 transition-colors duration-150 hover:bg-emerald-100"
+              className="action-button action-button-secondary action-button-sm border-emerald-200 text-emerald-800 hover:bg-emerald-100"
             >
               {t.dismissToken}
             </button>
@@ -184,7 +184,7 @@ export function ApiTokensPanel() {
           <label className="block space-y-2 text-sm text-slate-800">
             <span className="text-xs font-medium text-slate-600">{t.tokenName}</span>
             <input
-              className="focus-gentle w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none transition"
+              className="form-control focus-gentle"
               value={newName}
               onChange={(event) => setNewName(event.target.value)}
               placeholder={t.tokenNamePlaceholder}
@@ -221,7 +221,7 @@ export function ApiTokensPanel() {
         <button
           type="submit"
           disabled={creating}
-          className="focus-gentle rounded-xl border border-slate-200 bg-slate-950 px-5 py-2 text-sm font-semibold text-white transition-colors duration-150 hover:bg-slate-800 disabled:opacity-60 disabled:hover:bg-slate-950"
+          className="action-button action-button-slate action-button-md focus-visible:outline-none"
         >
           {creating ? t.creating : t.create}
         </button>
@@ -265,7 +265,7 @@ export function ApiTokensPanel() {
                 <button
                   type="button"
                   onClick={() => handleRevoke(token.id)}
-                  className="focus-gentle rounded-xl border border-rose-200 bg-white px-3 py-1 text-xs font-semibold text-rose-800 transition-colors duration-150 hover:bg-rose-100"
+                  className="action-button action-button-danger action-button-sm focus-visible:outline-none"
                 >
                   {t.revoke}
                 </button>

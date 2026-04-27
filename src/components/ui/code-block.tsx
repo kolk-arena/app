@@ -68,24 +68,13 @@ export function CodeBlock({
       : 'border border-slate-200 bg-slate-50 text-slate-900';
   const mutedClasses = tone === 'dark' ? 'text-slate-300' : 'text-slate-600';
   const preClasses = tone === 'dark' ? 'text-slate-100' : 'text-slate-800';
-  // Dark-tone code blocks need light-on-dark copy buttons, but the
-  // getQuickActionButtonClassName builder always emits light-tone
-  // (bg-white + text-slate-950 + hover:bg-slate-950 + hover:text-white).
-  // Passing override classes via `className` created five pairs of
-  // conflicting utilities (bg-white + bg-white/10, hover:bg-slate-950 +
-  // hover:bg-white, etc.) whose winner depends on Tailwind's compiled
-  // CSS order, not className string order — which caused hovered buttons
-  // to render near-white text on a solid-white hover background
-  // (invisible). Build dark-tone classes directly, no conflicts.
+  // Dark-tone code blocks need a dark-surface action button; keep that as
+  // a named design-system variant instead of stacking conflicting utilities.
   const buttonClasses =
     tone === 'dark'
       ? [
-          'inline-flex items-center justify-center rounded-md transition-colors duration-150',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2',
-          'border border-white/30 bg-white/10 text-slate-100',
-          'hover:bg-white hover:text-slate-950',
+          'action-button action-button-dark action-button-sm focus-visible:outline-none',
           'font-mono font-semibold',
-          'min-h-10 px-3 py-1.5 text-xs',
         ].join(' ')
       : getQuickActionButtonClassName({
           variant: 'secondary',
@@ -120,7 +109,7 @@ export function CodeBlock({
     <div className={`code-block-shell overflow-hidden rounded-xl ${tone === 'dark' ? 'code-block-shell-dark' : 'code-block-shell-light'} ${containerClasses} ${className}`}>
       {title || eyebrow || actions || copyValue ? (
         <div className={`flex flex-wrap items-start justify-between gap-3 px-4 py-3 sm:px-5 ${headerBorderClasses}`}>
-          <div className="min-w-0">
+          <div className="min-w-0 break-words [overflow-wrap:anywhere]">
             {eyebrow ? (
               <p className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${mutedClasses}`}>
                 {eyebrow}
