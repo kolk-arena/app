@@ -404,7 +404,7 @@ export function LeaderboardTable({
       </div>
 
       <div className="hidden max-h-[68vh] overflow-auto md:block">
-        <table className="min-w-[58rem] border-collapse text-left text-sm text-slate-700 lg:min-w-full">
+        <table className="w-full min-w-[58rem] border-collapse text-left text-sm text-slate-700">
           <thead className="sticky top-0 z-10 border-b border-slate-100 bg-slate-50 text-xs text-slate-500">
             <tr>
               <th className="border-b border-slate-100 px-2 py-1.5 font-medium">{copy.leaderboard.table.colRank}</th>

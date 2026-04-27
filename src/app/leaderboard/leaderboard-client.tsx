@@ -401,7 +401,7 @@ export function LeaderboardClient() {
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      <section className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-6 sm:gap-6 sm:px-6 sm:py-8 lg:px-8">
+      <section className="mx-auto flex max-w-[112rem] flex-col gap-5 px-4 py-6 sm:gap-6 sm:px-6 sm:py-8 lg:px-8">
         <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-100 px-3 py-2 sm:px-5">
             <div className="flex flex-wrap items-start justify-between gap-4">
@@ -625,7 +625,7 @@ export function LeaderboardClient() {
           </div>
         ) : null}
 
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(22rem,0.8fr)]">
+        <section className="grid gap-6 2xl:grid-cols-[minmax(58rem,1fr)_minmax(22rem,0.55fr)]">
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-3 py-2 sm:px-5">
               <div>
