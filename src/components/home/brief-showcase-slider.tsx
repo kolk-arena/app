@@ -4,6 +4,7 @@ import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
 import { useCallback, useEffect, useId, useMemo, useState, memo, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { copy } from '@/i18n';
+import type { FrontendLocale } from '@/i18n/types';
 import { TypewriterQuote } from './typewriter-quote';
 
 export type ChallengeBriefPreview = {
@@ -20,7 +21,26 @@ export type ChallengeBriefPreview = {
 type BriefShowcaseSliderProps = {
   requests: ChallengeBriefPreview[];
   expiresAt?: string;
+  locale?: FrontendLocale;
+  contentLocale?: FrontendLocale;
+  onLocaleChange?: (locale: FrontendLocale) => void;
+  isLocaleLoading?: boolean;
 };
+
+const SHOWCASE_LANGUAGE_OPTIONS = [
+  { locale: 'en', label: 'En', htmlLang: 'en-US', name: 'English' },
+  { locale: 'es-mx', label: 'Es', htmlLang: 'es-MX', name: 'Mexican Spanish' },
+  { locale: 'zh-tw', label: '中文', htmlLang: 'zh-TW', name: 'Traditional Chinese' },
+] as const satisfies readonly {
+  locale: FrontendLocale;
+  label: string;
+  htmlLang: string;
+  name: string;
+}[];
+
+function getShowcaseLanguage(locale: FrontendLocale) {
+  return SHOWCASE_LANGUAGE_OPTIONS.find((option) => option.locale === locale) ?? SHOWCASE_LANGUAGE_OPTIONS[0];
+}
 
 const budgetAmountPattern = String.raw`(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?`;
 const budgetPatterns = [
@@ -145,24 +165,75 @@ function getDeadlineLabel(level: number): string {
   return 'Urgent';
 }
 
+function GigLanguageSwitcher({
+  value,
+  onChange,
+  isLoading,
+}: {
+  value: FrontendLocale;
+  onChange?: (locale: FrontendLocale) => void;
+  isLoading?: boolean;
+}) {
+  if (!onChange) return null;
+
+  return (
+    <div
+      role="group"
+      aria-label="Gig language"
+      className="inline-flex h-8 overflow-hidden rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-500 shadow-sm"
+    >
+      {SHOWCASE_LANGUAGE_OPTIONS.map((option) => {
+        const isActive = option.locale === value;
+        return (
+          <button
+            key={option.locale}
+            type="button"
+            onClick={() => onChange(option.locale)}
+            aria-pressed={isActive}
+            aria-label={`Show gigs in ${option.name}`}
+            disabled={isLoading && isActive}
+            className={`inline-flex min-w-9 items-center justify-center px-2.5 transition focus-visible:outline-none focus-gentle ${
+              isActive
+                ? 'bg-slate-900 text-white'
+                : 'border-l border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+            }`}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 const ClientRequestCard = memo(({
   request,
-  isActive
+  isActive,
+  selectedLocale,
+  contentLocale,
+  onLocaleChange,
+  isLocaleLoading,
 }: {
   request: ChallengeBriefPreview;
-  isActive: boolean
+  isActive: boolean;
+  selectedLocale: FrontendLocale;
+  contentLocale: FrontendLocale;
+  onLocaleChange?: (locale: FrontendLocale) => void;
+  isLocaleLoading?: boolean;
 }) => {
   const { title, budget } = parseScenarioTitle(request.scenarioTitle);
   const displayBudget = budget ?? extractBudget(request.requestContext);
   const deadlineLabel = getDeadlineLabel(request.level);
   const titleId = useId();
+  const contentLanguage = getShowcaseLanguage(contentLocale);
 
   return (
     <article aria-labelledby={titleId} className="flex h-full flex-col rounded-xl border border-slate-200 bg-white p-6 shadow-sm card-hover sm:p-8">
       <div className="mb-6 flex flex-col gap-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <h3 id={titleId} className="min-w-0 flex-1 break-words text-lg font-bold leading-snug text-slate-950 [overflow-wrap:anywhere] sm:text-xl">{title}</h3>
+          <h3 id={titleId} lang={contentLanguage.htmlLang} className="min-w-0 flex-1 break-words text-lg font-bold leading-snug text-slate-950 [overflow-wrap:anywhere] sm:text-xl">{title}</h3>
           <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+            <GigLanguageSwitcher value={selectedLocale} onChange={onLocaleChange} isLoading={isLocaleLoading} />
             <span className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700">
               {deadlineLabel}
             </span>
@@ -172,7 +243,7 @@ const ClientRequestCard = memo(({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">{request.industry}</p>
+          <p lang={contentLanguage.htmlLang} className="text-xs font-medium text-slate-500 uppercase tracking-wider">{request.industry}</p>
           {displayBudget && (
             <span className="inline-flex items-center rounded-full bg-green-50 px-3 py-1 text-sm font-semibold text-green-700 ring-1 ring-green-100">
               <span className="sr-only">Budget </span>
@@ -185,22 +256,24 @@ const ClientRequestCard = memo(({
       <div className="mb-6 flex-1 rounded-xl bg-slate-50 p-5 sm:p-6">
         <p className="mb-3 text-sm font-semibold text-slate-900">
           {request.requesterName}
-          <span className="font-normal text-slate-500">{request.requesterRole ? ` — ${request.requesterRole}` : ''}</span>
+          <span lang={contentLanguage.htmlLang} className="font-normal text-slate-500">{request.requesterRole ? ` — ${request.requesterRole}` : ''}</span>
         </p>
-        <TypewriterQuote
-          key={isActive ? `active-${request.level}-${request.scenarioTitle}` : `idle-${request.level}-${request.scenarioTitle}`}
-          text={request.requestContext}
-          isActive={isActive}
-          speedMs={25}
-          className="text-sm leading-7 text-slate-700 min-h-[140px] sm:min-h-[120px]"
-        />
+        <div lang={contentLanguage.htmlLang}>
+          <TypewriterQuote
+            key={isActive ? `active-${contentLocale}-${request.level}-${request.scenarioTitle}` : `idle-${contentLocale}-${request.level}-${request.scenarioTitle}`}
+            text={request.requestContext}
+            isActive={isActive}
+            speedMs={25}
+            className="text-sm leading-7 text-slate-700 min-h-[140px] sm:min-h-[120px]"
+          />
+        </div>
       </div>
 
       {/* Footer: Needs & Deliverables */}
       <div className="grid gap-6 sm:grid-cols-2">
         <div>
           <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">{copy.briefShowcase.scoringFocusLabel}</p>
-          <ul className="space-y-2">
+          <ul lang={contentLanguage.htmlLang} className="space-y-2">
             {request.scoringFocus.map((need, i) => (
               <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
                 <span className="mt-1 flex h-1.5 w-1.5 shrink-0 rounded-full bg-slate-400" />
@@ -211,7 +284,7 @@ const ClientRequestCard = memo(({
         </div>
         <div>
           <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">{copy.briefShowcase.outputShapeLabel}</p>
-          <ul className="space-y-2">
+          <ul lang={contentLanguage.htmlLang} className="space-y-2">
             {request.outputShape.map((item, i) => (
               <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
                 <span className="mt-1 flex h-1.5 w-1.5 shrink-0 rounded-full bg-slate-300" />
@@ -232,7 +305,14 @@ function formatCountdown(seconds: number): string {
   return `${mm}:${ss}`;
 }
 
-export function BriefShowcaseSlider({ requests, expiresAt }: BriefShowcaseSliderProps) {
+export function BriefShowcaseSlider({
+  requests,
+  expiresAt,
+  locale = copy.locale,
+  contentLocale = locale,
+  onLocaleChange,
+  isLocaleLoading,
+}: BriefShowcaseSliderProps) {
   // Hydration-safe: same-shape initial state on SSR + first CSR render;
   // sync to `window.matchMedia('(prefers-reduced-motion: reduce)')` only
   // after mount. See typewriter-quote.tsx for the full rationale —
@@ -414,6 +494,10 @@ export function BriefShowcaseSlider({ requests, expiresAt }: BriefShowcaseSlider
               <ClientRequestCard
                 request={req}
                 isActive={index === selectedIndex}
+                selectedLocale={locale}
+                contentLocale={contentLocale}
+                onLocaleChange={onLocaleChange}
+                isLocaleLoading={isLocaleLoading}
               />
             </div>
           ))}

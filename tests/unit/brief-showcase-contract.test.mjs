@@ -88,7 +88,7 @@ const React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
 const { BriefShowcaseSlider } = require(path.join(srcRoot, 'components/home/brief-showcase-slider.tsx'));
 
-function renderBriefShowcaseTitle(scenarioTitle, requestContext = 'Need help by Friday.') {
+function renderBriefShowcaseTitle(scenarioTitle, requestContext = 'Need help by Friday.', options = {}) {
   const request = {
     level: 1,
     scenarioTitle,
@@ -99,7 +99,13 @@ function renderBriefShowcaseTitle(scenarioTitle, requestContext = 'Need help by 
     outputShape: ['A concise deliverable'],
   };
 
-  return renderToStaticMarkup(React.createElement(BriefShowcaseSlider, { requests: [request] }));
+  return renderToStaticMarkup(React.createElement(BriefShowcaseSlider, {
+    requests: [request],
+    locale: options.locale ?? 'en',
+    contentLocale: options.contentLocale ?? options.locale ?? 'en',
+    onLocaleChange: () => {},
+    isLocaleLoading: false,
+  }));
 }
 
 function countOccurrences(value, needle) {
@@ -277,6 +283,40 @@ test('gig generator prompts keep budget in requestContext only', () => {
   assert.match(source, /synthetic Gig postings/);
   assert.match(source, /Do NOT include the budget in the title/);
   assert.match(source, /Put the budget exactly once in requestContext only/);
+});
+
+test('brief showcase renders board-scoped card language switcher', () => {
+  const html = renderBriefShowcaseTitle(
+    'Need a localized customer update',
+    'Budget is $120. Please deliver a ready-to-send update.',
+    { locale: 'zh-tw', contentLocale: 'zh-tw' },
+  );
+
+  assert.match(html, /aria-label="Gig language"/);
+  assert.match(html, /aria-label="Show gigs in English"/);
+  assert.match(html, /aria-label="Show gigs in Mexican Spanish"/);
+  assert.match(html, /aria-label="Show gigs in Traditional Chinese"/);
+  assert.match(html, /aria-pressed="true"[^>]*>中文</);
+  assert.match(html, /lang="zh-TW"[^>]*>Need a localized customer update</);
+});
+
+test('brief showcase wrapper keeps locale switching scoped to the gig board api', () => {
+  const source = read('src/app/brief-showcase-wrapper.tsx');
+
+  assert.match(source, /useState<FrontendLocale>\(copy\.locale\)/);
+  assert.match(source, /\/api\/brief-showcase\?lang=\$\{locale\}/);
+  assert.match(source, /contentLocale=\{data\.locale\}/);
+  assert.equal(source.includes('window.location'), false, 'board language switch should not mutate full-site routing');
+});
+
+test('gig generator fails translation batches instead of storing English fallback translations', () => {
+  const source = read('src/lib/kolk/brief-showcase/generator.ts');
+
+  assert.match(source, /assertTranslationQuality/);
+  assert.match(source, /traditionalChineseTextPattern/);
+  assert.match(source, /mexicanSpanishSignalPattern/);
+  assert.match(source, /throw new Error\(`Translation failed for \$\{locale\}/);
+  assert.equal(source.includes('translations[locale] = englishBriefs.map'), false);
 });
 
 test('brief showcase budget pill has accessible context', () => {

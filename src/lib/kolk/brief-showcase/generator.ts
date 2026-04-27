@@ -40,6 +40,7 @@ const TranslationItemSchema = z.object({
 const TranslationsSchema = z.array(TranslationItemSchema);
 
 export type GeneratedBrief = z.infer<typeof GeneratedBriefSchema>;
+type TranslatedBrief = Pick<GeneratedBrief, 'scenarioTitle' | 'industry' | 'requesterRole' | 'requestContext' | 'scoringFocus' | 'outputShape'>;
 
 const LEVELS = [2, 3, 4, 5, 6, 7, 8] as const;
 
@@ -235,7 +236,7 @@ No markdown fences, no commentary.`;
 async function translateBriefs(
   briefs: GeneratedBrief[],
   locale: FrontendLocale,
-): Promise<Pick<GeneratedBrief, 'scenarioTitle' | 'industry' | 'requesterRole' | 'requestContext' | 'scoringFocus' | 'outputShape'>[]> {
+): Promise<TranslatedBrief[]> {
   const provider = BRIEF_SHOWCASE_CONFIG.provider;
   const items = briefs.map((b) => ({
     scenarioTitle: b.scenarioTitle,
@@ -277,7 +278,7 @@ async function translateWithGemini(
   items: Pick<GeneratedBrief, 'scenarioTitle' | 'industry' | 'fictionalRequesterName' | 'requesterRole' | 'requestContext' | 'scoringFocus' | 'outputShape'>[],
   locale: FrontendLocale,
   gemini: { apiKey: string; model: string; baseURL: string },
-): Promise<Pick<GeneratedBrief, 'scenarioTitle' | 'industry' | 'requesterRole' | 'requestContext' | 'scoringFocus' | 'outputShape'>[]> {
+): Promise<TranslatedBrief[]> {
   const localeName =
     locale === 'zh-tw' ? 'Traditional Chinese (Taiwan)' :
     locale === 'es-mx' ? 'Mexican Spanish' : 'English';
@@ -309,7 +310,7 @@ async function translateWithGemini(
   return parseTranslationJson(raw);
 }
 
-function parseTranslationJson(raw: string): Pick<GeneratedBrief, 'scenarioTitle' | 'industry' | 'requesterRole' | 'requestContext' | 'scoringFocus' | 'outputShape'>[] {
+function parseTranslationJson(raw: string): TranslatedBrief[] {
   const cleaned = raw.replace(/^\s*```json?\s*/, '').replace(/\s*```\s*$/, '').trim();
   let parsed: unknown;
   try {
@@ -324,6 +325,67 @@ function parseTranslationJson(raw: string): Pick<GeneratedBrief, 'scenarioTitle'
     throw new Error(`Translated briefs failed shape validation at ${location}: ${issue?.message ?? 'unknown'}`);
   }
   return result.data;
+}
+
+function flattenTranslationText(item: TranslatedBrief): string {
+  return [
+    item.scenarioTitle,
+    item.industry,
+    item.requesterRole,
+    item.requestContext,
+    ...item.scoringFocus,
+    ...item.outputShape,
+  ].join(' ');
+}
+
+function normalizeForTranslationComparison(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/[^\p{Letter}\p{Number}$]+/gu, ' ')
+    .trim();
+}
+
+const traditionalChineseTextPattern = /[\u3400-\u9fff]/;
+const mexicanSpanishSignalPattern =
+  /[¿¡áéíóúñü]|\b(?:el|la|los|las|un|una|para|que|necesit[ao]|presupuesto|entrega|cliente|clientes|debe|antes|hoy|mañana)\b/i;
+
+function assertTranslationQuality(source: GeneratedBrief[], translated: TranslatedBrief[], locale: FrontendLocale): void {
+  if (locale === 'en') return;
+
+  if (translated.length !== source.length) {
+    throw new Error(`expected ${source.length} ${locale} translations, got ${translated.length}`);
+  }
+
+  let spanishSignalCount = 0;
+
+  translated.forEach((item, index) => {
+    const sourceItem = source[index];
+    const translatedText = flattenTranslationText(item);
+    const sourceText = flattenTranslationText(sourceItem);
+    const sameTitle = normalizeForTranslationComparison(item.scenarioTitle) === normalizeForTranslationComparison(sourceItem.scenarioTitle);
+    const sameContext = normalizeForTranslationComparison(item.requestContext) === normalizeForTranslationComparison(sourceItem.requestContext);
+
+    if (sameTitle && sameContext) {
+      throw new Error(`${locale} translation ${index} kept the English title and request context`);
+    }
+
+    if (normalizeForTranslationComparison(translatedText) === normalizeForTranslationComparison(sourceText)) {
+      throw new Error(`${locale} translation ${index} is identical to the English source`);
+    }
+
+    if (locale === 'zh-tw' && !traditionalChineseTextPattern.test(translatedText)) {
+      throw new Error(`zh-tw translation ${index} has no CJK text`);
+    }
+
+    if (locale === 'es-mx' && mexicanSpanishSignalPattern.test(translatedText)) {
+      spanishSignalCount += 1;
+    }
+  });
+
+  if (locale === 'es-mx' && spanishSignalCount < Math.ceil(translated.length * 0.75)) {
+    throw new Error(`es-mx translations failed Spanish signal check: ${spanishSignalCount}/${translated.length}`);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -345,6 +407,7 @@ export async function generateShowcaseBatch(): Promise<ShowcaseGenerationResult>
   for (const locale of targetLocales) {
     try {
       const translated = await translateBriefs(englishBriefs, locale);
+      assertTranslationQuality(englishBriefs, translated, locale);
       translations[locale] = translated.map((t) => ({
         title: t.scenarioTitle,
         industry: t.industry,
@@ -355,14 +418,7 @@ export async function generateShowcaseBatch(): Promise<ShowcaseGenerationResult>
       }));
     } catch (err) {
       console.error(`[brief-showcase] Translation failed for ${locale}:`, err);
-      translations[locale] = englishBriefs.map((b) => ({
-        title: b.scenarioTitle,
-        industry: b.industry,
-        ceo_title: b.requesterRole,
-        request_context: b.requestContext,
-        scoring_focus: b.scoringFocus,
-        output_shape: b.outputShape,
-      }));
+      throw new Error(`Translation failed for ${locale}: ${err instanceof Error ? err.message : 'unknown error'}`);
     }
   }
 
