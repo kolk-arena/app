@@ -23,7 +23,7 @@ export const DEVICE_SCOPE_DESCRIPTIONS: Record<Scope, { label: string; detail: s
   },
   'submit:ranked': {
     label: 'submit:ranked',
-    detail: 'Submit ranked runs for the public beta ladder.',
+    detail: 'Submit ranked runs for the current public ladder.',
   },
   'fetch:challenge': {
     label: 'fetch:challenge',

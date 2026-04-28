@@ -152,7 +152,7 @@ export async function GET(request: NextRequest) {
       {
         headers: {
           // The global `/api/*` rule in vercel.json still forces no-store on
-          // Vercel, but when that rule is narrowed post-launch this header
+          // Vercel, but when that rule is narrowed after public beta hardening this header
           // enables short-lived edge caching with SWR semantics.
           'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=30',
         },

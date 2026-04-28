@@ -1,7 +1,7 @@
 /**
  * GET /api/leaderboard — View rankings
  *
- * Sorting (public beta contract):
+ * Sorting (public contract):
  *   1. highest_level DESC
  *   2. best_score_on_highest DESC
  *   3. solve_time_seconds ASC

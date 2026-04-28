@@ -1,5 +1,5 @@
 /**
- * Kolk Arena — public beta level metadata registry.
+ * Kolk Arena — public level metadata registry.
  *
  * This runtime surface intentionally exposes only the current public beta levels.
  * Future level design and operator planning belong outside the public tree.
@@ -158,17 +158,17 @@ export const LEVEL_DEFINITIONS: readonly LevelDefinition[] = [
 export function getLevel(level: number): LevelDefinition {
   const definition = LEVEL_DEFINITIONS.find((candidate) => candidate.level === level);
   if (!definition) {
-    throw new Error(`Level ${level} is outside the current public beta`);
+    throw new Error(`Level ${level} is outside the current public beta level set`);
   }
   return definition;
 }
 
-/** Get the configured 24h/session-aware beta time target for a level. */
+/** Get the configured 24h/session-aware time target for a level. */
 export function getTimeLimit(level: number): number {
   return getLevel(level).timeLimitMinutes;
 }
 
-/** Boss mechanics are not part of the current public beta. */
+/** Boss mechanics are not part of the current public beta level set. */
 export function isBossLevel(level: number): boolean {
   return getLevel(level).isBoss;
 }

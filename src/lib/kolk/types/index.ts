@@ -12,7 +12,7 @@ import { countryNameFromCode } from '@/lib/frontend/countries';
 // Level & Family enums
 // ============================================================================
 
-// Public beta runtime enum. Non-public level planning must stay outside this tree.
+// Public runtime enum. Non-public level planning must stay outside this tree.
 export const LEVELS = Array.from({ length: 9 }, (_, i) => i) as number[];
 export const MIN_LEVEL = 0;
 export const MAX_LEVEL = 8;

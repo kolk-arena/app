@@ -4,9 +4,9 @@
  * Per-lambda-instance accuracy is acceptable for the routes that use
  * this helper — it exists to stop a single attacker from sending
  * thousands of requests/minute from one IP, not to enforce a perfect
- * global ceiling. (A perfect global limit needs a Supabase rpc or a
- * Redis-backed counter; queued as a post-launch follow-up in
- * INTERNAL.md § 1.2.)
+ * global ceiling. A perfect global limit needs a Supabase RPC or a
+ * Redis-backed counter; keep that as operator-side roadmap work until
+ * the product needs cross-instance enforcement.
  *
  * Each endpoint creates its own limiter instance via `createIpRateLimiter`,
  * so rate budgets don't bleed across endpoints — e.g. `/api/auth/verify`
@@ -15,7 +15,7 @@
  *
  * NOTE: `src/app/api/activity-feed/route.ts` inlines the same pattern
  * for historical reasons. When it's next touched it should be
- * consolidated onto this helper (tracked in INTERNAL.md § 1.2 tech debt).
+ * consolidated onto this helper.
  */
 
 export type IpRateLimiter = {

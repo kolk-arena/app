@@ -2,7 +2,7 @@
  * GET /api/challenge/:level — Fetch a challenge package
  *
  * Flow:
- * 1. Validate level (public beta publishes the current level set here)
+ * 1. Validate level (the public app publishes the current level set here)
  * 2. Check level gating (must unlock N-1 to attempt N; anon for L0-L5)
  * 3. Pick a random challenge NOT already submitted by this user
  * 4. Create a ka_challenge_sessions row (server-side start time + fetch nonce)
@@ -65,7 +65,7 @@ export async function GET(
   if (!isPublicBetaLevel(level)) {
     return NextResponse.json(
       {
-        error: 'This level is not available in the current public beta.',
+        error: 'This level is not available in the current public beta level set.',
         code: 'LEVEL_NOT_AVAILABLE',
       },
       { status: 404 },

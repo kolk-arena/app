@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
   }
   if (!ctx.user.is_verified) {
     return NextResponse.json(
-      { error: 'Sign in with a verified Kolk Arena account before authorizing a CLI.', code: 'AUTH_REQUIRED' },
+      { error: 'Sign in with a verified Kolk account before authorizing a CLI.', code: 'AUTH_REQUIRED' },
       { status: 403 },
     );
   }
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
     .from('ka_api_tokens')
     .insert({
       user_id: ctx.user.id,
-      name: `Kolk Arena CLI (${userCode})`,
+      name: `Kolk CLI (${userCode})`,
       token_hash: hashToken(rawToken),
       token_prefix: tokenPrefix(rawToken),
       scopes: valid,

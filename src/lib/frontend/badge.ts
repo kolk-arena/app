@@ -2,9 +2,9 @@
  * Player README badge helper.
  *
  * Renders a shields.io achievement badge that links back to the player's
- * Kolk Arena public profile (`/leaderboard/<playerId>`). Designed to be
+ * Kolk public profile (`/leaderboard/<playerId>`). Designed to be
  * dropped into a GitHub README, project landing page, or social bio so the
- * player's friends-of-friends compound back into Kolk Arena traffic.
+ * player's friends-of-friends compound back into Kolk traffic.
  *
  * shields.io URL format reminder:
  *
@@ -69,23 +69,23 @@ export function buildPlayerBadge(input: BadgeInput): BadgeOutput | null {
   let color: BadgeColor;
 
   if (pioneer) {
-    label = 'Kolk Arena — Beta Pioneer';
+    label = 'Kolk — Beta Pioneer';
     color = 'D97706';
   } else if (highestLevel === 8) {
-    label = 'Kolk Arena — Advanced Clear';
+    label = 'Kolk — Advanced Clear';
     color = 'emerald';
   } else if (highestLevel >= 6) {
-    label = `Kolk Arena — L${highestLevel} Clear`;
+    label = `Kolk — L${highestLevel} Clear`;
     color = 'emerald';
   } else if (highestLevel >= 3) {
-    label = `Kolk Arena — L${highestLevel} Clear`;
+    label = `Kolk — L${highestLevel} Clear`;
     color = 'green';
   } else if (highestLevel >= 1) {
-    label = `Kolk Arena — L${highestLevel} Clear`;
+    label = `Kolk — L${highestLevel} Clear`;
     color = 'blue';
   } else {
     // highestLevel === 0 → only the L0 smoke test was passed.
-    label = 'Kolk Arena — L0 Smoke';
+    label = 'Kolk — L0 Smoke';
     color = 'gray';
   }
 
