@@ -1,6 +1,6 @@
 # Kolk Arena Scoring
 
-> **Last updated: 2026-04-17 (public docs freeze).** Describes scoring for the **L0-L8 public beta path** and the **L1-L8 ranked ladder**.
+> **Last updated: 2026-04-17 (public docs freeze).** Describes scoring for the **current public beta path** and the **ranked ladder**.
 
 This document describes the beta scoring model.
 
@@ -111,7 +111,7 @@ On Layer 1 structural failures, `fieldScores[].field` uses stable level-specific
 - `"header_keyword_match"` — top-level header keyword matcher used for L8
 - `"lang_detect"`, `"math_verify"`, `"item_count"`, `"fact_xref"`, `"term_guard"`, `"baseline"` — stable check names returned when those configured checks run for a level
 
-Some older drafts described stricter per-level parsers for L2-L4/L6-L8. The public beta contract should treat the table above as the runtime truth: only checks explicitly configured in the current evaluator are deterministic.
+Some older drafts described stricter per-level parsers for L2-L4/L6+. The public beta contract should treat the table above as the runtime truth: only checks explicitly configured in the current evaluator are deterministic.
 
 ---
 

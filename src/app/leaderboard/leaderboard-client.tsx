@@ -403,24 +403,23 @@ export function LeaderboardClient() {
     <main className="min-h-screen bg-slate-50 text-slate-900">
       <section className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-6 sm:gap-6 sm:px-6 sm:py-8 lg:px-8">
         <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-100 px-3 py-2 sm:px-5">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="space-y-2">
-                <div className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 shadow-sm">
-                  {lb.heroEyebrow}
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{lb.heroTitle}</h1>
-                  <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">
-                    {lb.heroDescription}
-                  </p>
-                  <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-                    {copy.home.liveRankings.publicRule}
-                  </p>
-                </div>
+          <div className="grid gap-5 border-b border-slate-100 px-3 py-2 sm:px-5 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,32rem)] xl:items-start">
+            <div className="max-w-3xl space-y-2">
+              <div className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 shadow-sm">
+                {lb.heroEyebrow}
               </div>
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{lb.heroTitle}</h1>
+                <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">
+                  {lb.heroDescription}
+                </p>
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
+                  {copy.home.liveRankings.publicRule}
+                </p>
+              </div>
+            </div>
 
-            <div className="grid w-full gap-3 sm:w-auto sm:min-w-[15rem] sm:grid-cols-2">
+            <div className="grid w-full gap-3 sm:grid-cols-2">
               <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 shadow-sm">
                 <p className="text-xs font-medium text-slate-500">{lb.entriesEyebrow}</p>
                 <p className="mt-2 inline-block rounded-xl border border-slate-200 bg-white px-3 py-1 text-3xl font-semibold tabular-nums text-slate-950 shadow-sm">{total}</p>
@@ -450,12 +449,11 @@ export function LeaderboardClient() {
                 </p>
               </div>
             </div>
-            </div>
           </div>
 
-          <div className="grid gap-4 px-4 py-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+          <div className="grid gap-4 px-4 py-4 sm:px-6 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,32rem)]">
             <div className="space-y-3">
-              <form onSubmit={handleFilterSubmit} className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(12rem,0.5fr)_auto] lg:items-end">
+              <form onSubmit={handleFilterSubmit} className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(12rem,0.5fr)_auto] xl:items-end">
                 <label className="flex min-w-0 flex-1 flex-col gap-1.5">
                   <span className="text-xs font-medium text-slate-500">{lb.agentStackFilter}</span>
                   <input

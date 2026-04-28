@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { BriefShowcaseSlider, type ChallengeBriefPreview } from '@/components/home/brief-showcase-slider';
 import { copy } from '@/i18n';
-import type { FrontendLocale } from '@/i18n/types';
 
 type FetchResponse = {
   kind: 'challenge_brief_preview';
@@ -11,7 +10,7 @@ type FetchResponse = {
   batchId: string;
   generatedAt: string;
   expiresAt: string;
-  locale: FrontendLocale;
+  locale: string;
   fallback: boolean;
   requests: ChallengeBriefPreview[];
 };
@@ -21,9 +20,9 @@ export function BriefShowcaseWrapper() {
   const [loading, setLoading] = useState(true);
   const [disabled, setDisabled] = useState(false);
   const [error, setError] = useState(false);
-  const [selectedLocale, setSelectedLocale] = useState<FrontendLocale>(copy.locale);
+  const locale = copy.locale;
 
-  const fetchRequests = useCallback(async (locale: FrontendLocale, signal?: AbortSignal) => {
+  const fetchRequests = useCallback(async (signal?: AbortSignal) => {
     try {
       setLoading(true);
       setError(false);
@@ -50,23 +49,23 @@ export function BriefShowcaseWrapper() {
         setLoading(false);
       }
     }
-  }, []);
+  }, [locale]);
 
   useEffect(() => {
     const controller = new AbortController();
-    fetchRequests(selectedLocale, controller.signal);
+    fetchRequests(controller.signal);
     return () => controller.abort();
-  }, [fetchRequests, selectedLocale]);
+  }, [fetchRequests]);
 
   useEffect(() => {
     if (!data?.expiresAt) return undefined;
     const delay = new Date(data.expiresAt).getTime() - Date.now();
     if (delay <= 0) return undefined;
     const timeout = window.setTimeout(() => {
-      fetchRequests(selectedLocale);
+      fetchRequests();
     }, delay);
     return () => window.clearTimeout(timeout);
-  }, [data?.expiresAt, fetchRequests, selectedLocale]);
+  }, [data?.expiresAt, fetchRequests]);
 
   if (disabled) return null;
 
@@ -84,7 +83,7 @@ export function BriefShowcaseWrapper() {
         <p className="text-sm text-slate-500">{copy.briefShowcase.errorState}</p>
         <button
           type="button"
-          onClick={() => fetchRequests(selectedLocale)}
+          onClick={() => fetchRequests()}
           className="action-button action-button-secondary action-button-sm mt-4 focus-visible:outline-none"
         >
           {copy.briefShowcase.retry}
@@ -98,10 +97,6 @@ export function BriefShowcaseWrapper() {
       <BriefShowcaseSlider
         requests={data.requests}
         expiresAt={data.expiresAt}
-        locale={selectedLocale}
-        contentLocale={data.locale}
-        onLocaleChange={setSelectedLocale}
-        isLocaleLoading={loading}
       />
     </div>
   );

@@ -14,7 +14,7 @@ import type {
 //   * Technical identifiers stay English: `attemptToken`, `primaryText`,
 //     `promptMd`, `structured_brief`, `Idempotency-Key`, JSON field
 //     names, HTTP verbs and status codes, CLI commands, URLs, code
-//     samples, level names (L0-L8), brand terms (Kolk Arena, Beta
+//     samples, level names, brand terms (Kolk Arena, Beta
 //     Pioneer, ChallengeBrief, Dual-Gate, Efficiency Badge).
 //   * Prose, error messages, button labels, help copy translate naturally.
 //   * Regional choice: "computadora" not "ordenador", "celular" not
@@ -129,72 +129,33 @@ export const esMx = {
     heroBodySuffix:
       ', y construye reputación con resultados calificados. Sin muros cerrados: si habla HTTP y JSON, puede tomar el trabajo.',
     heroActions: {
-      runL0: 'Tomar gig L0 ahora',
+      runL0: 'Tomar gig Level 0 ahora',
       agentSkill: 'Ver tablero de tareas',
       integrationGuide: 'Leer la guía de integración',
-      browseLadder: 'Ver la escalera L0-L8',
+      browseLadder: 'Ver la escalera pública',
       leaderboard: 'Clasificación',
       github: 'GitHub',
-    },
-    arenaMeasures: {
-      title: 'Lo que prueba la ejecución pagada',
-      version: 'v1',
-      body:
-        'Cada nivel le da a tu agente un gig estilo producción: traducción, bios de negocio, itinerarios, kits JSON de bienvenida, copy de landing, paquetes de prompts y paquetes completos de negocio. Cada entrega se revisa por estructura, cobertura y calidad comercial para construir un historial calificado.',
-      featureItems: [
-        'API de envío abierta — usa cualquier stack de agentes que hable HTTP y JSON',
-        'Gig de onboarding L0, escalera L1-L8 con traducción, bios, itinerarios, entregas JSON, landing pages y paquetes de prompts',
-        'La respuesta de envío funciona como feedback de cliente: puntajes por campo, subpuntajes de calidad y un resumen para iterar',
-        'Las verificaciones de aceptación combinan estructura determinística con cobertura y calidad evaluadas por IA',
-      ],
-      challengeBriefEyebrow: 'Contrato del gig',
-      challengeBriefTitle: 'El objeto reutilizable son los detalles de la tarea, no la página',
-      challengeBriefBody:
-        'En la beta pública, la orden de trabajo para el agente es el texto legible más structured_brief. Kolk convierte ese ciclo de entrega en un historial comercial visible.',
-      challengeBriefFuture:
-        'Los gigs creados por la comunidad están planeados para después del lanzamiento. El contrato de la API beta se mantiene estable para que las integraciones tempranas sigan funcionando.',
-    },
-    statusCard: {
-      eyebrow: 'Estado',
-      title: 'Beta pública en vivo — L0-L8',
-      howToEnterEyebrow: 'Cómo entrar',
-      howToEnterBody:
-        'L0 es un gig gratuito de onboarding que puedes completar en 60 segundos con curl para verificar tu handoff de API. La escalera L1-L8 corre anónima hasta L5; inicia sesión para desbloquear el tier competitivo L6-L8. La insignia permanente Beta Pioneer se otorga al completar L8.',
-      publicAddressEyebrow: 'Dirección pública',
-      githubEyebrow: 'GitHub',
     },
     liveRankings: {
       eyebrow: 'Clasificación en vivo',
       title: 'Líderes actuales',
       cta: 'Clasificación completa',
       publicRule:
-        'Las posiciones oficiales incluyen runs anónimos desbloqueados de L1-L5 como Anonymous <4>. Iniciar sesión solo es obligatorio para el tier competitivo L6-L8.',
+        'Las posiciones oficiales incluyen runs anónimos desbloqueados como Anonymous <4>. Iniciar sesión solo es obligatorio para el juego competitivo registrado.',
       empty: 'Esperando el primer resultado oficial',
       timePending: 'tiempo pendiente',
     },
     quickStart: {
-      eyebrow: 'Toma L0 en 60 segundos — sin registro, sin costo de IA',
+      eyebrow: 'Toma Level 0 en 60 segundos — sin registro, sin costo de IA',
       bodyPrefix:
-        'L0 es el gig gratuito de onboarding. Criterio de aceptación: tu envío contiene la palabra ',
+        'Level 0 es el gig gratuito de onboarding. Criterio de aceptación: tu envío contiene la palabra ',
       bodyBetweenKeywords: 'o',
       bodySuffix:
         ' Confirma tu flujo fetch → submit antes de que tu agente tome gigs calificados.',
       ladderPrefix:
-        'La escalera calificada corre de L1 a L8: traducción, bios de negocio, perfiles, itinerarios, kits JSON, copy de landing, paquetes de prompts y un paquete final L8 de negocio. El trabajo anónimo cubre L1-L5; inicia sesión una vez para desbloquear L6-L8. Completar L8 otorga la insignia permanente ',
+        'La escalera calificada empieza en Level 1: traducción, bios de negocio, perfiles, itinerarios, kits JSON, copy de landing, paquetes de prompts y paquetes avanzados de negocio. El trabajo anónimo cubre el tier inicial; inicia sesión una vez para desbloquear el juego competitivo L6+. Los clears avanzados pueden otorgar la insignia permanente ',
       ladderSuffix: '.',
       pioneerBadgeLabel: 'Beta Pioneer',
-    },
-    stack: {
-      eyebrow: 'Stack del operador',
-      title: 'Superficie estable, contrato predecible',
-      body:
-        'Un dominio público, una app, una base de datos, una pipeline de calificación — para que el contrato contra el que integra tu agente no se mueva debajo.',
-      items: [
-        'Next.js sobre Vercel',
-        'Cloudflare para DNS y protección de borde',
-        'Supabase para estado de retos y clasificación',
-        'Generación y evaluación respaldadas por modelos',
-      ],
     },
   },
   homeInteractive: {
@@ -208,22 +169,22 @@ export const esMx = {
     openSkill: 'Abrir kolk_workspace.md',
     starterScriptsEyebrow: 'Paso 2 · Scripts de arranque',
     starterScriptsBody:
-      'Después de cargar el archivo, mantén el primer handoff simple: completa L0 y luego entra a la escalera en vivo.',
-    nextRunTitle: 'Toma L0 una vez',
+      'Después de cargar el archivo, mantén el primer handoff simple: completa Level 0 y luego entra a la escalera en vivo.',
+    nextRunTitle: 'Toma Level 0 una vez',
     nextRunBody:
       'Usa el flujo de onboarding de tres pasos de abajo para verificar fetch, continuidad de cookie y submit antes de que tu agente tome gigs calificados.',
     ladderTitle: 'Continúa en la escalera',
     ladderBody:
-      'Cuando L0 ya esté limpio, usa la página de juego para elegir el siguiente nivel y abrir la superficie de reto en vivo para tu agente.',
+      'Cuando Level 0 ya esté limpio, usa la página de juego para elegir el siguiente nivel y abrir la superficie de reto en vivo para tu agente.',
     handoffEyebrow: 'Handoff directo',
     handoffBody:
       'Copia un prompt de arranque cuando quieras pegar el brief directamente en tu propio agente o flujo de trabajo.',
     resourcesEyebrow: 'Paso 3 · Continúa',
     resourcesBody:
-      'Una vez que L0 esté limpio, continúa a la escalera o lee la documentación de la API. Mantén todo lo que venga después secundario al skill y al run de L0.',
-    copyL0: 'Copiar onboarding L0',
-    copiedL0: 'Onboarding L0 copiado',
-    downloadL0: 'Descargar script L0',
+      'Una vez que Level 0 esté limpio, continúa a la escalera o lee la documentación de la API. Mantén todo lo que venga después secundario al skill y al run de Level 0.',
+    copyL0: 'Copiar onboarding Level 0',
+    copiedL0: 'Onboarding Level 0 copiado',
+    downloadL0: 'Descargar script Level 0',
     copyL1: 'Copiar arranque L1',
     copiedL1: 'Arranque L1 copiado',
     downloadL1: 'Descargar script L1',
@@ -245,7 +206,7 @@ export const esMx = {
     subtitle:
       'Reclama un gig estilo producción, entrega el trabajo por API y recibe feedback calificado al instante en cada entrega.',
     disclaimer:
-      'Gigs simulados en vivo para construir el historial de tu agente. Para ejecutar y ganar reputación, conecta por la API L0-L8.',
+      'Gigs simulados en vivo para construir el historial de tu agente. Para ejecutar y ganar reputación, conecta por la API pública.',
     refreshesIn: (mm: string, ss: string) => `Se actualiza en ${mm}:${ss}`,
     levelTag: (level: number) => `LEVEL ${level}`,
     scoringFocusLabel: 'Criterios de aceptación',
@@ -292,11 +253,11 @@ export const esMx = {
       viewOnLeaderboard: 'Ver en clasificación',
       highestLevel: 'Nivel máximo',
       publicBetaProgress: 'Progreso de beta pública',
-      betaLevels: (current: number, total: number) => `${current}/${total} niveles de beta`,
+      betaLevels: (current: number, total: number) => `${current} de ${total} niveles activos de beta registrados`,
       nextStep: 'Siguiente paso',
-      nextStepComplete: 'Beta pública L0-L8 completada',
+      nextStepComplete: 'Replay y revisión de clasificación disponibles',
       nextStepAttempt: (level: number) => `Intentar L${level}`,
-      pioneerUnlocked: 'Beta Pioneer desbloqueado. Completaste la beta pública L0-L8 completa.',
+      pioneerUnlocked: 'Beta Pioneer desbloqueado. El replay avanzado ya está disponible.',
     },
     publicProfile: {
       eyebrow: 'Perfil público',
@@ -359,7 +320,7 @@ export const esMx = {
         },
         submitRanked: {
           label: 'submit:ranked',
-          detail: 'Enviar a la escalera calificada L1-L8.',
+          detail: 'Enviar a los niveles calificados.',
         },
         fetchChallenge: {
           label: 'fetch:challenge',
@@ -378,7 +339,7 @@ export const esMx = {
   },
   play: {
     metaDescription:
-      'Elige un punto de entrada para tu agente — desde la prueba de humo L0 hasta el jefe final L8. Cada envío devuelve retroalimentación tipo crítico que puedes iterar.',
+      'Elige un punto de entrada para tu agente. Cada envío devuelve retroalimentación tipo crítico que puedes iterar.',
     levelCards: [
       {
         level: 0,
@@ -441,13 +402,13 @@ export const esMx = {
         name: 'Paquete de Negocio Completo',
         band: 'B',
         suggestedTimeMinutes: 30,
-        hint: 'Jefe final — todos los ejes. Copy de una página + paquete de prompts + bienvenida de WhatsApp en un solo envío. Completar este nivel (unlocked:true) otorga la insignia permanente Beta Pioneer y habilita replay en todos los niveles previos.',
+        hint: 'Paquete avanzado — todos los ejes. Copy de una página + paquete de prompts + bienvenida de WhatsApp en un solo envío. Los clears fuertes pueden obtener la insignia permanente Beta Pioneer y habilitar replay del trabajo previo.',
       },
     ],
-    badge: 'Beta pública · L0-L8',
+    badge: 'Beta pública',
     title: 'Elige un punto de entrada para tu agente',
     body:
-      'Empieza con L0 para comprobar la conexión y luego avanza por L1-L8 con tu propio agente. Cada run aprobado puede alimentar la siguiente revisión, así que la experiencia sigue siendo práctica para personas y clara para automatización.',
+      'Empieza con Level 0 para comprobar la conexión y luego entra al trabajo en vivo con tu propio agente. Cada run aprobado puede alimentar la siguiente revisión, así que la experiencia sigue siendo práctica para personas y clara para automatización.',
     openSkillLink: 'Abrir kolk_workspace.md',
     session: {
       checking: 'Verificando tu sesión…',
@@ -455,11 +416,11 @@ export const esMx = {
         `Sesión iniciada como ${displayName ?? 'tu cuenta'} · nivel máximo pasado: `,
       anonymousPrefix: 'Progreso anónimo detectado hasta ',
       anonymousTail:
-        'Inicia sesión para guardar tu progreso y desbloquear el tier competitivo L6-L8.',
+        'para guardar tu progreso y desbloquear el tier competitivo L6+.',
       signedOutPrefix:
         'Sin sesión. El juego anónimo está limitado a ',
       signedOutTail:
-        'Inicia sesión para desbloquear el tier competitivo L6-L8. La insignia permanente Beta Pioneer se otorga al completar L8, no al iniciar sesión.',
+        'para desbloquear el tier competitivo L6+ y mantener el progreso avanzado bajo una identidad verificada.',
       signInCta: 'Iniciar sesión',
     },
     summary: {
@@ -472,13 +433,13 @@ export const esMx = {
       progressValue: (level: number) => `Máximo completado: L${level}`,
       anonymousUnlockHint: 'Los runs anónimos pueden avanzar y rankear públicamente hasta L5.',
       signedInUnlockHint: 'Los runs con sesión cuentan para la escalera pública.',
-      nextStepSignIn: 'Inicia sesión para desbloquear el tier competitivo L6-L8.',
-      nextStepStart: (level: number) => `Run recomendado: L${level}`,
-      nextStepComplete: 'Beta pública completada. Replay, comparte o revisa la clasificación.',
+      nextStepSignIn: 'Inicia sesión para desbloquear el tier competitivo L6+.',
+      nextStepStart: (level: number) => `Run recomendado: Level ${level}`,
+      nextStepComplete: 'Replay, comparte o revisa la clasificación.',
     },
     actions: {
       continueToLevel: (level: number) => `Continuar a L${level}`,
-      runL0: 'Correr L0',
+      runL0: 'Correr Level 0',
       signInToCompete: 'Inicia sesión para competir',
       openLeaderboard: 'Abrir clasificación',
       openProfile: 'Abrir perfil',
@@ -488,9 +449,9 @@ export const esMx = {
       suggestedTime: (minutes: number) => `~${minutes} min sugeridos`,
       bandLabel: (band: string) => `Banda ${band}`,
       smokeTestBadge: 'Prueba de humo · sin costo de IA',
-      runLevel0: 'Correr L0',
+      runLevel0: 'Correr Level 0',
       signInRequiredBadge: 'Requiere inicio de sesión',
-      signInUnlockLevels: 'Inicia sesión para desbloquear L6-L8',
+      signInUnlockLevels: 'Inicia sesión para desbloquear L6+',
       progressionLocked: (level: number) => `Bloqueado · primero completa L${level}`,
       goToLevel: (level: number) => `Ir a L${level}`,
       startLevel: (level: number) => `Empezar L${level} →`,
@@ -511,7 +472,7 @@ export const esMx = {
       resourcesEyebrow: 'Contrato de envío',
       resourcesTitle: 'Mantén el lado HTTP explícito',
       resourcesBody:
-        'Mantén el lado HTTP explícito solo cuando estés cableando tu propio agente o script. La ruta principal de juego sigue siendo: carga el skill, corre L0, luego continúa.',
+        'Mantén el lado HTTP explícito solo cuando estés cableando tu propio agente o script. La ruta principal de juego sigue siendo: carga el skill, corre Level 0, luego continúa.',
       copyAgentPrompt: 'Copiar arranque de agente',
       copiedAgentPrompt: 'Arranque de agente copiado',
       copySubmitContract: 'Copiar contrato de envío',
@@ -529,11 +490,44 @@ export const esMx = {
       ],
     },
   },
+  run: {
+    fallbackTitle: 'Handoff de run',
+    fallbackDescription: 'Página de handoff de run de Kolk Arena.',
+    metaTitle: (level: number) => `Handoff de Level ${level}`,
+    metaDescription: (level: number) =>
+      `Abre el handoff de Kolk Arena Level ${level} sin exponer un attemptToken en la URL.`,
+    eyebrow: 'Handoff para agente',
+    title: (level: number) => `Handoff de Level ${level}`,
+    body: (level: number) =>
+      `Una entrada ligera para Kolk Arena Level ${level}. Copia el comando para agentes CLI o abre la página del reto para agentes con navegador en la misma sesión.`,
+    commandEyebrow: 'Comando de una línea',
+    commandTitle: 'Obtener el paquete del reto',
+    commandNote:
+      'Esta página no obtiene un attemptToken. Ejecutar el comando obtiene el paquete y guarda localmente el cookie jar anónimo para el submit.',
+    copyCommand: 'Copiar comando',
+    copiedCommand: 'Comando copiado',
+    browserAgentEyebrow: 'Agente de navegador',
+    browserAgentTitle: 'Abrir la página del reto en vivo',
+    browserAgentBody:
+      'Entrega este enlace a un agente que pueda usar navegador. La página del reto controla la sesión de fetch y submit; no pongas valores attemptToken en URLs.',
+    openChallenge: 'Abrir reto',
+    viewLeaderboard: 'Ver clasificación',
+    copyChallengeUrl: 'Copiar URL del reto',
+    copiedChallengeUrl: 'URL del reto copiada',
+    guardrailEyebrow: 'Regla de token',
+    guardrailBody:
+      'Los valores attemptToken son solo para bodies de request. Consérvalos en la misma sesión del navegador o cookie jar, y envía con un header Idempotency-Key.',
+    linksTitle: 'Enlaces copiables',
+    challengeUrlLabel: 'URL del reto',
+    apiUrlLabel: 'URL de API',
+    copyApiUrl: 'Copiar URL de API',
+  },
   challenge: {
     header: {
       backToPlay: '← Jugar',
       levelBand: (level: number, band: string) => `L${level} · Banda ${band}`,
-      bossLevel: 'Nivel jefe',
+      bossLevel: 'Paquete avanzado',
+      advancedHint: 'Paquete avanzado. Revisa el brief con cuidado: puede traer trampas.',
       resultLevelTitle: (level: number, levelName: string) => `L${level} · ${levelName}`,
     },
     agentPanel: {
@@ -674,7 +668,7 @@ export const esMx = {
       tryNextLevel: (next: number) => `Intenta L${next} primero`,
       levelAlreadyPassed: 'Nivel ya completado',
       levelNotAvailable: 'Nivel no disponible',
-      levelsCta: 'Ver niveles de beta pública (L0-L8)',
+      levelsCta: 'Ver niveles de beta pública',
       noChallenges: 'No hay retos disponibles ahora',
       schemaNotReady: 'Servicio temporalmente no disponible',
       couldNotLoad: 'No se pudo cargar el reto',
@@ -753,21 +747,23 @@ export const esMx = {
       retryLevel: (level: number) => `Reintentar L${level}`,
       backToPlay: 'Volver a Jugar',
       leaderboard: 'Clasificación',
-      replayEyebrow: 'Beta completada',
+      replayEyebrow: 'Replay desbloqueado',
       replayTitle: 'Modo replay desbloqueado',
       joinDiscord: 'Unirme a Discord',
       shareResult: 'Compartir resultado',
+      copyResultLink: 'Copiar enlace del resultado',
+      copiedResultLink: 'Enlace del resultado copiado',
       registerEyebrow: 'Guarda tu progreso',
-      registerTitle: 'Desbloquea L6-L8 y la escalera competitiva',
+      registerTitle: 'Desbloquea el juego competitivo L6+',
       registerBody:
-        'Acabas de desbloquear L5. Iniciar sesión conserva tu progreso bajo una identidad verificada y habilita el juego calificado L6-L8. Los runs anónimos L1-L5 ya pueden aparecer públicamente como Anonymous <4>.',
+        'Acabas de desbloquear L5. Iniciar sesión conserva tu progreso bajo una identidad verificada y habilita el juego calificado L6+. Los runs anónimos del tier inicial ya pueden aparecer públicamente como Anonymous <4>.',
       registerCta: 'Iniciar sesión',
       registerDismiss: 'Seguir jugando anónimamente',
     },
   },
   leaderboard: {
     metaDescription:
-      'Sigue la escalera pública de la beta de Kolk Arena, inspecciona el detalle de jugadores y observa el movimiento en vivo en L0-L8.',
+      'Sigue la escalera pública de la beta de Kolk Arena, inspecciona el detalle de jugadores y observa el movimiento en vivo.',
     heroEyebrow: 'Clasificación en vivo',
     heroTitle: 'Clasificación',
     heroDescription:
@@ -837,7 +833,7 @@ export const esMx = {
     },
     activityFeed: {
       title: 'Actividad en vivo',
-      filterAllTiers: 'Actividad L1-L8',
+      filterAllTiers: 'Actividad',
       listeningSubmissions: 'Escuchando envíos...',
       liveBadge: 'EN VIVO · 5s',
       rowVerbPassed: 'acaba de pasar',
@@ -1044,7 +1040,7 @@ export const esMx = {
     LEVEL_ALREADY_PASSED:
       'Ya pasaste este nivel. Elige el siguiente o juega replay desde /play.',
     LEVEL_NOT_AVAILABLE:
-      'Este nivel no está disponible en la beta pública actual. Elige uno de la escalera L0-L8.',
+      'Este nivel no está disponible en la beta pública actual. Elige un nivel disponible desde /play.',
     AUTH_REQUIRED:
       'Necesitas iniciar sesión para acceder a este recurso.',
     INSUFFICIENT_SCOPE:

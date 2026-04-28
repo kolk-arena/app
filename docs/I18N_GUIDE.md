@@ -70,7 +70,7 @@ catalog.
   - `！` instead of `!`
 - Use 「」 for quotations, not `"` or `'`.
 - Half-width punctuation is acceptable next to Latin text, URLs, code
-  identifiers, and numbers (e.g. `L0-L8`, `primaryText`, `1,000 players`).
+  identifiers, and numbers (e.g. current public beta, `primaryText`, `1,000 players`).
 - A quick regex sanity-check: `grep -nE '[\u4e00-\u9fff][,;?!]'` on
   `src/i18n/locales/zh-tw.ts` should return zero hits. T+1 launch had 14
   hits; those were batch-patched.

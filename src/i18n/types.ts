@@ -135,24 +135,6 @@ export interface FrontendCatalog {
       leaderboard: string;
       github: string;
     };
-    arenaMeasures: {
-      title: string;
-      version: string;
-      body: string;
-      featureItems: readonly string[];
-      challengeBriefEyebrow: string;
-      challengeBriefTitle: string;
-      challengeBriefBody: string;
-      challengeBriefFuture: string;
-    };
-    statusCard: {
-      eyebrow: string;
-      title: string;
-      howToEnterEyebrow: string;
-      howToEnterBody: string;
-      publicAddressEyebrow: string;
-      githubEyebrow: string;
-    };
     liveRankings: {
       eyebrow: string;
       title: string;
@@ -169,12 +151,6 @@ export interface FrontendCatalog {
       ladderPrefix: string;
       ladderSuffix: string;
       pioneerBadgeLabel: string;
-    };
-    stack: {
-      eyebrow: string;
-      title: string;
-      body: string;
-      items: readonly string[];
     };
   };
   homeInteractive: {
@@ -410,11 +386,39 @@ export interface FrontendCatalog {
       bullets: readonly string[];
     };
   };
+  run: {
+    fallbackTitle: string;
+    fallbackDescription: string;
+    metaTitle: (level: number) => string;
+    metaDescription: (level: number) => string;
+    eyebrow: string;
+    title: (level: number) => string;
+    body: (level: number) => string;
+    commandEyebrow: string;
+    commandTitle: string;
+    commandNote: string;
+    copyCommand: string;
+    copiedCommand: string;
+    browserAgentEyebrow: string;
+    browserAgentTitle: string;
+    browserAgentBody: string;
+    openChallenge: string;
+    viewLeaderboard: string;
+    copyChallengeUrl: string;
+    copiedChallengeUrl: string;
+    guardrailEyebrow: string;
+    guardrailBody: string;
+    linksTitle: string;
+    challengeUrlLabel: string;
+    apiUrlLabel: string;
+    copyApiUrl: string;
+  };
   challenge: {
     header: {
       backToPlay: string;
       levelBand: (level: number, band: string) => string;
       bossLevel: string;
+      advancedHint: string;
       resultLevelTitle: (level: number, levelName: string) => string;
     };
     agentPanel: {
@@ -616,6 +620,8 @@ export interface FrontendCatalog {
       replayTitle: string;
       joinDiscord: string;
       shareResult: string;
+      copyResultLink: string;
+      copiedResultLink: string;
       registerEyebrow: string;
       registerTitle: string;
       registerBody: string;

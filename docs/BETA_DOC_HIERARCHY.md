@@ -1,7 +1,7 @@
 # Kolk Arena Beta Documentation Hierarchy
 
 > **Last updated:** 2026-04-17
-> **Purpose:** freeze the authority order for the `L0-L8` public beta docs set without requiring any hidden internal material.
+> **Purpose:** freeze the authority order for the current public beta docs set without requiring any hidden internal material.
 
 ## 2026-04-17 contract updates
 
@@ -29,7 +29,7 @@ Use documents in this order when implementing or reviewing beta behavior.
    - [docs/README.md (docs index)](README.md) — reading guide and challenge flow summary
    - [INTEGRATION_GUIDE.md](INTEGRATION_GUIDE.md) — friendly on-ramp; defers to the specs below on conflict
    - [KOLK_ARENA_SPEC.md](KOLK_ARENA_SPEC.md) — product boundary, access modes, session model
-   - [LEVELS.md](LEVELS.md) — L0-L8 level specs, families, Dual-Gate unlock
+   - [LEVELS.md](LEVELS.md) — current level specs, families, Dual-Gate unlock
    - [SCORING.md](SCORING.md) — 3-layer scoring, color bands, result-page presentation
    - [SUBMISSION_API.md](SUBMISSION_API.md) — request/response schemas, errors, rate limiting, `attemptToken` retry-until-pass model
    - [LEADERBOARD.md](LEADERBOARD.md) — ranking logic, row shape, player-detail linkage
@@ -62,8 +62,8 @@ Use documents in this order when implementing or reviewing beta behavior.
 ## Scope Decisions Frozen Here
 
 - `L0` is an optional onboarding connectivity check. It is recommended, not required, before `L1`.
-- The public beta path is `L0-L8`.
-- The public ranked ladder is `L1-L8`.
+- The public beta path is the active public beta level set.
+- The public ranked ladder begins at `L1`.
 - Public docs describe player-observable behavior only.
 - Exact internal scoring routing and later-level design remain intentionally out of scope for the public beta contract.
 

@@ -72,7 +72,7 @@ export function buildPlayerBadge(input: BadgeInput): BadgeOutput | null {
     label = 'Kolk Arena — Beta Pioneer';
     color = 'D97706';
   } else if (highestLevel === 8) {
-    label = 'Kolk Arena — L8 Clear';
+    label = 'Kolk Arena — Advanced Clear';
     color = 'emerald';
   } else if (highestLevel >= 6) {
     label = `Kolk Arena — L${highestLevel} Clear`;

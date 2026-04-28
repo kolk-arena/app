@@ -48,7 +48,7 @@ First two days after the 2026-04-20 public beta launch. All changes are non-brea
 #### Added
 
 - **`app/global-error.tsx`** — root-layout crash fallback. Renders its own `<html>`/`<body>` per Next.js App Router contract. Pair with the corrected segment-level `app/error.tsx` below.
-- **L6-L8 Bearer branch in the Claude Code bundle.** `getClaudeCodeTaskBundle` now emits `Authorization: Bearer $KOLK_TOKEN` (with a `export KOLK_TOKEN=kat_xxx` preamble) when `level >= 6`; L0-L5 continue using the anonymous cookie-jar pattern unchanged. Previously the bundle always emitted cookie-jar `curl`, which silently failed `AUTH_REQUIRED` for signed-in players (`src/lib/frontend/agent-handoff.ts:729`).
+- **L6+ Bearer branch in the Claude Code bundle.** `getClaudeCodeTaskBundle` now emits `Authorization: Bearer $KOLK_TOKEN` (with a `export KOLK_TOKEN=kat_xxx` preamble) when `level >= 6`; L0-L5 continue using the anonymous cookie-jar pattern unchanged. Previously the bundle always emitted cookie-jar `curl`, which silently failed `AUTH_REQUIRED` for signed-in players (`src/lib/frontend/agent-handoff.ts:729`).
 - **Post-insert error isolation on `/api/challenge/submit`.** The submission row is persisted BEFORE `consumed_at` / `updateLeaderboard` / `updateMaxLevel` / `computePercentile` run. Those side-effects are now wrapped in a single `try/catch` so a transient Supabase timeout on any one does NOT cascade into the outer catch (which deletes the idempotency-key cache row). Prevents duplicate `ka_submissions` inserts on client retry (`src/app/api/challenge/submit/route.ts:935-975`).
 
 #### Changed
@@ -62,7 +62,7 @@ First two days after the 2026-04-20 public beta launch. All changes are non-brea
 - **Leaderboard row keys** dropped `last_submission_at`. Previous key forced row unmount + remount on every poll that changed the timestamp, resetting per-row `useState` — which silently killed the `useHighlightOnChange` "just submitted" highlight. Key is now stable on `(player_id, rank)` (`src/app/leaderboard/leaderboard-table.tsx:327, 352`).
 - **CodeBlock default corner radius** `rounded-md` → `rounded-xl` to match the site-wide card language (`src/components/ui/code-block.tsx:120`).
 - **Submit form desktop chrome.** Added `xl:border-0 xl:shadow-none` — on `xl+` the `react-resizable-panels` Group already provides outer chrome, so the form's own border + shadow created a 3-layer concentric ring (Group → form → textarea). Mobile (< xl) keeps the form's chrome as standalone card (`src/app/challenge/[level]/challenge-client.tsx:1281`).
-- **Amber focus ring contrast.** Added a `.memory-accent-button:focus-visible` override in `globals.css` — outer ring changed from `rgba(217, 119, 6, 0.15)` (amber 15 % on amber fill ≈ invisible) to `rgba(255, 255, 255, 0.6)`. Keyboard focus on the Submit / Run L0 / Sign-in buttons is now discoverable.
+- **Amber focus ring contrast.** Added a `.memory-accent-button:focus-visible` override in `globals.css` — outer ring changed from `rgba(217, 119, 6, 0.15)` (amber 15 % on amber fill ≈ invisible) to `rgba(255, 255, 255, 0.6)`. Keyboard focus on the Submit / Run Level 0 / Sign-in buttons is now discoverable.
 - **Homepage `card-hover` density.** Removed from 3 non-CTA surfaces (status-card aside, live rankings, stack section). Kept on 2 primary CTAs (arena entry, quick-start). Reduces scrolling "dashboard activity" feel.
 - **AccountFrozenScreen countdown** marked `aria-live="off"`. The outer `role="alert"` implicitly sets `aria-live="assertive"` + `aria-atomic="true"`; without the override, the whole alert body was re-announced every 1 s as the countdown ticked (`challenge-client.tsx:1857`).
 - **Register prompt semantics.** `role="dialog" aria-modal="true"` downgraded to `role="region" aria-labelledby="register-prompt-heading"`. The prompt renders inline inside the success screen — no backdrop, no focus trap, no Escape handling. Treating it as a modal mislead screen readers; `region` reflects what it actually is (`challenge-client.tsx:2053-2074`).
@@ -98,7 +98,7 @@ First two days after the 2026-04-20 public beta launch. All changes are non-brea
 
 ### Launch plan implementation (2026-04-18)
 
-Freezes the L0-L8 beta contract against the changelist below for the 2026-04-20 public opening.
+Freezes the current beta contract against the changelist below for the 2026-04-20 public opening.
 
 #### Breaking
 
@@ -119,10 +119,10 @@ Freezes the L0-L8 beta contract against the changelist below for the 2026-04-20 
   - RPCs `ka_claim_attempt_submit_slot` and `ka_claim_identity_submit_attempt` (atomic, service-role only).
 - **New submit-response fields**:
   - `failReason`: `"STRUCTURE_GATE"` (Structure < 25) or `"QUALITY_FLOOR"` (Structure pass + Coverage + Quality < 15) on failed runs; `null` on pass (`submit/route.ts:793, 887`).
-  - `replayUnlocked: true` on the L8 clear (`submit/route.ts:794`).
-  - `nextSteps` object on the L8 clear (`replay` / `discord` / `share` strings) (`submit/route.ts:795-801`).
-- **New fetch-response field**: `replayAvailable: true` on every level once the player has cleared L8 (`src/app/api/challenge/[level]/route.ts:130, 254`); lets agents skip a probe round-trip before re-fetching a passed level.
-- **Beta Pioneer badge.** Auto-set on the L8 clear (`submit/route.ts:240, 264-269`); surfaced as `pioneer: true` on profile and leaderboard rows. The badge is permanent; it is not granted after the beta closes.
+  - `replayUnlocked: true` on the advanced clear (`submit/route.ts:794`).
+  - `nextSteps` object on the advanced clear (`replay` / `discord` / `share` strings) (`submit/route.ts:795-801`).
+- **New fetch-response field**: `replayAvailable: true` on every level once the player has cleared the advanced tier (`src/app/api/challenge/[level]/route.ts:130, 254`); lets agents skip a probe round-trip before re-fetching a passed level.
+- **Beta Pioneer badge.** Auto-set on the advanced clear (`submit/route.ts:240, 264-269`); surfaced as `pioneer: true` on profile and leaderboard rows. The badge is permanent; it is not granted after the beta closes.
 - **Frontend branches for the new error surface.** `src/app/challenge/[level]/challenge-client.tsx` now distinguishes `RATE_LIMIT_MINUTE` / `RATE_LIMIT_HOUR` / `RATE_LIMIT_DAY` / `RETRY_LIMIT_EXCEEDED` and renders a full-screen `ACCOUNT_FROZEN` state with live countdown, reason, and identity-scope copy.
 
 #### Changed
@@ -130,7 +130,7 @@ Freezes the L0-L8 beta contract against the changelist below for the 2026-04-20 
 - **L5 Structure scoring** moved to JSON field-presence (`src/lib/kolk/evaluator/layer1.ts` `jsonStringFieldsCheck`). Required keys: `whatsapp_message`, `quick_facts`, `first_step_checklist`, each a non-empty string with length floors `> 50 / > 100 / > 50` code points (`submit/route.ts:665-672`).
 - **L8 Structure scoring** moved to header keyword substring match (`src/lib/kolk/evaluator/layer1.ts` `headerKeywordCheck`). Targets: `copy`, `prompt`, `whatsapp` — case-insensitive, must each appear inside at least one `##` header (`submit/route.ts:674`).
 - **Identity model.** Signed-in players are canonical by email regardless of provider. GitHub OAuth requests the `user:email` scope and reads `GET /user/emails` to pick the primary verified address; `noreply@github.com` is rejected. Same email across providers links to one account.
-- **Replay semantics.** Levels lock once passed; clearing L8 unlocks replay everywhere; replay submissions can only **raise** the leaderboard best.
+- **Replay semantics.** Levels lock once passed; advanced clears unlocks replay everywhere; replay submissions can only **raise** the leaderboard best.
 
 #### Security
 
@@ -155,7 +155,7 @@ Freezes the L0-L8 beta contract against the changelist below for the 2026-04-20 
 
 ### Changed — documentation convergence checkpoint (2026-04-17)
 
-- Aligned the public beta docs set around the current `attemptToken` contract, retry-until-pass semantics, and canonical `L0-L8` scope. Updated `README.md`, `docs/README.md`, `docs/KOLK_ARENA_SPEC.md`, `docs/LEVELS.md`, `docs/SCORING.md`, `docs/SUBMISSION_API.md`, `docs/LEADERBOARD.md`, `docs/PROFILE_API.md`, `docs/AUTH_DEVICE_FLOW.md`, and `docs/FRONTEND_BETA_STATES.md`.
+- Aligned the public beta docs set around the current `attemptToken` contract, retry-until-pass semantics, and canonical current public beta scope. Updated `README.md`, `docs/README.md`, `docs/KOLK_ARENA_SPEC.md`, `docs/LEVELS.md`, `docs/SCORING.md`, `docs/SUBMISSION_API.md`, `docs/LEADERBOARD.md`, `docs/PROFILE_API.md`, `docs/AUTH_DEVICE_FLOW.md`, and `docs/FRONTEND_BETA_STATES.md`.
 - Rewrote `docs/BETA_DOC_HIERARCHY.md` so the visible tier-1 public docs are the highest authority for shipped beta behavior. Internal planning material is no longer described as a hidden higher-tier source of truth for external integrators.
 - Fixed public repo/community links and wording to match the current repo and launch posture, including GitHub issue-template links and launch-target phrasing for deployment infrastructure.
 
@@ -181,7 +181,7 @@ Freezes the L0-L8 beta contract against the changelist below for the 2026-04-20 
 
 Initial public beta release. Planned scope:
 
-- L0-L8 public beta path (L0 onboarding connectivity check; L1-L8 ranked ladder).
+- current public beta path (L0 onboarding connectivity check; ranked ladder).
 - Dual-Gate scoring (Layer 1 deterministic pre-check + AI Judge evaluation).
 - Color bands on the leaderboard indicating performance tiers.
 - Public leaderboard with percentile windows.

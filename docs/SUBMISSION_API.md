@@ -1,6 +1,6 @@
 # Kolk Arena Submission API
 
-> **Last updated: 2026-04-21 (T+1 post-launch).** Describes the API contract for the **L0-L8 public beta path** and the **L1-L8 ranked ladder**. T+1 added the post-insert side-effect isolation note below (leaderboard / max-level / percentile are best-effort once the submission row is committed).
+> **Last updated: 2026-04-21 (T+1 post-launch).** Describes the API contract for the **current public beta path** and the **ranked ladder**. T+1 added the post-insert side-effect isolation note below (leaderboard / max-level / percentile are best-effort once the submission row is committed).
 
 This document describes the current implementation contract. It replaces the older `challenge_id + job_id + run_log` submission model.
 
@@ -59,7 +59,7 @@ Note that `primaryText` is a **string** (JSON escaped); the JSON object lives in
 - subject to Dual-Gate unlock
 - leaderboard eligible when the run clears the Dual-Gate; public rows appear as `Anonymous <4>`
 
-### Competitive play (`L6-L8` in the current public beta)
+### Competitive play (L6+ in the current public beta)
 
 - required for the competitive levels currently enabled in public beta
 - backed by verified Kolk Arena identity
@@ -155,7 +155,7 @@ Fetch a challenge package for a level.
 
 Headers:
 
-- `Authorization: Bearer <token>` is optional for `L0-L5` and required for external API/PAT callers on competitive levels in the current public beta (`L6-L8`). A signed-in browser page may use its same-site session cookie instead.
+- `Authorization: Bearer <token>` is optional for `L0-L5` and required for external API/PAT callers on competitive levels in the current public beta (L6+). A signed-in browser page may use its same-site session cookie instead.
 
 Server behavior:
 
@@ -300,20 +300,20 @@ Possible extra fields:
 }
 ```
 
-`LEVEL_ALREADY_PASSED` example (same level already cleared; replay unlocks only after `L8`):
+`LEVEL_ALREADY_PASSED` example (same level already cleared; replay is still locked):
 
 ```json
 {
-  "error": "You've already passed this level. Complete L8 to unlock replay mode.",
+  "error": "You've already passed this level. Advance further to unlock replay mode.",
   "code": "LEVEL_ALREADY_PASSED"
 }
 ```
 
-`LEVEL_NOT_AVAILABLE` example (level outside the current `L0-L8` public beta range):
+`LEVEL_NOT_AVAILABLE` example (level outside the current public beta range):
 
 ```json
 {
-  "error": "This level is not available in the L0-L8 public beta.",
+  "error": "This level is not available in the current public beta.",
   "code": "LEVEL_NOT_AVAILABLE"
 }
 ```
@@ -534,8 +534,8 @@ Field notes:
 - `unlocked` — Dual-Gate result. `false` if `structureScore < 25` **or** `coverageScore + qualityScore < 15`, even if `totalScore` is inside a YELLOW/GREEN numeric band
 - `failReason` — `null` when unlocked; otherwise `STRUCTURE_GATE` or `QUALITY_FLOOR`
 - `showRegisterPrompt` — omitted in normal cases; may be `true` only for an anonymous unlocked `L5` run
-- `replayUnlocked` — omitted in normal cases; may be `true` only when an unlocked submission clears `L8`
-- `nextSteps` — present only with `replayUnlocked`; contains post-`L8` replay/community links
+- `replayUnlocked` — omitted in normal cases; may be `true` only when an unlocked submission enables replay mode
+- `nextSteps` — present only with `replayUnlocked`; contains post-clear replay/community links
 
 If the structural gate fails, `coverageScore` and `qualityScore` are `0`.
 If combined coverage + quality is below `15`, the run remains locked even if structure passed.
@@ -809,7 +809,7 @@ Practically: if you receive a 5xx, honour any `Retry-After` you get, then submit
 ## Auth Notes
 
 - `L0-L5` can be fetched and submitted anonymously.
-- Competitive levels in the current public beta (`L6-L8`) require an authenticated arena identity.
+- Competitive levels in the current public beta (L6+) require an authenticated arena identity.
 - identity continuity is email-based for account linking, but submit authorization is session-based at runtime
 - the session owner is authoritative during submit
 

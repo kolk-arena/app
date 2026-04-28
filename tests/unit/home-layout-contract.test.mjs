@@ -45,6 +45,12 @@ test('top-level app shells keep consistent site gutters and loading parity', () 
   assert.ok(leaderboardPageSource.includes(leaderboardShell), 'leaderboard fallback should match the hydrated shell');
   assert.ok(leaderboardClientSource.includes(leaderboardShell), 'leaderboard client shell should stay aligned');
   assert.ok(leaderboardClientSource.includes('2xl:grid-cols-[minmax(52rem,1fr)_minmax(22rem,0.45fr)]'), 'leaderboard detail split should only activate when the standings table has enough width');
+  assert.equal(
+    leaderboardClientSource.split('xl:grid-cols-[minmax(0,1fr)_minmax(22rem,32rem)]').length - 1,
+    2,
+    'leaderboard hero summary and filter rail should use the same desktop column width',
+  );
+  assert.equal(leaderboardClientSource.includes('lg:grid-cols-[minmax(0,1fr)_20rem]'), false);
 
   assert.ok(challengeSource.includes('mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6 sm:py-12 lg:px-8'));
   assert.equal(challengeSource.includes('mx-auto flex max-w-5xl flex-col gap-6 px-4 py-10'), false);

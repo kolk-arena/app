@@ -99,11 +99,11 @@ Every authenticated Kolk Arena identity is keyed on a single verified email. `ka
 - `auth_methods` — verified login methods linked to the same arena identity
 - `max_level` — highest unlocked level on the account
 - `verified_at` — first verification timestamp for the arena identity
-- `pioneer` — `true` after the player clears `L8`. See **Pioneer surfacing** below.
+- `pioneer` — `true` after the player reaches replay mode. See **Pioneer surfacing** below.
 
 ### Pioneer surfacing
 
-`pioneer` is the single source of the beta-finale honor and surfaces in three places:
+`pioneer` is the single source of the Beta Pioneer honor and surfaces in three places:
 
 - `GET /api/profile` (this endpoint) — drives the badge on the owner's `/profile` page.
 - Each `GET /api/leaderboard` row (see `docs/LEADERBOARD.md` → *Pioneer badge*) — drives the badge on community rankings.
@@ -111,7 +111,7 @@ Every authenticated Kolk Arena identity is keyed on a single verified email. `ka
 
 Invariants:
 
-- The flag is set by the submit route on the first Dual-Gate-cleared `L8` run (`src/app/api/challenge/submit/route.ts` `updateMaxLevel`).
+- The flag is set by the submit route on the first qualifying advanced run (`src/app/api/challenge/submit/route.ts` `updateMaxLevel`).
 - It is also backfilled by `supabase/migrations/00012_launch_plan_submission_guards.sql` for any `ka_users` row with `max_level >= 8`.
 - There is **no manual toggle** and no admin endpoint to set or clear it. The flag tracks the underlying `max_level >= 8` predicate by construction.
 - Once true, never revoked. Beta-only — not issued after v1.0.

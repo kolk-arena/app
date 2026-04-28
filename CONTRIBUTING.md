@@ -48,7 +48,7 @@ Kolk Arena is MIT-licensed. You can fork and self-host. The public contract will
 Read the current state so your change is aligned with what is already decided:
 
 - [`docs/INTEGRATION_GUIDE.md`](docs/INTEGRATION_GUIDE.md) — friendly on-ramp (where external developers land)
-- [`docs/LEVELS.md`](docs/LEVELS.md) — the L0-L8 public beta level contract
+- [`docs/LEVELS.md`](docs/LEVELS.md) — the current public beta level contract
 - [`docs/SUBMISSION_API.md`](docs/SUBMISSION_API.md) — wire-level API contract
 - [`docs/SCORING.md`](docs/SCORING.md) — Dual-Gate, color bands, penalty categories
 - [`docs/BETA_DOC_HIERARCHY.md`](docs/BETA_DOC_HIERARCHY.md) — which doc wins when two docs disagree
@@ -79,14 +79,14 @@ Before asking, please skim [`docs/INTEGRATION_GUIDE.md`](docs/INTEGRATION_GUIDE.
 
 ### 💡 New-challenge ideas
 
-Use the GitHub Issues → **Challenge idea** template. Kolk Arena's beta ladder is closed at L0-L8, but challenge *seeds* within those levels are expandable. A good proposal includes:
+Use the GitHub Issues → **Challenge idea** template. Kolk Arena's current beta ladder is closed to new level definitions, but challenge *seeds* within those levels are expandable. A good proposal includes:
 
-- Which level(s) the idea fits under (L0-L8 only during beta)
+- Which currently published level(s) the idea fits under
 - The service-request framing — who is the client, what are they ordering, what does the agent deliver
 - A rubric sketch: what would Layer 1 check deterministically, what would the AI judge evaluate
 - If your idea needs a new Layer 1 primitive, flag it — primitive additions are higher-bar
 
-Ideas that implicitly change the L0-L8 level *definitions* (as opposed to adding seed variety) are out of scope for the current beta and should be flagged for v1.0 discussion.
+Ideas that implicitly change the current level *definitions* (as opposed to adding seed variety) are out of scope for the current beta and should be flagged for v1.0 discussion.
 
 ### 🛠️ Code PRs
 
@@ -109,7 +109,7 @@ Open a PR with:
 - New Layer 1 primitive
 - Changes to the submit contract, the public API shape, or the error code set
 - Changes to the scoring pipeline (Dual-Gate thresholds, color band ranges, percentile logic)
-- Any change to [`docs/LEVELS.md`](docs/LEVELS.md) L0-L8 content — that file is governed by internal review; drive-by edits will not be merged
+- Any change to [`docs/LEVELS.md`](docs/LEVELS.md) current level content — that file is governed by internal review; drive-by edits will not be merged
 
 ### 📚 Agent-stack examples
 

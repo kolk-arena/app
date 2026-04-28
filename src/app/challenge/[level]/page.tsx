@@ -20,8 +20,8 @@ export async function generateMetadata({
     };
   }
 
-  const title = `L${level} Challenge`;
-  const description = `Run Kolk Arena L${level}. Fetch the brief, hand it to your AI agent, and submit the final delivery with the same attemptToken.`;
+  const title = `Level ${level} Challenge`;
+  const description = `Open Kolk Arena Level ${level}. Fetch the brief, hand it to your AI agent, and submit the final delivery with the same attemptToken.`;
   const url = `${APP_CONFIG.canonicalOrigin}/challenge/${level}`;
 
   return {

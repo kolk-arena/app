@@ -1,14 +1,14 @@
 # Kolk Arena Leaderboard
 
-> **Last updated: 2026-04-18 (public beta contract alignment).** Describes leaderboard semantics for the **L1-L8 public beta**.
+> **Last updated: 2026-04-18 (public beta contract alignment).** Describes leaderboard semantics for the **public beta ranked ladder**.
 
 This document describes the public beta leaderboard contract for the ranked ladder.
 
 ## Purpose
 
-The leaderboard is the public competitive surface for unlocked `L1-L8` runs. It is intentionally progression-first, not raw-score-first.
+The leaderboard is the public competitive surface for unlocked ranked runs. It is intentionally progression-first, not raw-score-first.
 
-Anonymous `L1-L5` clears appear publicly as `Anonymous <4>`. `L6-L8` remain the authenticated competitive tier.
+Anonymous `L1-L5` clears appear publicly as `Anonymous <4>`. L6+ remain the authenticated competitive tier.
 
 ---
 
@@ -16,9 +16,9 @@ Anonymous `L1-L5` clears appear publicly as `Anonymous <4>`. `L6-L8` remain the 
 
 A run is currently leaderboard-eligible only when:
 
-- the submission is on the ranked ladder (`L1-L8`; `L0` is excluded)
+- the submission is on the ranked ladder (`L0` is excluded)
 - the submission unlocks the level under Dual-Gate
-- the identity is valid for that level: anonymous or signed-in for `L1-L5`, signed-in only for `L6-L8`
+- the identity is valid for that level: anonymous or signed-in for `L1-L5`, signed-in only for L6+
 
 Current implementation note:
 
@@ -62,7 +62,7 @@ Row field semantics:
 - `affiliation` — optional team / company / campus label from the player's profile
 - `efficiency_badge` — `true` when the best run's `solve_time_seconds <= suggested_time_minutes * 60` for that level. Drives the ⚡ icon on the row. Does **not** affect rank order
 - `solve_time_seconds` — canonical tie-break for identical `best_score_on_highest`. Faster wins
-- `pioneer` — `true` after the player clears `L8`; drives the beta-finale community badge
+- `pioneer` — `true` after the player reaches replay mode; drives the Beta Pioneer community badge
 
 Top-level response:
 
@@ -86,10 +86,10 @@ Supported query params (verified against `src/app/api/leaderboard/route.ts`):
 
 `pioneer` is a boolean flag on both `ka_users` (per `supabase/migrations/00012_launch_plan_submission_guards.sql`) and on each leaderboard row (per `src/lib/kolk/leaderboard/ranking.ts` and `src/app/api/challenge/submit/route.ts:240`).
 
-- **Set when:** the player passes `L8`. The submit handler updates `ka_users.pioneer = true` whenever a Dual-Gate-cleared submission for `L8` lands, and writes `pioneer: highestLevel >= 8` into the leaderboard row aggregate.
+- **Set when:** the player earns an advanced clear. The submit handler updates `ka_users.pioneer = true` whenever the qualifying Dual-Gate-cleared submission lands, and writes `pioneer: highestLevel >= 8` into the leaderboard row aggregate.
 - **Backfilled:** migration `00012` runs `UPDATE ka_users SET pioneer = true WHERE COALESCE(max_level, 0) >= 8` on apply.
 - **Never revoked:** there is no code path that clears `pioneer`. Once true, always true.
-- **Beta-only honor:** new pioneers will not be issued after the v1.0 cutover. The current `L8` clear is the qualifying event for the beta cohort.
+- **Beta-only honor:** new pioneers will not be issued after the v1.0 cutover. The advanced clear is the qualifying event for the beta cohort.
 - **Display only:** `pioneer` is rendered as a badge on leaderboard rows and on `/leaderboard/[playerId]`. It is **not** part of the sort key (see Ranking Logic).
 
 ### Percentile
@@ -143,7 +143,7 @@ Current row semantics:
 - `affiliation`: optional team / company / campus label from the player's profile (may be `null`)
 - `efficiency_badge`: `true` when the best run on `highest_level` completed within that level's `suggested_time_minutes`; drives the ⚡ icon and does not affect rank
 - `solve_time_seconds`: canonical tie-break for identical `best_score_on_highest`; faster wins
-- `pioneer`: `true` after the player clears `L8`
+- `pioneer`: `true` after the player reaches replay mode
 - `total_score`: aggregate score retained in the leaderboard row
 - `levels_completed`: count of unlocked levels represented in the aggregate
 - `tier`: derived progression bucket
@@ -180,7 +180,7 @@ Implemented now:
 - `affiliation` emitted on each row (self-reported from profile; may be `null`)
 - `best_color_band` + `best_quality_label` emitted on each row (drives the color dot)
 - `efficiency_badge` emitted on each row (drives the ⚡ icon)
-- `pioneer` emitted on each row (drives the beta-finale badge)
+- `pioneer` emitted on each row (drives the Beta Pioneer badge)
 
 Not implemented yet:
 

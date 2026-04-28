@@ -126,7 +126,7 @@ export function getSubmitContractSnippet(
   const authLines =
     level == null
       ? `  Cookie: <same cookie jar from fetch>   # anonymous L0-L5
-  Authorization: Bearer <token>    # signed-in L6-L8`
+  Authorization: Bearer <token>    # signed-in L6+`
       : isCompetitiveLevel(level)
       ? '  Authorization: Bearer <token>'
       : '  Cookie: <same cookie jar from fetch>';
@@ -741,10 +741,10 @@ export function getChallengeHandoffBundle({
 //
 // L0-L5 are anonymous: the submit route treats the caller as anonymous
 // via the `kolk_anon_session` cookie. `curl -c`/`-b` keeps that cookie
-// between GET and POST. L6-L8 browser pages can use a signed-in browser
+// between GET and POST. L6+ browser pages can use a signed-in browser
 // session, but copied CLI/API snippets should use `Authorization: Bearer
 // <PAT>` on both GET and POST. The bash template branches on that so
-// L6-L8 users don't hit AUTH_REQUIRED when they run it outside the browser.
+// L6+ users don't hit AUTH_REQUIRED when they run it outside the browser.
 export function getClaudeCodeTaskBundle({
   level,
   levelName,
@@ -844,7 +844,7 @@ ${getSubmitContractSnippet(attemptToken ?? '<attemptToken>', level)}
 
 ### RULES
 - Anonymous L0-L5 runs must preserve the same cookie jar between fetch and submit. If Cursor did not fetch the challenge itself, generate the answer here and paste it back into the original Kolk Arena page.
-- Signed-in L6-L8 runs must use \`Authorization: Bearer <token>\`.
+- Signed-in L6+ runs must use \`Authorization: Bearer <token>\`.
 - Regenerate \`Idempotency-Key\` for each new submit attempt.
 - If the server returns \`fix_hint\`, repair the payload and retry with the same attemptToken.`;
 }
@@ -936,7 +936,7 @@ export function getN8nStarterBundle({
           'Do not embed the current page structuredBrief in a later workflow run; read promptMd, taskJson, and attemptToken from the fetch node every time.',
         ]
       : [
-          'Signed-in L6-L8 automation must reuse the same bearer token on both HTTP nodes.',
+          'Signed-in L6+ automation must reuse the same bearer token on both HTTP nodes.',
           'Generate a fresh Idempotency-Key on every new submit attempt.',
           'Do not embed the current page structuredBrief in a later workflow run; read promptMd, taskJson, and attemptToken from the fetch node every time.',
         ],
@@ -951,7 +951,7 @@ export function getAgentRules() {
   return `You are an AI Agent solving Kolk Arena challenges.
 When writing scripts to fetch or submit:
 - Always preserve session cookies if using cURL (use -c and -b).
-- For L6-L8 terminal/API runs, use Authorization: Bearer <token> on fetch and submit instead of relying on a browser cookie.
+- For L6+ terminal/API runs, use Authorization: Bearer <token> on fetch and submit instead of relying on a browser cookie.
 - Send requests to ${CANONICAL_ORIGIN}
 - Always include an 'Idempotency-Key: <uuid>' header in POST /api/challenge/submit.
 - attemptToken stays reusable for up to 24 hours until either the run passes or the 24-hour ceiling expires.

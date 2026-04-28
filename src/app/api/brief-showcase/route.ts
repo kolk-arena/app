@@ -310,7 +310,7 @@ export async function GET(request: Request) {
         {
           kind: 'challenge_brief_preview',
           synthetic: true,
-          disclaimer: 'Synthetic examples, not customer work. Official play starts from /play or the L0-L8 API.',
+          disclaimer: 'Synthetic examples, not customer work. Official play starts from /play or the public API.',
           officialPlayPath: '/play',
           batchId: 'static-fallback-2026-04-24',
           generatedAt: now.toISOString(),
@@ -334,7 +334,7 @@ export async function GET(request: Request) {
       {
         kind: 'challenge_brief_preview',
         synthetic: true,
-        disclaimer: 'Synthetic examples, not customer work. Official play starts from /play or the L0-L8 API.',
+        disclaimer: 'Synthetic examples, not customer work. Official play starts from /play or the public API.',
         officialPlayPath: '/play',
         batchId: rows[0].batch_id,
         generatedAt: rows[0].generated_at,

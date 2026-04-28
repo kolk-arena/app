@@ -2,7 +2,7 @@
  * GET /api/challenge/:level — Fetch a challenge package
  *
  * Flow:
- * 1. Validate level (public beta publishes L0-L8 here)
+ * 1. Validate level (public beta publishes the current level set here)
  * 2. Check level gating (must unlock N-1 to attempt N; anon for L0-L5)
  * 3. Pick a random challenge NOT already submitted by this user
  * 4. Create a ka_challenge_sessions row (server-side start time + fetch nonce)
@@ -57,7 +57,7 @@ export async function GET(
 
   if (!Number.isFinite(level) || level < 0 || level > PUBLIC_BETA_MAX_LEVEL) {
     return NextResponse.json(
-      { error: 'Level must be between 0 and 8', code: 'INVALID_LEVEL' },
+      { error: 'Requested level is not published yet.', code: 'INVALID_LEVEL' },
       { status: 400 },
     );
   }
@@ -65,7 +65,7 @@ export async function GET(
   if (!isPublicBetaLevel(level)) {
     return NextResponse.json(
       {
-        error: 'This level is not available in the L0-L8 public beta.',
+        error: 'This level is not available in the current public beta.',
         code: 'LEVEL_NOT_AVAILABLE',
       },
       { status: 404 },
@@ -134,7 +134,7 @@ export async function GET(
   if (passedThisLevel && !replayAvailable) {
     return NextResponse.json(
       {
-        error: "You've already passed this level. Complete L8 to unlock replay mode.",
+        error: "You've already passed this level. Advance further to unlock replay mode.",
         code: 'LEVEL_ALREADY_PASSED',
       },
       { status: 403 },
@@ -257,7 +257,7 @@ async function buildSessionAndRespond(
   };
 
   if (isBossLevel(level)) {
-    response.boss_hint = 'This is a boss level. Watch for traps in the brief.';
+    response.boss_hint = 'This level includes special constraints. Watch for traps in the brief.';
   }
 
   if (isReplay) {

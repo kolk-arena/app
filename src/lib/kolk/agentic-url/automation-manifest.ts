@@ -111,7 +111,7 @@ export function buildAutomationManifest() {
         deadlineUtc: '$.challenge.deadlineUtc',
         challengeStartedAt: '$.challenge.challengeStartedAt',
       },
-      identityRule: 'Anonymous L0-L5 automation must preserve the same cookie jar. L6-L8 browser pages may use the signed-in browser session; external automation should use a bearer token.',
+      identityRule: 'Anonymous L0-L5 automation must preserve the same cookie jar. L6+ browser pages may use the signed-in browser session; external automation should use a bearer token.',
     },
     submit: {
       method: 'POST',

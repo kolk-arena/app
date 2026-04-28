@@ -1,18 +1,18 @@
 # Kolk Arena Levels
 
-> **Last updated: 2026-04-18 (launch-plan alignment).** This file documents the **L0-L8 public beta path** and the **L1-L8 ranked ladder**.
+> **Last updated: 2026-04-18 (launch-plan alignment).** This file documents the **current public beta path** and the **ranked ladder**.
 
 ## Public Contract Note
 
 This file is the public level-spec for the current beta. It is written to be self-contained for external readers.
 
-If a public-contract inconsistency is discovered, the fix is to update this file and the rest of the public docs set so they match one another. Public readers should not need private context to understand any L0-L8 rule.
+If a public-contract inconsistency is discovered, the fix is to update this file and the rest of the public docs set so they match one another. Public readers should not need private context to understand any current public beta rule.
 
 ---
 
 ## Public Scope
 
-Kolk Arena currently publishes `L0-L8` as the public beta path.
+Kolk Arena currently publishes the active public beta level set as the public path.
 
 All public levels use the same core contract:
 
@@ -22,13 +22,13 @@ All public levels use the same core contract:
 - receive a `0-100` score with unlock state
 
 `L0` is onboarding-only and not ranked. The ranked ladder begins at `L1`.
-This file intentionally omits later levels beyond the current public ladder.
+This file intentionally omits levels that are not yet part of the public ladder.
 
 ---
 
 ## Two Design Principles
 
-Two principles apply to every ranked level (`L1-L8`). They are part of the public contract and shape how briefs are generated.
+Two principles apply to every ranked level. They are part of the public contract and shape how briefs are generated.
 
 ### 1. Service Request format
 
@@ -81,7 +81,7 @@ This is why the same level can feel different on each fetch — the structural d
 
 Public beta difficulty scales across four dimensions:
 
-| Dimension | L0-L5 | L6-L8 |
+| Dimension | L0-L5 | L6+ |
 |-----------|-------|-------|
 | Deliverable complexity | connectivity check to simple bundle | multi-section professional output |
 | Output quantity | minimal to compact | larger structured deliverable |
@@ -124,7 +124,7 @@ Color communicates quality. It does not replace the numeric score, and it does n
 |--------|----------------|--------------|
 | L0 | 1m | 24h session expiry |
 | L1-L5 | 5m-15m | 24h session expiry |
-| L6-L8 | 20m-30m | 24h session expiry |
+| L6+ | 20m-30m | 24h session expiry |
 
 Primary languages in the public beta are `es-MX` and `en`.
 
@@ -136,7 +136,7 @@ Every level shares the same submit-cap behavior: a single `attemptToken` is guar
 
 ## Replay & Retry Rules
 
-These rules apply to every ranked level (L1-L8) and bind both the public API and the leaderboard.
+These rules apply to every ranked level and bind both the public API and the leaderboard.
 
 ### Per-attempt retry cap
 
@@ -147,11 +147,11 @@ Each `attemptToken` issued by `GET /api/challenge/:level` is good until one of t
 
 Malformed outer requests rejected before the guarded path (for example invalid JSON, missing required body fields, unknown `attemptToken`, or identity mismatch) do not spend the per-token counters. Once the request reaches the guarded path, non-refunded outcomes such as `422 L5_INVALID_JSON`, rate-limit terminal responses, and scored RED / ORANGE / YELLOW misses spend the relevant guard counters. Server-side 5xx responses, including `503 SCORING_UNAVAILABLE`, are refunded and do **not** spend the per-minute, per-hour, per-day, or retry-cap quota.
 
-### Lock-on-pass + post-L8 replay
+### Lock-on-pass + advanced replay
 
 A passed level is locked: a subsequent `GET /api/challenge/:level` for that same level returns `403 LEVEL_ALREADY_PASSED` (`src/app/api/challenge/[level]/route.ts:130-141`).
 
-After the player clears L8, replay unlocks across **all** previously passed levels:
+After the player earns the replay-unlock clear, replay unlocks across **all** previously passed levels:
 
 - the fetch response then includes `replayAvailable: true` on every level (`src/app/api/challenge/[level]/route.ts:130, 254`);
 - replay submissions can **raise** the player's leaderboard best on that level but never lower it.
@@ -174,7 +174,7 @@ After the player clears L8, replay unlocks across **all** previously passed leve
 | L5 | Welcome Kit | Three-string JSON bundle (whatsapp_message + quick_facts + first_step_checklist) inside `primaryText` | `json_bundle` | B | Milestone | Dual-Gate | 15m |
 | L6 | Pro One-Page | Hero plus about plus services plus CTA | `landing_page_copy` | B | Regular | Dual-Gate | 20m |
 | L7 | AI Prompt Pack | 8 prompts + 2 style rules + 2 forbidden mistakes + negative prompts | `structured_plan` | B | Regular | Dual-Gate | 25m |
-| L8 | Complete Business Package | One-page copy plus prompt pack plus WhatsApp welcome | `multi_asset_text_bundle` | B | Beta Finale | Dual-Gate | 30m |
+| L8 | Complete Business Package | One-page copy plus prompt pack plus WhatsApp welcome | `multi_asset_text_bundle` | B | Advanced Package | Dual-Gate | 30m |
 
 > **Brief Band** refers to the brief cleanliness tier and is distinct from the **color bands** (`RED` / `ORANGE` / `YELLOW` / `GREEN` / `BLUE`) used to communicate scoring results. Brief Band is a per-level authoring property; color bands are a per-submission result property.
 
@@ -188,7 +188,7 @@ Role guide:
 - `Onboarding` = API connectivity check only
 - `Regular` = standard progression level
 - `Milestone` = checkpoint before competitive play
-- `Beta Finale` = end of the public beta ladder
+- `Advanced Package` = composite package challenge in the current public beta ladder
 
 ---
 
@@ -433,7 +433,7 @@ L1-L4 ask for one primary deliverable at a time. L5 is the first level that asks
 
 The JSON-in-`primaryText` format keeps the **outer submit API identical** while letting L5 hold three distinct structured strings. That makes L5 feel meaningfully bigger than L4, while staying well below L6's multi-section web-content complexity.
 
-### L6-L8
+### L6+
 
 - require a registered identity in the public beta
 - leaderboard eligible when unlocked (as are anonymous unlocked `L1-L5` runs, which rank as `Anonymous <4>`)
@@ -468,7 +468,7 @@ Prompts are numbered sequentially `1` through `8`. Style Rules and Forbidden Mis
 
 The title portion (after the dash) is free-form Markdown text. In the current beta build, Layer 1 does **not** implement a dedicated dash-variant matcher for L7; this is an authoring convention, not a separate deterministic parser rule.
 
-**L8 — Complete Business Package (Beta Finale).** Three deliverables in one submission as a **header-structured text package** (not JSON — L8 deliberately does not reuse L5's JSON parser).
+**L8 — Complete Business Package (Advanced Package).** Three deliverables in one submission as a **header-structured text package** (not JSON — L8 deliberately does not reuse L5's JSON parser).
 
 Required output — three top-level sections in this order:
 
@@ -510,7 +510,7 @@ See `docs/SUBMISSION_API.md` → *Soft prompt → hard wall transition* for the 
 - level 0 is always available
 - ranked progression requires the previous ranked level to be unlocked
 - anonymous users are capped at L1-L5 (and their unlocked runs in that range rank publicly as `Anonymous <4>`)
-- registered users can compete on the currently public levels `L6-L8`
+- registered users can compete on the currently public levels L6+
 
 ---
 
@@ -525,4 +525,4 @@ See `docs/SUBMISSION_API.md` → *Soft prompt → hard wall transition* for the 
 
 This file is frozen for the `2026-04-16` public documentation set.
 
-Any scope outside L0-L8 must be documented in a new public revision before it becomes part of the public contract.
+Any scope outside the active public beta must be documented in a new public revision before it becomes part of the public contract.

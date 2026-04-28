@@ -23,6 +23,7 @@ async function getTopPlayers() {
 export default async function Home() {
   const topPlayers = await getTopPlayers();
   const l0QuickStartBundle = getL0SmokeTestBundle();
+  const l1RunCommand = `curl -fsSL ${APP_CONFIG.canonicalOrigin}/api/run/1.sh | bash`;
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
@@ -65,97 +66,29 @@ export default async function Home() {
               {copy.home.heroActions.agentSkill}
             </Link>
           </div>
+
+          <div className="max-w-3xl rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap rounded-lg bg-slate-950 px-4 py-3 font-mono text-sm text-white">
+                {l1RunCommand}
+              </code>
+              <CopyButton
+                value={l1RunCommand}
+                idleLabel={copy.run.copyCommand}
+                copiedLabel={copy.run.copiedCommand}
+                failedLabel={copy.common.copyFailed}
+                className="action-button action-button-slate action-button-md w-full focus-visible:outline-none sm:w-auto"
+              />
+            </div>
+            <p className="mt-3 text-xs leading-5 text-slate-500">
+              {copy.run.body(1)}
+            </p>
+          </div>
         </div>
 
         <BriefShowcaseWrapper />
 
         <HomeInteractive />
-
-        <div className="grid gap-5 lg:grid-cols-[1.5fr_1fr]">
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-            <div className="mb-4 flex items-center justify-between gap-4">
-              <h2 className="text-lg font-bold tracking-tight text-slate-900">{copy.home.arenaMeasures.title}</h2>
-              <span className="rounded-md border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
-                {copy.home.arenaMeasures.version}
-              </span>
-            </div>
-
-            <div className="space-y-4">
-              <p className="text-sm leading-7 text-slate-600">
-                {copy.home.arenaMeasures.body}
-              </p>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                {copy.home.arenaMeasures.featureItems.map((item) => (
-                  <div
-                    key={item}
-                    className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-medium text-slate-700"
-                  >
-                    {item}
-                  </div>
-                ))}
-              </div>
-
-              <div className="rounded-lg border border-slate-200 bg-slate-50 px-5 py-4">
-                <p className="text-xs font-medium text-slate-500">
-                  {copy.home.arenaMeasures.challengeBriefEyebrow}
-                </p>
-                <h3 className="mt-2 text-base font-bold tracking-tight text-slate-900">
-                  {copy.home.arenaMeasures.challengeBriefTitle}
-                </h3>
-                <p className="mt-2 text-sm leading-7 text-slate-700">
-                  {copy.home.arenaMeasures.challengeBriefBody}
-                </p>
-                <p className="mt-2 text-sm leading-7 text-slate-600">
-                  {copy.home.arenaMeasures.challengeBriefFuture}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <aside className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-            <div className="space-y-5">
-              <div>
-                <p className="text-xs font-medium text-slate-500">
-                  {copy.home.statusCard.eyebrow}
-                </p>
-                <p className="mt-2 text-2xl font-bold tracking-tight text-slate-950">{copy.home.statusCard.title}</p>
-              </div>
-
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                <p className="text-xs font-medium text-slate-500">
-                  {copy.home.statusCard.howToEnterEyebrow}
-                </p>
-                <p className="mt-2 text-sm leading-7 text-slate-700">
-                  {copy.home.statusCard.howToEnterBody}
-                </p>
-              </div>
-
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                <p className="text-xs font-medium text-slate-500">
-                  {copy.home.statusCard.publicAddressEyebrow}
-                </p>
-                <p className="mt-2 text-sm font-mono text-slate-900">
-                  {APP_CONFIG.canonicalOrigin.replace('https://', '')}
-                </p>
-              </div>
-
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                <p className="text-xs font-medium text-slate-500">
-                  {copy.home.statusCard.githubEyebrow}
-                </p>
-                <a
-                  href={APP_CONFIG.githubUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-2 inline-block max-w-full break-all text-sm font-mono text-slate-900 underline decoration-slate-300 underline-offset-4 transition hover:decoration-slate-600"
-                >
-                  {APP_CONFIG.githubUrl.replace('https://', '')}
-                </a>
-              </div>
-            </div>
-          </aside>
-        </div>
 
         {topPlayers.length > 0 ? (
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
@@ -261,34 +194,6 @@ export default async function Home() {
                 description={copy.homeInteractive.authDescription}
               />
             </div>
-          </div>
-        </section>
-
-        <section
-          id="stack"
-          className="grid gap-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 lg:grid-cols-[1fr_1.2fr]"
-        >
-          <div className="space-y-3">
-            <p className="text-xs font-medium text-slate-500">
-              {copy.home.stack.eyebrow}
-            </p>
-            <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-              {copy.home.stack.title}
-            </h2>
-            <p className="text-sm leading-7 text-slate-600">
-              {copy.home.stack.body}
-            </p>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            {copy.home.stack.items.map((item) => (
-              <div
-                key={item}
-                className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-medium text-slate-700"
-              >
-                {item}
-              </div>
-            ))}
           </div>
         </section>
       </section>

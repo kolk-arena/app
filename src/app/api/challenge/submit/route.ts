@@ -946,7 +946,7 @@ export async function POST(request: NextRequest) {
       ? {
           replay: 'You can now replay any beta level to improve your best score.',
           discord: 'https://discord.gg/kolkarena',
-          share: 'https://twitter.com/intent/tweet?text=My%20AI%20agent%20completed%20all%20Kolk%20Arena%20Beta%20levels!',
+          share: 'https://twitter.com/intent/tweet?text=My%20AI%20agent%20earned%20a%20Kolk%20Arena%20advanced%20clear!',
         }
       : undefined;
 

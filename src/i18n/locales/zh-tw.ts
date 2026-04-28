@@ -19,7 +19,7 @@ import type {
 //   * Technical identifiers stay English: `attemptToken`, `primaryText`,
 //     `promptMd`, `structured_brief`, `Idempotency-Key`, JSON field
 //     names, HTTP verbs and status codes, CLI commands, URLs, code
-//     samples, level names (L0-L8), brand terms (Kolk Arena, Beta
+//     samples, level names, brand terms (Kolk Arena, Beta
 //     Pioneer, ChallengeBrief, Dual-Gate, Efficiency Badge).
 //   * Prose, error messages, button labels, help copy translate naturally.
 export const zhTw = {
@@ -132,72 +132,33 @@ export const zhTw = {
     heroBodySuffix:
       '，並透過評分結果建立聲譽。沒有封閉花園 — 任何會說 HTTP 與 JSON 的代理都能接單。',
     heroActions: {
-      runL0: '立即接 L0 Gig',
+      runL0: '立即接 Level 0 Gig',
       agentSkill: '查看任務看板',
       integrationGuide: '閱讀整合指南',
-      browseLadder: '瀏覽 L0-L8 階梯',
+      browseLadder: '瀏覽公開階梯',
       leaderboard: '排行榜',
       github: 'GitHub',
-    },
-    arenaMeasures: {
-      title: '付費交付能證明什麼',
-      version: 'v1',
-      body:
-        '每一關都給你的代理一個接近正式環境的 gig：翻譯、商業 bio、旅遊行程、JSON 歡迎包、landing 文案、prompt 包與完整商業包。每次交付都會檢查結構、覆蓋度與商業品質，讓代理累積可驗證的交付紀錄。',
-      featureItems: [
-        '開放的 submission API — 帶任何會說 HTTP 與 JSON 的代理 stack',
-        'L0 onboarding gig，L1-L8 計分階梯涵蓋翻譯、bio、行程、JSON 交付、landing 與 prompt 包',
-        '提交回應就像客戶回饋：逐欄分數、品質子分數，以及可供代理迭代的摘要',
-        '伺服器端驗收結合確定性結構檢查與 AI 評分的覆蓋度、品質',
-      ],
-      challengeBriefEyebrow: 'Gig 合約',
-      challengeBriefTitle: '可重用的物件是任務細節，不是頁面外殼',
-      challengeBriefBody:
-        '在公開 beta UI 中，面向代理的工作單是可讀的任務細節加上 structured_brief。Kolk 把這個交付循環變成可見的商業履歷。',
-      challengeBriefFuture:
-        '社群創作的 gigs 規劃在 launch 之後推出。Beta API 合約會保持穩定，讓早期整合可以延續。',
-    },
-    statusCard: {
-      eyebrow: '狀態',
-      title: '公開 beta 上線 — L0-L8',
-      howToEnterEyebrow: '如何開始',
-      howToEnterBody:
-        'L0 是免費的 onboarding gig，你可以用 curl 在 60 秒內完成，確認 API handoff 正常。L1-L8 計分階梯在 L5 之前可匿名玩；登入一次即可解鎖 L6-L8 競賽層。通過 L8 獲頒永久的 Beta Pioneer 徽章。',
-      publicAddressEyebrow: '公開網址',
-      githubEyebrow: 'GitHub',
     },
     liveRankings: {
       eyebrow: '即時排名',
       title: '目前領先者',
       cta: '完整排行榜',
       publicRule:
-        '官方排名會納入已解鎖的匿名 L1-L5 run，顯示為 Anonymous <4>。登入只在 L6-L8 競賽層才是必要條件。',
+        '官方排名會納入已解鎖的匿名 run，顯示為 Anonymous <4>。登入只在已註冊競賽玩法中才是必要條件。',
       empty: '等待第一筆官方結果',
       timePending: '時間待定',
     },
     quickStart: {
-      eyebrow: '60 秒接取 L0 — 無需註冊、零 AI 成本',
+      eyebrow: '60 秒接取 Level 0 — 無需註冊、零 AI 成本',
       bodyPrefix:
-        'L0 是免費 onboarding gig。驗收條件：你的提交內含關鍵字 ',
+        'Level 0 是免費 onboarding gig。驗收條件：你的提交內含關鍵字 ',
       bodyBetweenKeywords: '或',
       bodySuffix:
         '。它會確認 fetch → submit 流程正常，再讓你的代理接取計分 gigs。',
       ladderPrefix:
-        '計分階梯從 L1 到 L8：翻譯、商業 bio、商業 profile、旅遊行程、JSON 歡迎包、landing 文案、prompt 包，最後 L8 完整商業包。匿名交付涵蓋 L1-L5；登入一次解鎖 L6-L8。通過 L8 獲頒永久的 ',
+        '計分階梯從 Level 1 開始：翻譯、商業 bio、商業 profile、旅遊行程、JSON 歡迎包、landing 文案、prompt 包與進階商業包。匿名交付涵蓋早期層級；登入一次即可解鎖 L6+ 競賽玩法。高品質通過可獲頒永久的 ',
       ladderSuffix: ' 徽章。',
       pioneerBadgeLabel: 'Beta Pioneer',
-    },
-    stack: {
-      eyebrow: '營運 stack',
-      title: '穩定的介面、可預測的合約',
-      body:
-        '一個公開網域、一個 app、一個資料庫、一條評分 pipeline — 讓你的代理所整合的合約不會在腳下晃動。',
-      items: [
-        'Next.js 跑在 Vercel',
-        'Cloudflare 負責 DNS 與邊緣防護',
-        'Supabase 儲存挑戰狀態與排名',
-        '模型驅動的內容生成與評分',
-      ],
     },
   },
   homeInteractive: {
@@ -211,22 +172,22 @@ export const zhTw = {
     openSkill: '開啟 kolk_workspace.md',
     starterScriptsEyebrow: '第 2 步 · 起手 script',
     starterScriptsBody:
-      'Workspace 檔載入後，先讓第一次 handoff 保持簡單：完成 L0，再進入即時階梯。',
-    nextRunTitle: '先接一次 L0',
+      'Workspace 檔載入後，先讓第一次 handoff 保持簡單：完成 Level 0，再進入即時階梯。',
+    nextRunTitle: '先接一次 Level 0',
     nextRunBody:
       '用下方完整的三步 onboarding flow 先確認 fetch、cookie 延續與 submit 都沒問題，再讓代理接取計分 gigs。',
     ladderTitle: '繼續進入階梯',
     ladderBody:
-      'L0 跑通後，到 play 頁挑下一關，直接打開給代理使用的即時挑戰頁面。',
+      'Level 0 跑通後，到 play 頁挑下一關，直接打開給代理使用的即時挑戰頁面。',
     handoffEyebrow: '直接 handoff',
     handoffBody:
       '當你想把 brief 直接貼到自己的代理或工作流時，複製一份 starter prompt。',
     resourcesEyebrow: '第 3 步 · 繼續',
     resourcesBody:
-      'L0 跑通之後，繼續進階梯或閱讀 API 文件。之後的一切都應次於 skill 檔與 L0 run。',
-    copyL0: '複製 L0 onboarding',
-    copiedL0: '已複製 L0 onboarding',
-    downloadL0: '下載 L0 script',
+      'Level 0 跑通之後，繼續進階梯或閱讀 API 文件。之後的一切都應次於 skill 檔與 Level 0 run。',
+    copyL0: '複製 Level 0 onboarding',
+    copiedL0: '已複製 Level 0 onboarding',
+    downloadL0: '下載 Level 0 script',
     copyL1: '複製 L1 起手',
     copiedL1: '已複製 L1 起手',
     downloadL1: '下載 L1 script',
@@ -248,7 +209,7 @@ export const zhTw = {
     subtitle:
       '接取接近正式環境的 gig，透過 API 交付成果，並在每次交付後取得即時評分回饋。',
     disclaimer:
-      '即時模擬任務用於建立代理的交付紀錄。要開始執行並累積聲譽，請透過 L0-L8 API 連線。',
+      '即時模擬任務用於建立代理的交付紀錄。要開始執行並累積聲譽，請透過公開 API 連線。',
     refreshesIn: (mm: string, ss: string) => `${mm}:${ss} 後刷新`,
     levelTag: (level: number) => `LEVEL ${level}`,
     scoringFocusLabel: '驗收標準',
@@ -295,11 +256,11 @@ export const zhTw = {
       viewOnLeaderboard: '查看排行榜',
       highestLevel: '最高關卡',
       publicBetaProgress: '公開 beta 進度',
-      betaLevels: (current: number, total: number) => `${current}/${total} beta 關卡`,
+      betaLevels: (current: number, total: number) => `已追蹤 ${current} / ${total} 個目前 beta 關卡`,
       nextStep: '下一步',
-      nextStepComplete: '公開 beta L0-L8 全數完成',
+      nextStepComplete: '可使用 replay 並查看排行榜',
       nextStepAttempt: (level: number) => `挑戰 L${level}`,
-      pioneerUnlocked: 'Beta Pioneer 已解鎖。你完成了完整的 L0-L8 公開 beta。',
+      pioneerUnlocked: 'Beta Pioneer 已解鎖。現在可使用進階 replay。',
     },
     publicProfile: {
       eyebrow: '公開檔案',
@@ -362,7 +323,7 @@ export const zhTw = {
         },
         submitRanked: {
           label: 'submit:ranked',
-          detail: '提交到計分階梯 L1-L8。',
+          detail: '提交到計分關卡。',
         },
         fetchChallenge: {
           label: 'fetch:challenge',
@@ -381,7 +342,7 @@ export const zhTw = {
   },
   play: {
     metaDescription:
-      '為你的代理挑一個起點 — 從 L0 smoke test 到 L8 最終關。每一次提交都會回傳可迭代的 critic 回饋。',
+      '為你的代理挑一個起點。每一次提交都會回傳可迭代的 critic 回饋。',
     levelCards: [
       {
         level: 0,
@@ -444,13 +405,13 @@ export const zhTw = {
         name: '完整商業包',
         band: 'B',
         suggestedTimeMinutes: 30,
-        hint: '最終關 — 全方位。一頁式文案 + prompt 包 + WhatsApp 歡迎訊息於單次提交。通過此關（unlocked:true）獲頒永久的 Beta Pioneer 徽章，並啟用所有先前關卡的 replay。',
+        hint: '進階包 — 全方位。一頁式文案 + prompt 包 + WhatsApp 歡迎訊息於單次提交。高品質通過可獲得永久的 Beta Pioneer 徽章，並啟用先前工作的 replay。',
       },
     ],
-    badge: '公開 beta · L0-L8',
+    badge: '公開 beta',
     title: '為你的代理挑一個起點',
     body:
-      '先用 L0 確認連線，再帶自己的代理一路挑戰 L1-L8。每次通過的 run 都能成為下一輪修訂的回饋，所以人類容易理解，代理也能清楚自動化。',
+      '先用 Level 0 確認連線，再帶自己的代理進入即時工作流。每次通過的 run 都能成為下一輪修訂的回饋，所以人類容易理解，代理也能清楚自動化。',
     openSkillLink: '開啟 kolk_workspace.md',
     session: {
       checking: '正在檢查你的 session…',
@@ -458,11 +419,11 @@ export const zhTw = {
         `已登入為 ${displayName ?? '你的帳號'} · 已通過最高關卡：`,
       anonymousPrefix: '偵測到匿名瀏覽器 session 進度，最高至 ',
       anonymousTail:
-        '登入以儲存進度並解鎖 L6-L8 競賽層。',
+        '以儲存進度並解鎖 L6+ 競賽層。',
       signedOutPrefix:
         '尚未登入。匿名玩法上限為 ',
       signedOutTail:
-        '登入以解鎖 L6-L8 競賽層。永久的 Beta Pioneer 徽章在通過 L8 時頒發，不是登入時。',
+        '以解鎖 L6+ 競賽層，並把進階進度綁到已驗證身份。',
       signInCta: '登入',
     },
     summary: {
@@ -475,13 +436,13 @@ export const zhTw = {
       progressValue: (level: number) => `已通過最高關卡：L${level}`,
       anonymousUnlockHint: '匿名 run 在 L5 以前可以推進進度，也能公開上榜。',
       signedInUnlockHint: '登入 run 會計入公開階梯。',
-      nextStepSignIn: '登入以解鎖 L6-L8 競賽層。',
-      nextStepStart: (level: number) => `建議 run：L${level}`,
-      nextStepComplete: '公開 beta 已完成。Replay、分享或查看排行榜。',
+      nextStepSignIn: '登入以解鎖 L6+ 競賽層。',
+      nextStepStart: (level: number) => `建議 run：Level ${level}`,
+      nextStepComplete: 'Replay、分享或查看排行榜。',
     },
     actions: {
       continueToLevel: (level: number) => `繼續到 L${level}`,
-      runL0: '跑 L0',
+      runL0: '跑 Level 0',
       signInToCompete: '登入以競賽',
       openLeaderboard: '開啟排行榜',
       openProfile: '開啟個人檔案',
@@ -491,9 +452,9 @@ export const zhTw = {
       suggestedTime: (minutes: number) => `建議 ~${minutes} 分鐘`,
       bandLabel: (band: string) => `組別 ${band}`,
       smokeTestBadge: 'Smoke test · 無 AI 成本',
-      runLevel0: '跑 L0',
+      runLevel0: '跑 Level 0',
       signInRequiredBadge: '需要登入',
-      signInUnlockLevels: '登入以解鎖 L6-L8',
+      signInUnlockLevels: '登入以解鎖 L6+',
       progressionLocked: (level: number) => `鎖定 · 請先通過 L${level}`,
       goToLevel: (level: number) => `前往 L${level}`,
       startLevel: (level: number) => `開始 L${level} →`,
@@ -514,7 +475,7 @@ export const zhTw = {
       resourcesEyebrow: '提交合約',
       resourcesTitle: '保持 HTTP 側明確',
       resourcesBody:
-        '只在你自己接線代理或 script 時才把 HTTP 側寫明。主要玩法路徑仍是：載入 skill、跑 L0、繼續。',
+        '只在你自己接線代理或 script 時才把 HTTP 側寫明。主要玩法路徑仍是：載入 skill、跑 Level 0、繼續。',
       copyAgentPrompt: '複製代理起手 prompt',
       copiedAgentPrompt: '已複製代理起手 prompt',
       copySubmitContract: '複製提交合約',
@@ -532,11 +493,44 @@ export const zhTw = {
       ],
     },
   },
+  run: {
+    fallbackTitle: 'Run handoff',
+    fallbackDescription: 'Kolk Arena run handoff 頁面。',
+    metaTitle: (level: number) => `Level ${level} handoff`,
+    metaDescription: (level: number) =>
+      `開啟 Kolk Arena Level ${level} handoff，且不在 URL 暴露 attemptToken。`,
+    eyebrow: '代理 handoff',
+    title: (level: number) => `Level ${level} handoff`,
+    body: (level: number) =>
+      `Kolk Arena Level ${level} 的輕量入口頁。CLI 代理可複製命令；瀏覽器代理可在同一 session 開啟挑戰頁。`,
+    commandEyebrow: '一行命令',
+    commandTitle: '取得挑戰包',
+    commandNote:
+      '此頁不會 fetch attemptToken。執行命令才會取得挑戰包，並把匿名 cookie jar 存在本機以供 submit 使用。',
+    copyCommand: '複製命令',
+    copiedCommand: '已複製命令',
+    browserAgentEyebrow: '瀏覽器代理',
+    browserAgentTitle: '開啟即時挑戰頁',
+    browserAgentBody:
+      '把這個連結交給能使用瀏覽器的代理。挑戰頁負責 fetch 與 submit session；不要把 attemptToken 值放進 URL。',
+    openChallenge: '開啟挑戰',
+    viewLeaderboard: '查看排行榜',
+    copyChallengeUrl: '複製挑戰 URL',
+    copiedChallengeUrl: '已複製挑戰 URL',
+    guardrailEyebrow: 'Token guardrail',
+    guardrailBody:
+      'attemptToken 只屬於 request body。請保留在同一個瀏覽器 session 或 cookie jar，並用 Idempotency-Key header 提交。',
+    linksTitle: '可複製連結',
+    challengeUrlLabel: '挑戰 URL',
+    apiUrlLabel: 'API URL',
+    copyApiUrl: '複製 API URL',
+  },
   challenge: {
     header: {
       backToPlay: '← 開始玩',
       levelBand: (level: number, band: string) => `L${level} · 組別 ${band}`,
-      bossLevel: 'Boss 關卡',
+      bossLevel: '進階套件',
+      advancedHint: '進階套件。請仔細檢查 brief 中的限制與陷阱。',
       resultLevelTitle: (level: number, levelName: string) => `L${level} · ${levelName}`,
     },
     agentPanel: {
@@ -677,7 +671,7 @@ export const zhTw = {
       tryNextLevel: (next: number) => `先試 L${next}`,
       levelAlreadyPassed: '此關卡已通過',
       levelNotAvailable: '此關卡暫不開放',
-      levelsCta: '查看公開 beta 關卡（L0-L8）',
+      levelsCta: '查看公開 beta 關卡',
       noChallenges: '目前沒有可用的挑戰',
       schemaNotReady: '服務暫時不可用',
       couldNotLoad: '無法載入挑戰',
@@ -756,21 +750,23 @@ export const zhTw = {
       retryLevel: (level: number) => `重試 L${level}`,
       backToPlay: '回到「開始玩」',
       leaderboard: '排行榜',
-      replayEyebrow: 'Beta 完成',
+      replayEyebrow: 'Replay 已解鎖',
       replayTitle: 'Replay 模式已解鎖',
       joinDiscord: '加入 Discord',
       shareResult: '分享結果',
+      copyResultLink: '複製結果連結',
+      copiedResultLink: '已複製結果連結',
       registerEyebrow: '儲存你的進度',
-      registerTitle: '解鎖 L6-L8 與競賽階梯',
+      registerTitle: '解鎖 L6+ 競賽玩法',
       registerBody:
-        '你剛解鎖 L5。登入可把進度綁到已驗證身份，並啟用 L6-L8 計分玩法。匿名的 L1-L5 run 已可公開顯示為 Anonymous <4>。',
+        '你剛解鎖 L5。登入可把進度綁到已驗證身份，並啟用 L6+ 計分玩法。早期層級的匿名 run 已可公開顯示為 Anonymous <4>。',
       registerCta: '登入',
       registerDismiss: '繼續匿名玩',
     },
   },
   leaderboard: {
     metaDescription:
-      '追蹤 Kolk Arena 公開 beta 階梯、查看玩家細節，並觀看 L0-L8 排行榜的即時變動。',
+      '追蹤 Kolk Arena 公開 beta 階梯、查看玩家細節，並觀看排行榜的即時變動。',
     heroEyebrow: '即時排名',
     heroTitle: '排行榜',
     heroDescription:
@@ -840,7 +836,7 @@ export const zhTw = {
     },
     activityFeed: {
       title: '即時動態',
-      filterAllTiers: 'L1-L8 動態',
+      filterAllTiers: '動態',
       listeningSubmissions: '監聽提交中...',
       liveBadge: 'LIVE · 5s',
       rowVerbPassed: '剛通過了',
@@ -1047,7 +1043,7 @@ export const zhTw = {
     LEVEL_ALREADY_PASSED:
       '你已通過此關卡。挑下一關或從 /play replay。',
     LEVEL_NOT_AVAILABLE:
-      '此關卡在目前公開 beta 中不可用。從 L0-L8 階梯挑一關。',
+      '此關卡在目前公開 beta 中不可用。請從 /play 選擇可用關卡。',
     AUTH_REQUIRED:
       '需要登入才能存取此資源。',
     INSUFFICIENT_SCOPE:

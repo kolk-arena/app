@@ -222,7 +222,7 @@ function parseBriefJson(raw: string): GeneratedBrief[] {
 
 const TRANSLATION_PROMPT = `Translate the following synthetic gig posting previews into the target locale.
 Maintain a professional, natural tone appropriate for the service industry.
-Preserve fictional names, URLs, Kolk AI Workspace, Kolk, L0-L8, API, JSON, HTTP, attemptToken, and primaryText as-is.
+Preserve fictional names, URLs, Kolk AI Workspace, Kolk, level labels, API, JSON, HTTP, attemptToken, and primaryText as-is.
 Preserve the rule that scenarioTitle contains no budget while requestContext contains the USD budget.
 
 Translate scenarioTitle, industry, requesterRole, requestContext, scoringFocus, and outputShape.

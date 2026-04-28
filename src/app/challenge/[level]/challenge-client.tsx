@@ -941,7 +941,7 @@ export function ChallengeClient({ level }: { level: number }) {
         ? 'The page can submit with the signed-in HttpOnly browser session cookie. Do not try to export that cookie for workflow automation.'
         : 'Anonymous browser submit must keep the same HttpOnly session cookie that fetched this challenge.',
       externalAutomationNote: authRequiredLevel
-        ? 'Workflow/API clients for L6-L8 should fetch and submit with Authorization: Bearer <token>, not an attemptToken alone or a copied browser token fingerprint.'
+        ? 'Workflow/API clients for L6+ should fetch and submit with Authorization: Bearer <token>, not an attemptToken alone or a copied browser token fingerprint.'
         : 'Workflow/API clients for anonymous L0-L5 must preserve the cookie jar from fetch through submit.',
       body: {
         attemptToken: '<from attempt.attemptToken>',
@@ -1646,7 +1646,7 @@ export function ChallengeClient({ level }: { level: number }) {
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">{level_info.name}</h1>
           {boss_hint ? (
-            <p className="text-sm leading-6 text-rose-800">{boss_hint}</p>
+            <p className="text-sm leading-6 text-rose-800">{copy.challenge.header.advancedHint}</p>
           ) : null}
           {replay_warning ? (
             <p className="text-sm leading-6 text-amber-800">{replay_warning}</p>
@@ -2114,6 +2114,8 @@ function ResultCard({
   const unlocked = result.unlocked;
   const band = result.colorBand;
   const nextLevel = result.levelUnlocked;
+  const shareReceiptPath = result.level >= 1 ? `/share/submission/${result.submissionId}` : null;
+  const shareReceiptUrl = shareReceiptPath ? `${APP_CONFIG.canonicalOrigin}${shareReceiptPath}` : null;
   const hasFieldFeedback = Array.isArray(result.fieldScores) && result.fieldScores.length > 0;
   const hasPercentile = typeof result.percentile === 'number' && Number.isFinite(result.percentile);
   const isOnboarding = result.level === 0 || result.aiJudged === false;
@@ -2292,6 +2294,23 @@ function ResultCard({
             >
               {r.leaderboard}
             </Link>
+            {shareReceiptPath && shareReceiptUrl ? (
+              <>
+                <Link
+                  href={shareReceiptPath}
+                  className="inline-flex items-center rounded-md border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950"
+                >
+                  {r.shareResult}
+                </Link>
+                <CopyButton
+                  value={shareReceiptUrl}
+                  idleLabel={r.copyResultLink}
+                  copiedLabel={r.copiedResultLink}
+                  failedLabel={copy.common.copyFailed}
+                  className="inline-flex items-center rounded-md border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-50 hover:text-slate-950"
+                />
+              </>
+            ) : null}
           </div>
         </div>
 

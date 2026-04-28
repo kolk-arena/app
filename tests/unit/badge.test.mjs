@@ -98,11 +98,11 @@ test('pioneer=true returns Spark Amber Beta Pioneer badge regardless of level', 
   }
 });
 
-test('level 8 with pioneer=false returns emerald L8 Clear', () => {
+test('level 8 with pioneer=false returns emerald Advanced Clear', () => {
   const out = buildPlayerBadge({ playerId: PLAYER_ID, highestLevel: 8, pioneer: false });
   assert.ok(out);
   assert.equal(out.color, 'emerald');
-  assert.equal(out.displayLabel, 'Kolk Arena — L8 Clear');
+  assert.equal(out.displayLabel, 'Kolk Arena — Advanced Clear');
   assert.ok(out.shieldsUrl.endsWith('-emerald'));
 });
 

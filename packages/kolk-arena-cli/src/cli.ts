@@ -714,11 +714,11 @@ async function cmdStart(startLevel: number, token: string | undefined, baseUrl: 
   console.log();
   console.log(bold('╔══════════════════════════════════════╗'));
   console.log(bold('║             KOLK ARENA               ║'));
-  console.log(bold('║    Interactive Delivery CLI (L0-L8)  ║'));
+  console.log(bold('║      Interactive Delivery CLI        ║'));
   console.log(bold('╚══════════════════════════════════════╝'));
   console.log();
   console.log(`  API: ${cyan(baseUrl)}`);
-  console.log(`  Auth: ${token ? green('authenticated') : yellow('anonymous (L0-L5 via scoped cookie jar; L6-L8 need login or --token)')}`);
+  console.log(`  Auth: ${token ? green('authenticated') : yellow('anonymous (L0-L5 via scoped cookie jar; L6+ needs login or --token)')}`);
   if (cookieJar) {
     const cookieCount = cookieJar.size > 0 ? ` (${cookieJar.size} stored)` : '';
     console.log(`  Anonymous cookie jar: ${dim(anonymousCookiesPath())}${cookieCount}`);
@@ -743,7 +743,7 @@ async function cmdStart(startLevel: number, token: string | undefined, baseUrl: 
         printApiErrorDetails(error);
       }
       if (isCliApiError(error) && (error.status === 401 || error.code === 'AUTH_REQUIRED')) {
-        console.log(yellow('\n  Sign-in required for L6-L8.'));
+        console.log(yellow('\n  Sign-in required for L6+ competitive levels.'));
         console.log(dim('  Run `kolk-arena login`, or pass --token <kat_...>.'));
       } else if (isCliApiError(error) && error.code === 'INSUFFICIENT_SCOPE') {
         console.log(yellow('\n  This token cannot fetch challenges with its current scopes.'));
@@ -769,7 +769,7 @@ async function cmdStart(startLevel: number, token: string | undefined, baseUrl: 
     console.log(`  Deadline: ${dim(String(chal.deadlineUtc ?? 'n/a'))}`);
 
     if (challenge.boss_hint) {
-      console.log(`  ${red('BOSS')} ${String(challenge.boss_hint)}`);
+      console.log(`  ${red('NOTE')} ${String(challenge.boss_hint)}`);
     }
 
     if (challenge.replay_warning) {
@@ -900,7 +900,7 @@ async function cmdStart(startLevel: number, token: string | undefined, baseUrl: 
 
           if (error.code === 'INSUFFICIENT_SCOPE') {
             console.log(yellow('  This token is missing a required submit scope.'));
-            console.log(dim('  L0 requires submit:onboarding; L1-L8 require submit:ranked.'));
+            console.log(dim('  L0 requires submit:onboarding; ranked levels require submit:ranked.'));
             markFailureExit();
             return;
           }
@@ -984,7 +984,7 @@ async function cmdStart(startLevel: number, token: string | undefined, baseUrl: 
 
   if (level > PUBLIC_BETA_MAX_LEVEL) {
     console.log();
-    console.log(bold(green('  CONGRATULATIONS! You cleared the L0-L8 public beta ladder.')));
+    console.log(bold(green('  No further published challenge is available yet. Check back for updates.')));
     console.log();
   }
 }
@@ -1060,7 +1060,7 @@ async function main() {
       const levelIdx = args.indexOf('--level');
       const level = levelIdx >= 0 ? parseInt(args[levelIdx + 1]!, 10) : 0;
       if (!Number.isInteger(level) || level < 0 || level > PUBLIC_BETA_MAX_LEVEL) {
-        console.log(red(`Invalid --level. Use an integer from 0 to ${PUBLIC_BETA_MAX_LEVEL}.`));
+        console.log(red('Invalid --level. Use a currently published level number.'));
         markFailureExit();
         break;
       }
@@ -1083,7 +1083,7 @@ async function main() {
     case '-h':
     default:
       console.log(`
-${bold('Kolk Arena CLI')} — Interactive Delivery Client (L0-L8 public beta)
+${bold('Kolk Arena CLI')} — Interactive Delivery Client
 
 ${bold('Usage:')}
   kolk-arena login [--scopes a,b,c]   Start RFC 8628 device login
@@ -1107,10 +1107,10 @@ ${bold('Anonymous session:')}
   L0-L5 fetch/submit use a scoped cookie jar at ${anonymousCookiesPath()}
   Use the same config dir to preserve anonymous progression across CLI runs.
 
-${bold('Public beta scope:')} L0-L8
+${bold('Public beta scope:')} current published levels
   L0:      onboarding connectivity check (not AI-judged)
   L1-L5:   anonymous play OK through the CLI cookie jar; L5 uses JSON-in-primaryText
-  L6-L8:   authenticated play (run \`kolk-arena login\` first)
+  L6+:     authenticated play (run \`kolk-arena login\` first)
 `);
   }
 }

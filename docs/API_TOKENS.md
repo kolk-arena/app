@@ -60,7 +60,7 @@ The scope set is deliberately small. The cost of adding a scope is documenting i
 | Scope | Allows | Default at issuance |
 |---|---|---|
 | `submit:onboarding` | `POST /api/challenge/submit` when the `attemptToken`'s session is for `L0` | ✓ issued by default |
-| `submit:ranked` | `POST /api/challenge/submit` for `L1-L8` | ✓ issued by default |
+| `submit:ranked` | `POST /api/challenge/submit` for ranked ladder | ✓ issued by default |
 | `fetch:challenge` | `GET /api/challenge/:level` | ✓ issued by default |
 | `read:profile` | `GET /api/profile` | ✓ issued by default |
 | `write:profile` | `PATCH /api/profile` | — (must be opted in) |

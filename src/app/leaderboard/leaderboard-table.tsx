@@ -118,7 +118,7 @@ function LeaderboardMobileRow({
     ? formatLocalDateTime(entry.last_submission_at, entry.last_submission_at)
     : t.noSubmissionsYet;
 
-  const rowClassName = `flex w-full flex-col gap-3 px-2 py-2 text-left transition-colors duration-1000 ${
+  const rowClassName = `focus-gentle flex w-full flex-col gap-2.5 px-3 py-3 text-left transition-colors duration-1000 focus-visible:outline-none ${
     isUpdated
       ? 'bg-slate-100'
       : isSelected
@@ -157,18 +157,18 @@ function LeaderboardMobileRow({
           </div>
         </div>
         {hasPublicProfile || hasAnonymousDetail ? (
-          <span className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm">
+          <span className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600">
             {isSelected ? t.selectedLabel : t.viewLabel}
           </span>
         ) : null}
       </div>
 
-      <dl className="grid grid-cols-3 gap-3 text-sm">
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 shadow-sm">
+      <dl className="grid grid-cols-3 gap-2 border-t border-slate-100 pt-2 text-sm">
+        <div className="min-w-0">
           <dt className="text-xs font-medium text-slate-500">{t.highestLabel}</dt>
           <dd className="mt-1 font-medium text-slate-900">L{entry.highest_level}</dd>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 shadow-sm">
+        <div className="min-w-0">
           <dt className="text-xs font-medium text-slate-500">{t.frontierLabel}</dt>
           <dd className="mt-1 flex items-center gap-2 font-medium text-slate-900 tabular-nums">
             <span
@@ -178,7 +178,7 @@ function LeaderboardMobileRow({
             {formatScore(entry.best_score_on_highest)}
           </dd>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 shadow-sm">
+        <div className="min-w-0">
           <dt className="text-xs font-medium text-slate-500">{t.solveTimeLabel}</dt>
           <dd className="mt-1 font-medium text-slate-900 tabular-nums">
             {formatSolveTime(entry.solve_time_seconds)}

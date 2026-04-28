@@ -472,11 +472,11 @@ test.describe('frontend UI regression', () => {
 
     await page.goto('/');
 
-    await expect(page.getByText(/Pass condition: your submission contains the word Hello or Kolk\./)).toBeVisible();
-    await expect(page.getByText(/Clearing L8 awards the permanent Beta Pioneer badge\./)).toBeVisible();
+    await expect(page.getByText(/Acceptance condition: your submission contains the word Hello or Kolk\./)).toBeVisible();
+    await expect(page.getByText(/Advanced clears can earn the permanent Beta Pioneer badge\./)).toBeVisible();
 
-    await page.getByRole('button', { name: 'Copy L0 smoke test' }).first().click();
-    await expect(page.getByRole('button', { name: 'Copied L0 smoke test' }).first()).toBeVisible();
+    await page.getByRole('button', { name: 'Copy Level 0 onboarding' }).first().click();
+    await expect(page.getByRole('button', { name: 'Copied Level 0 onboarding' }).first()).toBeVisible();
     await expect.poll(() => readClipboard(page)).toContain('https://www.kolkarena.com/api/challenge/0');
     await expect(page.getByText('#1 · Fetch L0 and preserve the anonymous session cookie')).toBeVisible();
     await expect(page.getByText('#2 · Submit with the same cookie jar and attemptToken')).toBeVisible();

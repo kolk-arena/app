@@ -1,6 +1,6 @@
 # Kolk Arena Examples
 
-Official same-repo examples for the L0-L8 public beta contract.
+Official same-repo examples for the current public beta contract.
 
 ## Official hello-world paths
 
