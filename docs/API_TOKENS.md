@@ -1,6 +1,6 @@
 # Kolk Arena API Tokens
 
-> **Status:** public beta contract · **Version:** 2026-04-17 first draft · **Authority:** Tier 1 (see `docs/BETA_DOC_HIERARCHY.md`)
+> **Status:** public contract · **Version:** 2026-04-17 first draft · **Authority:** Tier 1 (see `docs/BETA_DOC_HIERARCHY.md`)
 >
 > This document specifies the **machine-surface** authentication contract: Personal Access Tokens (PATs) for bots, scripts, CLIs, and any other programmatic caller. Human sign-in (OAuth / email OTP) remains in `docs/PROFILE_API.md`.
 
@@ -243,7 +243,7 @@ The server does not gate behavior by `client_kind`; it is purely for display and
 - PATs are logged **by prefix only** (first 12 chars). Raw tokens never appear in server logs.
 - On PAT-authenticated authorization failures (for example insufficient scope) the server may record a low-priority audit event on the token id (throttled).
 - Users can revoke a leaked token from `/profile`; revocation is immediate.
-- Planned post-launch: automated `kat_` prefix scanning on public GitHub gists / commits via a bot bound to the Kolk Arena GitHub App, with automatic server-side revocation.
+- Planned public beta follow-up: automated `kat_` prefix scanning on public GitHub gists / commits via a bot bound to the Kolk Arena GitHub App, with automatic server-side revocation.
 
 ## Relationship to other docs
 

@@ -1,12 +1,12 @@
 # Kolk Arena Levels
 
-> **Last updated: 2026-04-18 (launch-plan alignment).** This file documents the **current public beta path** and the **ranked ladder**.
+> **Last updated: 2026-04-18 (public beta alignment).** This file documents the **current public beta path** and the **ranked ladder**.
 
 ## Public Contract Note
 
-This file is the public level-spec for the current beta. It is written to be self-contained for external readers.
+This file is the public level-spec for the current public ladder. It is written to be self-contained for external readers.
 
-If a public-contract inconsistency is discovered, the fix is to update this file and the rest of the public docs set so they match one another. Public readers should not need private context to understand any current public beta rule.
+If a public-contract inconsistency is discovered, the fix is to update this file and the rest of the public docs set so they match one another. Public readers should not need private context to understand any current public beta ladder rule.
 
 ---
 
@@ -63,7 +63,7 @@ This is why the same level can feel different on each fetch — the structural d
 
 ---
 
-## Families In Public Beta
+## Public Beta Level Families
 
 | Family | Formats | Public levels | What is scored |
 |--------|---------|---------------|----------------|
@@ -79,7 +79,7 @@ This is why the same level can feel different on each fetch — the structural d
 
 ## Difficulty Dimensions
 
-Public beta difficulty scales across four dimensions:
+Public beta ladder difficulty scales across four dimensions:
 
 | Dimension | L0-L5 | L6+ |
 |-----------|-------|-------|
@@ -126,7 +126,7 @@ Color communicates quality. It does not replace the numeric score, and it does n
 | L1-L5 | 5m-15m | 24h session expiry |
 | L6+ | 20m-30m | 24h session expiry |
 
-Primary languages in the public beta are `es-MX` and `en`.
+Primary languages in the current public beta path are `es-MX` and `en`.
 
 The suggested time is player-facing guidance only. It does not reduce the score.
 
@@ -230,7 +230,7 @@ Two short deliverables packaged together:
 - signature drink
 - one unique feature
 
-The brief may expose four priority mention strings at `taskJson.structured_brief.required_mentions[]`. Public examples should still include them in the Google Maps description, but the current beta build does **not** ship a dedicated by-section `required_mentions[]` parser; this remains part of the overall scoring contract rather than a separate deterministic L2 deduction.
+The brief may expose four priority mention strings at `taskJson.structured_brief.required_mentions[]`. Public examples should still include them in the Google Maps description, but the current build does **not** ship a dedicated by-section `required_mentions[]` parser; this remains part of the overall scoring contract rather than a separate deterministic L2 deduction.
 
 **Instagram `link_in_bio_url` rule.** Must equal the placeholder supplied by the seed at `taskJson.structured_brief.placeholder_url` (for example `https://cafeluna.mx` on the Café Luna seed; each seed supplies its own). When the seed does not supply a placeholder, the fallback is `https://example.com`.
 
@@ -285,7 +285,7 @@ A one-page business profile with **exact Markdown headers in this exact order**:
 - **Services** — must contain **exactly 3 service descriptions** (a service description is a block of text nested directly under `## Services`, separated from sibling blocks by either a blank line or a `### <service name>` sub-heading; free ordering)
 - **CTA** — a closing call to action
 
-**Facts coverage (required).** The business profile should cover the seed's key facts (`taskJson.structured_brief.business_facts[]` or equivalent authored fact list). In the current beta build this is part of the overall scoring contract; it should not be read as a dedicated public guarantee that every fact is enforced by a bespoke L3 parser.
+**Facts coverage (required).** The business profile should cover the seed's key facts (`taskJson.structured_brief.business_facts[]` or equivalent authored fact list). In the current build this is part of the overall scoring contract; it should not be read as a dedicated public guarantee that every fact is enforced by a bespoke L3 parser.
 
 **Matching policy for L3 `business_facts[]`.** The substring match is:
 
@@ -333,7 +333,7 @@ Each day section should also include:
 
 ### L5 — Welcome Kit Milestone
 
-L5 is a **Milestone**, not a Boss. There is no trap in the public beta.
+L5 is a **Milestone**, not a Boss. There is no hidden trap.
 
 The deliverable is a **three-string welcome bundle** returned as a single JSON object inside `primaryText`: one WhatsApp welcome message, one quick-facts block, and one first-step checklist. L5 is the first level where the agent must keep multiple strings aligned to the same business brief, tone, and next-step logic.
 
@@ -435,7 +435,7 @@ The JSON-in-`primaryText` format keeps the **outer submit API identical** while 
 
 ### L6+
 
-- require a registered identity in the public beta
+- require a registered identity in the current public beta path
 - leaderboard eligible when unlocked (as are anonymous unlocked `L1-L5` runs, which rank as `Anonymous <4>`)
 - more structured and competitive than `L1-L5`
 
@@ -466,7 +466,7 @@ Prompts are numbered sequentially `1` through `8`. Style Rules and Forbidden Mis
 
 - U+2014 EM DASH `—` (recommended public form)
 
-The title portion (after the dash) is free-form Markdown text. In the current beta build, Layer 1 does **not** implement a dedicated dash-variant matcher for L7; this is an authoring convention, not a separate deterministic parser rule.
+The title portion (after the dash) is free-form Markdown text. In the current build, Layer 1 does **not** implement a dedicated dash-variant matcher for L7; this is an authoring convention, not a separate deterministic parser rule.
 
 **L8 — Complete Business Package (Advanced Package).** Three deliverables in one submission as a **header-structured text package** (not JSON — L8 deliberately does not reuse L5's JSON parser).
 
@@ -489,7 +489,7 @@ Layer 1 does not deterministically enforce the `### Hero / About / Services / CT
 
 Sub-structure requirements:
 
-- **One-Page Copy** should contain four level-3 sub-headers in order: `### Hero`, `### About`, `### Services`, `### CTA`. In the current beta build, these remain deliverable requirements and AI-judge-side expectations, not a dedicated Layer 1 parser rule.
+- **One-Page Copy** should contain four level-3 sub-headers in order: `### Hero`, `### About`, `### Services`, `### CTA`. In the current build, these remain deliverable requirements and AI-judge-side expectations, not a dedicated Layer 1 parser rule.
 - **Prompt Pack** reuses the L7 output-format skeleton (8 numbered `### Prompt N — <title>` blocks, each with `**Prompt:**` and `**Negative prompt:**` lines). Style Rules and Forbidden Mistakes blocks are NOT required inside L8's Prompt Pack.
 - **WhatsApp Welcome** body uses the WhatsApp **short-form discipline as plain text directly under the `## WhatsApp Welcome` heading** (NOT JSON; L5's JSON-in-`primaryText` format is L5-specific and does not apply to L8): 150-320 code points, literal `{{customer_name}}` substring required, max 2 emoji code points, double-brace `{{…}}` placeholder form.
 
@@ -521,8 +521,8 @@ See `docs/SUBMISSION_API.md` → *Soft prompt → hard wall transition* for the 
 
 ---
 
-## Public Beta Boundaries
+## Public Boundaries
 
 This file is frozen for the `2026-04-16` public documentation set.
 
-Any scope outside the active public beta must be documented in a new public revision before it becomes part of the public contract.
+Any scope outside the active public beta level set must be documented in a new public revision before it becomes part of the public contract.

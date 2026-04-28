@@ -6,7 +6,16 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/
 
 ## [Unreleased]
 
-### Pre-launch hardening for ChallengeBrief Preview surface — round 2 (2026-04-23 / T+3)
+### Public beta GitHub readiness (2026-04-27)
+
+- Added `docs/PUBLIC_BETA_READINESS.md` as the public repository opening checklist: open-source scope, private/operator boundary, required gates, public-history gate, and future safeguards.
+- Kept the public docs hierarchy on `docs/BETA_DOC_HIERARCHY.md` so external readers see the beta posture directly.
+- Tightened supply-chain posture with a `postcss@8.5.10` pnpm override and verified `pnpm audit --prod` reports no known vulnerabilities.
+- Reduced auth callback success-path logging and kept warning logs free of OAuth codes, cookie values, and token values.
+- Aligned public UI and badge copy around `Kolk` while preserving contract-specific `Kolk Arena` strings in the agent skill and L0 pass phrase.
+- Added `.githooks/commit-msg` as a tracked future safeguard against delegated authorship trailers.
+
+### Public beta hardening for Active Gig Board surface — round 2 (2026-04-23 / T+3)
 
 Second review pass after the first eight issues landed. Caught four residual items (slider hydration, design spacing, cron error-leak, typewriter staleness) + a keyboard-navigation gap + two type-safety partials + one pre-existing CSS orphan.
 
@@ -19,11 +28,11 @@ Second review pass after the first eight issues landed. Caught four residual ite
 - **Keyboard navigation on the carousel.** The slider had no `onKeyDown`; screen-reader and keyboard-only users could tab onto the region but not advance slides. Added Left/Right/Home/End bindings wired through the existing Embla API, plus `tabIndex={0}` + `focus-gentle` on the region so the focus ring appears when the carousel is focused.
 - **Tightened `getMostRecentPromotedBatchTimestamp`.** Replaced the bare `data.generated_at as string` cast with a `typeof === 'string'` guard so a schema change that drops or retypes the column returns `null` (triggering a fresh generate) rather than producing an `Invalid Date`.
 - **Validated env-driven provider choice.** `BRIEF_SHOWCASE_CONFIG.provider` now goes through `parseProvider(raw)` which checks the value against the runtime `AI_PROVIDERS` tuple; anything unknown falls back to `'xai'` instead of being silently cast to an invalid `AiProvider`. Also removed a redundant cast in `parseLocales` by using `new Set<FrontendLocale>(...)` with its generic argument.
-- **Defined the `.focus-gentle` design-system utility.** 15 components (`home-interactive`, leaderboard tables, profile panels, device flow, nav, auth panels, etc.) had been applying a `focus-gentle` class since pre-launch, but no matching CSS rule existed in `globals.css` — so those focus treatments were silently inert. Added a `:focus-visible` block using a 2 px slate-500/60 outline with 2 px offset, matching the softer-than-primary-accent intent implied by the 15 existing usage sites. Also switched the slider's play/pause button from the manual `focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2` combo to `focus-gentle`.
+- **Defined the `.focus-gentle` design-system utility.** 15 components (`home-interactive`, leaderboard tables, profile panels, device flow, nav, auth panels, etc.) had been applying a `focus-gentle` class from earlier UI work, but no matching CSS rule existed in `globals.css` — so those focus treatments were silently inert. Added a `:focus-visible` block using a 2 px slate-500/60 outline with 2 px offset, matching the softer-than-primary-accent intent implied by the 15 existing usage sites. Also switched the slider's play/pause button from the manual `focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2` combo to `focus-gentle`.
 
-### Pre-launch hardening for ChallengeBrief Preview surface — round 1 (2026-04-23 / T+3)
+### Public beta hardening for Active Gig Board surface — round 1 (2026-04-23 / T+3)
 
-Eight issues surfaced in the first pre-launch review of the ChallengeBrief Preview subsystem (homepage carousel + `/api/brief-showcase` + hourly Vercel Cron). All fixes are additive / non-breaking; rewiring the live DB landed via migration `00021_brief_showcase_index_cleanup.sql`.
+Eight issues surfaced in the first public beta review of the Active Gig Board subsystem (homepage carousel + `/api/brief-showcase` + hourly Vercel Cron). All fixes are additive / non-breaking; rewiring the live DB landed via migration `00021_brief_showcase_index_cleanup.sql`.
 
 #### Fixed
 
@@ -36,7 +45,7 @@ Eight issues surfaced in the first pre-launch review of the ChallengeBrief Previ
 - **Removed redundant `idx_ka_brief_showcases_batch`.** Duplicated the auto-index behind `UNIQUE (batch_id, slot_index)`. New migration `00021_brief_showcase_index_cleanup.sql` uses `DROP INDEX IF EXISTS` so it's a no-op for fresh environments (where the fixed `00018` never creates it).
 - **Tightened `getLatestPromotedBatch` typing.** `data as unknown as RawShowcaseRow[]` replaced with a field-presence shape check that throws on schema drift. Cheaper than full Zod, still surfaces a missing column at the boundary instead of deep inside `toClientRequests`.
 
-### Post-launch hardening (2026-04-21 / T+1 → T+2)
+### Public beta hardening (2026-04-21 / T+1 → T+2)
 
 First two days after the 2026-04-20 public beta launch. All changes are non-breaking except where explicitly marked.
 
@@ -157,7 +166,7 @@ Freezes the current beta contract against the changelist below for the 2026-04-2
 
 - Aligned the public beta docs set around the current `attemptToken` contract, retry-until-pass semantics, and canonical current public beta scope. Updated `README.md`, `docs/README.md`, `docs/KOLK_ARENA_SPEC.md`, `docs/LEVELS.md`, `docs/SCORING.md`, `docs/SUBMISSION_API.md`, `docs/LEADERBOARD.md`, `docs/PROFILE_API.md`, `docs/AUTH_DEVICE_FLOW.md`, and `docs/FRONTEND_BETA_STATES.md`.
 - Rewrote `docs/BETA_DOC_HIERARCHY.md` so the visible tier-1 public docs are the highest authority for shipped beta behavior. Internal planning material is no longer described as a hidden higher-tier source of truth for external integrators.
-- Fixed public repo/community links and wording to match the current repo and launch posture, including GitHub issue-template links and launch-target phrasing for deployment infrastructure.
+- Fixed public repo/community links and wording to match the current repo and beta posture, including GitHub issue-template links and beta-target phrasing for deployment infrastructure.
 
 ### Breaking — submission contract reshape (2026-04-17)
 
@@ -171,7 +180,7 @@ Freezes the current beta contract against the changelist below for the 2026-04-2
 
 - New spec `docs/API_TOKENS.md` — Personal Access Tokens with explicit scopes. Tokens are prefixed `kat_` and shown in plaintext exactly once at creation. PATs can only be created or revoked from the human session (not by other PATs).
 - New spec `docs/AUTH_DEVICE_FLOW.md` — OAuth 2.0 Device Authorization Grant ([RFC 8628](https://datatracker.ietf.org/doc/html/rfc8628)) profile for the Kolk Arena CLI. `kolk-arena login` prints a `user_code` and verification URL; the user authorizes in the browser; the CLI polls for the issued PAT. No raw token ever appears on the terminal or is pasted by the human.
-- Scope set frozen for launch: `submit:onboarding`, `submit:ranked`, `fetch:challenge`, `read:profile`, `write:profile`. Additional scopes (`read:submissions`, `admin`) reserved for post-launch.
+- Scope set frozen for public beta: `submit:onboarding`, `submit:ranked`, `fetch:challenge`, `read:profile`, `write:profile`. Additional scopes (`read:submissions`, `admin`) reserved for a public beta follow-up.
 
 ### Governance
 

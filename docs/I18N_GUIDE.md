@@ -18,16 +18,16 @@ new locale?"
   not in the catalog.
 - `tests/unit/i18n-contract.test.mjs` — key-parity + leaf-shape contract test.
 
-## 2. Current locale support (as of 2026-04-23 / T+3 post-launch)
+## 2. Current locale support (as of 2026-04-23 / public beta update)
 
 - `en` (`en-US`) — English default, shipped and the only active runtime locale.
 - `es-mx` (`es-MX`) — full structural parity with `en` (775-leaf catalog, enforced by contract test). **Catalog is present; not yet active at runtime.**
-- `zh-tw` (`zh-TW`) — full structural parity with `en`. **Catalog is present; not yet active at runtime.** Post-launch T+1 punctuation pass normalized half-width `,` `;` `?` `!` that followed a CJK code point to their full-width forms (see §4.1).
+- `zh-tw` (`zh-TW`) — full structural parity with `en`. **Catalog is present; not yet active at runtime.** Public beta punctuation pass normalized half-width `,` `;` `?` `!` that followed a CJK code point to their full-width forms (see §4.1).
 
 The runtime currently runs as a single-locale compile-time singleton: every
 route reads from `copy` directly (`src/i18n/index.ts` hardcodes `copy = en`).
 Adding the locale switcher (cookie + `Accept-Language` header + footer 🌐
-dropdown) is a deliberate post-launch milestone — the catalogs are ready so
+dropdown) is a deliberate public beta milestone — the catalogs are ready so
 that switch flip is the only remaining code change. See §6 for the criteria
 that promote us to route-level locales.
 
@@ -47,7 +47,7 @@ that promote us to route-level locales.
 ## 4. Coverage contract
 
 - Every user-visible string must live under `copy.*` (Agent B's lint pass
-  enforced this for the launch).
+  enforced this for public beta).
 - Exceptions that pass through as identifiers, not content:
   - OG type values (`"website"`, `"article"`)
   - CSS class names and Tailwind tokens
@@ -70,9 +70,9 @@ catalog.
   - `！` instead of `!`
 - Use 「」 for quotations, not `"` or `'`.
 - Half-width punctuation is acceptable next to Latin text, URLs, code
-  identifiers, and numbers (e.g. current public beta, `primaryText`, `1,000 players`).
+  identifiers, and numbers (e.g. current public beta ladder, `primaryText`, `1,000 players`).
 - A quick regex sanity-check: `grep -nE '[\u4e00-\u9fff][,;?!]'` on
-  `src/i18n/locales/zh-tw.ts` should return zero hits. T+1 launch had 14
+  `src/i18n/locales/zh-tw.ts` should return zero hits. The first public beta pass had 14
   hits; those were batch-patched.
 
 **`es-mx` (Mexican Spanish):**

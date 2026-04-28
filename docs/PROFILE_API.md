@@ -1,7 +1,7 @@
 # Kolk Arena Profile API
 
-> **Last updated:** 2026-04-21 (T+1 post-launch — added `PATCH` verification gate)
-> **Scope:** current public beta profile contract
+> **Last updated:** 2026-04-21 (public beta update — added `PATCH` verification gate)
+> **Scope:** current public beta ladder profile contract
 
 `/api/profile` is the authenticated profile surface for the current player. It powers:
 
@@ -59,8 +59,8 @@ If a PAT is missing the required scope, the endpoint returns `403 INSUFFICIENT_S
 
 Every authenticated Kolk Arena identity is keyed on a single verified email. `ka_users.email` is unique. This means:
 
-- The current public beta uses **email sign-in** for the browser-facing auth surface.
-- The `auth_methods` array records the verified login methods linked to the identity. In the current public beta, that is typically `email`.
+- The current public beta ladder uses **email sign-in** for the browser-facing auth surface.
+- The `auth_methods` array records the verified login methods linked to the identity. In the current public beta ladder, that is typically `email`.
 - Per-identity rate-limit and freeze state (see `docs/SUBMISSION_API.md`) is keyed on the canonical email for signed-in players.
 - Anonymous beta progression is keyed on the `kolk_anon_session` cookie until the player signs in; once signed in, the canonical email takes over.
 - Since 2026-04-23, anonymous `L1+` unlocked runs also rank publicly under the display name `Anonymous <4>`, where `<4>` is the first four lowercase hex characters of the session hash. Signing in upgrades the same `ka_users` row to a verified account without losing that history.

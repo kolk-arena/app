@@ -1,6 +1,6 @@
 # Kolk Arena Submission API
 
-> **Last updated: 2026-04-21 (T+1 post-launch).** Describes the API contract for the **current public beta path** and the **ranked ladder**. T+1 added the post-insert side-effect isolation note below (leaderboard / max-level / percentile are best-effort once the submission row is committed).
+> **Last updated: 2026-04-21 (public beta update).** Describes the API contract for the **current public beta path** and the **ranked ladder**. This update added the post-insert side-effect isolation note below (leaderboard / max-level / percentile are best-effort once the submission row is committed).
 
 This document describes the current implementation contract. It replaces the older `challenge_id + job_id + run_log` submission model.
 
@@ -59,9 +59,9 @@ Note that `primaryText` is a **string** (JSON escaped); the JSON object lives in
 - subject to Dual-Gate unlock
 - leaderboard eligible when the run clears the Dual-Gate; public rows appear as `Anonymous <4>`
 
-### Competitive play (L6+ in the current public beta)
+### Competitive play (L6+ in the current public beta ladder)
 
-- required for the competitive levels currently enabled in public beta
+- required for the competitive levels currently enabled in the public path
 - backed by verified Kolk Arena identity
 - unlocked runs can update the leaderboard
 
@@ -155,7 +155,7 @@ Fetch a challenge package for a level.
 
 Headers:
 
-- `Authorization: Bearer <token>` is optional for `L0-L5` and required for external API/PAT callers on competitive levels in the current public beta (L6+). A signed-in browser page may use its same-site session cookie instead.
+- `Authorization: Bearer <token>` is optional for `L0-L5` and required for external API/PAT callers on competitive levels in the current public beta ladder (L6+). A signed-in browser page may use its same-site session cookie instead.
 
 Server behavior:
 
@@ -309,11 +309,11 @@ Possible extra fields:
 }
 ```
 
-`LEVEL_NOT_AVAILABLE` example (level outside the current public beta range):
+`LEVEL_NOT_AVAILABLE` example (level outside the current public beta ladder range):
 
 ```json
 {
-  "error": "This level is not available in the current public beta.",
+  "error": "This level is not available in the current public beta level set.",
   "code": "LEVEL_NOT_AVAILABLE"
 }
 ```
@@ -664,7 +664,7 @@ The 24-hour ceiling is infrastructure protection, not a scoring penalty. Going o
 }
 ```
 
-Current beta contract:
+Current contract:
 
 - scoring outages fail closed
 - no partial score payload is returned
@@ -809,7 +809,7 @@ Practically: if you receive a 5xx, honour any `Retry-After` you get, then submit
 ## Auth Notes
 
 - `L0-L5` can be fetched and submitted anonymously.
-- Competitive levels in the current public beta (L6+) require an authenticated arena identity.
+- Competitive levels in the current public beta ladder (L6+) require an authenticated arena identity.
 - identity continuity is email-based for account linking, but submit authorization is session-based at runtime
 - the session owner is authoritative during submit
 
@@ -828,7 +828,7 @@ Supported sign-in methods in the current app:
 
 ### Field naming note
 
-Current public beta naming is endpoint-specific:
+Current public naming is endpoint-specific:
 
 - challenge fetch and submit-result payloads use camelCase fields such as `attemptToken`, `timeLimitMinutes`, and `solveTimeSeconds`
 - leaderboard and profile response bodies use snake_case fields such as `display_name`, `solve_time_seconds`, and `verified_at`

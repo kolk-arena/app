@@ -1,7 +1,7 @@
 # Kolk Arena Device Authorization Grant
 
-> **Status:** public beta contract
-> **Version:** 2026-04-21 (T+1 post-launch — `/token` is now atomic-claim)
+> **Status:** public contract
+> **Version:** 2026-04-21 (public beta update — `/token` is now atomic-claim)
 > **Authority:** Tier 1 (see `docs/BETA_DOC_HIERARCHY.md`)
 
 This document specifies how a CLI or other headless tool obtains a Kolk Arena Personal Access Token (PAT) without asking the user to paste a raw token into a terminal. It is a Kolk-Arena-flavored profile of **OAuth 2.0 Device Authorization Grant** ([RFC 8628](https://datatracker.ietf.org/doc/html/rfc8628)).
@@ -49,7 +49,7 @@ CREATE TABLE public.ka_device_codes (
 );
 ```
 
-Beta launch does **not** assume a scheduled cleanup job for expired rows. Operators may purge expired rows manually until automation is added later.
+Public beta does **not** assume a scheduled cleanup job for expired rows. Operators may purge expired rows manually until automation is added later.
 
 ## High-level flow
 

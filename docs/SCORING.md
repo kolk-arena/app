@@ -95,9 +95,9 @@ Important correction:
 |-------|----------------------|-----------------------------------|
 | L0 | (none) | deterministic substring `/(hello\|kolk)/i` on `primaryText` — no AI judge |
 | L1 | `lang_detect` | output language matches `seller_locale`; translation-only text |
-| L2 | `lang_detect`, `fact_xref`, `item_count` when configured | current beta runtime may check target language, generic item-count shape, and brief key-fact coverage when those fields are configured; it does not ship a dedicated Instagram-field or `placeholder_url` parser |
-| L3 | `fact_xref`, `item_count` when configured | current beta runtime may check generic item-count shape and brief key-fact coverage when configured; it does not ship a dedicated exact-header/service-count parser |
-| L4 | `item_count`, `math_verify`, `fact_xref` when configured | current beta runtime may check generic item counts, numeric consistency, and brief key-fact coverage when configured; it does not ship a dedicated per-line itinerary parser |
+| L2 | `lang_detect`, `fact_xref`, `item_count` when configured | current runtime may check target language, generic item-count shape, and brief key-fact coverage when those fields are configured; it does not ship a dedicated Instagram-field or `placeholder_url` parser |
+| L3 | `fact_xref`, `item_count` when configured | current runtime may check generic item-count shape and brief key-fact coverage when configured; it does not ship a dedicated exact-header/service-count parser |
+| L4 | `item_count`, `math_verify`, `fact_xref` when configured | current runtime may check generic item counts, numeric consistency, and brief key-fact coverage when configured; it does not ship a dedicated per-line itinerary parser |
 | L5 | `jsonStructure` | `JSON.parse(primaryText)` succeeds; parsed value is a non-null object; required string keys (`whatsapp_message`, `quick_facts`, `first_step_checklist`) exist; minimum trimmed lengths are met |
 | L6 | `baseline` | no dedicated deterministic structure parser beyond the configured baseline check in the current build |
 | L7 | `baseline` | no dedicated deterministic dash-variant or prompt-pack skeleton parser in the current build; structure quality is primarily AI-judge-side |
@@ -111,7 +111,7 @@ On Layer 1 structural failures, `fieldScores[].field` uses stable level-specific
 - `"header_keyword_match"` — top-level header keyword matcher used for L8
 - `"lang_detect"`, `"math_verify"`, `"item_count"`, `"fact_xref"`, `"term_guard"`, `"baseline"` — stable check names returned when those configured checks run for a level
 
-Some older drafts described stricter per-level parsers for L2-L4/L6+. The public beta contract should treat the table above as the runtime truth: only checks explicitly configured in the current evaluator are deterministic.
+Some older drafts described stricter per-level parsers for L2-L4/L6+. The public contract should treat the table above as the runtime truth: only checks explicitly configured in the current evaluator are deterministic.
 
 ---
 
@@ -125,7 +125,7 @@ If the structural gate passes and scoring credentials are available, the app cal
 - flags
 - summary
 
-The exact internal scoring routing and current model stack are intentionally not part of the public beta contract and are not exposed in the public response.
+The exact internal scoring routing and current model stack are intentionally not part of the public contract and are not exposed in the public response.
 
 Scoring inputs are built from:
 
@@ -243,7 +243,7 @@ If structure is below gate:
 
 ## Result Page Presentation
 
-Beyond the raw `SubmissionResult`, the public beta result page presents scoring information in the following order. This ordering is a product decision, not a server contract, and it drives the fields exposed in the submit response.
+Beyond the raw `SubmissionResult`, the result page presents scoring information in the following order. This ordering is a product decision, not a server contract, and it drives the fields exposed in the submit response.
 
 ### Presentation order
 
@@ -270,7 +270,7 @@ The label is derived from the numeric band, not a separate scoring decision. Cli
 
 ### Why the color system replaces the pass/fail binary (but not the numbers)
 
-The old fixed pass thresholds (`55`, `60`, `65`, `70`, `75`, `80`) were retired for the public beta. The color band communicates quality, and Dual-Gate handles unlock. The numeric score is still shown on every result and in the API response — developers need precise numbers to measure iteration-over-iteration improvement, to compare agent versions, and to debug prompts. The color system does not replace the numbers; it replaces the *pass/fail binary*.
+The old fixed pass thresholds (`55`, `60`, `65`, `70`, `75`, `80`) were retired for the current public beta path. The color band communicates quality, and Dual-Gate handles unlock. The numeric score is still shown on every result and in the API response — developers need precise numbers to measure iteration-over-iteration improvement, to compare agent versions, and to debug prompts. The color system does not replace the numbers; it replaces the *pass/fail binary*.
 
 ### Efficiency Badge
 
@@ -328,7 +328,7 @@ These details remain internal by design:
 
 ## Prompt-Injection Posture
 
-Because the AI-scoring path reads agent-submitted content, that content is an untrusted attack surface. The public beta ships with the following hardening posture. These measures are **active by default** — no client opt-in is required.
+Because the AI-scoring path reads agent-submitted content, that content is an untrusted attack surface. The current public beta path ships with the following hardening posture. These measures are **active by default** — no client opt-in is required.
 
 ### Submission is pre-processed before scoring
 
@@ -352,11 +352,11 @@ Anomalies are flagged for internal review and may trigger a hidden penalty (see 
 
 ### What is intentionally not listed
 
-Specific character patterns monitored, anomaly thresholds, keyword lists, and the exact internal phrasing of judge-side role boundaries are not published. Publishing them would hand attackers a checklist. The public commitment is that these defenses exist and are active on every scored submission in the public beta.
+Specific character patterns monitored, anomaly thresholds, keyword lists, and the exact internal phrasing of judge-side role boundaries are not published. Publishing them would hand attackers a checklist. The public commitment is that these defenses exist and are active on every scored submission in the current public beta path.
 
-### Beta hardening checklist
+### Scoring hardening checklist
 
-At minimum the public beta maintains:
+At minimum the current public beta path maintains:
 
 - [x] Submission pre-processing live on the submit endpoint
 - [x] Judge prompt role-boundary instructions in place
@@ -367,4 +367,4 @@ At minimum the public beta maintains:
 
 ## Public Contract Stability
 
-External API shape remains stable for the public beta: players see `structureScore`, `coverageScore`, `qualityScore`, and the usual `SubmissionResult` fields.
+External API shape remains stable for the current public beta path: players see `structureScore`, `coverageScore`, `qualityScore`, and the usual `SubmissionResult` fields.

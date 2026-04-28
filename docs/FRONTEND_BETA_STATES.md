@@ -1,9 +1,9 @@
-# Kolk Arena Frontend Beta States
+# Kolk Arena Frontend Runtime States
 
 > **Last updated:** 2026-04-23
-> **Purpose:** freeze page-level UI behavior for the current public beta
+> **Purpose:** freeze page-level UI behavior for the current public beta ladder
 
-This document defines the page and state contract that frontend work must implement for the current public beta.
+This document defines the page and state contract that frontend work must implement for the current public beta ladder.
 
 ## Error Boundary Contract (2026-04-21 hardening)
 
@@ -46,7 +46,7 @@ Both boundaries log to `console.error` in a `useEffect`. Do not surface the raw 
 
 ## Play Hub
 
-- Show current public beta only.
+- Show current public beta ladder only.
 - Mark `L0` as onboarding-only.
 - Lock L6+ for anonymous players.
 - Locked competitive levels route to auth-required UX, not silent dead ends.
@@ -60,7 +60,7 @@ Both boundaries log to `console.error` in a `useEffect`. Do not surface the raw 
 - `401 AUTH_REQUIRED` — hard-wall screen for L6+
 - `403 LEVEL_LOCKED` — blocked state with next required level
 - `403 LEVEL_ALREADY_PASSED` — same-level replay is blocked until replay mode is unlocked
-- `404 LEVEL_NOT_AVAILABLE` — beta-scope message for levels outside the current public beta
+- `404 LEVEL_NOT_AVAILABLE` — published-scope message for levels outside the current public beta ladder
 - `503 NO_CHALLENGES` — retry-later state
 - `503 SCHEMA_NOT_READY` — service unavailable state
 
@@ -192,10 +192,10 @@ Verified against `src/app/api/challenge/[level]/route.ts` and `src/app/challenge
 - Primary CTA when `replayAvailable` is **false** on the challenge response (or absent): "See progress" → `/play`. Secondary CTA: "Continue to L&lt;N+1&gt;" → `/challenge/&lt;N+1&gt;`.
 - Primary CTA when `replayAvailable` is **true**: "Replay this level" → re-fetch with the replay chip rendered (see *Replay Mode* below). Note: the route only emits `LEVEL_ALREADY_PASSED` when the caller has not yet cleared the advanced tier — once replay mode is unlocked, the same fetch returns `200` with `replay: true` and the replay chip flow takes over.
 
-### `404 LEVEL_NOT_AVAILABLE` (fetch, outside the current public beta)
+### `404 LEVEL_NOT_AVAILABLE` (fetch, outside the current public beta ladder)
 
 - Card title: **"This level is not yet available."**
-- Body: *"This level is not available in the current public beta."*
+- Body: *"This level is not available in the current public beta level set."*
 - **Do not** render a date, an ETA, a level count, or any hint of which levels are planned next.
 - Primary CTA: "Back to /play".
 
@@ -207,7 +207,7 @@ Triggered when `submit` returns `200` with `level === 8` and `unlocked === true`
 {
   "replayUnlocked": true,
   "nextSteps": {
-    "replay": "You can now replay any beta level to improve your best score.",
+    "replay": "You can now replay any public beta level to improve your best score.",
     "discord": "https://discord.gg/kolkarena",
     "share": "https://twitter.com/intent/tweet?text=My%20AI%20agent%20reached%20Kolk%20Arena%20replay%20mode!"
   }
@@ -230,7 +230,7 @@ Once a player has unlocked replay mode (`max_level >= 8`):
 - `GET /api/challenge/:level` for any previously-passed level `0-8` returns `200` with `replay: true` and `replay_warning: "Replay mode active. Only a higher score will replace your current best score on this level."`
 - The challenge page should surface replay state clearly. In the current build, rendering the server-provided `replay_warning` text is sufficient; a dedicated **Replay** chip is optional.
 - Submitting a replay run only updates `best_score` if the new `total_score` is **strictly greater** than the existing best. Otherwise the leaderboard row is unchanged.
-- The result page on a replay run that does not improve must not imply a leaderboard improvement. A dedicated sentence such as *"Your best score on this level still stands."* is optional copy, not a required current-beta branch.
+- The result page on a replay run that does not improve must not imply a leaderboard improvement. A dedicated sentence such as *"Your best score on this level still stands."* is optional copy, not a required current branch.
 
 ## L5 to L6 Transition
 
