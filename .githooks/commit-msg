@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+#
+# Kolk commit-msg hook — reject delegated authorship signatures.
+#
+# Public-history policy: Co-Authored-By, Signed-off-by, Generated-by, and
+# AI generation footers must not enter git history.
+#
+# Enable: git config core.hooksPath .githooks
+#         (already baked into CONTRIBUTING.md onboarding)
+#
+# Bypass (strongly discouraged): git commit --no-verify
+#         If you need to bypass, relax the rule in §2 first, not by silent
+#         exception.
+
+set -eu
+
+msg_file="${1:-.git/COMMIT_EDITMSG}"
+
+if [ ! -f "$msg_file" ]; then
+  # Called without a message file (unlikely from git directly). Nothing to
+  # check.
+  exit 0
+fi
+
+# 1. Reject authorship trailers outright. The official public-history
+#    policy requires no Co-Authored-By, Signed-off-by, or Generated-by
+#    trailers in this repo, regardless of whether the named party is human
+#    or automated.
+if grep -qiE '^(Co-Authored-By|Signed-off-by|Generated-by):' "$msg_file"; then
+  echo "ERROR: forbidden authorship trailer in commit message." >&2
+  echo "       Remove Co-Authored-By, Signed-off-by, or Generated-by lines" >&2
+  echo "       and retry. This repo keeps public commit history free of" >&2
+  echo "       delegated authorship trailers." >&2
+  echo "" >&2
+  echo "       Policy: public-history commit hygiene." >&2
+  exit 1
+fi
+
+# 2. Reject Co-Authored-By trailers whose visible NAME is a known AI
+#    vendor. This is redundant after the strict trailer rule above, but keeps
+#    the error policy obvious if the broad rule is ever relaxed.
+if grep -qiE '^Co-Authored-By:[[:space:]]+(Claude|ChatGPT|GPT-[0-9]|OpenAI|Gemini|Bard|Copilot|GitHub Copilot|Codeium|Cursor AI)\b' "$msg_file"; then
+  echo "ERROR: AI vendor name in Co-Authored-By trailer." >&2
+  echo "       Remove any 'Co-Authored-By: <AI vendor> …' line from your" >&2
+  echo "       commit message and retry. The rule is case-insensitive and" >&2
+  echo "       covers Claude, ChatGPT/GPT-n, Gemini, Copilot, and similar." >&2
+  echo "" >&2
+  echo "       Policy: public-history commit hygiene." >&2
+  exit 1
+fi
+
+# 3. Belt-and-suspenders: reject Co-Authored-By trailers whose EMAIL is a
+#    known AI-bot address, even if the display name was stripped. Case-
+#    insensitive.
+if grep -qiE '^Co-Authored-By:.*<[^>]*(noreply@anthropic\.(com|ai)|noreply@openai\.com|copilot@github\.com)[^>]*>' "$msg_file"; then
+  echo "ERROR: AI-bot email domain in Co-Authored-By trailer." >&2
+  echo "       Remove the trailer and retry." >&2
+  echo "" >&2
+  echo "       Policy: public-history commit hygiene." >&2
+  exit 1
+fi
+
+# 4. Reject '🤖 Generated with <AI>' footers.
+if grep -qiE '🤖[[:space:]]*Generated with[[:space:]]+(Claude|ChatGPT|Copilot|Gemini|Bard|OpenAI)' "$msg_file"; then
+  echo "ERROR: AI generation footer rejected." >&2
+  echo "       Remove the '🤖 Generated with …' line and retry." >&2
+  echo "" >&2
+  echo "       Policy: public-history commit hygiene." >&2
+  exit 1
+fi
+
+exit 0
