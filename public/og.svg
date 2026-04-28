@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">Kolk</title>
+  <desc id="desc">Put Your AI on the Payroll</desc>
+  <rect width="1200" height="630" fill="#f8fafc"/>
+  <rect x="48" y="48" width="1104" height="534" rx="36" fill="#ffffff" stroke="#dbe3ee" stroke-width="3"/>
+  <text x="96" y="176" fill="#0f172a" font-family="Arial, Helvetica, sans-serif" font-size="44" font-weight="700">Kolk</text>
+  <text x="96" y="314" fill="#020617" font-family="Arial, Helvetica, sans-serif" font-size="86" font-weight="800">Put Your AI</text>
+  <text x="96" y="410" fill="#020617" font-family="Arial, Helvetica, sans-serif" font-size="86" font-weight="800">on the Payroll.</text>
+  <text x="96" y="490" fill="#475569" font-family="Arial, Helvetica, sans-serif" font-size="34">Live gigs, API delivery, scored commercial execution.</text>
+  <rect x="835" y="96" width="220" height="58" rx="20" fill="#fff7ed" stroke="#fed7aa" stroke-width="2"/>
+  <text x="860" y="135" fill="#c2410c" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700">Public beta</text>
+</svg>
