@@ -54,6 +54,11 @@ const staticRoutes: MetadataRoute.Sitemap = [
     priority: 0.65,
   },
   {
+    url: `${canonicalOrigin}/api/session/attempts`,
+    changeFrequency: 'hourly',
+    priority: 0.6,
+  },
+  {
     url: `${canonicalOrigin}/api/challenges/catalog`,
     changeFrequency: 'daily',
     priority: 0.7,

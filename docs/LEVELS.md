@@ -70,8 +70,8 @@ This is why the same level can feel different on each fetch — the structural d
 | `connectivity_check` | plain text | L0 | request/response connectivity only |
 | `txt_translation` | `.txt` / `.md` | L1 | language accuracy, completeness, tone match |
 | `biz_bio` | `.md` / `.txt` | L2 | dual-field short-form business copy (Google Maps + Instagram bio), mandatory-field completeness, length bounds |
-| `structured_plan` | `.md` / `.json` | L3, L4, L7 | structure, item count, math, specification quality |
-| `json_bundle` | JSON object inside `primaryText` | L5 | three required string keys, per-key length + content rules, cross-value consistency |
+| `structured_plan` | `.md` / `.json` | L3, L4, L7 | structure, fact coverage, and only the level-declared item/math checks |
+| `json_bundle` | JSON object inside `primaryText` | L5 | three required string-valued keys, per-key length + content rules, cross-value consistency |
 | `multi_asset_text_bundle` | single `primaryText` package with fixed sections | L8 | all deliverables present, cross-document consistency |
 | `landing_page_copy` | HTML `.md` | L6 | section structure, CTA, professional tone |
 
@@ -169,7 +169,7 @@ After the player earns the replay-unlock clear, replay unlocks across **all** pr
 | L0 | Hello World | Connectivity check string | `connectivity_check` | A | Onboarding | contains `Hello` or `Kolk` | 1m |
 | L1 | Quick Translate | Service-request translation brief | `txt_translation` | A | Regular | Dual-Gate | 5m |
 | L2 | Biz Bio | Google Maps description plus Instagram bio | `biz_bio` | A | Regular | Dual-Gate | 8m |
-| L3 | Business Profile | Intro plus 3 services plus CTA | `structured_plan` | A | Regular | Dual-Gate | 10m |
+| L3 | Business Profile | Profile Markdown covering live facts, with Intro/Services/CTA as the recommended shape | `structured_plan` | A | Regular | Dual-Gate | 10m |
 | L4 | Travel Itinerary | 2-4 day itinerary (`trip_days = 2 \| 3 \| 4`, seed-driven) | `structured_plan` | B | Regular | Dual-Gate | 12m |
 | L5 | Welcome Kit | Three-string JSON bundle (whatsapp_message + quick_facts + first_step_checklist) inside `primaryText` | `json_bundle` | B | Milestone | Dual-Gate | 15m |
 | L6 | Pro One-Page | Hero plus about plus services plus CTA | `landing_page_copy` | B | Regular | Dual-Gate | 20m |
@@ -273,7 +273,7 @@ The Instagram bio JSON block is the only JSON fragment inside the L2 submission.
 
 ### L3 — Business Profile
 
-A one-page business profile with **exact Markdown headers in this exact order**:
+A one-page business profile in Markdown. The recommended shape is:
 
 ```
 ## Intro
@@ -282,19 +282,21 @@ A one-page business profile with **exact Markdown headers in this exact order**:
 ```
 
 - **Intro** — who the business is, in the brief's own words
-- **Services** — must contain **exactly 3 service descriptions** (a service description is a block of text nested directly under `## Services`, separated from sibling blocks by either a blank line or a `### <service name>` sub-heading; free ordering)
+- **Services** — concrete service descriptions grounded in the live brief
 - **CTA** — a closing call to action
 
-**Facts coverage (required).** The business profile should cover the seed's key facts (`taskJson.structured_brief.business_facts[]` or equivalent authored fact list). In the current build this is part of the overall scoring contract; it should not be read as a dedicated public guarantee that every fact is enforced by a bespoke L3 parser.
+**Runtime contract.** L3 deterministic checks are declarative: `fact_xref` and `term_guard` may run when the seed provides matching fields. L3 deliberately does **not** run `math_verify` or `item_count`, even if a malformed seed includes `budget_total` or item-count-like fields.
 
-**Matching policy for L3 `business_facts[]`.** The substring match is:
+**Facts coverage (required).** The business profile should cover the seed's key facts (`taskJson.structured_brief.key_facts[]`, `facts[]`, or `business_facts[]`, depending on the authored seed).
+
+**Matching policy for L3 fact strings.** The substring match is:
 
 - **case-insensitive** (`Café Luna` in the brief matches `café luna` or `CAFÉ LUNA` in the agent output)
 - **Unicode-normalized to NFC** before comparison (so pre-composed vs decomposed `é` does not matter)
 - **accent-insensitive** (`"Oaxaca"` in the brief will match the agent's `"Oaxáca"` typo and vice versa; `á/a`, `é/e`, `í/i`, `ó/o`, `ú/u`, `ñ/n`, `ü/u` collapse). This favours `es-MX` agents that sometimes strip diacritics for accessibility / search; a correctly-accented output never fails on this check
 - **whitespace-tolerant** (a single-space collapse is applied on both sides, so tab / double-space inside a fact does not cause a miss)
 
-Pure structured text. **No numeric calculation.** This is the first level where the agent must read both `promptMd` and `taskJson` to produce the structured output.
+Pure structured text. **No deterministic numeric calculation.** This is the first level where the agent must read both `promptMd` and `taskJson` to produce the structured output.
 
 ### L4 — Travel Itinerary
 

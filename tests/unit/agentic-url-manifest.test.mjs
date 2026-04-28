@@ -92,6 +92,7 @@ test('automation manifest builder stays aligned with canonical beta constants', 
     assert.equal(manifest.entrypoints.submit, `${APP_CONFIG.canonicalOrigin}/api/challenge/submit`);
     assert.equal(manifest.entrypoints.status, `${APP_CONFIG.canonicalOrigin}/api/status`);
     assert.equal(manifest.entrypoints.sessionStatus, `${APP_CONFIG.canonicalOrigin}/api/session/status`);
+    assert.equal(manifest.entrypoints.sessionAttempts, `${APP_CONFIG.canonicalOrigin}/api/session/attempts`);
     assert.equal(manifest.entrypoints.catalog, `${APP_CONFIG.canonicalOrigin}/api/challenges/catalog`);
     assert.equal(manifest.docs.submissionApi, `${APP_CONFIG.docsOrigin}/SUBMISSION_API.md`);
     assert.equal(manifest.docs.integrationGuide, `${APP_CONFIG.docsOrigin}/INTEGRATION_GUIDE.md`);

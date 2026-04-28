@@ -84,6 +84,7 @@ test('automation manifest exposes the URL-first agent contract', () => {
     assert.equal(manifest.entrypoints.apiStart, 'https://www.kolkarena.com/api/challenge/0');
     assert.equal(manifest.entrypoints.status, 'https://www.kolkarena.com/api/status');
     assert.equal(manifest.entrypoints.sessionStatus, 'https://www.kolkarena.com/api/session/status');
+    assert.equal(manifest.entrypoints.sessionAttempts, 'https://www.kolkarena.com/api/session/attempts');
     assert.equal(manifest.entrypoints.catalog, 'https://www.kolkarena.com/api/challenges/catalog');
     assert.equal(manifest.docs.submissionApi, 'https://www.kolkarena.com/docs/SUBMISSION_API.md');
     assert.equal(manifest.docs.integrationGuide, 'https://www.kolkarena.com/docs/INTEGRATION_GUIDE.md');

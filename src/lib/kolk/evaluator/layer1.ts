@@ -17,6 +17,7 @@ import { distance as levenshtein } from 'fastest-levenshtein';
 import { newStemmer } from 'snowball-stemmers';
 
 import { STRUCTURE_MAX } from '../constants';
+import type { ExtractedNumber } from '../types';
 
 // ============================================================================
 // Types
@@ -28,6 +29,7 @@ export interface Layer1Check {
   score: number;       // points awarded
   maxPoints: number;   // max possible for this check
   reason: string;
+  extractedNumbers?: ExtractedNumber[];
 }
 
 export interface Layer1Result {
@@ -91,7 +93,7 @@ export function langDetect(
 // 2. math_verify — Verify arithmetic in output
 // ============================================================================
 
-// Common line-item cost field names used by L3 / L4 JSON itinerary
+// Common line-item cost field names used by JSON itinerary / budget
 // submissions and L5-style structured deliveries. Ordered by specificity
 // so an explicit MXN-qualified field wins over a generic "cost" field
 // when both are present.
@@ -131,17 +133,19 @@ function tryParseJsonSubmission(text: string): unknown | null {
 // Walk a parsed JSON tree and sum every numeric occurrence of `fieldName`.
 // Returns `{ sum, hits }` so callers can require ≥2 hits — a single hit is
 // almost always a grand-total echo, not line-item summation.
-function sumJsonField(root: unknown, fieldName: string): { sum: number; hits: number } {
+function sumJsonField(root: unknown, fieldName: string): { sum: number; hits: number; extractedNumbers: ExtractedNumber[] } {
   let sum = 0;
   let hits = 0;
+  const extractedNumbers: ExtractedNumber[] = [];
 
-  const walk = (node: unknown) => {
+  const walk = (node: unknown, path = '$') => {
     if (Array.isArray(node)) {
-      node.forEach(walk);
+      node.forEach((item, index) => walk(item, `${path}[${index}]`));
       return;
     }
     if (node && typeof node === 'object') {
       for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
+        const childPath = `${path}.${key}`;
         if (
           key === fieldName &&
           typeof value === 'number' &&
@@ -150,20 +154,73 @@ function sumJsonField(root: unknown, fieldName: string): { sum: number; hits: nu
         ) {
           sum += value;
           hits += 1;
+          extractedNumbers.push({
+            token: childPath,
+            value,
+            source: 'json_field',
+          });
         } else {
-          walk(value);
+          walk(value, childPath);
         }
       }
     }
   };
 
   walk(root);
-  return { sum, hits };
+  return { sum, hits, extractedNumbers };
+}
+
+function rangesOverlap(aStart: number, aEnd: number, bStart: number, bEnd: number) {
+  return aStart < bEnd && bStart < aEnd;
+}
+
+function extractCurrencyNumbers(text: string): ExtractedNumber[] {
+  const patterns = [
+    /\$[\d,]+(?:\.\d{1,2})?/g,
+    /\b[\d,]+(?:\.\d{1,2})?\s*(?:MXN|USD|pesos|dollars)\b/gi,
+  ];
+  const extractedNumbers: Array<ExtractedNumber & { start: number; end: number }> = [];
+  const occupiedRanges: Array<{ start: number; end: number }> = [];
+
+  for (const pattern of patterns) {
+    const matches = text.matchAll(pattern);
+    for (const match of matches) {
+      const token = match[0];
+      const start = match.index ?? -1;
+      if (start < 0) continue;
+
+      const end = start + token.length;
+      if (occupiedRanges.some((range) => rangesOverlap(start, end, range.start, range.end))) {
+        continue;
+      }
+
+      const clean = token.replace(/[$,\s]|MXN|USD|pesos|dollars/gi, '');
+      const value = parseFloat(clean);
+      if (!Number.isNaN(value) && value > 0) {
+        extractedNumbers.push({
+          token,
+          value,
+          source: 'currency',
+          start,
+          end,
+        });
+        occupiedRanges.push({ start, end });
+      }
+    }
+  }
+
+  return extractedNumbers
+    .sort((a, b) => a.start - b.start)
+    .map((entry) => ({
+      token: entry.token,
+      value: entry.value,
+      source: entry.source,
+    }));
 }
 
 /**
  * Extract numbers from text and verify they sum to expected total.
- * Used for budget checks (L3), price catalogs (L5), etc.
+ * Used for explicit budget checks, price catalogs, etc.
  *
  * JSON-aware path: if the submission parses as JSON and contains a
  * repeated line-item cost field (cost_mxn / cost / price / ...), sum
@@ -188,7 +245,7 @@ export function mathVerify(
   const parsedJson = tryParseJsonSubmission(text);
   if (parsedJson != null) {
     for (const field of JSON_COST_FIELD_CANDIDATES) {
-      const { sum, hits } = sumJsonField(parsedJson, field);
+      const { sum, hits, extractedNumbers } = sumJsonField(parsedJson, field);
       if (hits >= 2) {
         const diff = Math.abs(sum - expectedTotal);
         const passed = diff <= tolerance * expectedTotal;
@@ -201,6 +258,7 @@ export function mathVerify(
           reason: passed
             ? `JSON line items .${field} sum to ${sum.toFixed(2)}, matches expected ${expectedTotal}`
             : `JSON line items .${field} sum to ${sum.toFixed(2)}, expected ${expectedTotal} (diff: ${diff.toFixed(2)})`,
+          extractedNumbers,
         };
       }
     }
@@ -210,24 +268,11 @@ export function mathVerify(
   }
 
   // ── Regex path (prose / markdown / fallback) ────────────────────────
-  const numberPatterns = [
-    /\$[\d,]+(?:\.\d{1,2})?/g,            // $1,234.56
-    /[\d,]+(?:\.\d{1,2})?\s*(?:MXN|USD|pesos|dollars)/gi,  // 1234 MXN
-    /(?:^|\s)([\d,]+(?:\.\d{1,2})?)(?:\s|$|,)/gm,          // standalone numbers
-  ];
-
-  const numbers: number[] = [];
-  for (const pattern of numberPatterns) {
-    const matches = text.matchAll(pattern);
-    for (const match of matches) {
-      const raw = match[1] ?? match[0];
-      const clean = raw.replace(/[$,\s]|MXN|USD|pesos|dollars/gi, '');
-      const num = parseFloat(clean);
-      if (!isNaN(num) && num > 0) {
-        numbers.push(num);
-      }
-    }
-  }
+  // Only explicit currency tokens count. Bare numbers are common in natural
+  // language (years, staff counts, phone numbers, headings) and should not be
+  // treated as budget line items.
+  const extractedNumbers = extractCurrencyNumbers(text);
+  const numbers = extractedNumbers.map((entry) => entry.value);
 
   if (numbers.length === 0) {
     return {
@@ -235,7 +280,8 @@ export function mathVerify(
       passed: false,
       score: 0,
       maxPoints,
-      reason: 'No numeric values found in output',
+      reason: 'No currency values found in output',
+      extractedNumbers,
     };
   }
 
@@ -255,6 +301,7 @@ export function mathVerify(
     reason: passed
       ? `Line items sum to ${sum.toFixed(2)}, matches expected ${expectedTotal}`
       : `Line items sum to ${sum.toFixed(2)}, expected ${expectedTotal} (diff: ${diff.toFixed(2)})`,
+    extractedNumbers,
   };
 }
 
@@ -290,7 +337,7 @@ function largestJsonObjectArray(root: unknown): number {
  * Used for: prompt count, day count, message count, service count, etc.
  *
  * JSON-aware path: if the submission parses as JSON, count the largest
- * array of object-shaped entries. This handles L3 / L4 trip itinerary
+ * array of object-shaped entries. This handles JSON itinerary
  * variants where the items are a JSON array whose item-marker keys
  * (`"day"`, `"schedule"`, ...) aren't in the regex pattern set. Falls
  * back to the caller-supplied regex patterns for prose / markdown /

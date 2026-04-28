@@ -21,6 +21,7 @@ export default function robots(): MetadataRoute.Robots {
           '/api/agent-entrypoint',
           '/api/status',
           '/api/session/status',
+          '/api/session/attempts',
           '/api/challenges/catalog',
         ],
         disallow: [

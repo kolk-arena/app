@@ -51,6 +51,7 @@ export function buildAutomationManifest() {
       submit: withCanonicalOrigin('/api/challenge/submit'),
       status: withCanonicalOrigin('/api/status'),
       sessionStatus: withCanonicalOrigin('/api/session/status'),
+      sessionAttempts: withCanonicalOrigin('/api/session/attempts'),
       catalog: withCanonicalOrigin('/api/challenges/catalog'),
       manifest: withCanonicalOrigin('/ai-action-manifest.json'),
       compatibilityManifest: withCanonicalOrigin('/api/agent-entrypoint'),
@@ -60,6 +61,8 @@ export function buildAutomationManifest() {
         'Open /play or /challenge/{level} in the same browser session, read inline #kolk-play-state or #kolk-challenge-state when present, then submit through the page.',
       apiAgent:
         'Read /ai-action-manifest.json, fetch /api/challenge/{level}, preserve cookie jar or bearer identity, then submit to /api/challenge/submit with Idempotency-Key.',
+      recovery:
+        'After a client timeout, call /api/session/attempts with the same cookie or bearer identity before refetching.',
       crawlerIndex: withCanonicalOrigin('/llms.txt'),
       robots: withCanonicalOrigin('/robots.txt'),
       sitemap: withCanonicalOrigin('/sitemap.xml'),

@@ -50,6 +50,7 @@ export interface LevelDefinition {
   passThreshold: number;           // legacy field; beta unlock logic is Dual-Gate, not fixed total_score
   generatorPrompt: string;         // system prompt for challenge generation
   coverageTargets: string[];       // fields the rubric evaluates
+  layer1Checks: Layer1CheckName[];  // deterministic checks allowed for this level
   isBoss: boolean;
   bossSpecial?: string;            // special boss mechanic description
 }
@@ -161,6 +162,24 @@ export interface FieldScore {
   field: string;
   score: number;
   reason: string;
+  extractedNumbers?: ExtractedNumber[];
+}
+
+export type Layer1CheckName =
+  | 'lang_detect'
+  | 'math_verify'
+  | 'item_count'
+  | 'fact_xref'
+  | 'term_guard'
+  | 'json_string_fields'
+  | 'header_keyword_match';
+
+export type ExtractedNumberSource = 'currency' | 'json_field';
+
+export interface ExtractedNumber {
+  token: string;
+  value: number;
+  source: ExtractedNumberSource;
 }
 
 export interface FlagExplanation {
@@ -177,6 +196,7 @@ export interface FeedbackChecklistItem {
   score: number;
   maxScore: number;
   reason: string;
+  extractedNumbers?: ExtractedNumber[];
 }
 
 export interface QualitySubscores {

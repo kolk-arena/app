@@ -2,6 +2,7 @@ import { copy } from '@/i18n';
 import { APP_CONFIG } from '@/lib/frontend/app-config';
 import type { BetaPublicLevel, ScriptLang } from '@/i18n/types';
 import type { CodeBlockLanguage } from '@/components/ui/code-block';
+import { getAgentLevelContract } from '@/lib/kolk/agent-contract';
 import {
   ANONYMOUS_BETA_MAX_LEVEL,
   SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN_PER_HOUR,
@@ -107,8 +108,9 @@ Return rules:
 - Do not add prefaces, notes, or trailing commentary.
 - Do not ask follow-up questions.
 - Do not wrap the answer in Markdown fences unless the brief explicitly requires fenced content.
-- For L5, return raw JSON object text only with these string keys:
-  whatsapp_message, quick_facts, first_step_checklist.`;
+- For L5, return raw JSON object text only with these string-valued keys:
+  whatsapp_message, quick_facts, first_step_checklist.
+  Each required value must be a string, not an array or object.`;
 }
 
 function isCompetitiveLevel(level: BetaPublicLevel) {
@@ -117,6 +119,22 @@ function isCompetitiveLevel(level: BetaPublicLevel) {
 
 function getIdentityMode(level: BetaPublicLevel) {
   return isCompetitiveLevel(level) ? 'bearer_token' : 'browser_session_cookie';
+}
+
+export function getChallengeAgentContract(level: BetaPublicLevel) {
+  const contract = getAgentLevelContract(level);
+  if (!contract) return null;
+
+  return {
+    level: contract.level,
+    outputContract: contract.outputContract,
+    deterministicChecks: contract.deterministicChecks,
+    factSourceKeys: contract.factSourceKeys ?? [],
+    commonFailureModes: contract.commonFailureModes,
+    sampleSuccessUrl: contract.sampleSuccessPath
+      ? `${CANONICAL_ORIGIN}${contract.sampleSuccessPath}`
+      : null,
+  };
 }
 
 export function getSubmitContractSnippet(
@@ -441,7 +459,8 @@ function levelRuleLines(level: BetaPublicLevel) {
     case 3:
       return [
         'Follow the live brief first. A common high-quality shape is ## Intro, ## Services, ## CTA.',
-        'Make the services section concrete and grounded in the business facts from the brief.',
+        'Include all available fact strings from structured_brief.key_facts, structured_brief.facts, or structured_brief.business_facts.',
+        'L3 deterministic checks do not run math_verify or item_count.',
       ];
     case 4:
       return [
@@ -451,7 +470,8 @@ function levelRuleLines(level: BetaPublicLevel) {
     case 5:
       return [
         'primaryText must be a raw JSON object string.',
-        'Required string keys: whatsapp_message, quick_facts, first_step_checklist.',
+        'Required string-valued keys: whatsapp_message, quick_facts, first_step_checklist.',
+        'The three required values must be strings, not arrays or nested objects.',
         'Do not wrap the JSON in Markdown fences.',
       ];
     case 6:
@@ -485,11 +505,11 @@ export function getLevelDeliveryInstruction(level: BetaPublicLevel) {
     case 2:
       return 'Use exact top-level headers for Google Maps Description and Instagram Bio, then embed the Instagram bio as a fenced json block with the exact five required keys.';
     case 3:
-      return 'Follow the live brief and business facts closely. A common high-quality shape is ## Intro / ## Services / ## CTA.';
+      return 'Follow the live brief and business facts closely. Recommended shape: ## Intro / ## Services / ## CTA. L3 deterministic checks facts/terms only; no math or item-count gate.';
     case 4:
       return 'Read structured_brief.trip_days and return exactly that many ## Day N sections, each with Morning, Afternoon, Evening, Budget, and Tip lines.';
     case 5:
-      return 'L5 requires a raw JSON object string with three keys: whatsapp_message, quick_facts, first_step_checklist.';
+      return 'L5 requires a raw JSON object string with three string-valued keys: whatsapp_message, quick_facts, first_step_checklist.';
     case 6:
       return 'Return one-page copy that cleanly covers Hero, About, Services, and CTA.';
     case 7:
@@ -538,14 +558,14 @@ export function getLevelOutputTemplate(
 <who the business is, grounded in the brief>
 
 ## Services
-### Service 1
-...
+### <service name>
+<concrete service description grounded in the brief>
 
-### Service 2
-...
+### <service name>
+<concrete service description grounded in the brief>
 
-### Service 3
-...
+### <service name>
+<concrete service description grounded in the brief>
 
 ## CTA
 <clear next step>`;
@@ -626,6 +646,7 @@ export function buildChallengeAgentBrief({
   const outputTemplate = getLevelOutputTemplate(level, taskJson);
   const rules = getLevelRuleSummary(level);
   const structuredBrief = extractStructuredBrief(taskJson);
+  const agentContract = getChallengeAgentContract(level);
   const exactShapeLevels = new Set<BetaPublicLevel>([0, 1, 4, 5]);
   const outputShapeLead = exactShapeLevels.has(level)
     ? 'Use this exact shape when producing primaryText:'
@@ -650,6 +671,13 @@ Level: L${level} — ${levelName}
 
 ### REQUIRED FORMAT
 ${rules}
+${agentContract ? `
+### RUNTIME CHECKS
+- Deterministic checks: ${agentContract.deterministicChecks.join(', ') || 'none'}.
+${agentContract.factSourceKeys.length > 0 ? `- Fact source keys: ${agentContract.factSourceKeys.join(', ')}.` : ''}
+- Sample success: ${agentContract.sampleSuccessUrl ?? 'not published'}.
+- Common failure modes:
+${agentContract.commonFailureModes.map((mode) => `  - ${mode}`).join('\n')}` : ''}
 
 ### TASK DESCRIPTION
 ${promptMd}
@@ -679,6 +707,7 @@ export function getChallengeHandoffBundle({
   const challengeUrl = `${CANONICAL_ORIGIN}/challenge/${level}`;
   const structuredBrief = extractStructuredBrief(taskJson);
   const identityMode = getIdentityMode(level);
+  const agentContract = getChallengeAgentContract(level);
 
   return stringifyJson({
     arena: 'Kolk Arena',
@@ -692,6 +721,7 @@ export function getChallengeHandoffBundle({
       taskJson,
       structuredBrief: structuredBrief ?? null,
       outputTemplate: getLevelOutputTemplate(level, taskJson),
+      agentContract,
     },
     submit: {
       url: `${CANONICAL_ORIGIN}/api/challenge/submit`,
@@ -720,6 +750,9 @@ export function getChallengeHandoffBundle({
       perMinuteLimit: SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN_PER_MINUTE,
       perHourLimit: SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN_PER_HOUR,
       consumeOn: ['unlock_pass', '24h_expiry'],
+      recoveryUrl: `${CANONICAL_ORIGIN}/api/session/attempts`,
+      afterTimeout:
+        'Call recoveryUrl with the same cookie or bearer identity to find the latest attempt before refetching.',
     },
     rules: {
       returnOnlyFinalPrimaryText: true,
@@ -797,7 +830,7 @@ PROMPT=$(jq -r '.challenge.promptMd' /tmp/kolk.json)
 TASK=$(jq '.challenge.taskJson' /tmp/kolk.json)
 
 # Now solve the challenge using the $PROMPT and $TASK variables.
-# ${isL5 ? 'Return raw JSON object text only with string keys: whatsapp_message, quick_facts, first_step_checklist.' : 'Produce ONLY the final primaryText.'}
+# ${isL5 ? 'Return raw JSON object text only with string-valued keys: whatsapp_message, quick_facts, first_step_checklist.' : 'Produce ONLY the final primaryText.'}
 
 # 3. Submit
 # Write ONLY your final primaryText to /tmp/kolk_output.txt first.
@@ -826,7 +859,7 @@ You are solving Kolk Arena L${level} — ${levelName}.
 ### GOAL
 Read the brief below and produce the final primaryText.
 Return ONLY the final primaryText. No reasoning, no wrapper prose.
-${level === 5 ? 'L5 must be raw JSON object text with string keys: whatsapp_message, quick_facts, first_step_checklist.' : ''}
+${level === 5 ? 'L5 must be raw JSON object text with string-valued keys: whatsapp_message, quick_facts, first_step_checklist.' : ''}
 
 ### BRIEF
 ${promptMd}
@@ -927,7 +960,8 @@ export function getN8nStarterBundle({
       perMinuteLimit: SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN_PER_MINUTE,
       perHourLimit: SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN_PER_HOUR,
       maxRetriesPerAttemptToken: SUBMIT_RETRY_CAP_PER_ATTEMPT_TOKEN,
-      note: 'Server-side 5xx failures, including 503 SCORING_UNAVAILABLE, do not spend submit quota. Validation/rate-limit failures do.',
+      recoveryUrl: `${CANONICAL_ORIGIN}/api/session/attempts`,
+      note: 'Server-side 5xx failures, including 503 SCORING_UNAVAILABLE, do not spend submit quota. After a workflow timeout, check recoveryUrl with the same identity before refetching.',
     },
     n8nNotes: isAnonymousCookieFlow
       ? [
@@ -955,9 +989,10 @@ When writing scripts to fetch or submit:
 - Send requests to ${CANONICAL_ORIGIN}
 - Always include an 'Idempotency-Key: <uuid>' header in POST /api/challenge/submit.
 - attemptToken stays reusable for up to 24 hours until either the run passes or the 24-hour ceiling expires.
+- After a client timeout, call ${CANONICAL_ORIGIN}/api/session/attempts with the same cookie or bearer identity before refetching.
 - Submission rate limits: ${SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN_PER_MINUTE} per minute per attemptToken, ${SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN_PER_HOUR} per hour per attemptToken, ${SUBMIT_RETRY_CAP_PER_ATTEMPT_TOKEN} total non-refunded submits per attemptToken, and ${SUBMIT_RATE_LIMIT_PER_IDENTITY_PER_DAY} per identity per day. Server-side 5xx (judge/DB failures) do not count against any of these — retry freely.
 - If the API returns 400/422 with fix_hint, revise the payload and resubmit.
-- L5 primaryText must be raw JSON with string keys whatsapp_message, quick_facts, and first_step_checklist.
+- L5 primaryText must be raw JSON with string-valued keys whatsapp_message, quick_facts, and first_step_checklist.
 - Only return final outputs as requested by the challenge brief, no extra markdown unless required.`;
 }
 

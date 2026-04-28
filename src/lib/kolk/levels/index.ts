@@ -5,7 +5,7 @@
  * Future level design and operator planning belong outside the public tree.
  */
 
-import type { DifficultyBand, DeliverableFamily, LevelDefinition } from '../types';
+import type { DifficultyBand, DeliverableFamily, Layer1CheckName, LevelDefinition } from '../types';
 
 function def(
   level: number,
@@ -18,6 +18,7 @@ function def(
     isBoss?: boolean;
     bossSpecial?: string;
     coverageTargets: string[];
+    layer1Checks: Layer1CheckName[];
     generatorPrompt: string;
   },
 ): LevelDefinition {
@@ -31,6 +32,7 @@ function def(
     isBoss: opts.isBoss ?? false,
     bossSpecial: opts.bossSpecial,
     coverageTargets: opts.coverageTargets,
+    layer1Checks: opts.layer1Checks,
     generatorPrompt: opts.generatorPrompt,
   };
 }
@@ -39,6 +41,7 @@ const L0 = def(0, 'Hello World', 'connectivity_check', 'A', {
   passThreshold: 0,
   timeLimitMinutes: 1440,
   coverageTargets: ['contains_hello_or_kolk'],
+  layer1Checks: [],
   generatorPrompt: 'Return any text containing Hello or Kolk.',
 });
 
@@ -46,6 +49,7 @@ const L1 = def(1, 'Quick Translate', 'txt_translation', 'A', {
   passThreshold: 65,
   timeLimitMinutes: 30,
   coverageTargets: ['language_match', 'completeness', 'key_terms'],
+  layer1Checks: ['lang_detect', 'fact_xref', 'term_guard'],
   generatorPrompt:
     'Generate a 1-page article (300-500 words) in {{source_lang}} about a {{industry}} in {{city}}. Include key terms: {{key_terms}}. The agent must translate it to {{target_lang}}.',
 });
@@ -60,6 +64,7 @@ const L2 = def(2, 'Biz Bio', 'biz_bio', 'A', {
     'placeholder_url',
     'format_compliance',
   ],
+  layer1Checks: ['lang_detect', 'item_count', 'fact_xref', 'term_guard'],
   generatorPrompt:
     'Generate a business brief for {{business_name}} in {{city}}. The deliverable is a Google Maps description plus an Instagram bio package with required fields and a placeholder URL.',
 });
@@ -74,6 +79,7 @@ const L3 = def(3, 'Business Profile', 'structured_plan', 'A', {
     'business_facts',
     'format_compliance',
   ],
+  layer1Checks: ['fact_xref', 'term_guard'],
   generatorPrompt:
     'Generate a one-page business profile brief requiring exact Intro, Services, and CTA sections plus a fixed business-facts list.',
 });
@@ -88,6 +94,7 @@ const L4 = def(4, 'Travel Itinerary', 'structured_plan', 'B', {
     'tip_line',
     'constraint_handling',
   ],
+  layer1Checks: ['math_verify', 'item_count', 'fact_xref', 'term_guard'],
   generatorPrompt:
     'Generate a {{trip_days}}-day travel itinerary brief with Morning, Afternoon, Evening, Budget, and Tip requirements for each day.',
 });
@@ -102,6 +109,7 @@ const L5 = def(5, 'Welcome Kit', 'json_bundle', 'B', {
     'cross_bundle_consistency',
     'json_structure',
   ],
+  layer1Checks: ['json_string_fields'],
   generatorPrompt:
     'Generate a welcome-kit brief whose entire submission body must be a JSON object string with whatsapp_message, quick_facts, and first_step_checklist.',
 });
@@ -110,6 +118,7 @@ const L6 = def(6, 'Pro One-Page', 'landing_page_copy', 'B', {
   passThreshold: 70,
   timeLimitMinutes: 25,
   coverageTargets: ['hero_section', 'services', 'cta', 'contact', 'professional_tone'],
+  layer1Checks: ['item_count', 'fact_xref', 'term_guard'],
   generatorPrompt:
     'Generate a brief for a one-page professional service site for {{business_name}} ({{industry}} in {{city}}). Must include hero, services ({{service_count}} items), CTA, and contact section. Output: structured markdown.',
 });
@@ -124,6 +133,7 @@ const L7 = def(7, 'AI Prompt Pack', 'structured_plan', 'B', {
     'negative_prompts',
     'format_compliance',
   ],
+  layer1Checks: ['item_count', 'fact_xref', 'term_guard'],
   generatorPrompt:
     'Generate a prompt-pack brief that requires exactly 8 prompts, 2 style rules, 2 forbidden mistakes, and one negative prompt line per prompt.',
 });
@@ -138,6 +148,7 @@ const L8 = def(8, 'Complete Business Package', 'multi_asset_text_bundle', 'B', {
     'cross_document_consistency',
     'header_structure',
   ],
+  layer1Checks: ['header_keyword_match'],
   generatorPrompt:
     'Generate a complete business-package brief requiring One-Page Copy, Prompt Pack, and WhatsApp Welcome in one header-structured text package.',
 });
@@ -161,6 +172,11 @@ export function getLevel(level: number): LevelDefinition {
     throw new Error(`Level ${level} is outside the current public beta level set`);
   }
   return definition;
+}
+
+/** Whether a level is allowed to activate a deterministic Layer 1 check. */
+export function levelUsesLayer1Check(level: number, check: Layer1CheckName): boolean {
+  return getLevel(level).layer1Checks.includes(check);
 }
 
 /** Get the configured 24h/session-aware time target for a level. */

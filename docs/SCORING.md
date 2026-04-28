@@ -94,13 +94,13 @@ Important correction:
 | Level | Primary primitive(s) | What's deterministically checked |
 |-------|----------------------|-----------------------------------|
 | L0 | (none) | deterministic substring `/(hello\|kolk)/i` on `primaryText` — no AI judge |
-| L1 | `lang_detect` | output language matches `seller_locale`; translation-only text |
+| L1 | `lang_detect` | output language matches explicit `structured_brief.target_lang`; translation-only text |
 | L2 | `lang_detect`, `fact_xref`, `item_count` when configured | current runtime may check target language, generic item-count shape, and brief key-fact coverage when those fields are configured; it does not ship a dedicated Instagram-field or `placeholder_url` parser |
-| L3 | `fact_xref`, `item_count` when configured | current runtime may check generic item-count shape and brief key-fact coverage when configured; it does not ship a dedicated exact-header/service-count parser |
+| L3 | `fact_xref`, `term_guard` when configured | current runtime may check brief fact coverage and prohibited terms only; it deliberately does not run `math_verify` or `item_count` for L3 |
 | L4 | `item_count`, `math_verify`, `fact_xref` when configured | current runtime may check generic item counts, numeric consistency, and brief key-fact coverage when configured; it does not ship a dedicated per-line itinerary parser |
-| L5 | `jsonStructure` | `JSON.parse(primaryText)` succeeds; parsed value is a non-null object; required string keys (`whatsapp_message`, `quick_facts`, `first_step_checklist`) exist; minimum trimmed lengths are met |
-| L6 | `baseline` | no dedicated deterministic structure parser beyond the configured baseline check in the current build |
-| L7 | `baseline` | no dedicated deterministic dash-variant or prompt-pack skeleton parser in the current build; structure quality is primarily AI-judge-side |
+| L5 | `jsonStructure` | `JSON.parse(primaryText)` succeeds; parsed value is a non-null object; required string-valued keys (`whatsapp_message`, `quick_facts`, `first_step_checklist`) exist; minimum trimmed lengths are met |
+| L6 | `item_count`, `fact_xref`, `term_guard` when configured | no dedicated exact-section parser; generic configured checks may run when the seed declares count/fact/term fields |
+| L7 | `item_count`, `fact_xref`, `term_guard` when configured | no dedicated dash-variant or prompt-pack skeleton parser; generic configured checks may run when the seed declares count/fact/term fields |
 | L8 | `headerKeywordMatch` | three top-level `##` headers match the keywords `copy` / `prompt` / `whatsapp`; deeper package structure remains primarily AI-judge-side in the current build |
 
 ### Level-specific `fieldScores[].field` names

@@ -21,7 +21,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { assertRuntimeSchemaReady, supabaseAdmin } from '@/lib/kolk/db';
 import {
   SubmissionInputSchema,
+  type ExtractedNumber,
   type FeedbackChecklistItem,
+  type FieldScore,
   type FlagExplanation,
   type SubmissionResult,
 } from '@/lib/kolk/types';
@@ -259,6 +261,7 @@ function buildFeedbackChecklist(checks: Layer1Check[]): FeedbackChecklistItem[] 
     score: check.score,
     maxScore: check.maxPoints,
     reason: check.reason,
+    ...(check.extractedNumbers ? { extractedNumbers: check.extractedNumbers } : {}),
   }));
 }
 
@@ -313,19 +316,53 @@ function asOptionalString(value: unknown) {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function normalizeFieldScores(value: unknown) {
+function firstStringArray(...values: unknown[]): string[] {
+  for (const value of values) {
+    if (!Array.isArray(value)) continue;
+    const strings = value.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0);
+    if (strings.length > 0) return strings;
+  }
+  return [];
+}
+
+function normalizeExtractedNumbers(value: unknown): ExtractedNumber[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const extractedNumbers = value
+    .map((entry) => {
+      if (!entry || typeof entry !== 'object') return null;
+      const record = entry as Record<string, unknown>;
+      const token = asOptionalString(record.token);
+      const parsedValue = asFiniteNumber(record.value, NaN);
+      const source = asOptionalString(record.source);
+      if (!token || !Number.isFinite(parsedValue) || (source !== 'currency' && source !== 'json_field')) {
+        return null;
+      }
+      return {
+        token,
+        value: parsedValue,
+        source,
+      };
+    })
+    .filter((entry): entry is ExtractedNumber => entry !== null);
+
+  return extractedNumbers.length > 0 ? extractedNumbers : undefined;
+}
+
+function normalizeFieldScores(value: unknown): FieldScore[] {
   if (!Array.isArray(value)) return [];
   return value
     .map((entry) => {
       if (!entry || typeof entry !== 'object') return null;
       const record = entry as Record<string, unknown>;
+      const extractedNumbers = normalizeExtractedNumbers(record.extractedNumbers ?? record.extracted_numbers);
       return {
         field: asOptionalString(record.field) ?? 'unknown',
         score: asFiniteNumber(record.score, 0),
         reason: asOptionalString(record.reason) ?? '',
+        ...(extractedNumbers ? { extractedNumbers } : {}),
       };
     })
-    .filter((entry): entry is { field: string; score: number; reason: string } => entry !== null);
+    .filter((entry): entry is FieldScore => entry !== null);
 }
 
 function normalizeFlags(value: unknown) {
@@ -979,7 +1016,7 @@ export async function POST(request: NextRequest) {
     let structureScore = 0;
     let coverageScore = 0;
     let qualityScore = 0;
-    let fieldScores: Array<{ field: string; score: number; reason: string }> = [];
+    let fieldScores: FieldScore[] = [];
     let qualitySubscores = zeroQualitySubscores();
     let flags: string[] = [];
     let feedbackChecklist: FeedbackChecklistItem[] = [];
@@ -1011,8 +1048,9 @@ export async function POST(request: NextRequest) {
       const structuredBrief = (taskJson.structured_brief ?? {}) as Record<string, unknown>;
 
       const layer1Config: Layer1Config = {};
+      const enabledLayer1Checks = new Set(levelDef.layer1Checks);
 
-      if (challenge.level === 5) {
+      if (enabledLayer1Checks.has('json_string_fields')) {
         layer1Config.jsonStringFields = {
           requiredKeys: ['whatsapp_message', 'quick_facts', 'first_step_checklist'],
           minLengths: {
@@ -1021,45 +1059,51 @@ export async function POST(request: NextRequest) {
             first_step_checklist: 51,
           },
         };
-      } else if (challenge.level === 8) {
+      }
+
+      if (enabledLayer1Checks.has('header_keyword_match')) {
         layer1Config.requiredHeaderKeywords = ['copy', 'prompt', 'whatsapp'];
-      } else {
-        // Only the brief's explicit `structured_brief.target_lang` drives the
-        // language gate. `taskJson.seller_locale` is the brief author's
-        // locale, NOT the required output language — translation levels
-        // (e.g. L1) deliberately diverge, so falling back to seller_locale
-        // would mark a correctly translated submission as wrong-language.
-        const targetLang = structuredBrief.target_lang as string | undefined;
-        const sellerLocale = taskJson.seller_locale as string | undefined;
-        if (targetLang) layer1Config.expectedLang = targetLang;
+      }
 
-        const budgetTotal = structuredBrief.budget_total as number | undefined;
-        if (budgetTotal != null) layer1Config.mathTotal = budgetTotal;
+      // Only the brief's explicit `structured_brief.target_lang` drives the
+      // language gate. `taskJson.seller_locale` is the brief author's
+      // locale, NOT the required output language — translation levels
+      // (e.g. L1) deliberately diverge, so falling back to seller_locale
+      // would mark a correctly translated submission as wrong-language.
+      const targetLang = structuredBrief.target_lang as string | undefined;
+      const sellerLocale = taskJson.seller_locale as string | undefined;
+      if (enabledLayer1Checks.has('lang_detect') && targetLang) layer1Config.expectedLang = targetLang;
 
-        const expectedCount = (
-          structuredBrief.item_count ??
-          structuredBrief.prompt_count ??
-          structuredBrief.trip_days ??
-          structuredBrief.days
-        ) as number | undefined;
-        if (expectedCount != null) {
-          layer1Config.itemExpected = {
-            count: expectedCount,
-            patterns: [/^#{1,3}\s+/gm, /^\d+\.\s+/gm, /^[-*]\s+/gm, /"(?:id|name|title)":/g],
-            label: 'items',
-          };
-        }
+      const budgetTotal = structuredBrief.budget_total as number | undefined;
+      if (enabledLayer1Checks.has('math_verify') && budgetTotal != null) layer1Config.mathTotal = budgetTotal;
 
-        const keyFacts = (structuredBrief.key_facts ?? structuredBrief.facts ?? []) as string[];
-        if (keyFacts.length > 0) layer1Config.facts = keyFacts;
+      const expectedCount = (
+        structuredBrief.item_count ??
+        structuredBrief.prompt_count ??
+        structuredBrief.trip_days ??
+        structuredBrief.days
+      ) as number | undefined;
+      if (enabledLayer1Checks.has('item_count') && expectedCount != null) {
+        layer1Config.itemExpected = {
+          count: expectedCount,
+          patterns: [/^#{1,3}\s+/gm, /^\d+\.\s+/gm, /^[-*]\s+/gm, /"(?:id|name|title)":/g],
+          label: 'items',
+        };
+      }
 
-        const prohibitedTerms = (structuredBrief.prohibited_terms ?? []) as string[];
-        if (prohibitedTerms.length > 0) {
-          layer1Config.prohibitedTerms = {
-            terms: prohibitedTerms,
-            lang: (sellerLocale?.startsWith('es') ? 'es' : 'en') as 'es' | 'en',
-          };
-        }
+      const keyFacts = firstStringArray(
+        structuredBrief.key_facts,
+        structuredBrief.facts,
+        structuredBrief.business_facts,
+      );
+      if (enabledLayer1Checks.has('fact_xref') && keyFacts.length > 0) layer1Config.facts = keyFacts;
+
+      const prohibitedTerms = firstStringArray(structuredBrief.prohibited_terms);
+      if (enabledLayer1Checks.has('term_guard') && prohibitedTerms.length > 0) {
+        layer1Config.prohibitedTerms = {
+          terms: prohibitedTerms,
+          lang: (sellerLocale?.startsWith('es') ? 'es' : 'en') as 'es' | 'en',
+        };
       }
 
       const layer1 = runLayer1(primaryText, layer1Config);
@@ -1069,6 +1113,7 @@ export async function POST(request: NextRequest) {
         field: check.name,
         score: check.score,
         reason: check.reason,
+        ...(check.extractedNumbers ? { extractedNumbers: check.extractedNumbers } : {}),
       }));
 
       if (structureScore >= STRUCTURE_GATE) {

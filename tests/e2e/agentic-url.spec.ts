@@ -1,5 +1,8 @@
 import { expect, test, type APIResponse, type Page } from '@playwright/test';
 
+const AGENTIC_STATE_TIMEOUT_MS = 20_000;
+const AGENTIC_NAV_TIMEOUT_MS = 20_000;
+
 async function parseJsonResponse(response: APIResponse) {
   expect(response.status()).toBe(200);
   expect(response.headers()['content-type']).toContain('application/json');
@@ -8,7 +11,7 @@ async function parseJsonResponse(response: APIResponse) {
 
 async function readJsonScript<T>(page: Page, selector: string): Promise<T> {
   const script = page.locator(selector);
-  await expect(script).toHaveCount(1);
+  await expect(script).toHaveCount(1, { timeout: AGENTIC_STATE_TIMEOUT_MS });
   const text = await script.textContent();
   expect(text?.trim()).toBeTruthy();
   return JSON.parse(text ?? 'null') as T;
@@ -216,6 +219,8 @@ async function mockLevelOneChallengeWithScoredMiss(page: Page) {
 }
 
 test.describe('agentic URL surfaces', () => {
+  test.describe.configure({ timeout: 60_000 });
+
   test('static automation manifest and compatibility alias return the same contract', async ({ request }) => {
     const canonicalResponse = await request.get('/ai-action-manifest.json');
     const canonical = await parseJsonResponse(canonicalResponse);
@@ -234,6 +239,7 @@ test.describe('agentic URL surfaces', () => {
     expect(canonical.entrypoints.submit).toBe('https://www.kolkarena.com/api/challenge/submit');
     expect(canonical.entrypoints.status).toBe('https://www.kolkarena.com/api/status');
     expect(canonical.entrypoints.sessionStatus).toBe('https://www.kolkarena.com/api/session/status');
+    expect(canonical.entrypoints.sessionAttempts).toBe('https://www.kolkarena.com/api/session/attempts');
     expect(canonical.entrypoints.catalog).toBe('https://www.kolkarena.com/api/challenges/catalog');
     expect(canonical.docs.submissionApi).toBe('https://www.kolkarena.com/docs/SUBMISSION_API.md');
     expect(canonical.docs.integrationGuide).toBe('https://www.kolkarena.com/docs/INTEGRATION_GUIDE.md');
@@ -290,11 +296,14 @@ test.describe('agentic URL surfaces', () => {
       skill: 'https://www.kolkarena.com/kolk_workspace.md',
       llms: 'https://www.kolkarena.com/llms.txt',
     });
-    await expect(page.locator(playState.selectors.primaryCta).first()).toBeVisible();
+    const primaryCta = visibleTarget(page, playState.selectors.primaryCta);
+    await expect(primaryCta).toBeVisible();
     await expect(page.locator(playState.selectors.levelCard).first()).toBeVisible();
 
-    await page.locator(playState.selectors.primaryCta).first().click();
-    await expect(page).toHaveURL(/\/challenge\/0$/);
+    await Promise.all([
+      page.waitForURL(/\/challenge\/0$/, { timeout: AGENTIC_NAV_TIMEOUT_MS }),
+      primaryCta.click(),
+    ]);
 
     const challengeState = await readJsonScript<{
       schemaVersion: string;

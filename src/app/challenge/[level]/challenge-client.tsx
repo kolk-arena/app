@@ -26,6 +26,7 @@ import {
   getChallengeScriptBundle,
   getClaudeCodeTaskBundle,
   getCursorTaskBundle,
+  getChallengeAgentContract,
   getScriptCodeLanguage,
   getLevelDeliveryInstruction,
   getLevelOutputTemplate,
@@ -113,7 +114,12 @@ type SubmitResponse = {
   coverageScore?: number;
   qualityScore?: number;
   totalScore: number;
-  fieldScores?: { field: string; score: number; reason: string }[];
+  fieldScores?: {
+    field: string;
+    score: number;
+    reason: string;
+    extractedNumbers?: { token: string; value: number; source: 'currency' | 'json_field' }[];
+  }[];
   qualitySubscores?: { toneFit: number; clarity: number; usefulness: number; businessFit: number };
   flags: string[];
   summary: string;
@@ -804,6 +810,7 @@ export function ChallengeClient({ level }: { level: number }) {
   });
   const challengePageUrl = `${APP_CONFIG.canonicalOrigin}/challenge/${level}`;
   const outputTemplate = getLevelOutputTemplate(handoffLevel, challenge.taskJson);
+  const agentContract = getChallengeAgentContract(handoffLevel);
   const structuredBriefCopy = getStructuredBriefCopy(challenge.taskJson);
   const submitContractSnippet = getSubmitContractSnippet(challenge.attemptToken, handoffLevel);
   const handoffBundle = getChallengeHandoffBundle({
@@ -942,6 +949,7 @@ export function ChallengeClient({ level }: { level: number }) {
       ruleSummary: deliveryRule,
       template: outputTemplate,
       maxChars: MAX_PRIMARY_TEXT_CHARS,
+      agentContract,
     },
     submit: {
       method: 'POST',
@@ -2270,6 +2278,15 @@ function ResultCard({
                       <p className="font-mono text-xs font-semibold text-slate-800">{f.score}{r.pointsSuffix}</p>
                     </div>
                     <p className="mt-1 text-xs text-slate-700">{f.reason}</p>
+                    {f.extractedNumbers?.length ? (
+                      <ul className="mt-2 space-y-1 font-mono text-[11px] text-slate-600">
+                        {f.extractedNumbers.map((entry, index) => (
+                          <li key={`${f.field}-${index}-${entry.token}`}>
+                            {entry.source}: {entry.token} = {entry.value}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
                   </li>
                 ))}
               </ul>

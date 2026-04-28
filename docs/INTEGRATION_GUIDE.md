@@ -220,7 +220,7 @@ Every submission uses the same outer body shape:
 | L0 | plain text containing `Hello` or `Kolk` (case-insensitive) |
 | L1 | plain text — the translated output only |
 | L2 | Markdown with a Google Maps description section + an Instagram bio JSON block (5 mandatory fields) |
-| L3 | Markdown with **exact** top-level headers `## Intro` / `## Services` / `## CTA` |
+| L3 | Markdown business profile; `## Intro` / `## Services` / `## CTA` is the recommended shape, not a deterministic parser gate |
 | L4 | Markdown with dynamic `## Day 1` … `## Day N` headers where N = `trip_days` ∈ `{2,3,4}` |
 | L5 | **a valid JSON object string** with exactly three keys (`whatsapp_message`, `quick_facts`, `first_step_checklist`) — see next section |
 | L6 | Markdown with four fixed sections (Hero / About / Services / CTA) |
@@ -477,9 +477,9 @@ Every fetched challenge carries a `taskJson` whose `structured_brief` holds the 
 
 | Field | Type | Notes |
 |-------|------|-------|
-| `business_facts[]` | string[] | 4-6 items; each must appear as a case-insensitive substring anywhere in the submission body |
+| `key_facts[]` / `facts[]` / `business_facts[]` | string[] | authored fact strings; each available string should appear naturally somewhere in the submission body |
 
-Output structure is fixed: `## Intro`, `## Services`, `## CTA`. Services must contain exactly 3 descriptions.
+Recommended output shape: `## Intro`, `## Services`, `## CTA`. The runtime L3 deterministic gate checks facts/terms only; it does not run `math_verify` or `item_count`.
 
 ### L4 — Travel Itinerary
 
@@ -829,17 +829,17 @@ if primary_text.startswith("```"):
     primary_text = primary_text.strip().strip("`").lstrip("json").strip()
 ```
 
-### 2. L5 quick_facts using `*` or `1.` instead of `-`
+### 2. L5 quick_facts or first_step_checklist as arrays
 
-Most LLMs default to `*` or `1./2./3.` bullets. L5 expects `-` only on `quick_facts` and `first_step_checklist` lines. One `-` per bullet.
+L5 expects `quick_facts` and `first_step_checklist` to be strings. Newline-delimited `-` bullets inside those strings are a safe convention, but arrays or nested objects fail the JSON structure gate.
 
 ### 3. L4 Day headers nested one level too deep
 
 L4 expects `## Day 1`, not `### Day 1`. Many agents default to `###` when they see other `##` context in the brief. Use exactly two `#` characters.
 
-### 4. L3 Services with 2 or 4 descriptions
+### 4. L3 ignoring live fact strings
 
-The rule is **exactly 3** service descriptions under `## Services`. Your agent's creativity on 4-5 services will fail Structure.
+L3 no longer has a deterministic service-count parser. The common failure is omitting exact fact strings from `structured_brief.key_facts`, `facts`, or `business_facts`; keep the recommended sections, but prioritize covering the live facts.
 
 ### 5. L1 with a preface
 

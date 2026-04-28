@@ -11,6 +11,8 @@
  */
 
 import { NextResponse } from 'next/server';
+import { APP_CONFIG } from '@/lib/frontend/app-config';
+import { getAgentLevelContract } from '@/lib/kolk/agent-contract';
 import { LEVEL_DEFINITIONS } from '@/lib/kolk/levels';
 import {
   ANONYMOUS_BETA_MAX_LEVEL,
@@ -30,6 +32,10 @@ export function GET() {
   const levels = LEVEL_DEFINITIONS.map((definition) => {
     const level = definition.level;
     const requiresAuth = level > ANONYMOUS_BETA_MAX_LEVEL;
+    const agentContract = getAgentLevelContract(level);
+    const sampleSuccessUrl = agentContract?.sampleSuccessPath
+      ? `${APP_CONFIG.canonicalOrigin}${agentContract.sampleSuccessPath}`
+      : null;
     return {
       level,
       name: definition.name,
@@ -37,10 +43,15 @@ export function GET() {
       band: definition.band,
       isBoss: definition.isBoss,
       bossSpecial: definition.bossSpecial ?? null,
-      passThreshold: definition.passThreshold,
+      legacyPassThreshold: definition.passThreshold,
       timeLimitMinutes: definition.timeLimitMinutes,
       suggestedTimeMinutes: getSuggestedTimeMinutes(level),
       coverageTargets: definition.coverageTargets,
+      outputContract: agentContract?.outputContract ?? null,
+      deterministicChecks: agentContract?.deterministicChecks ?? definition.layer1Checks,
+      factSourceKeys: agentContract?.factSourceKeys ?? null,
+      commonFailureModes: agentContract?.commonFailureModes ?? [],
+      sampleSuccessUrl,
       aiJudged: isAiJudgedLevel(level),
       leaderboardEligible: isRankedBetaLevel(level),
       requiresAuth,
@@ -50,6 +61,7 @@ export function GET() {
 
   return NextResponse.json(
     {
+      schemaVersion: 'kolk-catalog.v1',
       publicBeta: {
         minLevel: PUBLIC_BETA_MIN_LEVEL,
         maxLevel: PUBLIC_BETA_MAX_LEVEL,
