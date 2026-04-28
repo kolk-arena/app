@@ -44,6 +44,10 @@ function isGithubNoreply(email: string | null | undefined) {
   return /noreply/i.test(email) && /github/i.test(email);
 }
 
+function authDebugEnabled() {
+  return process.env.NODE_ENV !== 'production' || process.env.KOLK_AUTH_DEBUG === '1';
+}
+
 export async function GET(request: NextRequest) {
   // Email flows arrive here in two shapes, depending on Supabase project
   // settings + which email template fired:
@@ -57,8 +61,8 @@ export async function GET(request: NextRequest) {
   //
   // We accept both so users who click the link in a different browser
   // than where they registered can still sign in. If neither param is
-  // present we surface `missing_code`; if exchange fails we log the
-  // Supabase error to make Vercel logs actually useful for diagnosis.
+  // present we surface `missing_code`; detailed exchange diagnostics stay
+  // behind non-production / explicit debug logging.
   const code = request.nextUrl.searchParams.get('code');
   const tokenHash = request.nextUrl.searchParams.get('token_hash');
   const typeParam = request.nextUrl.searchParams.get('type');
@@ -70,18 +74,11 @@ export async function GET(request: NextRequest) {
   // Always create the SSR client so applyCookies is available in all paths
   const { supabase, applyCookies } = createRouteHandlerSupabaseClient(request);
 
-  console.log('[auth/callback] invoked', {
-    host: request.nextUrl.host,
-    hasCode: !!code,
-    hasTokenHash: !!tokenHash,
-    typeParam,
-    nextPath,
-    cookieNames: request.cookies.getAll().map((c) => c.name),
-  });
-
   if (!code && !tokenHash) {
     console.warn('[auth/callback] missing both code and token_hash', {
-      search: Object.fromEntries(request.nextUrl.searchParams.entries()),
+      host: request.nextUrl.host,
+      typeParam,
+      nextPath,
     });
     redirectUrl.searchParams.set('auth_error', 'missing_code');
     return applyCookies(NextResponse.redirect(redirectUrl));
@@ -112,14 +109,14 @@ export async function GET(request: NextRequest) {
         data = result.data;
         error = result.error;
         if (!error && result.data?.user) {
-          console.log('[auth/callback] verifyOtp ok', { type });
           break;
         }
+        const debug = authDebugEnabled();
         console.warn('[auth/callback] verifyOtp failed', {
           tried_type: type,
           typeParam,
-          message: error?.message,
           status: error?.status,
+          ...(debug ? { message: error?.message } : {}),
         });
       }
     } else {
@@ -127,9 +124,10 @@ export async function GET(request: NextRequest) {
       data = result.data;
       error = result.error;
       if (error) {
+        const debug = authDebugEnabled();
         console.warn('[auth/callback] exchangeCodeForSession failed', {
-          message: error?.message,
           status: error?.status,
+          ...(debug ? { message: error?.message } : {}),
         });
         // PKCE exchange failed — code is probably not a PKCE UUID but
         // a token_hash coming through as ?code=. Try verifyOtp as a
@@ -140,7 +138,6 @@ export async function GET(request: NextRequest) {
             data = otpResult.data;
             error = null;
             tried = 'pkce+otp';
-            console.log('[auth/callback] fallback verifyOtp ok after PKCE failure', { type: t });
             break;
           }
         }
