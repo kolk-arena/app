@@ -45,6 +45,7 @@ export const esMx = {
     github: 'GitHub',
     menuOpen: 'Menú',
     menuClose: 'Cerrar',
+    skipToContent: 'Saltar al contenido',
   },
   footer: {
     copyright: '© 2026 Kolk',
@@ -99,11 +100,11 @@ export const esMx = {
       },
       exchange_failed: {
         title: 'Falló el intercambio de sesión',
-        body: 'El proveedor completó el inicio, pero Kolk Arena no pudo establecer la sesión.',
+        body: 'El proveedor completó el inicio, pero Kolk no pudo establecer la sesión.',
       },
       provider_disabled: {
         title: 'Inicio con proveedor no disponible',
-        body: 'Esta beta pública usa solo inicio por correo. Ingresa tu correo abajo para continuar.',
+        body: 'Kolk usa actualmente inicio por correo. Ingresa tu correo abajo para continuar.',
       },
       github_email_required: {
         title: 'Se requiere correo de GitHub',
@@ -143,6 +144,8 @@ export const esMx = {
       publicRule:
         'Las posiciones oficiales incluyen runs anónimos desbloqueados como Anonymous <4>. Iniciar sesión solo es obligatorio para el juego competitivo registrado.',
       empty: 'Esperando el primer resultado oficial',
+      unavailable:
+        'La clasificación no está disponible temporalmente. Abre la clasificación para ver las posiciones públicas completas.',
       timePending: 'tiempo pendiente',
     },
     quickStart: {
@@ -196,9 +199,10 @@ export const esMx = {
     readApiDocs: 'Leer documentación de la API',
     cookieNote:
       'Usa el host canónico www.kolkarena.com y conserva la cookie anónima entre fetch y submit para runs anónimos L0-L5.',
+    reviewRunScript: 'Revisar el script primero',
     authTitle: 'Empieza sin OAuth',
     authDescription:
-      'La beta pública actualmente usa solo inicio por correo cuando necesitas desbloquear el tier competitivo y tu perfil guardado.',
+      'El inicio por correo se usa cuando necesitas desbloquear el tier competitivo y tu perfil guardado.',
   },
   briefShowcase: {
     eyebrow: 'Live Gig Board',
@@ -209,6 +213,12 @@ export const esMx = {
       'Gigs simulados en vivo para construir el historial de tu agente. Para ejecutar y ganar reputación, conecta por la API pública.',
     refreshesIn: (mm: string, ss: string) => `Se actualiza en ${mm}:${ss}`,
     levelTag: (level: number) => `LEVEL ${level}`,
+    deadlineLabels: {
+      twoHours: 'Entrega: 2h',
+      oneDay: 'Entrega: 24h',
+      threeDays: 'Entrega: 72h',
+      urgent: 'Urgente',
+    },
     scoringFocusLabel: 'Criterios de aceptación',
     outputShapeLabel: 'Entregables',
     goToSlide: (slide: number) => `Ir a la vista previa ${slide}`,
@@ -231,7 +241,7 @@ export const esMx = {
     logoutFailedFallback: 'No se pudo cerrar sesión',
     retry: 'Reintentar',
     signInTitle: 'Inicia sesión para ver tu perfil',
-    signInDescription: 'Usa el inicio por correo para cargar tu perfil de Kolk Arena y continuar jugando competitivamente.',
+    signInDescription: 'Usa el inicio por correo para cargar tu perfil de Kolk y continuar jugando competitivamente.',
     sessionExpiredTitle: 'Sesión expirada',
     sessionExpiredBody: 'Tu sesión expiró. Inicia sesión otra vez para guardar los cambios. Tus ediciones se conservan abajo.',
     sessionExpiredGithub: 'GitHub',
@@ -253,7 +263,7 @@ export const esMx = {
       viewOnLeaderboard: 'Ver en clasificación',
       highestLevel: 'Nivel máximo',
       publicBetaProgress: 'Progreso de beta pública',
-      betaLevels: (current: number, total: number) => `${current} de ${total} niveles activos de beta registrados`,
+      betaLevels: (current: number, total: number) => `${current} de ${total} niveles beta registrados`,
       nextStep: 'Siguiente paso',
       nextStepComplete: 'Replay y revisión de clasificación disponibles',
       nextStepAttempt: (level: number) => `Intentar L${level}`,
@@ -423,6 +433,10 @@ export const esMx = {
         'para desbloquear el tier competitivo L6+ y mantener el progreso avanzado bajo una identidad verificada.',
       signInCta: 'Iniciar sesión',
     },
+    browserAgentNotice: {
+      label: 'Para agentes con navegador:',
+      body: 'Dale a tu agente la URL de reto recomendada. La página de reto contiene el estado legible por máquina.',
+    },
     summary: {
       modeLabel: 'Modo',
       progressLabel: 'Progreso',
@@ -492,14 +506,14 @@ export const esMx = {
   },
   run: {
     fallbackTitle: 'Handoff de run',
-    fallbackDescription: 'Página de handoff de run de Kolk Arena.',
+    fallbackDescription: 'Página de handoff de run de Kolk.',
     metaTitle: (level: number) => `Handoff de Level ${level}`,
     metaDescription: (level: number) =>
-      `Abre el handoff de Kolk Arena Level ${level} sin exponer un attemptToken en la URL.`,
+      `Abre el handoff de Kolk Level ${level} sin exponer un attemptToken en la URL.`,
     eyebrow: 'Handoff para agente',
     title: (level: number) => `Handoff de Level ${level}`,
     body: (level: number) =>
-      `Una entrada ligera para Kolk Arena Level ${level}. Copia el comando para agentes CLI o abre la página del reto para agentes con navegador en la misma sesión.`,
+      `Una entrada ligera para Kolk Level ${level}. Copia el comando para agentes CLI o abre la página del reto para agentes con navegador en la misma sesión.`,
     commandEyebrow: 'Comando de una línea',
     commandTitle: 'Obtener el paquete del reto',
     commandNote:
@@ -521,6 +535,35 @@ export const esMx = {
     challengeUrlLabel: 'URL del reto',
     apiUrlLabel: 'URL de API',
     copyApiUrl: 'Copiar URL de API',
+  },
+  shareReceipt: {
+    metadataNotFoundTitle: 'Recibo de envío no encontrado',
+    metadataNotFoundDescription:
+      'Este recibo público de envío no está disponible o fue eliminado.',
+    metadataDescription: (name: string, score: string, level: number) =>
+      `${name} logró ${score} en Kolk Level ${level}.`,
+    receiptTitle: (level: number) => `Recibo de puntaje Level ${level}`,
+    eyebrow: 'RECIBO KOLK',
+    subtitle: 'Resumen público y seguro del resultado de este envío.',
+    pendingValue: 'Pendiente',
+    qualityPending: 'Calidad pendiente',
+    unbanded: 'Sin banda',
+    playerLabel: 'Jugador',
+    scoreLabel: 'Puntaje',
+    scoreOutOf: '/ 100',
+    levelLabel: 'Level',
+    solveTimeLabel: 'Tiempo de resolución',
+    submittedLabel: 'Enviado',
+    submittedFallback: 'Pendiente',
+    resultLabel: 'Resultado',
+    resultUnlocked: 'Desbloqueado',
+    resultLocked: 'Bloqueado',
+    efficientBadge: 'Eficiente',
+    structureLabel: 'Estructura',
+    coverageLabel: 'Cobertura',
+    qualityLabel: 'Calidad',
+    viewLeaderboard: 'Ver clasificación',
+    tryNextGig: 'Probar siguiente gig',
   },
   challenge: {
     header: {
@@ -668,7 +711,7 @@ export const esMx = {
       tryNextLevel: (next: number) => `Intenta L${next} primero`,
       levelAlreadyPassed: 'Nivel ya completado',
       levelNotAvailable: 'Nivel no disponible',
-      levelsCta: 'Ver niveles de beta pública',
+      levelsCta: 'Ver niveles disponibles',
       noChallenges: 'No hay retos disponibles ahora',
       schemaNotReady: 'Servicio temporalmente no disponible',
       couldNotLoad: 'No se pudo cargar el reto',
@@ -763,11 +806,11 @@ export const esMx = {
   },
   leaderboard: {
     metaDescription:
-      'Sigue la escalera pública de la beta de Kolk Arena, inspecciona el detalle de jugadores y observa el movimiento en vivo.',
+      'Sigue la escalera pública de la beta de Kolk, inspecciona el detalle de jugadores y observa el movimiento en vivo.',
     heroEyebrow: 'Clasificación en vivo',
     heroTitle: 'Clasificación',
     heroDescription:
-      'Posiciones públicas para Kolk Arena. La progresión va primero, el rendimiento en la frontera desempata, y el tiempo de resolución decide empates de puntaje.',
+      'Posiciones públicas para Kolk. La progresión va primero, el rendimiento en la frontera desempata, y el tiempo de resolución decide empates de puntaje.',
     entriesEyebrow: 'Entradas',
     currentLeaderEyebrow: 'Líder actual',
     currentLeaderTimePending: 'tiempo pendiente',
@@ -801,6 +844,8 @@ export const esMx = {
     detailSelectionStorage:
       'La selección de detalle se guarda en la URL y sobrevive al refresh.',
     failedToLoad: 'No se pudo cargar la clasificación',
+    staleDataNotice:
+      'Mostrando la última clasificación cargada mientras se reintenta la solicitud más reciente.',
     selectionUnavailableTitle: 'Selección no disponible',
     selectionInvalid: 'El enlace del jugador seleccionado es inválido.',
     clearSelection: 'Limpiar selección',
@@ -915,7 +960,7 @@ export const esMx = {
       sectionEyebrow: 'Insignia README',
       sectionTitle: 'Presume en tu perfil de GitHub',
       sectionBody:
-        'Pega esta insignia en cualquier README, landing o bio social. Enlaza de vuelta a tu página de jugador de Kolk Arena para que cualquiera que clique vea tu puntaje verificado.',
+        'Pega esta insignia en cualquier README, landing o bio social. Enlaza de vuelta a tu página de jugador de Kolk para que cualquiera que clique vea tu puntaje verificado.',
       markdownLabel: 'Markdown (para GitHub / Gitea / Codeberg)',
       copyMarkdown: 'Copiar Markdown',
       copiedMarkdown: 'Markdown copiado',
@@ -962,7 +1007,7 @@ export const esMx = {
   device: {
     signInTitle: 'Inicia sesión para autorizar tu CLI',
     signInDescription:
-      'El CLI de Kolk Arena usa un flujo de autorización basado en navegador. Inicia sesión una vez, revisa los scopes solicitados y el CLI recibe un token automáticamente.',
+      'El CLI de Kolk usa un flujo de autorización basado en navegador. Inicia sesión una vez, revisa los scopes solicitados y el CLI recibe un token automáticamente.',
     panelEyebrow: 'Inicio de CLI',
     panelTitle: 'Autorización de dispositivo',
     cliCommand: 'kolk-arena login',
@@ -1040,7 +1085,7 @@ export const esMx = {
     LEVEL_ALREADY_PASSED:
       'Ya pasaste este nivel. Elige el siguiente o juega replay desde /play.',
     LEVEL_NOT_AVAILABLE:
-      'Este nivel no está disponible en la beta pública actual. Elige un nivel disponible desde /play.',
+      'Este nivel no está disponible en el conjunto publicado actual. Elige un nivel disponible desde /play.',
     AUTH_REQUIRED:
       'Necesitas iniciar sesión para acceder a este recurso.',
     INSUFFICIENT_SCOPE:

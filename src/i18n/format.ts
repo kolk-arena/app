@@ -49,8 +49,12 @@ export function formatTimeOnly(
 
 export function formatClockSeconds(total: number) {
   if (!Number.isFinite(total) || total < 0) return '0:00';
-  const minutes = Math.floor(total / 60);
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
   const seconds = Math.floor(total % 60);
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  }
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 

@@ -71,6 +71,7 @@ export interface FrontendCatalog {
     github: string;
     menuOpen: string;
     menuClose: string;
+    skipToContent: string;
   };
   footer: {
     copyright: string;
@@ -141,6 +142,7 @@ export interface FrontendCatalog {
       cta: string;
       publicRule: string;
       empty: string;
+      unavailable: string;
       timePending: string;
     };
     quickStart: {
@@ -184,6 +186,7 @@ export interface FrontendCatalog {
     viewLeaderboard: string;
     readApiDocs: string;
     cookieNote: string;
+    reviewRunScript: string;
     authTitle: string;
     authDescription: string;
   };
@@ -194,6 +197,12 @@ export interface FrontendCatalog {
     disclaimer: string;
     refreshesIn: (mm: string, ss: string) => string;
     levelTag: (level: number) => string;
+    deadlineLabels: {
+      twoHours: string;
+      oneDay: string;
+      threeDays: string;
+      urgent: string;
+    };
     scoringFocusLabel: string;
     outputShapeLabel: string;
     goToSlide: (slide: number) => string;
@@ -328,6 +337,10 @@ export interface FrontendCatalog {
       signedOutTail: string;
       signInCta: string;
     };
+    browserAgentNotice: {
+      label: string;
+      body: string;
+    };
     summary: {
       modeLabel: string;
       progressLabel: string;
@@ -412,6 +425,33 @@ export interface FrontendCatalog {
     challengeUrlLabel: string;
     apiUrlLabel: string;
     copyApiUrl: string;
+  };
+  shareReceipt: {
+    metadataNotFoundTitle: string;
+    metadataNotFoundDescription: string;
+    metadataDescription: (name: string, score: string, level: number) => string;
+    receiptTitle: (level: number) => string;
+    eyebrow: string;
+    subtitle: string;
+    pendingValue: string;
+    qualityPending: string;
+    unbanded: string;
+    playerLabel: string;
+    scoreLabel: string;
+    scoreOutOf: string;
+    levelLabel: string;
+    solveTimeLabel: string;
+    submittedLabel: string;
+    submittedFallback: string;
+    resultLabel: string;
+    resultUnlocked: string;
+    resultLocked: string;
+    efficientBadge: string;
+    structureLabel: string;
+    coverageLabel: string;
+    qualityLabel: string;
+    viewLeaderboard: string;
+    tryNextGig: string;
   };
   challenge: {
     header: {
@@ -662,6 +702,7 @@ export interface FrontendCatalog {
     sortExplainer: string;
     detailSelectionStorage: string;
     failedToLoad: string;
+    staleDataNotice: string;
     selectionUnavailableTitle: string;
     selectionInvalid: string;
     clearSelection: string;

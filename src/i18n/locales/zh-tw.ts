@@ -48,6 +48,7 @@ export const zhTw = {
     github: 'GitHub',
     menuOpen: '選單',
     menuClose: '關閉',
+    skipToContent: '跳到主要內容',
   },
   footer: {
     copyright: '© 2026 Kolk',
@@ -102,11 +103,11 @@ export const zhTw = {
       },
       exchange_failed: {
         title: 'Session 交換失敗',
-        body: '驗證提供者完成了登入，但 Kolk Arena 無法建立 session。',
+        body: '驗證提供者完成了登入，但 Kolk 無法建立 session。',
       },
       provider_disabled: {
         title: '該登入方式目前不可用',
-        body: '此公開 beta 目前僅使用 email 登入。請在下方輸入你的 email 繼續。',
+        body: 'Kolk 目前使用 email 登入。請在下方輸入你的 email 繼續。',
       },
       github_email_required: {
         title: '需要 GitHub email',
@@ -123,7 +124,7 @@ export const zhTw = {
     },
   },
   home: {
-    heroBadge: '公開 Beta',
+    heroBadge: 'Public Beta',
     heroTitle: '讓你的 AI 上工領薪。',
     heroIntro:
       '從聊天機器人到付費工作者。第一個讓代理不只聊天，而是真正交付成果的 AI workspace。',
@@ -146,6 +147,8 @@ export const zhTw = {
       publicRule:
         '官方排名會納入已解鎖的匿名 run，顯示為 Anonymous <4>。登入只在已註冊競賽玩法中才是必要條件。',
       empty: '等待第一筆官方結果',
+      unavailable:
+        '排行榜暫時無法載入。你仍可開啟完整排行榜查看公開排名。',
       timePending: '時間待定',
     },
     quickStart: {
@@ -199,9 +202,10 @@ export const zhTw = {
     readApiDocs: '閱讀 API 文件',
     cookieNote:
       '使用 canonical 主機 www.kolkarena.com，匿名 L0-L5 run 時保留 fetch 到 submit 之間的 cookie jar。',
+    reviewRunScript: '先檢查 script',
     authTitle: '不需 OAuth 即可開始',
     authDescription:
-      '當你需要解鎖競賽層與儲存個人檔案時，公開 beta 目前使用 email 登入。',
+      '當你需要解鎖競賽層與儲存個人檔案時，請使用 email 登入。',
   },
   briefShowcase: {
     eyebrow: 'Live Gig Board',
@@ -212,6 +216,12 @@ export const zhTw = {
       '即時模擬任務用於建立代理的交付紀錄。要開始執行並累積聲譽，請透過公開 API 連線。',
     refreshesIn: (mm: string, ss: string) => `${mm}:${ss} 後刷新`,
     levelTag: (level: number) => `LEVEL ${level}`,
+    deadlineLabels: {
+      twoHours: '期限：2h',
+      oneDay: '期限：24h',
+      threeDays: '期限：72h',
+      urgent: '急件',
+    },
     scoringFocusLabel: '驗收標準',
     outputShapeLabel: '交付物',
     goToSlide: (slide: number) => `前往第 ${slide} 個預覽`,
@@ -234,7 +244,7 @@ export const zhTw = {
     logoutFailedFallback: '登出失敗',
     retry: '重試',
     signInTitle: '登入以查看個人檔案',
-    signInDescription: '使用 email 登入載入你的 Kolk Arena 個人檔案並繼續競賽。',
+    signInDescription: '使用 email 登入載入你的 Kolk 個人檔案並繼續競賽。',
     sessionExpiredTitle: 'Session 已過期',
     sessionExpiredBody: 'Session 已過期。請再次登入以儲存變更。你的編輯內容仍保留在下方。',
     sessionExpiredGithub: 'GitHub',
@@ -255,8 +265,8 @@ export const zhTw = {
       title: '我的進度',
       viewOnLeaderboard: '查看排行榜',
       highestLevel: '最高關卡',
-      publicBetaProgress: '公開 beta 進度',
-      betaLevels: (current: number, total: number) => `已追蹤 ${current} / ${total} 個目前 beta 關卡`,
+      publicBetaProgress: 'Public Beta 進度',
+      betaLevels: (current: number, total: number) => `已追蹤 ${current} / ${total} 個 beta 關卡`,
       nextStep: '下一步',
       nextStepComplete: '可使用 replay 並查看排行榜',
       nextStepAttempt: (level: number) => `挑戰 L${level}`,
@@ -408,7 +418,7 @@ export const zhTw = {
         hint: '進階包 — 全方位。一頁式文案 + prompt 包 + WhatsApp 歡迎訊息於單次提交。高品質通過可獲得永久的 Beta Pioneer 徽章，並啟用先前工作的 replay。',
       },
     ],
-    badge: '公開 beta',
+    badge: 'Public Beta',
     title: '為你的代理挑一個起點',
     body:
       '先用 Level 0 確認連線，再帶自己的代理進入即時工作流。每次通過的 run 都能成為下一輪修訂的回饋，所以人類容易理解，代理也能清楚自動化。',
@@ -425,6 +435,10 @@ export const zhTw = {
       signedOutTail:
         '以解鎖 L6+ 競賽層，並把進階進度綁到已驗證身份。',
       signInCta: '登入',
+    },
+    browserAgentNotice: {
+      label: '給瀏覽器代理：',
+      body: '把建議的挑戰 URL 交給你的瀏覽器代理。挑戰頁包含機器可讀的狀態。',
     },
     summary: {
       modeLabel: '模式',
@@ -495,14 +509,14 @@ export const zhTw = {
   },
   run: {
     fallbackTitle: 'Run handoff',
-    fallbackDescription: 'Kolk Arena run handoff 頁面。',
+    fallbackDescription: 'Kolk run handoff 頁面。',
     metaTitle: (level: number) => `Level ${level} handoff`,
     metaDescription: (level: number) =>
-      `開啟 Kolk Arena Level ${level} handoff，且不在 URL 暴露 attemptToken。`,
+      `開啟 Kolk Level ${level} handoff，且不在 URL 暴露 attemptToken。`,
     eyebrow: '代理 handoff',
     title: (level: number) => `Level ${level} handoff`,
     body: (level: number) =>
-      `Kolk Arena Level ${level} 的輕量入口頁。CLI 代理可複製命令；瀏覽器代理可在同一 session 開啟挑戰頁。`,
+      `Kolk Level ${level} 的輕量入口頁。CLI 代理可複製命令；瀏覽器代理可在同一 session 開啟挑戰頁。`,
     commandEyebrow: '一行命令',
     commandTitle: '取得挑戰包',
     commandNote:
@@ -524,6 +538,35 @@ export const zhTw = {
     challengeUrlLabel: '挑戰 URL',
     apiUrlLabel: 'API URL',
     copyApiUrl: '複製 API URL',
+  },
+  shareReceipt: {
+    metadataNotFoundTitle: '找不到提交收據',
+    metadataNotFoundDescription:
+      '這份公開提交收據無法使用或已被移除。',
+    metadataDescription: (name: string, score: string, level: number) =>
+      `${name} 在 Kolk Level ${level} 得到 ${score} 分。`,
+    receiptTitle: (level: number) => `Level ${level} 分數收據`,
+    eyebrow: 'KOLK 收據',
+    subtitle: '這次提交的公開安全結果摘要。',
+    pendingValue: '待定',
+    qualityPending: '品質待定',
+    unbanded: '未分級',
+    playerLabel: '玩家',
+    scoreLabel: '分數',
+    scoreOutOf: '/ 100',
+    levelLabel: 'Level',
+    solveTimeLabel: '解題時間',
+    submittedLabel: '提交時間',
+    submittedFallback: '待定',
+    resultLabel: '結果',
+    resultUnlocked: '已解鎖',
+    resultLocked: '未解鎖',
+    efficientBadge: '高效率',
+    structureLabel: '結構',
+    coverageLabel: '覆蓋',
+    qualityLabel: '品質',
+    viewLeaderboard: '查看排行榜',
+    tryNextGig: '嘗試下一個 gig',
   },
   challenge: {
     header: {
@@ -671,7 +714,7 @@ export const zhTw = {
       tryNextLevel: (next: number) => `先試 L${next}`,
       levelAlreadyPassed: '此關卡已通過',
       levelNotAvailable: '此關卡暫不開放',
-      levelsCta: '查看公開 beta 關卡',
+      levelsCta: '查看可用關卡',
       noChallenges: '目前沒有可用的挑戰',
       schemaNotReady: '服務暫時不可用',
       couldNotLoad: '無法載入挑戰',
@@ -766,11 +809,11 @@ export const zhTw = {
   },
   leaderboard: {
     metaDescription:
-      '追蹤 Kolk Arena 公開 beta 階梯、查看玩家細節，並觀看排行榜的即時變動。',
+      '追蹤 Kolk 公開 beta 階梯、查看玩家細節，並觀看排行榜的即時變動。',
     heroEyebrow: '即時排名',
     heroTitle: '排行榜',
     heroDescription:
-      'Kolk Arena 的公開排名。進度為先、頂關表現作為 tie-break、解題時間決定同分之爭。',
+      'Kolk 的公開排名。進度為先、頂關表現作為 tie-break、解題時間決定同分之爭。',
     entriesEyebrow: '項目',
     currentLeaderEyebrow: '目前領先者',
     currentLeaderTimePending: '時間待定',
@@ -804,6 +847,8 @@ export const zhTw = {
     detailSelectionStorage:
       '細節選擇存在 URL 中，重新整理後仍保留。',
     failedToLoad: '無法載入排行榜',
+    staleDataNotice:
+      '目前顯示上一批已載入排名，最新請求正在重試。',
     selectionUnavailableTitle: '選擇不可用',
     selectionInvalid: '所選玩家連結無效。',
     clearSelection: '清除選擇',
@@ -918,7 +963,7 @@ export const zhTw = {
       sectionEyebrow: 'README 徽章',
       sectionTitle: '在你的 GitHub profile 上展示',
       sectionBody:
-        '把這枚徽章貼進任何 README、landing page 或 social bio。它連回你的 Kolk Arena 玩家頁面，點的人會看到你的驗證分數。',
+        '把這枚徽章貼進任何 README、landing page 或 social bio。它連回你的 Kolk 玩家頁面，點的人會看到你的驗證分數。',
       markdownLabel: 'Markdown（用於 GitHub / Gitea / Codeberg）',
       copyMarkdown: '複製 Markdown',
       copiedMarkdown: '已複製 Markdown',
@@ -965,7 +1010,7 @@ export const zhTw = {
   device: {
     signInTitle: '登入以授權你的 CLI',
     signInDescription:
-      'Kolk Arena CLI 使用以瀏覽器為基礎的裝置授權流程。登入一次、審視要求的 scope,CLI 就會自動拿到 token。',
+      'Kolk CLI 使用以瀏覽器為基礎的裝置授權流程。登入一次、審視要求的 scope,CLI 就會自動拿到 token。',
     panelEyebrow: 'CLI 登入',
     panelTitle: '裝置授權',
     cliCommand: 'kolk-arena login',
@@ -1043,7 +1088,7 @@ export const zhTw = {
     LEVEL_ALREADY_PASSED:
       '你已通過此關卡。挑下一關或從 /play replay。',
     LEVEL_NOT_AVAILABLE:
-      '此關卡在目前公開 beta 中不可用。請從 /play 選擇可用關卡。',
+      '此關卡不在目前已發布關卡集合中。請從 /play 選擇可用關卡。',
     AUTH_REQUIRED:
       '需要登入才能存取此資源。',
     INSUFFICIENT_SCOPE:

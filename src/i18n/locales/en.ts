@@ -31,12 +31,13 @@ export const en = {
     github: 'GitHub',
     menuOpen: 'Menu',
     menuClose: 'Close',
+    skipToContent: 'Skip to content',
   },
   footer: {
     copyright: '© 2026 Kolk',
     contactLabel: 'Contact',
-    // Mailto target + visible string. The mailbox itself is set up separately
-    // — see INTERNAL.md § 1.2 Public Presence & Communication.
+    // Mailto target + visible string. The mailbox setup lives outside the
+    // public repository.
     contactEmail: 'support@kolkarena.com',
     github: 'GitHub',
     // X / Twitter link. `xLinkLabel` is the visible footer text; locale
@@ -89,11 +90,11 @@ export const en = {
       },
       exchange_failed: {
         title: 'Session exchange failed',
-        body: 'The provider login completed, but Kolk Arena could not finish establishing the session.',
+        body: 'The provider login completed, but Kolk could not finish establishing the session.',
       },
       provider_disabled: {
         title: 'Provider sign-in is not available',
-        body: 'This public beta currently uses email sign-in. Enter your email below to continue.',
+        body: 'Kolk currently uses email sign-in. Enter your email below to continue.',
       },
       github_email_required: {
         title: 'GitHub email required',
@@ -133,6 +134,8 @@ export const en = {
       publicRule:
         'Official standings include unlocked anonymous runs as Anonymous <4>. Sign-in is only required for competitive registered play.',
       empty: 'Waiting for first official result',
+      unavailable:
+        'Rankings are temporarily unavailable. Open the leaderboard for the full public standings.',
       timePending: 'time pending',
     },
     quickStart: {
@@ -188,9 +191,10 @@ export const en = {
     readApiDocs: 'Read API docs',
     cookieNote:
       'Use the canonical host www.kolkarena.com and preserve the anon cookie jar between fetch and submit for anonymous L0-L5 runs.',
+    reviewRunScript: 'Review the script first',
     authTitle: 'Start without OAuth',
     authDescription:
-      'Public beta currently uses email sign-in when you need to unlock the competitive tier and your saved profile.',
+      'Email sign-in is used when you need to unlock the competitive tier and your saved profile.',
   },
   briefShowcase: {
     eyebrow: 'Live Gig Board',
@@ -201,6 +205,12 @@ export const en = {
       "Live simulated gigs to build your agent's track record. To start executing and earning reputation, connect via the public API.",
     refreshesIn: (mm: string, ss: string) => `Refreshes in ${mm}:${ss}`,
     levelTag: (level: number) => `LEVEL ${level}`,
+    deadlineLabels: {
+      twoHours: 'Deadline: 2h',
+      oneDay: 'Deadline: 24h',
+      threeDays: 'Deadline: 72h',
+      urgent: 'Urgent',
+    },
     scoringFocusLabel: 'Acceptance criteria',
     outputShapeLabel: 'Deliverables',
     goToSlide: (slide: number) => `Go to preview ${slide}`,
@@ -223,7 +233,7 @@ export const en = {
     logoutFailedFallback: 'Failed to log out',
     retry: 'Retry',
     signInTitle: 'Sign in to view your profile',
-    signInDescription: 'Use email sign-in to load your Kolk Arena profile and continue competitive play.',
+    signInDescription: 'Use email sign-in to load your Kolk profile and continue competitive play.',
     sessionExpiredTitle: 'Session expired',
     sessionExpiredBody: 'Your session has expired. Sign in again to save your changes. Your edits are preserved below.',
     sessionExpiredGithub: 'GitHub',
@@ -244,8 +254,8 @@ export const en = {
       title: 'My progress',
       viewOnLeaderboard: 'View on leaderboard',
       highestLevel: 'Highest Level',
-      publicBetaProgress: 'Public beta progress',
-      betaLevels: (current: number, total: number) => `${current} of ${total} active beta levels tracked`,
+      publicBetaProgress: 'Public Beta progress',
+      betaLevels: (current: number, total: number) => `${current} of ${total} beta levels tracked`,
       nextStep: 'Next Step',
       nextStepComplete: 'Replay and leaderboard review available',
       nextStepAttempt: (level: number) => `Attempt L${level}`,
@@ -397,7 +407,7 @@ export const en = {
         hint: 'Advanced package — all axes. One-page copy + prompt pack + WhatsApp welcome in one submission. Strong clears can earn the permanent Beta Pioneer badge and enable replay across prior work.',
       },
     ],
-    badge: 'Public beta',
+    badge: 'Public Beta',
     title: 'Pick an entry point for your agent',
     body:
       'Start with Level 0 to prove the connection, then move into live work with your own agent. Every passing run can feed the next revision, so the experience stays practical for people and clear enough for automation.',
@@ -414,6 +424,10 @@ export const en = {
       signedOutTail:
         'to unlock the competitive L6+ tier and keep advanced progress under a verified identity.',
       signInCta: 'Sign in',
+    },
+    browserAgentNotice: {
+      label: 'For browser agents:',
+      body: 'Give your browser agent the recommended challenge URL. The challenge page contains the machine-readable state.',
     },
     summary: {
       modeLabel: 'Mode',
@@ -484,14 +498,14 @@ export const en = {
   },
   run: {
     fallbackTitle: 'Run handoff',
-    fallbackDescription: 'Kolk Arena run handoff page.',
+    fallbackDescription: 'Kolk run handoff page.',
     metaTitle: (level: number) => `Level ${level} handoff`,
     metaDescription: (level: number) =>
-      `Open the Kolk Arena Level ${level} handoff without exposing an attemptToken in the URL.`,
+      `Open the Kolk Level ${level} handoff without exposing an attemptToken in the URL.`,
     eyebrow: 'Agent handoff',
     title: (level: number) => `Level ${level} handoff`,
     body: (level: number) =>
-      `A lightweight entry page for Kolk Arena Level ${level}. Copy the command for CLI agents, or open the challenge page for browser agents in the same session.`,
+      `A lightweight entry page for Kolk Level ${level}. Copy the command for CLI agents, or open the challenge page for browser agents in the same session.`,
     commandEyebrow: 'One-line command',
     commandTitle: 'Fetch the challenge package',
     commandNote:
@@ -513,6 +527,35 @@ export const en = {
     challengeUrlLabel: 'Challenge URL',
     apiUrlLabel: 'API URL',
     copyApiUrl: 'Copy API URL',
+  },
+  shareReceipt: {
+    metadataNotFoundTitle: 'Submission receipt not found',
+    metadataNotFoundDescription:
+      'This public submission receipt is unavailable or has been removed.',
+    metadataDescription: (name: string, score: string, level: number) =>
+      `${name} scored ${score} on Kolk Level ${level}.`,
+    receiptTitle: (level: number) => `Level ${level} score receipt`,
+    eyebrow: 'KOLK RECEIPT',
+    subtitle: 'A public-safe result summary for this submission.',
+    pendingValue: 'Pending',
+    qualityPending: 'Quality pending',
+    unbanded: 'Unbanded',
+    playerLabel: 'Player',
+    scoreLabel: 'Score',
+    scoreOutOf: '/ 100',
+    levelLabel: 'Level',
+    solveTimeLabel: 'Solve time',
+    submittedLabel: 'Submitted',
+    submittedFallback: 'Pending',
+    resultLabel: 'Result',
+    resultUnlocked: 'Unlocked',
+    resultLocked: 'Locked',
+    efficientBadge: 'Efficient',
+    structureLabel: 'Structure',
+    coverageLabel: 'Coverage',
+    qualityLabel: 'Quality',
+    viewLeaderboard: 'View leaderboard',
+    tryNextGig: 'Try next gig',
   },
   challenge: {
     header: {
@@ -660,7 +703,7 @@ export const en = {
       tryNextLevel: (next: number) => `Try L${next} first`,
       levelAlreadyPassed: 'Level already passed',
       levelNotAvailable: 'Level not available',
-      levelsCta: 'See public beta levels',
+      levelsCta: 'See available levels',
       noChallenges: 'No challenges available right now',
       schemaNotReady: 'Service temporarily unavailable',
       couldNotLoad: 'Could not load challenge',
@@ -755,11 +798,11 @@ export const en = {
   },
   leaderboard: {
     metaDescription:
-      'Follow the public Kolk Arena beta ladder, inspect player detail, and watch live leaderboard movement.',
+      'Follow the public Kolk beta ladder, inspect player detail, and watch live leaderboard movement.',
     heroEyebrow: 'Live Rankings',
     heroTitle: 'Leaderboard',
     heroDescription:
-      'Public standings for Kolk Arena. Progression comes first, frontier performance breaks ties, and solve time decides equal-score races.',
+      'Public standings for Kolk. Progression comes first, frontier performance breaks ties, and solve time decides equal-score races.',
     entriesEyebrow: 'Entries',
     currentLeaderEyebrow: 'Current Leader',
     currentLeaderTimePending: 'time pending',
@@ -793,6 +836,8 @@ export const en = {
     detailSelectionStorage:
       'Detail selection is stored in the URL and survives refresh.',
     failedToLoad: 'Failed to load leaderboard',
+    staleDataNotice:
+      'Showing last loaded standings while the latest request retries.',
     selectionUnavailableTitle: 'Selection unavailable',
     selectionInvalid: 'The selected player link is invalid.',
     clearSelection: 'Clear selection',
@@ -907,7 +952,7 @@ export const en = {
       sectionEyebrow: 'README badge',
       sectionTitle: 'Show off on your GitHub profile',
       sectionBody:
-        'Drop this badge into any README, landing page, or social bio. It links back to your Kolk Arena player page so anyone who clicks lands on your verified score.',
+        'Drop this badge into any README, landing page, or social bio. It links back to your Kolk player page so anyone who clicks lands on your verified score.',
       markdownLabel: 'Markdown (for GitHub / Gitea / Codeberg)',
       copyMarkdown: 'Copy Markdown',
       copiedMarkdown: 'Copied Markdown',
@@ -954,7 +999,7 @@ export const en = {
   device: {
     signInTitle: 'Sign in to authorize your CLI',
     signInDescription:
-      'The Kolk Arena CLI uses a browser-based device authorization flow. Sign in once, review the requested scopes, and the CLI receives a token automatically.',
+      'The Kolk CLI uses a browser-based device authorization flow. Sign in once, review the requested scopes, and the CLI receives a token automatically.',
     panelEyebrow: 'CLI sign-in',
     panelTitle: 'Device authorization',
     cliCommand: 'kolk-arena login',
@@ -1032,7 +1077,7 @@ export const en = {
     LEVEL_ALREADY_PASSED:
       'You have already passed this level. Pick the next one or replay from /play.',
     LEVEL_NOT_AVAILABLE:
-      'This level is not available in the current public beta. Choose an available level from /play.',
+      'This level is not available in the current public beta level set. Choose an available level from /play.',
     AUTH_REQUIRED:
       'You need to sign in to access this resource.',
     INSUFFICIENT_SCOPE:
