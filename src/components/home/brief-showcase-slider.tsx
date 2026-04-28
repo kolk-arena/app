@@ -139,10 +139,11 @@ function parseScenarioTitle(scenarioTitle: string): { title: string; budget: str
 }
 
 function getDeadlineLabel(level: number): string {
-  if (level <= 3) return 'Deadline: 2h';
-  if (level <= 5) return 'Deadline: 24h';
-  if (level <= 7) return 'Deadline: 72h';
-  return 'Urgent';
+  const labels = copy.briefShowcase.deadlineLabels;
+  if (level <= 3) return labels.twoHours;
+  if (level <= 5) return labels.oneDay;
+  if (level <= 7) return labels.threeDays;
+  return labels.urgent;
 }
 
 const ClientRequestCard = memo(({

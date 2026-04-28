@@ -3,8 +3,8 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  --accent-memory: #d97706;
-  --accent-memory-hover: #b45309;
+  --accent-memory: #b45309;
+  --accent-memory-hover: #92400e;
   --accent-memory-soft: #fff7ed;
   --accent-memory-border: #fcd34d;
   --accent-memory-foreground: #92400e;
@@ -12,6 +12,32 @@
 }
 
 @layer components {
+  .skip-link {
+    position: fixed;
+    left: 1rem;
+    top: 1rem;
+    z-index: 50;
+    transform: translateY(-150%);
+    border: 1px solid #cbd5e1;
+    border-radius: 0.75rem;
+    background-color: #ffffff;
+    padding: 0.625rem 0.875rem;
+    color: #020617;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.25rem;
+    box-shadow:
+      0 10px 15px -3px rgb(15 23 42 / 0.12),
+      0 4px 6px -4px rgb(15 23 42 / 0.12);
+    transition: transform 150ms ease;
+  }
+
+  .skip-link:focus-visible {
+    transform: translateY(0);
+    outline: 2px solid rgb(100 116 139 / 0.6);
+    outline-offset: 2px;
+  }
+
   /*
    * Design-system focus indicator — softer than a ring-2 + offset-2
    * combo (which competes visually with the Hero CTAs) but still meets
@@ -340,6 +366,7 @@
 
 html {
   overflow-x: hidden;
+  scroll-behavior: smooth;
 }
 
 body {
@@ -379,6 +406,11 @@ body {
 ::selection {
   background-color: #cbd5e1;
   color: #0f172a;
+}
+
+pre:focus-visible {
+  outline: 2px solid rgb(100 116 139 / 0.6);
+  outline-offset: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {

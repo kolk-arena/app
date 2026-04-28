@@ -61,13 +61,29 @@ export function BriefShowcaseWrapper() {
     if (!data?.expiresAt) return undefined;
     const delay = new Date(data.expiresAt).getTime() - Date.now();
     if (delay <= 0) return undefined;
+    const controller = new AbortController();
     const timeout = window.setTimeout(() => {
-      fetchRequests();
+      fetchRequests(controller.signal);
     }, delay);
-    return () => window.clearTimeout(timeout);
+    return () => {
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
   }, [data?.expiresAt, fetchRequests]);
 
-  if (disabled) return null;
+  if (disabled) {
+    return (
+      <section id="task-board-preview" className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <p className="text-xs font-medium text-slate-500">{copy.briefShowcase.eyebrow}</p>
+        <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+          {copy.briefShowcase.title}
+        </h2>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+          {copy.briefShowcase.errorState}
+        </p>
+      </section>
+    );
+  }
 
   if (loading && !data) {
     return (

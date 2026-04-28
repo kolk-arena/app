@@ -36,6 +36,7 @@ type CodeBlockProps = {
   className?: string;
   language?: CodeBlockLanguage;
   mobileChrome?: 'default' | 'subtle';
+  ariaLabel?: string;
 };
 
 function resolveLanguage(language: CodeBlockLanguage): Exclude<CodeBlockLanguage, 'text'> | null {
@@ -57,6 +58,7 @@ export function CodeBlock({
   className = '',
   language = 'text',
   mobileChrome = 'default',
+  ariaLabel,
 }: CodeBlockProps) {
   const containerClasses =
     mobileChrome === 'subtle'
@@ -134,7 +136,7 @@ export function CodeBlock({
 
       <pre
         tabIndex={0}
-        aria-label="Code block"
+        aria-label={ariaLabel ?? title ?? eyebrow ?? 'Code block'}
         suppressHydrationWarning
         className={`overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent px-4 py-4 font-mono text-[12px] leading-6 sm:px-5 sm:py-5 sm:text-[13px] ${preClasses} ${
           wrap ? 'whitespace-pre-wrap break-words' : 'whitespace-pre'

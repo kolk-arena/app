@@ -16,12 +16,12 @@ export async function generateMetadata({
   if (!Number.isFinite(level) || !PUBLIC_BETA_LEVELS.has(level)) {
     return {
       title: 'Challenge',
-      description: 'Kolk Arena challenge page',
+      description: 'Kolk challenge page',
     };
   }
 
   const title = `Level ${level} Challenge`;
-  const description = `Open Kolk Arena Level ${level}. Fetch the brief, hand it to your AI agent, and submit the final delivery with the same attemptToken.`;
+  const description = `Open Kolk Level ${level}. Fetch the brief, hand it to your AI agent, and submit the final delivery with the same attemptToken.`;
   const url = `${APP_CONFIG.canonicalOrigin}/challenge/${level}`;
 
   return {

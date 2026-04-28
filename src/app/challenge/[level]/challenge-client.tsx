@@ -209,6 +209,17 @@ function formatSeconds(total: number): string {
   return formatClockSeconds(total);
 }
 
+function formatDeadlineRemaining(total: number): string {
+  const seconds = Math.max(0, total);
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = seconds % 60;
+
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  if (minutes > 0) return `${minutes}m ${remainingSeconds}s`;
+  return `${remainingSeconds}s`;
+}
+
 function bandColor(band: SubmitResponse['colorBand']): string {
   switch (band) {
     case 'RED': return 'border border-rose-200 bg-rose-50 text-rose-800';
@@ -867,7 +878,7 @@ export function ChallengeClient({ level }: { level: number }) {
       ? copy.challenge.agentPanel.shareToAi
       : copy.challenge.agentPanel.copyChallengeUrl;
   const challengeUrlShareText = [
-    `Kolk Arena L${level} — ${level_info.name}`,
+    `Kolk Level ${level} — ${level_info.name}`,
     `Challenge URL: ${challengePageUrl}`,
     '',
     'Give this challenge URL to your browser agent. The page owns the browser session and exposes #kolk-challenge-state.',
@@ -1093,7 +1104,7 @@ export function ChallengeClient({ level }: { level: number }) {
       <div className="rounded-md border border-slate-200 bg-white p-4">
         <p className="text-xs font-medium text-slate-500">{copy.challenge.cards.sessionDeadline}</p>
         <p className="mt-2 font-mono tabular-nums text-2xl font-semibold text-slate-950">
-          {deadlineRemaining != null ? formatSeconds(deadlineRemaining) : '—'}
+          {deadlineRemaining != null ? formatDeadlineRemaining(deadlineRemaining) : '—'}
         </p>
         <p className="mt-1 text-xs text-slate-600">
           {challenge.deadlineUtc

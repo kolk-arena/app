@@ -14,14 +14,14 @@ import { fetchRankedLeaderboardRows } from '@/lib/kolk/leaderboard/ranking';
 async function getTopPlayers() {
   try {
     const { rows } = await fetchRankedLeaderboardRows();
-    return rows.slice(0, 5);
+    return { players: rows.slice(0, 5), failed: false };
   } catch {
-    return [];
+    return { players: [], failed: true };
   }
 }
 
 export default async function Home() {
-  const topPlayers = await getTopPlayers();
+  const { players: topPlayers, failed: topPlayersFailed } = await getTopPlayers();
   const l0QuickStartBundle = getL0SmokeTestBundle();
   const l1RunCommand = `curl -fsSL ${APP_CONFIG.canonicalOrigin}/api/run/1.sh | bash`;
 
@@ -49,7 +49,7 @@ export default async function Home() {
 
           <div className="flex flex-wrap gap-3">
             {/*
-              Spark Amber (#D97706) is reserved for memory-color surfaces:
+              Spark Amber (#B45309) is reserved for memory-color surfaces:
               true primary CTAs, Pioneer, and rank #1. Everything else stays
               slate/white/gray so the accent reads as intent, not theme.
             */}
@@ -80,9 +80,17 @@ export default async function Home() {
                 className="action-button action-button-slate action-button-md w-full focus-visible:outline-none sm:w-auto"
               />
             </div>
-            <p className="mt-3 text-xs leading-5 text-slate-500">
-              {copy.run.body(1)}
-            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs leading-5 text-slate-500">
+              <p>{copy.run.body(1)}</p>
+              <Link
+                href="/api/run/1.sh"
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium text-slate-700 underline decoration-slate-300 underline-offset-2 hover:text-slate-950 hover:decoration-slate-500"
+              >
+                {copy.homeInteractive.reviewRunScript}
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -90,7 +98,7 @@ export default async function Home() {
 
         <HomeInteractive />
 
-        {topPlayers.length > 0 ? (
+        {topPlayers.length > 0 || topPlayersFailed ? (
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
             <div className="mb-4 flex items-center justify-between">
               <div>
@@ -104,32 +112,38 @@ export default async function Home() {
                 {copy.home.liveRankings.cta}
               </Link>
             </div>
-            <div className="divide-y divide-slate-100">
-              {topPlayers.map((player, i) => (
-                <div
-                  key={player.player_id ?? `anonymous:${player.display_name}:${player.country_code ?? 'global'}:${i}`}
-                  className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="flex flex-wrap items-center gap-3">
-                    <span className={`inline-flex min-w-8 items-center justify-center rounded-md border px-2 py-1 text-sm font-medium ${
-                      player.rank === 1 ? 'memory-accent-rank' : 'border-slate-200 bg-slate-50 text-slate-600'
-                    }`}>
-                      {player.rank}
-                    </span>
-                    <span className="text-sm font-medium text-slate-900">{player.display_name}</span>
-                    <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-600">
-                      {player.tier}
-                    </span>
+            {topPlayers.length > 0 ? (
+              <div className="divide-y divide-slate-100">
+                {topPlayers.map((player, i) => (
+                  <div
+                    key={player.player_id ?? `anonymous:${player.display_name}:${player.country_code ?? 'global'}:${i}`}
+                    className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className={`inline-flex min-w-8 items-center justify-center rounded-md border px-2 py-1 text-sm font-medium ${
+                        player.rank === 1 ? 'memory-accent-rank' : 'border-slate-200 bg-slate-50 text-slate-600'
+                      }`}>
+                        {player.rank}
+                      </span>
+                      <span className="text-sm font-medium text-slate-900">{player.display_name}</span>
+                      <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-600">
+                        {player.tier}
+                      </span>
+                    </div>
+                    <div className="text-left sm:text-right">
+                      <span className="text-sm font-mono text-slate-700">L{player.highest_level}</span>
+                      <span className="ml-2 text-xs text-slate-500">
+                        {Math.round(player.best_score_on_highest)} frontier · {player.solve_time_seconds != null ? `${player.solve_time_seconds}s` : copy.home.liveRankings.timePending}
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-left sm:text-right">
-                    <span className="text-sm font-mono text-slate-700">L{player.highest_level}</span>
-                    <span className="ml-2 text-xs text-slate-500">
-                      {Math.round(player.best_score_on_highest)} frontier · {player.solve_time_seconds != null ? `${player.solve_time_seconds}s` : copy.home.liveRankings.timePending}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                {copy.home.liveRankings.unavailable}
+              </div>
+            )}
           </div>
         ) : null}
 

@@ -229,8 +229,8 @@ export function PlayClient() {
             )}
           </p>
           <p className="max-w-3xl rounded-md border border-slate-200 bg-white px-3 py-2 text-xs leading-5 text-slate-600">
-            <span className="font-semibold text-slate-800">For browser agents:</span>{' '}
-            Give your browser agent the recommended challenge URL. The challenge page contains the machine-readable state.
+            <span className="font-semibold text-slate-800">{copy.play.browserAgentNotice.label}</span>{' '}
+            {copy.play.browserAgentNotice.body}
           </p>
           {primaryAction ? (
             <Link
@@ -524,7 +524,8 @@ export function PlayClient() {
               code={submitContractSnippet}
               language="bash"
               tone="light"
-              title="Submit contract"
+              title={copy.play.agentPanel.resourcesEyebrow}
+              ariaLabel={copy.play.agentPanel.resourcesEyebrow}
               className="mt-4"
             />
           </div>

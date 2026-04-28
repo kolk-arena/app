@@ -1,5 +1,10 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { copy } from '@/i18n';
+
+export const metadata: Metadata = {
+  title: copy.notFound.title,
+};
 
 export default function NotFound() {
   return (

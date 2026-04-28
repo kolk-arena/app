@@ -192,11 +192,11 @@ export function LeaderboardClient() {
         })
         .catch((err: unknown) => {
           if (!active || controller.signal.aborted) return;
-          setRequestState({
+          setRequestState((previous) => ({
             queryKey: currentQueryKey,
-            data: null,
+            data: previous.data,
             error: err instanceof Error ? err.message : copy.leaderboard.failedToLoad,
-          });
+          }));
         });
     };
 
@@ -602,6 +602,11 @@ export function LeaderboardClient() {
           <div className="status-message status-error">
             <p className="font-semibold">{lb.failedToLoad}</p>
             <p className="mt-1">{error}</p>
+            {data ? (
+              <p className="mt-2 text-xs leading-5 text-slate-600">
+                {lb.staleDataNotice}
+              </p>
+            ) : null}
           </div>
         ) : null}
 
