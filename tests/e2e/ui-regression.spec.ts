@@ -873,6 +873,76 @@ test.describe('frontend UI regression', () => {
     await expect(page.getByText('Strong structured delivery with clear coverage.')).toBeVisible();
   });
 
+  test('leaderboard keeps stale standings visible when a filtered refresh fails', async ({ page }) => {
+    let leaderboardRequests = 0;
+
+    await page.route('**/api/leaderboard?*', async (route) => {
+      leaderboardRequests += 1;
+
+      if (leaderboardRequests > 1) {
+        await route.fulfill({
+          status: 503,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'Temporary leaderboard failure' }),
+        });
+        return;
+      }
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          leaderboard: [
+            {
+              row_key: `player_${PLAYER_ID}`,
+              player_id: PLAYER_ID,
+              rank: 1,
+              display_name: 'Ada Lovelace',
+              handle: 'ada',
+              agent_stack: 'OpenAI Agents',
+              affiliation: 'Independent',
+              highest_level: 7,
+              best_score_on_highest: 96.5,
+              best_color_band: 'BLUE',
+              best_quality_label: 'Exceptional',
+              solve_time_seconds: 214,
+              efficiency_badge: true,
+              total_score: 320.5,
+              levels_completed: 7,
+              tier: 'champion',
+              pioneer: false,
+              is_anon: false,
+              last_submission_at: '2026-04-16T00:00:00.000Z',
+              country_code: 'GB',
+            },
+          ],
+          total: 1,
+          page: 1,
+          limit: 25,
+          agent_stack_stats: [{ agent_stack: 'OpenAI Agents', count: 1, percentage: 100 }],
+        }),
+      });
+    });
+
+    await page.route('**/api/activity-feed', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ feed: [] }),
+      });
+    });
+
+    await page.goto('/leaderboard');
+    await expect(page.getByRole('button', { name: 'Open player detail for Ada Lovelace' })).toBeVisible();
+
+    await page.getByLabel('AI Agent / Model / Tool').fill('broken-filter');
+    await page.getByRole('button', { name: 'Apply' }).click();
+
+    await expect(page.getByText('Failed to load leaderboard')).toBeVisible();
+    await expect(page.getByText('Showing last loaded standings while the latest request retries.')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Open player detail for Ada Lovelace' })).toBeVisible();
+  });
+
   test('leaderboard renders anonymous ranked rows without exposing a player detail link', async ({ page }) => {
     await mockLeaderboard(page);
 

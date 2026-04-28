@@ -89,7 +89,7 @@ test('pioneer=true returns Spark Amber Beta Pioneer badge regardless of level', 
     const out = buildPlayerBadge({ playerId: PLAYER_ID, highestLevel: level, pioneer: true });
     assert.ok(out, `expected non-null for level=${level}`);
     assert.equal(out.color, 'D97706', `level=${level} should use Spark Amber`);
-    assert.equal(out.displayLabel, 'Kolk Arena — Beta Pioneer');
+    assert.equal(out.displayLabel, 'Kolk — Beta Pioneer');
     // shields URL must encode "Beta Pioneer" with `_` for the space.
     assert.ok(
       out.shieldsUrl.includes('Beta_Pioneer-D97706'),
@@ -102,7 +102,7 @@ test('level 8 with pioneer=false returns emerald Advanced Clear', () => {
   const out = buildPlayerBadge({ playerId: PLAYER_ID, highestLevel: 8, pioneer: false });
   assert.ok(out);
   assert.equal(out.color, 'emerald');
-  assert.equal(out.displayLabel, 'Kolk Arena — Advanced Clear');
+  assert.equal(out.displayLabel, 'Kolk — Advanced Clear');
   assert.ok(out.shieldsUrl.endsWith('-emerald'));
 });
 
@@ -110,21 +110,21 @@ test('level 7 with pioneer=false returns emerald L7 Clear', () => {
   const out = buildPlayerBadge({ playerId: PLAYER_ID, highestLevel: 7, pioneer: false });
   assert.ok(out);
   assert.equal(out.color, 'emerald');
-  assert.equal(out.displayLabel, 'Kolk Arena — L7 Clear');
+  assert.equal(out.displayLabel, 'Kolk — L7 Clear');
 });
 
 test('level 6 with pioneer=false returns emerald L6 Clear (boundary into emerald tier)', () => {
   const out = buildPlayerBadge({ playerId: PLAYER_ID, highestLevel: 6, pioneer: false });
   assert.ok(out);
   assert.equal(out.color, 'emerald');
-  assert.equal(out.displayLabel, 'Kolk Arena — L6 Clear');
+  assert.equal(out.displayLabel, 'Kolk — L6 Clear');
 });
 
 test('level 4 with pioneer=false returns green L4 Clear', () => {
   const out = buildPlayerBadge({ playerId: PLAYER_ID, highestLevel: 4, pioneer: false });
   assert.ok(out);
   assert.equal(out.color, 'green');
-  assert.equal(out.displayLabel, 'Kolk Arena — L4 Clear');
+  assert.equal(out.displayLabel, 'Kolk — L4 Clear');
 });
 
 test('level 3 with pioneer=false returns green L3 Clear (boundary into green tier)', () => {
@@ -137,7 +137,7 @@ test('level 2 with pioneer=false returns blue L2 Clear', () => {
   const out = buildPlayerBadge({ playerId: PLAYER_ID, highestLevel: 2, pioneer: false });
   assert.ok(out);
   assert.equal(out.color, 'blue');
-  assert.equal(out.displayLabel, 'Kolk Arena — L2 Clear');
+  assert.equal(out.displayLabel, 'Kolk — L2 Clear');
 });
 
 test('level 1 with pioneer=false returns blue L1 Clear (boundary into blue tier)', () => {
@@ -150,7 +150,7 @@ test('level 0 with pioneer=false returns gray L0 Smoke', () => {
   const out = buildPlayerBadge({ playerId: PLAYER_ID, highestLevel: 0, pioneer: false });
   assert.ok(out);
   assert.equal(out.color, 'gray');
-  assert.equal(out.displayLabel, 'Kolk Arena — L0 Smoke');
+  assert.equal(out.displayLabel, 'Kolk — L0 Smoke');
 });
 
 // ---------------------------------------------------------------------------
@@ -247,6 +247,6 @@ test('shields URL ends with the matching color slug', () => {
 test('shields URL encodes spaces as underscore (shields.io segment escape)', () => {
   const out = buildPlayerBadge({ playerId: PLAYER_ID, highestLevel: 2, pioneer: false });
   assert.ok(out);
-  // "Kolk Arena" → "Kolk_Arena", "L2 Clear" → "L2_Clear"
-  assert.ok(out.shieldsUrl.includes('Kolk_Arena-L2_Clear-blue'), `unexpected encoding: ${out.shieldsUrl}`);
+  // "Kolk" → "Kolk", "L2 Clear" → "L2_Clear"
+  assert.ok(out.shieldsUrl.includes('Kolk-L2_Clear-blue'), `unexpected encoding: ${out.shieldsUrl}`);
 });
