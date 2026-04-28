@@ -6,9 +6,9 @@
  * 2. Check idempotency cache
  * 3. Parse body (accepts attemptToken primary + fetchToken legacy alias)
  * 4. Validate session by attemptToken -> ka_challenge_sessions row
- * 5. Reject if already consumed by a prior passing submission (409 ATTEMPT_ALREADY_PASSED)
- * 6. Enforce 24h deadline (408 ATTEMPT_TOKEN_EXPIRED)
- * 7. Identity-bind: session owner must match caller
+ * 5. Identity-bind: session owner must match caller
+ * 6. Reject if already consumed by a prior passing submission (409 ATTEMPT_ALREADY_PASSED)
+ * 7. Enforce 24h deadline (408 ATTEMPT_TOKEN_EXPIRED)
  * 8. Rate-limit per attemptToken (6/min, 40/hour, 10 non-refunded submits)
  *    plus 99/day per identity; 5xx refund via releaseClaimsOnServerFailure
  * 9. Run scoring (L0 deterministic check or Layer 1 -> AI judge)
@@ -19,13 +19,18 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { assertRuntimeSchemaReady, supabaseAdmin } from '@/lib/kolk/db';
-import { SubmissionInputSchema, type SubmissionResult } from '@/lib/kolk/types';
+import {
+  SubmissionInputSchema,
+  type FeedbackChecklistItem,
+  type FlagExplanation,
+  type SubmissionResult,
+} from '@/lib/kolk/types';
 import { hashCode, readAnonTokenCookie } from '@/lib/kolk/auth';
 import { ensureAnonUser } from '@/lib/kolk/auth/anon-user';
 import { resolveArenaAuthContext } from '@/lib/kolk/auth/server';
 import { missingScopes, SCOPES, type Scope } from '@/lib/kolk/tokens';
 import { getLevel } from '@/lib/kolk/levels';
-import { runLayer1, type Layer1Config } from '@/lib/kolk/evaluator/layer1';
+import { runLayer1, type Layer1Check, type Layer1Config } from '@/lib/kolk/evaluator/layer1';
 import { runJudge, type JudgeResult } from '@/lib/kolk/evaluator/judge';
 import { COVERAGE_MAX, MAX_PRIMARY_TEXT_CHARS, QUALITY_MAX, STRUCTURE_MAX } from '@/lib/kolk/constants';
 import type { VariantRubric } from '@/lib/kolk/types';
@@ -160,6 +165,103 @@ function buildFailReason(structureScore: number, coverageScore: number, qualityS
   return null;
 }
 
+const FLAG_EXPLANATION_BY_NAME: Record<string, Omit<FlagExplanation, 'flag'>> = {
+  added_content: {
+    meaning: 'The submission appears to add material beyond the brief instead of only delivering the requested output.',
+    action: 'Remove prefaces, notes, extra claims, and invented details; keep only content grounded in promptMd and taskJson.',
+    scoreImpact: 'May reduce coverage or quality when the extra content weakens task fit.',
+  },
+  hallucinated_facts: {
+    meaning: 'The submission includes facts that were not present in the fetched challenge brief.',
+    action: 'Delete invented names, locations, prices, promises, or claims unless they appear in taskJson or promptMd.',
+    scoreImpact: 'May reduce quality for business fit and factual reliability.',
+  },
+  prompt_injection: {
+    meaning: 'The submission contains text that tries to influence or override the judge rather than serving the buyer brief.',
+    action: 'Remove judge-facing instructions, scoring requests, hidden prompts, and meta commentary.',
+    scoreImpact: 'May reduce coverage because the output is no longer a clean deliverable.',
+  },
+  wrong_language: {
+    meaning: 'The output language does not match the expected target language for this challenge.',
+    action: 'Regenerate the deliverable in the target language from taskJson.structured_brief.target_lang.',
+    scoreImpact: 'Usually blocks or heavily reduces structure and downstream quality.',
+  },
+  missing_required_content: {
+    meaning: 'The output is missing one or more required facts, sections, fields, or deliverable surfaces.',
+    action: 'Compare against the checklist and add the missing required items without changing the requested format.',
+    scoreImpact: 'May reduce coverage and can prevent Dual-Gate unlock.',
+  },
+  format_mismatch: {
+    meaning: 'The output shape does not match the level contract, such as missing headings, wrong JSON shape, or extra wrappers.',
+    action: 'Use the level format exactly and keep primaryText as the final deliverable only.',
+    scoreImpact: 'May reduce structure and can prevent the AI judge from running.',
+  },
+  judge_provider_unavailable: {
+    meaning: 'No configured scoring provider was available to judge the submission.',
+    action: 'Treat this as platform state, not content feedback; retry later with the same attemptToken.',
+    scoreImpact: 'No content-specific deduction; the submit path should return SCORING_UNAVAILABLE when scoring cannot run.',
+  },
+  judge_budget_exceeded: {
+    meaning: 'The scoring budget was exhausted before this submission could be judged.',
+    action: 'Back off and retry later with the same attemptToken.',
+    scoreImpact: 'No content-specific deduction; this is infrastructure pressure.',
+  },
+  judge_error: {
+    meaning: 'The AI judge failed while scoring this submission.',
+    action: 'Retry later with the same attemptToken unless the API returns a terminal error.',
+    scoreImpact: 'No content-specific deduction; this is scoring infrastructure failure.',
+  },
+};
+
+function humanizeFlag(flag: string) {
+  return flag
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function buildFlagExplanations(
+  flags: string[],
+  penaltyConfig: VariantRubric['penaltyConfig'],
+): FlagExplanation[] {
+  return [...new Set(flags)].map((flag) => {
+    const known = FLAG_EXPLANATION_BY_NAME[flag];
+    const penalty = penaltyConfig[flag] as
+      | { appliedTo?: string; applied_to?: string }
+      | undefined;
+    const target = penalty?.appliedTo ?? penalty?.applied_to;
+
+    if (known) {
+      return {
+        flag,
+        ...known,
+        scoreImpact: target
+          ? `${known.scoreImpact} This level applies the flag to the ${target} score.`
+          : known.scoreImpact,
+      };
+    }
+
+    return {
+      flag,
+      meaning: `${humanizeFlag(flag)} was detected by the judge.`,
+      action: 'Use the judge summary, field feedback, and structural checklist to revise the deliverable.',
+      scoreImpact: target
+        ? `May affect the ${target} score for this level.`
+        : 'May affect coverage or quality depending on the level rubric.',
+    };
+  });
+}
+
+function buildFeedbackChecklist(checks: Layer1Check[]): FeedbackChecklistItem[] {
+  return checks.map((check) => ({
+    key: check.name,
+    label: humanizeFlag(check.name),
+    passed: check.passed,
+    score: check.score,
+    maxScore: check.maxPoints,
+    reason: check.reason,
+  }));
+}
+
 async function computePercentile(level: number, totalScore: number): Promise<number | null> {
   const cohortFloor = 10;
   const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -209,6 +311,102 @@ function asOptionalString(value: unknown) {
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+function normalizeFieldScores(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => {
+      if (!entry || typeof entry !== 'object') return null;
+      const record = entry as Record<string, unknown>;
+      return {
+        field: asOptionalString(record.field) ?? 'unknown',
+        score: asFiniteNumber(record.score, 0),
+        reason: asOptionalString(record.reason) ?? '',
+      };
+    })
+    .filter((entry): entry is { field: string; score: number; reason: string } => entry !== null);
+}
+
+function normalizeFlags(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value.filter((flag): flag is string => typeof flag === 'string' && flag.trim().length > 0);
+}
+
+function normalizeQualitySubscores(value: unknown) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return zeroQualitySubscores();
+  const record = value as Record<string, unknown>;
+  return {
+    toneFit: asFiniteNumber(record.toneFit ?? record.tone_fit, 0),
+    clarity: asFiniteNumber(record.clarity, 0),
+    usefulness: asFiniteNumber(record.usefulness, 0),
+    businessFit: asFiniteNumber(record.businessFit ?? record.business_fit, 0),
+  };
+}
+
+async function fetchPreviousPassedSubmission(sessionId: string) {
+  const { data, error } = await supabaseAdmin
+    .from('ka_submissions')
+    .select([
+      'id',
+      'challenge_id',
+      'level',
+      'structure_score',
+      'coverage_score',
+      'quality_score',
+      'total_score',
+      'field_scores',
+      'quality_subscores',
+      'flags',
+      'judge_summary',
+      'color_band',
+      'quality_label',
+      'solve_time_seconds',
+      'fetch_to_submit_seconds',
+      'efficiency_badge',
+      'ai_judged',
+      'leaderboard_eligible',
+      'submitted_at',
+    ].join(', '))
+    .eq('challenge_session_id', sessionId)
+    .eq('unlocked', true)
+    .order('submitted_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) {
+    if (error) {
+      console.warn('[submit] Failed to fetch previous passing submission:', error);
+    }
+    return null;
+  }
+
+  const row = data as unknown as Record<string, unknown>;
+  const level = Math.max(0, Math.trunc(asFiniteNumber(row.level, 0)));
+
+  return {
+    submissionId: asOptionalString(row.id),
+    challengeId: asOptionalString(row.challenge_id),
+    level,
+    structureScore: asFiniteNumber(row.structure_score, 0),
+    coverageScore: asFiniteNumber(row.coverage_score, 0),
+    qualityScore: asFiniteNumber(row.quality_score, 0),
+    totalScore: asFiniteNumber(row.total_score, 0),
+    fieldScores: normalizeFieldScores(row.field_scores),
+    qualitySubscores: normalizeQualitySubscores(row.quality_subscores),
+    flags: normalizeFlags(row.flags),
+    summary: asOptionalString(row.judge_summary) ?? '',
+    unlocked: true,
+    failReason: null,
+    colorBand: asOptionalString(row.color_band),
+    qualityLabel: asOptionalString(row.quality_label),
+    solveTimeSeconds: asFiniteNumber(row.solve_time_seconds, 0),
+    fetchToSubmitSeconds: asFiniteNumber(row.fetch_to_submit_seconds, 0),
+    efficiencyBadge: row.efficiency_badge === true,
+    aiJudged: row.ai_judged === true,
+    leaderboardEligible: row.leaderboard_eligible === true,
+    levelUnlocked: level < 8 ? level + 1 : undefined,
+  };
 }
 
 function compareLeaderboardRuns(a: LeaderboardSubmissionRun, b: LeaderboardSubmissionRun) {
@@ -506,19 +704,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Retry-until-pass semantics: consumed_at is set only when a prior
-    // submission cleared the Dual-Gate. See docs/SUBMISSION_API.md.
-    if (session.consumed_at) {
-      return errorResponse({
-        keyHash,
-        status: 409,
-        code: 'ATTEMPT_ALREADY_PASSED',
-        message: 'This attemptToken has already been used for a passing submission. Fetch a new challenge to try again.',
-        fixHint:
-          'This attemptToken has already cleared the Dual-Gate. Fetch a new challenge with GET /api/challenge/:level to try again.',
-      });
-    }
-
     const challengeId = session.challenge_id as string;
     const sessionParticipantId = session.participant_id as string | null;
     const sessionAnonToken = session.anon_token as string | null;
@@ -559,6 +744,28 @@ export async function POST(request: NextRequest) {
             'Preserve cookies between GET /api/challenge/:level and POST /api/challenge/submit. curl: use -c/-b. Python: requests.Session(). Node.js: read Set-Cookie from GET and replay on POST.',
         });
       }
+    }
+
+    // Retry-until-pass semantics: consumed_at is set only when a prior
+    // submission cleared the Dual-Gate. Return the previous score only after
+    // identity binding succeeds; the attemptToken is a capability, but the
+    // score receipt should still stay with the original session/account.
+    if (session.consumed_at) {
+      const previousSubmission = await fetchPreviousPassedSubmission(session.id as string);
+      return errorResponse({
+        keyHash,
+        status: 409,
+        code: 'ATTEMPT_ALREADY_PASSED',
+        message: 'This attemptToken has already been used for a passing submission. Fetch a new challenge to try again.',
+        fixHint:
+          'This attemptToken has already cleared the Dual-Gate. Fetch a new challenge with GET /api/challenge/:level to try again.',
+        bodyExtras: previousSubmission
+          ? {
+              previous_submission: previousSubmission,
+              previousSubmission,
+            }
+          : undefined,
+      });
     }
 
     const participantId = sessionParticipantId;
@@ -775,6 +982,8 @@ export async function POST(request: NextRequest) {
     let fieldScores: Array<{ field: string; score: number; reason: string }> = [];
     let qualitySubscores = zeroQualitySubscores();
     let flags: string[] = [];
+    let feedbackChecklist: FeedbackChecklistItem[] = [];
+    let flagPenaltyConfig: VariantRubric['penaltyConfig'] = {};
     let summary = '';
     let judgeModel = aiJudged ? 'judge-runtime-unavailable' : 'deterministic-l0';
     let judgeResult: JudgeResult | null = null;
@@ -815,10 +1024,14 @@ export async function POST(request: NextRequest) {
       } else if (challenge.level === 8) {
         layer1Config.requiredHeaderKeywords = ['copy', 'prompt', 'whatsapp'];
       } else {
+        // Only the brief's explicit `structured_brief.target_lang` drives the
+        // language gate. `taskJson.seller_locale` is the brief author's
+        // locale, NOT the required output language — translation levels
+        // (e.g. L1) deliberately diverge, so falling back to seller_locale
+        // would mark a correctly translated submission as wrong-language.
         const targetLang = structuredBrief.target_lang as string | undefined;
         const sellerLocale = taskJson.seller_locale as string | undefined;
-        const expectedLang = targetLang ?? sellerLocale;
-        if (expectedLang) layer1Config.expectedLang = expectedLang;
+        if (targetLang) layer1Config.expectedLang = targetLang;
 
         const budgetTotal = structuredBrief.budget_total as number | undefined;
         if (budgetTotal != null) layer1Config.mathTotal = budgetTotal;
@@ -851,6 +1064,7 @@ export async function POST(request: NextRequest) {
 
       const layer1 = runLayer1(primaryText, layer1Config);
       structureScore = layer1.totalScore;
+      feedbackChecklist = buildFeedbackChecklist(layer1.checks);
       fieldScores = layer1.checks.map((check) => ({
         field: check.name,
         score: check.score,
@@ -899,6 +1113,7 @@ export async function POST(request: NextRequest) {
           activePenalties: (raw.activePenalties ?? raw.active_penalties ?? []) as string[],
           penaltyConfig: (raw.penaltyConfig ?? raw.penalty_config ?? {}) as Record<string, { deduction: number; appliedTo: 'coverage' | 'quality' }>,
         };
+        flagPenaltyConfig = rubric.penaltyConfig;
         const briefSummary = (taskJson.brief_summary ?? taskJson.title ?? `Level ${challenge.level} challenge`) as string;
 
         judgeResult = await runJudge(
@@ -942,6 +1157,7 @@ export async function POST(request: NextRequest) {
     const showRegisterPrompt = !participantId && challenge.level === 5 && unlocked ? true : undefined;
     const failReason = unlocked ? null : buildFailReason(structureScore, coverageScore, qualityScore);
     const replayUnlocked = challenge.level === 8 && unlocked ? true : undefined;
+    const flagExplanations = buildFlagExplanations(flags, flagPenaltyConfig);
     const nextSteps = replayUnlocked
       ? {
           replay: 'You can now replay any beta level to improve your best score.',
@@ -1090,6 +1306,10 @@ export async function POST(request: NextRequest) {
       level: challenge.level,
       totalScore,
       flags,
+      flagExplanations,
+      flag_explanations: flagExplanations,
+      feedbackChecklist,
+      checklist: feedbackChecklist,
       summary,
       unlocked,
       failReason,

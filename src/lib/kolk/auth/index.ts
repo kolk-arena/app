@@ -118,11 +118,21 @@ export function getAnonToken(request: Request): string {
   return resolveAnonToken(request).token;
 }
 
+// 30 days. Long enough for anonymous L0-L5 progression to persist across
+// real-world play sessions, and — more importantly for agent onboarding —
+// long enough that `curl -c jar` does not drop it as a session cookie.
+// Without an explicit Max-Age, RFC 6265 marks the cookie as a session
+// cookie, and curl writes it to the jar with `expires=0`, which the next
+// `-b jar` invocation refuses to send. That is the root cause of the
+// "GET → POST IDENTITY_MISMATCH" report from agent testing.
+const ANON_SESSION_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
+
 export function applyAnonTokenCookie(response: NextResponse, token: string): void {
   response.cookies.set(ANON_SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
     path: '/',
+    maxAge: ANON_SESSION_COOKIE_MAX_AGE_SECONDS,
   });
 }

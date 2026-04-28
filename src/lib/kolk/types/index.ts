@@ -130,6 +130,12 @@ export interface SubmissionResult {
   fieldScores?: FieldScore[];
   qualitySubscores?: QualitySubscores;
   flags: string[];
+  flagExplanations?: FlagExplanation[];
+  /** Compatibility alias for API clients that requested snake_case feedback. */
+  flag_explanations?: FlagExplanation[];
+  feedbackChecklist?: FeedbackChecklistItem[];
+  /** Compact compatibility alias for machine self-check loops. */
+  checklist?: FeedbackChecklistItem[];
   summary: string;
   unlocked: boolean;
   failReason?: 'STRUCTURE_GATE' | 'QUALITY_FLOOR' | null;
@@ -154,6 +160,22 @@ export interface SubmissionResult {
 export interface FieldScore {
   field: string;
   score: number;
+  reason: string;
+}
+
+export interface FlagExplanation {
+  flag: string;
+  meaning: string;
+  action: string;
+  scoreImpact: string;
+}
+
+export interface FeedbackChecklistItem {
+  key: string;
+  label: string;
+  passed: boolean;
+  score: number;
+  maxScore: number;
   reason: string;
 }
 

@@ -512,7 +512,7 @@ export function PlayClient() {
                 {copy.play.openSkillLink}
               </a>
               <a
-                href="https://github.com/kolk-arena/app/blob/main/docs/INTEGRATION_GUIDE.md"
+                href={`${APP_CONFIG.docsOrigin}/INTEGRATION_GUIDE.md`}
                 target="_blank"
                 rel="noreferrer"
                 className="font-medium text-slate-700 underline decoration-slate-300 underline-offset-2 transition-colors duration-150 hover:text-slate-950 hover:decoration-slate-500"

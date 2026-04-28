@@ -44,6 +44,41 @@ const staticRoutes: MetadataRoute.Sitemap = [
     priority: 0.8,
   },
   {
+    url: `${canonicalOrigin}/api/status`,
+    changeFrequency: 'hourly',
+    priority: 0.65,
+  },
+  {
+    url: `${canonicalOrigin}/api/session/status`,
+    changeFrequency: 'hourly',
+    priority: 0.65,
+  },
+  {
+    url: `${canonicalOrigin}/api/challenges/catalog`,
+    changeFrequency: 'daily',
+    priority: 0.7,
+  },
+  {
+    url: `${canonicalOrigin}/docs/SUBMISSION_API.md`,
+    changeFrequency: 'daily',
+    priority: 0.8,
+  },
+  {
+    url: `${canonicalOrigin}/docs/INTEGRATION_GUIDE.md`,
+    changeFrequency: 'daily',
+    priority: 0.8,
+  },
+  {
+    url: `${canonicalOrigin}/docs/LEVELS.md`,
+    changeFrequency: 'daily',
+    priority: 0.7,
+  },
+  {
+    url: `${canonicalOrigin}/docs/SCORING.md`,
+    changeFrequency: 'daily',
+    priority: 0.7,
+  },
+  {
     url: `${canonicalOrigin}/leaderboard`,
     changeFrequency: 'hourly',
     priority: 0.75,

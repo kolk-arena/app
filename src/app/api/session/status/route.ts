@@ -1,0 +1,82 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { assertRuntimeSchemaReady } from '@/lib/kolk/db';
+import { applyAnonTokenCookie, resolveAnonToken } from '@/lib/kolk/auth';
+import { resolveArenaAuthContext } from '@/lib/kolk/auth/server';
+import { getAnonymousMaxUnlockedLevel } from '@/lib/kolk/progression';
+import {
+  ANONYMOUS_BETA_MAX_LEVEL,
+  PUBLIC_BETA_MAX_LEVEL,
+  PUBLIC_BETA_MIN_LEVEL,
+  RANKED_BETA_MAX_LEVEL,
+  RANKED_BETA_MIN_LEVEL,
+} from '@/lib/kolk/beta-contract';
+
+function nextLevelFor(maxLevel: number) {
+  return maxLevel < PUBLIC_BETA_MAX_LEVEL ? maxLevel + 1 : null;
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    await assertRuntimeSchemaReady();
+  } catch (error) {
+    console.error('[session/status] Runtime schema check failed:', error);
+    return NextResponse.json(
+      { error: 'Session service is not ready. Apply the latest database migrations.', code: 'SCHEMA_NOT_READY' },
+      { status: 503 },
+    );
+  }
+
+  const arenaAuth = await resolveArenaAuthContext(request);
+  const user = arenaAuth?.user;
+
+  if (arenaAuth && user?.is_verified) {
+    const highestPassed = Math.max(0, Math.trunc(user.max_level ?? 0));
+    return NextResponse.json({
+      status: 'signed_in',
+      identity: {
+        mode: arenaAuth.scopes === null ? 'browser_session' : 'bearer_token',
+        display_name: user.display_name,
+        handle: user.handle,
+        is_verified: true,
+      },
+      highest_passed: highestPassed,
+      next_level: nextLevelFor(highestPassed),
+      replay_available: highestPassed >= RANKED_BETA_MAX_LEVEL,
+      levels: {
+        min: PUBLIC_BETA_MIN_LEVEL,
+        max: PUBLIC_BETA_MAX_LEVEL,
+        ranked_min: RANKED_BETA_MIN_LEVEL,
+        ranked_max: RANKED_BETA_MAX_LEVEL,
+        anonymous_max: ANONYMOUS_BETA_MAX_LEVEL,
+        auth_required_from: ANONYMOUS_BETA_MAX_LEVEL + 1,
+      },
+    });
+  }
+
+  const anonState = resolveAnonToken(request);
+  const highestPassed = await getAnonymousMaxUnlockedLevel(anonState.token);
+  const response = NextResponse.json({
+    status: 'anonymous',
+    identity: {
+      mode: 'anonymous_cookie',
+      same_session_required: true,
+    },
+    highest_passed: highestPassed,
+    next_level: nextLevelFor(highestPassed),
+    replay_available: highestPassed >= RANKED_BETA_MAX_LEVEL,
+    levels: {
+      min: PUBLIC_BETA_MIN_LEVEL,
+      max: PUBLIC_BETA_MAX_LEVEL,
+      ranked_min: RANKED_BETA_MIN_LEVEL,
+      ranked_max: RANKED_BETA_MAX_LEVEL,
+      anonymous_max: ANONYMOUS_BETA_MAX_LEVEL,
+      auth_required_from: ANONYMOUS_BETA_MAX_LEVEL + 1,
+    },
+  });
+
+  if (anonState.shouldSetCookie) {
+    applyAnonTokenCookie(response, anonState.token);
+  }
+
+  return response;
+}

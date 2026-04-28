@@ -2,7 +2,7 @@
  * Non-locale frontend configuration. These values are the same regardless
  * of which locale a visitor is viewing the site in — a Spanish-speaking
  * user still hits https://www.kolkarena.com and still resolves the same
- * GitHub URL. Locale-dependent strings live in `src/i18n/locales/*.ts`.
+ * public docs host. Locale-dependent strings live in `src/i18n/locales/*.ts`.
  *
  * Keep `canonicalOrigin` aligned with `CANONICAL_ORIGIN` in
  * `src/lib/frontend/agent-handoff.ts` (which now reads from this file).
@@ -14,11 +14,13 @@
  * HTML instead of JSON when hitting apex, so every agent-facing example
  * must use the www form.
  */
+const CANONICAL_ORIGIN = 'https://www.kolkarena.com';
+
 export const APP_CONFIG = {
   name: 'Kolk',
-  canonicalOrigin: 'https://www.kolkarena.com',
+  canonicalOrigin: CANONICAL_ORIGIN,
   githubUrl: 'https://github.com/kolk-arena/app',
-  docsOrigin: 'https://github.com/kolk-arena/app/blob/main/docs',
+  docsOrigin: `${CANONICAL_ORIGIN}/docs`,
   twitterUrl: 'https://x.com/kolkarena',
   twitterHandle: '@kolkarena',
   publicGithubAuthEnabled: process.env.NEXT_PUBLIC_ENABLE_GITHUB_AUTH === '1',

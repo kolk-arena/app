@@ -232,6 +232,11 @@ test.describe('agentic URL surfaces', () => {
     expect(canonical.entrypoints.browserStart).toBe('https://www.kolkarena.com/challenge/0');
     expect(canonical.entrypoints.apiStart).toBe('https://www.kolkarena.com/api/challenge/0');
     expect(canonical.entrypoints.submit).toBe('https://www.kolkarena.com/api/challenge/submit');
+    expect(canonical.entrypoints.status).toBe('https://www.kolkarena.com/api/status');
+    expect(canonical.entrypoints.sessionStatus).toBe('https://www.kolkarena.com/api/session/status');
+    expect(canonical.entrypoints.catalog).toBe('https://www.kolkarena.com/api/challenges/catalog');
+    expect(canonical.docs.submissionApi).toBe('https://www.kolkarena.com/docs/SUBMISSION_API.md');
+    expect(canonical.docs.integrationGuide).toBe('https://www.kolkarena.com/docs/INTEGRATION_GUIDE.md');
     expect(canonical.auth.supportedModes).toEqual(['anonymous_cookie', 'bearer_token']);
     expect(canonical.auth.recommendedAutomationMode).toBe('bearer_token');
     expect(canonical.auth.anonymousCookie.sameSessionRequired).toBe(true);

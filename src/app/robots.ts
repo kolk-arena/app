@@ -16,8 +16,12 @@ export default function robots(): MetadataRoute.Robots {
           '/kolk_workspace.md',
           '/kolk_arena.md',
           '/llms.txt',
+          '/docs/',
           '/ai-action-manifest.json',
           '/api/agent-entrypoint',
+          '/api/status',
+          '/api/session/status',
+          '/api/challenges/catalog',
         ],
         disallow: [
           '/api/auth/',

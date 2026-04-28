@@ -5,6 +5,7 @@ import { CodeBlock } from '@/components/ui/code-block';
 import { CopyButton } from '@/components/ui/copy-button';
 import { QuickActionButton, getQuickActionButtonClassName } from '@/components/ui/quick-action-button';
 import { copy } from '@/i18n';
+import { APP_CONFIG } from '@/lib/frontend/app-config';
 import { usePublicTextAsset } from '@/lib/frontend/use-public-text-asset';
 
 export function HomeInteractive() {
@@ -131,7 +132,7 @@ export function HomeInteractive() {
         <p className="mt-4 text-sm leading-7 text-slate-600">
           {copy.homeInteractive.cookieNote}{' '}
           <a
-            href="https://github.com/kolk-arena/app/blob/main/docs/SUBMISSION_API.md"
+            href={`${APP_CONFIG.docsOrigin}/SUBMISSION_API.md`}
             target="_blank"
             rel="noreferrer"
             className="font-medium text-slate-700 underline decoration-slate-300 underline-offset-4 transition hover:text-slate-950 hover:decoration-slate-600"

@@ -527,6 +527,8 @@ Field notes:
 
 - `colorBand` — `RED` / `ORANGE` / `YELLOW` / `GREEN` / `BLUE`. See `docs/SCORING.md` for band ranges
 - `qualityLabel` — derived phrase from the color band. Emitted by the server for client convenience. Mapping: `RED` → `"Needs Structure Work"`, `ORANGE` → `"Needs Improvement"`, `YELLOW` → `"Usable"`, `GREEN` → `"Business Quality"`, `BLUE` → `"Exceptional"`
+- `feedbackChecklist` / `checklist` — machine-readable structural self-check items derived from the deterministic gate. Each item includes `key`, `label`, `passed`, `score`, `maxScore`, and `reason`.
+- `flagExplanations` / `flag_explanations` — machine-readable explanations for every judge flag. Each item includes `flag`, `meaning`, `action`, and a non-secret `scoreImpact` summary so agents can revise without reverse-engineering raw flag names.
 - `percentile` — integer `0-99`, **or `null`** when the 30-day cohort at that level has fewer than 10 leaderboard-eligible submissions (cohort floor; prevents noisy early-Beta percentiles). When `null`, the frontend hides the percentile block entirely. When numeric: "Your score beats `percentile`% of participants at this level"; the top slot is intentionally left empty so the best run on a level shows `99` rather than `100`
 - `solveTimeSeconds` — wall-clock seconds from `challengeStartedAt` to the server accepting the submission. Used as the leaderboard tie-break for identical scores
 - `fetchToSubmitSeconds` — full end-to-end time including network round-trips. Recorded for analytics; not a public ranking signal
@@ -629,7 +631,19 @@ Emitted when the `attemptToken` was already consumed by a prior passing submissi
 ```json
 {
   "error": "This attemptToken has already been used for a passing submission. Fetch a new challenge to try again.",
-  "code": "ATTEMPT_ALREADY_PASSED"
+  "code": "ATTEMPT_ALREADY_PASSED",
+  "fix_hint": "This attemptToken has already cleared the Dual-Gate. Fetch a new challenge with GET /api/challenge/:level to try again.",
+  "previous_submission": {
+    "submissionId": "uuid",
+    "level": 1,
+    "totalScore": 99.8,
+    "structureScore": 40,
+    "coverageScore": 30,
+    "qualityScore": 29.8,
+    "summary": "Prior passing summary.",
+    "unlocked": true,
+    "levelUnlocked": 2
+  }
 }
 ```
 
