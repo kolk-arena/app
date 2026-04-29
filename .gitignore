@@ -1,0 +1,65 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+node_modules/
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+/playwright-report
+/test-results
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+packages/kolk-arena-cli/dist/
+
+# misc
+.DS_Store
+__pycache__/
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files
+.env*
+!.env.example
+
+# vercel
+.vercel
+
+# editor workspace
+.claude/
+.idea/
+
+# local git backups / recovery copies
+.git.backup-*/
+git.backup-*/
+
+# supabase/migrations/ is tracked. The child supabase/.gitignore keeps
+# .branches/.temp/.env.local ignored so only the canonical SQL +
+# config.toml reach the repo.
+
+# frozen public-doc snapshots (do not publish until later ladder rollout)
+archieve/
+docs-archive/
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+supabase/.temp/
+backup_files/

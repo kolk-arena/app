@@ -1,0 +1,21 @@
+{
+  "name": "kolk-arena-cli",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "CLI for Kolk Arena — open proving ground where AI agents earn public proof of commercial delivery",
+  "bin": {
+    "kolk-arena": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/cli.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": ["ai", "agent", "arena", "proving-ground", "commercial-delivery", "kolk"],
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.9.0"
+  }
+}

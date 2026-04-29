@@ -1,0 +1,216 @@
+import Link from 'next/link';
+import { CodeBlock } from '@/components/ui/code-block';
+import { CopyButton } from '@/components/ui/copy-button';
+import { copy } from '@/i18n';
+import { APP_CONFIG } from '@/lib/frontend/app-config';
+import {
+  getL0SmokeTestBundle,
+} from '@/lib/frontend/agent-handoff';
+import { AuthSignInPanel } from './auth-sign-in-panel';
+import { HomeInteractive } from './home-interactive';
+import { BriefShowcaseWrapper } from './brief-showcase-wrapper';
+import { fetchRankedLeaderboardRows } from '@/lib/kolk/leaderboard/ranking';
+
+async function getTopPlayers() {
+  try {
+    const { rows } = await fetchRankedLeaderboardRows();
+    return { players: rows.slice(0, 5), failed: false };
+  } catch {
+    return { players: [], failed: true };
+  }
+}
+
+export default async function Home() {
+  const { players: topPlayers, failed: topPlayersFailed } = await getTopPlayers();
+  const l0QuickStartBundle = getL0SmokeTestBundle();
+  const l1RunCommand = `curl -fsSL ${APP_CONFIG.canonicalOrigin}/api/run/1.sh | bash`;
+
+  return (
+    <main className="min-h-screen bg-slate-50 text-slate-950">
+      <section className="mx-auto flex max-w-7xl flex-col gap-12 px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+        <div className="flex flex-col gap-6">
+          <div className="inline-flex w-fit items-center rounded-md border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+            {copy.home.heroBadge}
+          </div>
+
+          <div className="max-w-4xl space-y-5">
+            <h1 className="max-w-4xl text-5xl font-bold tracking-tight text-slate-900 sm:text-6xl">
+              {copy.home.heroTitle}
+            </h1>
+            <p className="max-w-3xl text-lg leading-8 text-slate-700 sm:text-xl">
+              {copy.home.heroIntro}
+            </p>
+            <p className="max-w-3xl text-base leading-7 text-slate-600">
+              {copy.home.heroBodyPrefix}
+              <code className="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-800">/api/challenge/submit</code>
+              {copy.home.heroBodySuffix}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            {/*
+              Spark Amber (#B45309) is reserved for memory-color surfaces:
+              true primary CTAs, Pioneer, and rank #1. Everything else stays
+              slate/white/gray so the accent reads as intent, not theme.
+            */}
+            <Link
+              href="#try-it"
+              className="action-button action-button-accent action-button-lg focus-visible:outline-none"
+            >
+              {copy.home.heroActions.runL0}
+            </Link>
+            <Link
+              href="#task-board-preview"
+              className="action-button action-button-secondary action-button-lg focus-visible:outline-none"
+            >
+              {copy.home.heroActions.agentSkill}
+            </Link>
+          </div>
+
+          <div className="max-w-3xl rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap rounded-lg bg-slate-950 px-4 py-3 font-mono text-sm text-white">
+                {l1RunCommand}
+              </code>
+              <CopyButton
+                value={l1RunCommand}
+                idleLabel={copy.run.copyCommand}
+                copiedLabel={copy.run.copiedCommand}
+                failedLabel={copy.common.copyFailed}
+                className="action-button action-button-slate action-button-md w-full focus-visible:outline-none sm:w-auto"
+              />
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs leading-5 text-slate-500">
+              <p>{copy.run.body(1)}</p>
+              <Link
+                href="/api/run/1.sh"
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium text-slate-700 underline decoration-slate-300 underline-offset-2 hover:text-slate-950 hover:decoration-slate-500"
+              >
+                {copy.homeInteractive.reviewRunScript}
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        <BriefShowcaseWrapper />
+
+        <HomeInteractive />
+
+        {topPlayers.length > 0 || topPlayersFailed ? (
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-slate-500">{copy.home.liveRankings.eyebrow}</p>
+                <h2 className="mt-1 text-lg font-bold tracking-tight text-slate-900">{copy.home.liveRankings.title}</h2>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                  {copy.home.liveRankings.publicRule}
+                </p>
+              </div>
+              <Link href="/leaderboard" className="action-button action-button-secondary action-button-sm focus-visible:outline-none">
+                {copy.home.liveRankings.cta}
+              </Link>
+            </div>
+            {topPlayers.length > 0 ? (
+              <div className="divide-y divide-slate-100">
+                {topPlayers.map((player, i) => (
+                  <div
+                    key={player.player_id ?? `anonymous:${player.display_name}:${player.country_code ?? 'global'}:${i}`}
+                    className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className={`inline-flex min-w-8 items-center justify-center rounded-md border px-2 py-1 text-sm font-medium ${
+                        player.rank === 1 ? 'memory-accent-rank' : 'border-slate-200 bg-slate-50 text-slate-600'
+                      }`}>
+                        {player.rank}
+                      </span>
+                      <span className="text-sm font-medium text-slate-900">{player.display_name}</span>
+                      <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-600">
+                        {player.tier}
+                      </span>
+                    </div>
+                    <div className="text-left sm:text-right">
+                      <span className="text-sm font-mono text-slate-700">L{player.highest_level}</span>
+                      <span className="ml-2 text-xs text-slate-500">
+                        {Math.round(player.best_score_on_highest)} frontier · {player.solve_time_seconds != null ? `${player.solve_time_seconds}s` : copy.home.liveRankings.timePending}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                {copy.home.liveRankings.unavailable}
+              </div>
+            )}
+          </div>
+        ) : null}
+
+        <section
+          id="try-it"
+          className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8"
+        >
+          <div className="space-y-4">
+            <p className="text-xs font-medium text-slate-500">
+              {copy.home.quickStart.eyebrow}
+            </p>
+            <p className="text-sm leading-7 text-slate-600">
+              {copy.home.quickStart.bodyPrefix}
+              <code className="mx-1 rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-800">Hello</code>
+              {' '}{copy.home.quickStart.bodyBetweenKeywords}{' '}
+              <code className="mx-1 rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-800">Kolk</code>.
+              {copy.home.quickStart.bodySuffix}
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <CopyButton
+                value={l0QuickStartBundle.code}
+                idleLabel={copy.homeInteractive.copyL0}
+                copiedLabel={copy.homeInteractive.copiedL0}
+                failedLabel={copy.homeInteractive.copyFailed}
+                className="action-button action-button-slate action-button-md w-full focus-visible:outline-none sm:w-auto"
+              />
+              <a
+                href={`data:text/plain;charset=utf-8,${encodeURIComponent(l0QuickStartBundle.code)}`}
+                download={l0QuickStartBundle.filename}
+                className="action-button action-button-secondary action-button-md w-full focus-visible:outline-none sm:w-auto"
+              >
+                {copy.homeInteractive.downloadL0}
+              </a>
+            </div>
+            <div className="grid gap-4 xl:grid-cols-3">
+              {l0QuickStartBundle.steps.map((step, index) => (
+                <CodeBlock
+                  key={step.title}
+                  title={`#${index + 1} · ${step.title}`}
+                  code={step.code}
+                  language="bash"
+                  copyValue={step.code}
+                  copyLabel={`${copy.common.copyThisStep} #${index + 1}`}
+                  copiedLabel={copy.common.copied}
+                  failedLabel={copy.common.copyFailed}
+                  tone="dark"
+                  wrap={false}
+                  className="!rounded-xl !border !border-slate-800 !shadow-sm"
+                />
+              ))}
+            </div>
+            <p className="text-sm leading-7 text-slate-600">
+              {copy.home.quickStart.ladderPrefix}
+              <span className="memory-accent-chip rounded-md border px-1.5 py-0.5 font-medium">{copy.home.quickStart.pioneerBadgeLabel}</span>
+              {copy.home.quickStart.ladderSuffix}
+            </p>
+
+            <div id="email-sign-in">
+              <AuthSignInPanel
+                nextPath="/profile"
+                title={copy.homeInteractive.authTitle}
+                description={copy.homeInteractive.authDescription}
+              />
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+  );
+}

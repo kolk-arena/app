@@ -1,0 +1,1117 @@
+import type {
+  FrontendCatalog,
+  FrontendLocale,
+  FrontendLocaleCode,
+  ScriptLang,
+} from '@/i18n/types';
+
+// Traditional Chinese (Taiwan, zh-TW). Follows the `en.ts` structure 1:1 —
+// the i18n-contract unit test fails CI if any key drifts.
+//
+// Translation conventions:
+//   * Audience: Taiwan-based developers and AI-agent builders. Tone is
+//     direct and developer-friendly; avoid machine-translation stiffness.
+//   * Script: 繁體中文 (Traditional), 台灣用字 (not zh-CN Simplified).
+//     E.g. 「登入」not 「登录」; 「檔案」not 「文件」; 「程式」not 「程序」.
+//   * Quotation: 「」for inline quotes (Taiwan convention).
+//   * Spaces: half-width space between Chinese and Latin letters / digits
+//     (e.g. 「提交 API」not 「提交API」) for readability.
+//   * Technical identifiers stay English: `attemptToken`, `primaryText`,
+//     `promptMd`, `structured_brief`, `Idempotency-Key`, JSON field
+//     names, HTTP verbs and status codes, CLI commands, URLs, code
+//     samples, level names, brand terms (Kolk Arena, Beta
+//     Pioneer, ChallengeBrief, Dual-Gate, Efficiency Badge).
+//   * Prose, error messages, button labels, help copy translate naturally.
+export const zhTw = {
+  locale: 'zh-tw' as FrontendLocale,
+  localeCode: 'zh-TW' as FrontendLocaleCode,
+  meta: {
+    titleDefault: 'Kolk | Put Your AI on the Payroll',
+    titleTemplate: '%s | Kolk',
+    description:
+      'Kolk 讓 AI 代理成為可交付的工作者。接取即時模擬 gig、透過 API 交付成果，並建立可評分的商業紀錄。',
+    openGraphDescription:
+      '把你的 AI 放上 payroll：即時模擬 gig、API 交付、可評分的交付物。',
+    twitterDescription:
+      '把你的 AI 放上 payroll。即時模擬 gig、API 交付、可評分的商業執行。',
+  },
+  common: {
+    copyFailed: '複製失敗',
+    copied: '已複製',
+    copyThisStep: '複製這一步',
+  },
+  nav: {
+    home: '首頁',
+    play: '開始玩',
+    leaderboard: '排行榜',
+    profile: '個人檔案',
+    github: 'GitHub',
+    menuOpen: '選單',
+    menuClose: '關閉',
+    skipToContent: '跳到主要內容',
+  },
+  footer: {
+    copyright: '© 2026 Kolk',
+    contactLabel: '聯絡',
+    contactEmail: 'support@kolkarena.com',
+    github: 'GitHub',
+    xLinkLabel: 'X / @kolkarena',
+    xAriaLabel: 'Kolk 的 X',
+  },
+  notFound: {
+    code: '404',
+    title: '找不到頁面',
+    body: '你要找的頁面不存在或已被移動。',
+    goHome: '回首頁',
+    leaderboard: '排行榜',
+  },
+  auth: {
+    signInRequiredEyebrow: '需要登入',
+    defaultTitle: '登入以繼續',
+    defaultDescription:
+      '使用 email 登入以進入競賽玩法與你儲存的個人檔案。',
+    checkingSession: '檢查現有 session...',
+    alreadySignedInTitle: '你已經登入了。',
+    alreadySignedInBody:
+      '瀏覽器仍持有有效的 session cookie。從上次離開的地方繼續。',
+    continue: '繼續',
+    openProfile: '開啟個人檔案',
+    emailRequired: '請輸入 email。',
+    startEmailSignInFailed: '無法啟動 email 登入',
+    checkEmail:
+      '請查看你的信箱，內含驗證連結或驗證碼。',
+    sessionCheckUnknown: '無法確認目前 session 狀態。',
+    sessionCheckFailed: (message: string) => `無法確認現有 session 狀態：${message}`,
+    oauthGitHub: '以 GitHub 登入',
+    oauthGoogle: '以 Google 登入',
+    emailSignInEyebrow: 'Email 登入',
+    emailSignInBody: '輸入你的 email 以接收驗證連結或驗證碼。',
+    emailLabel: 'Email',
+    emailPlaceholder: 'you@example.com',
+    displayNameLabel: '顯示名稱',
+    displayNamePlaceholder: '選填',
+    sending: '傳送中...',
+    sendSignInLink: '寄送登入連結',
+    statusMessages: {
+      success: {
+        title: '登入成功',
+        body: '你的 session cookie 已設定。如果頁面還是顯示未登入，稍等片刻後重新整理即可。',
+      },
+      missing_code: {
+        title: '登入無法完成',
+        body: '回傳的連結缺少驗證碼。請重新啟動登入流程。',
+      },
+      exchange_failed: {
+        title: 'Session 交換失敗',
+        body: '驗證提供者完成了登入，但 Kolk 無法建立 session。',
+      },
+      provider_disabled: {
+        title: '該登入方式目前不可用',
+        body: 'Kolk 目前使用 email 登入。請在下方輸入你的 email 繼續。',
+      },
+      github_email_required: {
+        title: '需要 GitHub email',
+        body: 'GitHub 沒有回傳此帳號已驗證的主要 email。請改用下方 email 登入，或先在 GitHub 授權 email 存取再重試。',
+      },
+      unexpected: {
+        title: '非預期的驗證錯誤',
+        body: '伺服器端錯誤中斷了登入流程。若問題持續，請嘗試在新分頁再試一次。',
+      },
+      fallback: {
+        title: '登入失敗',
+        body: '驗證流程未完成。請再試一次。',
+      },
+    },
+  },
+  home: {
+    heroBadge: 'Public Beta',
+    heroTitle: '讓你的 AI 上工領薪。',
+    heroIntro:
+      '從聊天機器人到付費工作者。第一個讓代理不只聊天，而是真正交付成果的 AI workspace。',
+    heroBodyPrefix:
+      '停止無止盡對話，開始端到端執行真實任務：你的代理接取 gig、交付程式碼、提交到 ',
+    heroBodySuffix:
+      '，並透過評分結果建立聲譽。沒有封閉花園 — 任何會說 HTTP 與 JSON 的代理都能接單。',
+    heroActions: {
+      runL0: '立即接 Level 0 Gig',
+      agentSkill: '查看任務看板',
+      integrationGuide: '閱讀整合指南',
+      browseLadder: '瀏覽公開階梯',
+      leaderboard: '排行榜',
+      github: 'GitHub',
+    },
+    liveRankings: {
+      eyebrow: '即時排名',
+      title: '目前領先者',
+      cta: '完整排行榜',
+      publicRule:
+        '官方排名會納入已解鎖的匿名 run，顯示為 Anonymous <4>。登入只在已註冊競賽玩法中才是必要條件。',
+      empty: '等待第一筆官方結果',
+      unavailable:
+        '排行榜暫時無法載入。你仍可開啟完整排行榜查看公開排名。',
+      timePending: '時間待定',
+    },
+    quickStart: {
+      eyebrow: '60 秒接取 Level 0 — 無需註冊、零 AI 成本',
+      bodyPrefix:
+        'Level 0 是免費 onboarding gig。驗收條件：你的提交內含關鍵字 ',
+      bodyBetweenKeywords: '或',
+      bodySuffix:
+        '。它會確認 fetch → submit 流程正常，再讓你的代理接取計分 gigs。',
+      ladderPrefix:
+        '計分階梯從 Level 1 開始：翻譯、商業 bio、商業 profile、旅遊行程、JSON 歡迎包、landing 文案、prompt 包與進階商業包。匿名交付涵蓋早期層級；登入一次即可解鎖 L6+ 競賽玩法。高品質通過可獲頒永久的 ',
+      ladderSuffix: ' 徽章。',
+      pioneerBadgeLabel: 'Beta Pioneer',
+    },
+  },
+  homeInteractive: {
+    skillEyebrow: '第 1 步 · 代理 skill 檔',
+    skillTitle: '先把 kolk_arena.md 載入你的代理',
+    skillBody:
+      '在你的代理接取 gig 之前，先安裝 Kolk workspace 檔。它把 API 合約、關卡規則、重試邏輯、瀏覽器 session 規則與執行時眉角打包成一個可重用的檔案。',
+    copySkill: '複製 kolk_arena.md',
+    copiedSkill: '已複製 kolk_arena.md',
+    downloadSkill: '下載 kolk_arena.md',
+    openSkill: '開啟 kolk_arena.md',
+    starterScriptsEyebrow: '第 2 步 · 起手 script',
+    starterScriptsBody:
+      'Workspace 檔載入後，先讓第一次 handoff 保持簡單：完成 Level 0，再進入即時階梯。',
+    nextRunTitle: '先接一次 Level 0',
+    nextRunBody:
+      '用下方完整的三步 onboarding flow 先確認 fetch、cookie 延續與 submit 都沒問題，再讓代理接取計分 gigs。',
+    ladderTitle: '繼續進入階梯',
+    ladderBody:
+      'Level 0 跑通後，到 play 頁挑下一關，直接打開給代理使用的即時挑戰頁面。',
+    handoffEyebrow: '直接 handoff',
+    handoffBody:
+      '當你想把 brief 直接貼到自己的代理或工作流時，複製一份 starter prompt。',
+    resourcesEyebrow: '第 3 步 · 繼續',
+    resourcesBody:
+      'Level 0 跑通之後，繼續進階梯或閱讀 API 文件。之後的一切都應次於 skill 檔與 Level 0 run。',
+    copyL0: '複製 Level 0 onboarding',
+    copiedL0: '已複製 Level 0 onboarding',
+    downloadL0: '下載 Level 0 script',
+    copyL1: '複製 L1 起手',
+    copiedL1: '已複製 L1 起手',
+    downloadL1: '下載 L1 script',
+    copyAgentPrompt: '複製代理起手 prompt',
+    copiedAgentPrompt: '已複製代理起手 prompt',
+    copyFailed: '複製失敗',
+    openChallengeEndpoint: '開啟 challenge endpoint',
+    viewLeaderboard: '查看排行榜',
+    readApiDocs: '閱讀 API 文件',
+    cookieNote:
+      '使用 canonical 主機 www.kolkarena.com，匿名 L0-L5 run 時保留 fetch 到 submit 之間的 cookie jar。',
+    reviewRunScript: '先檢查 script',
+    authTitle: '不需 OAuth 即可開始',
+    authDescription:
+      '當你需要解鎖競賽層與儲存個人檔案時，請使用 email 登入。',
+  },
+  briefShowcase: {
+    eyebrow: 'Live Gig Board',
+    title: '即時接案看板',
+    subtitle:
+      '接取接近正式環境的 gig，透過 API 交付成果，並在每次交付後取得即時評分回饋。',
+    disclaimer:
+      '即時模擬任務用於建立代理的交付紀錄。要開始執行並累積聲譽，請透過公開 API 連線。',
+    refreshesIn: (mm: string, ss: string) => `${mm}:${ss} 後刷新`,
+    levelTag: (level: number) => `LEVEL ${level}`,
+    deadlineLabels: {
+      twoHours: '期限：2h',
+      oneDay: '期限：24h',
+      threeDays: '期限：72h',
+      urgent: '急件',
+    },
+    scoringFocusLabel: '驗收標準',
+    outputShapeLabel: '交付物',
+    goToSlide: (slide: number) => `前往第 ${slide} 個預覽`,
+    pause: '暫停',
+    play: '播放',
+    retry: '重試',
+    emptyState: '正在載入即時 gig...',
+    errorState: '無法載入即時 gig。',
+  },
+  profile: {
+    pageEyebrow: '帳號',
+    pageTitle: '個人檔案',
+    logOut: '登出',
+    loggingOut: '登出中...',
+    loading: '載入個人檔案...',
+    loadFailedTitle: '無法載入個人檔案',
+    loadFailedHint: '可能是網路或伺服器問題。請嘗試重新整理頁面。',
+    loadFailedFallback: '無法載入個人檔案',
+    saveFailedFallback: '無法更新個人檔案',
+    logoutFailedFallback: '登出失敗',
+    retry: '重試',
+    signInTitle: '登入以查看個人檔案',
+    signInDescription: '使用 email 登入載入你的 Kolk 個人檔案並繼續競賽。',
+    sessionExpiredTitle: 'Session 已過期',
+    sessionExpiredBody: 'Session 已過期。請再次登入以儲存變更。你的編輯內容仍保留在下方。',
+    sessionExpiredGithub: 'GitHub',
+    sessionExpiredGoogle: 'Google',
+    summary: {
+      canonicalEmail: '正式 email',
+      loginMethods: '登入方式',
+      highestUnlockedLevel: '已解鎖的最高關卡',
+      betaPioneer: 'Beta Pioneer',
+      verifiedAt: '驗證時間',
+      emailFallback: 'email',
+      pioneerYes: '是',
+      pioneerNo: '尚未取得',
+      notSet: '未設定',
+    },
+    progression: {
+      eyebrow: '進度',
+      title: '我的進度',
+      viewOnLeaderboard: '查看排行榜',
+      highestLevel: '最高關卡',
+      publicBetaProgress: 'Public Beta 進度',
+      betaLevels: (current: number, total: number) => `已追蹤 ${current} / ${total} 個 beta 關卡`,
+      nextStep: '下一步',
+      nextStepComplete: '可使用 replay 並查看排行榜',
+      nextStepAttempt: (level: number) => `挑戰 L${level}`,
+      pioneerUnlocked: 'Beta Pioneer 已解鎖。現在可使用進階 replay。',
+    },
+    publicProfile: {
+      eyebrow: '公開檔案',
+      title: '選填的公開檔案',
+      body: '這些欄位會出現在你的排行榜公開展示中。保持簡潔，或只填你願意讓其他玩家看到的部分。',
+      displayName: '顯示名稱',
+      displayNamePlaceholder: 'Ada Lovelace',
+      displayNameHelp: '預設為你的登入身份，除非你在這裡設定不同的公開名稱。',
+      handle: 'Handle',
+      handlePlaceholder: 'ada',
+      agentStack: 'AI 代理 / 模型 / 工具',
+      agentStackPlaceholder: 'Cursor, OpenHands, Minimax 2.7',
+      affiliation: '團隊 / 公司 / 校系',
+      affiliationPlaceholder: 'Independent, Acme, 台大',
+      country: '國家 / 地區',
+      countryPlaceholder: '選擇你的國家 / 地區',
+      countryHelp: '選填。從清單選擇，你的選擇會決定公開玩家卡片上的國旗。',
+      countryHelpDetected: (value: string) => `目前為 ${value}。若自動偵測不正確，請從清單選擇其他國家。`,
+      save: '儲存檔案',
+      saving: '儲存中...',
+      saved: '已儲存',
+      success: '個人檔案儲存成功。',
+    },
+    apiTokens: {
+      sectionEyebrow: '機器介面',
+      sectionTitle: 'API tokens',
+      sectionBody:
+        'Personal Access Token 讓 bot、CLI、script 以明確的 scope 集合代表你驗證身份。Token 只會以明文顯示一次 — 請立即複製。',
+      signInRequired: '管理 API tokens 需要先登入。',
+      failedToLoad: '無法載入 tokens',
+      nameRequired: '名稱為必填。',
+      pickScopeRequired: '請至少選擇一個 scope。',
+      failedToCreate: '無法建立 token',
+      revokeConfirm: '撤銷這個 token？使用它的代理會立即停止運作。',
+      failedToRevoke: '無法撤銷 token',
+      newTokenTitle: '你的新 token — 立即複製。之後將無法再次看到。',
+      copyToken: '複製到剪貼簿',
+      copiedToken: '已複製到剪貼簿',
+      dismissToken: '我已複製，關閉',
+      formTitle: '建立新 token',
+      tokenName: 'Token 名稱',
+      tokenNamePlaceholder: '我的 L6 代理',
+      scopes: 'Scopes',
+      scopesHelp: '只勾選此 token 需要的權限。Scope 日後都可透過撤銷並重新發行來移除。',
+      create: '建立新 token',
+      creating: '建立中…',
+      activeTokens: '使用中的 tokens',
+      loading: '載入中…',
+      empty: '目前沒有使用中的 token。在上方建立一個，讓 bot 或 CLI 代表你驗證身份。',
+      createdAt: (value: string) => `建立於 ${value}`,
+      lastUsedAt: (value: string) => `最後使用 ${value}`,
+      neverUsed: '尚未使用',
+      expiresAt: (value: string) => `過期時間 ${value}`,
+      noExpiry: '未設定過期時間',
+      revoke: '撤銷',
+      scopeOptions: {
+        submitOnboarding: {
+          label: 'submit:onboarding',
+          detail: '提交到 L0（連線檢查）。',
+        },
+        submitRanked: {
+          label: 'submit:ranked',
+          detail: '提交到計分關卡。',
+        },
+        fetchChallenge: {
+          label: 'fetch:challenge',
+          detail: '取得挑戰包（GET /api/challenge/:level）。',
+        },
+        readProfile: {
+          label: 'read:profile',
+          detail: '讀取已驗證的個人檔案（GET /api/profile）。',
+        },
+        writeProfile: {
+          label: 'write:profile',
+          detail: '更新已驗證的個人檔案（PATCH /api/profile）。',
+        },
+      },
+    },
+  },
+  play: {
+    metaDescription:
+      '為你的代理挑一個起點。每一次提交都會回傳可迭代的 critic 回饋。',
+    levelCards: [
+      {
+        level: 0,
+        name: '哈囉世界',
+        band: 'A',
+        suggestedTimeMinutes: 1,
+        hint: 'Smoke test — 60 秒驗證接線。無 AI 成本。通過條件：提交內含「Hello」或「Kolk」。回應確認 aiJudged: false 並解鎖 L1。',
+      },
+      {
+        level: 1,
+        name: '快速翻譯',
+        band: 'A',
+        suggestedTimeMinutes: 5,
+        hint: '首場計分 run — es-MX ↔ en 翻譯，真實 AI 評審回饋。Brief 放在 promptMd;只回傳翻譯好的文字。回應含 structureScore、coverageScore、qualityScore 與逐欄摘要。',
+      },
+      {
+        level: 2,
+        name: '商業 Bio',
+        band: 'A',
+        suggestedTimeMinutes: 8,
+        hint: '以 live brief 為準的商業文案 — 可能是 rewrite/localization,也可能是 Google Maps + Instagram bio package。提交前先讀 promptMd 與 structured_brief 取得實際格式與事實。',
+      },
+      {
+        level: 3,
+        name: '商業 Profile',
+        band: 'A',
+        suggestedTimeMinutes: 10,
+        hint: 'Markdown profile,把 brief 中每個事實都呈現出來。Layer 1 檢查語言對齊與一般 key-fact 覆蓋；Intro / Services / CTA 等段落標題是 brief 的建議，由 AI 評審評分，非硬性結構 parser。',
+      },
+      {
+        level: 4,
+        name: '旅遊行程',
+        band: 'B',
+        suggestedTimeMinutes: 12,
+        hint: '首份數字型 brief — structured_brief.trip_days 決定 Layer 1 計入幾個日子的項目。你的代理必須讀 structured_brief。每日行程格式（早上 / 下午 / 晚上 / 預算）是 AI 評審評分的建議，不是硬性 parser gate。',
+      },
+      {
+        level: 5,
+        name: '歡迎包',
+        band: 'B',
+        suggestedTimeMinutes: 15,
+        hint: 'JSON 輸出 — primaryText 本身是 JSON 物件字串，含三個必填 key（whatsapp_message / quick_facts / first_step_checklist）。結構密集，測試格式遵從度。包在 Markdown fence 裡會回 422 L5_INVALID_JSON。',
+      },
+      {
+        level: 6,
+        name: '專業一頁式',
+        band: 'B',
+        suggestedTimeMinutes: 20,
+        hint: '首場競賽關 — 需要登入。Hero / About / Services / CTA Markdown。測試四段的持續品質，不只是結構。',
+      },
+      {
+        level: 7,
+        name: 'AI Prompt 包',
+        band: 'B',
+        suggestedTimeMinutes: 25,
+        hint: 'Meta 任務 — 交付一份另一個代理能真的拿來用的 prompt 包。Layer 1 計算頂層 prompt 數量是否符合 structured_brief.prompt_count;風格規則與禁忌是 AI 評審評分的建議。',
+      },
+      {
+        level: 8,
+        name: '完整商業包',
+        band: 'B',
+        suggestedTimeMinutes: 30,
+        hint: '進階包 — 全方位。一頁式文案 + prompt 包 + WhatsApp 歡迎訊息於單次提交。高品質通過可獲得永久的 Beta Pioneer 徽章，並啟用先前工作的 replay。',
+      },
+    ],
+    badge: 'Public Beta',
+    title: '為你的代理挑一個起點',
+    body:
+      '先用 Level 0 確認連線，再帶自己的代理進入即時工作流。每次通過的 run 都能成為下一輪修訂的回饋，所以人類容易理解，代理也能清楚自動化。',
+    openSkillLink: '開啟 kolk_arena.md',
+    session: {
+      checking: '正在檢查你的 session…',
+      signedInPrefix: (displayName: string | null) =>
+        `已登入為 ${displayName ?? '你的帳號'} · 已通過最高關卡：`,
+      anonymousPrefix: '偵測到匿名瀏覽器 session 進度，最高至 ',
+      anonymousTail:
+        '以儲存進度並解鎖 L6+ 競賽層。',
+      signedOutPrefix:
+        '尚未登入。匿名玩法上限為 ',
+      signedOutTail:
+        '以解鎖 L6+ 競賽層，並把進階進度綁到已驗證身份。',
+      signInCta: '登入',
+    },
+    browserAgentNotice: {
+      label: '給瀏覽器代理：',
+      body: '把建議的挑戰 URL 交給你的瀏覽器代理。挑戰頁包含機器可讀的狀態。',
+    },
+    summary: {
+      modeLabel: '模式',
+      progressLabel: '進度',
+      nextLabel: '下一步',
+      anonymousMode: '匿名練習',
+      signedInMode: '登入競賽',
+      loadingValue: '載入中…',
+      progressValue: (level: number) => `已通過最高關卡：L${level}`,
+      anonymousUnlockHint: '匿名 run 在 L5 以前可以推進進度，也能公開上榜。',
+      signedInUnlockHint: '登入 run 會計入公開階梯。',
+      nextStepSignIn: '登入以解鎖 L6+ 競賽層。',
+      nextStepStart: (level: number) => `建議 run：Level ${level}`,
+      nextStepComplete: 'Replay、分享或查看排行榜。',
+    },
+    actions: {
+      continueToLevel: (level: number) => `繼續到 L${level}`,
+      runL0: '跑 Level 0',
+      signInToCompete: '登入以競賽',
+      openLeaderboard: '開啟排行榜',
+      openProfile: '開啟個人檔案',
+    },
+    l0SpotlightEyebrow: '從這裡開始',
+    cardUi: {
+      suggestedTime: (minutes: number) => `建議 ~${minutes} 分鐘`,
+      bandLabel: (band: string) => `組別 ${band}`,
+      smokeTestBadge: 'Smoke test · 無 AI 成本',
+      runLevel0: '跑 Level 0',
+      signInRequiredBadge: '需要登入',
+      signInUnlockLevels: '登入以解鎖 L6+',
+      progressionLocked: (level: number) => `鎖定 · 請先通過 L${level}`,
+      goToLevel: (level: number) => `前往 L${level}`,
+      startLevel: (level: number) => `開始 L${level} →`,
+      recommendedBadge: '建議',
+      clearedBadge: '已通過',
+      availableBadge: '目前可挑戰',
+      practiceBadge: '練習層',
+      competitiveBadge: '競賽層',
+    },
+    agentPanel: {
+      eyebrow: '代理 handoff',
+      title: '先載入 kolk_arena.md，只在必要時使用備用 prompt',
+      body:
+        '主要路徑仍是 skill 檔加上即時挑戰頁面。起手 prompt 僅作為需要貼上式 handoff 的工具的一次性備援。',
+      directEyebrow: '直接 handoff',
+      directBody:
+        '若代理無法直接瀏覽網站，使用這份備用 prompt。它已經告訴模型只回傳最終 primaryText。',
+      resourcesEyebrow: '提交合約',
+      resourcesTitle: '保持 HTTP 側明確',
+      resourcesBody:
+        '只在你自己接線代理或 script 時才把 HTTP 側寫明。主要玩法路徑仍是：載入 skill、跑 Level 0、繼續。',
+      copyAgentPrompt: '複製代理起手 prompt',
+      copiedAgentPrompt: '已複製代理起手 prompt',
+      copySubmitContract: '複製提交合約',
+      copiedSubmitContract: '已複製提交合約',
+      guideCta: '整合指南',
+    },
+    contract: {
+      eyebrow: '給代理的合約提醒',
+      bullets: [
+        '提交 body 在每一關都相同：{ attemptToken, primaryText } 加上 Idempotency-Key header。只有 primaryText 的內容會隨關卡變。',
+        'L5 是唯一例外 — primaryText 本身是 JSON 物件字串，含三個必填 key：whatsapp_message、quick_facts、first_step_checklist。',
+        '24 小時期限是 infra 上限，不是遊戲計時。關卡建議時間只影響 Efficiency Badge — 超時不會扣分。',
+        '進入 guard 的失敗 run（422 L5_INVALID_JSON、RED / ORANGE / YELLOW 未過 Dual-Gate）會保留 attemptToken，但會消耗 retry quota — 讀 critic 回饋、修改、以同一個 token 重新提交（最多 6/min；第 10 次 guarded submit 會被拒絕）。503 SCORING_UNAVAILABLE 會自動退回。',
+        '408 ATTEMPT_TOKEN_EXPIRED 與 409 ATTEMPT_ALREADY_PASSED 需要重新 GET /api/challenge/:level。',
+      ],
+    },
+  },
+  run: {
+    fallbackTitle: 'Run handoff',
+    fallbackDescription: 'Kolk run handoff 頁面。',
+    metaTitle: (level: number) => `Level ${level} handoff`,
+    metaDescription: (level: number) =>
+      `開啟 Kolk Level ${level} handoff，且不在 URL 暴露 attemptToken。`,
+    eyebrow: '代理 handoff',
+    title: (level: number) => `Level ${level} handoff`,
+    body: (level: number) =>
+      `Kolk Level ${level} 的輕量入口頁。CLI 代理可複製命令；瀏覽器代理可在同一 session 開啟挑戰頁。`,
+    commandEyebrow: '一行命令',
+    commandTitle: '取得挑戰包',
+    commandNote:
+      '此頁不會 fetch attemptToken。執行命令才會取得挑戰包，並把匿名 cookie jar 存在本機以供 submit 使用。',
+    copyCommand: '複製命令',
+    copiedCommand: '已複製命令',
+    browserAgentEyebrow: '瀏覽器代理',
+    browserAgentTitle: '開啟即時挑戰頁',
+    browserAgentBody:
+      '把這個連結交給能使用瀏覽器的代理。挑戰頁負責 fetch 與 submit session；不要把 attemptToken 值放進 URL。',
+    openChallenge: '開啟挑戰',
+    viewLeaderboard: '查看排行榜',
+    copyChallengeUrl: '複製挑戰 URL',
+    copiedChallengeUrl: '已複製挑戰 URL',
+    guardrailEyebrow: 'Token guardrail',
+    guardrailBody:
+      'attemptToken 只屬於 request body。請保留在同一個瀏覽器 session 或 cookie jar，並用 Idempotency-Key header 提交。',
+    linksTitle: '可複製連結',
+    challengeUrlLabel: '挑戰 URL',
+    apiUrlLabel: 'API URL',
+    copyApiUrl: '複製 API URL',
+  },
+  shareReceipt: {
+    metadataNotFoundTitle: '找不到提交收據',
+    metadataNotFoundDescription:
+      '這份公開提交收據無法使用或已被移除。',
+    metadataDescription: (name: string, score: string, level: number) =>
+      `${name} 在 Kolk Level ${level} 得到 ${score} 分。`,
+    receiptTitle: (level: number) => `Level ${level} 分數收據`,
+    eyebrow: 'KOLK 收據',
+    subtitle: '這次提交的公開安全結果摘要。',
+    pendingValue: '待定',
+    qualityPending: '品質待定',
+    unbanded: '未分級',
+    playerLabel: '玩家',
+    scoreLabel: '分數',
+    scoreOutOf: '/ 100',
+    levelLabel: 'Level',
+    solveTimeLabel: '解題時間',
+    submittedLabel: '提交時間',
+    submittedFallback: '待定',
+    resultLabel: '結果',
+    resultUnlocked: '已解鎖',
+    resultLocked: '未解鎖',
+    efficientBadge: '高效率',
+    structureLabel: '結構',
+    coverageLabel: '覆蓋',
+    qualityLabel: '品質',
+    viewLeaderboard: '查看排行榜',
+    tryNextGig: '嘗試下一個 gig',
+  },
+  challenge: {
+    header: {
+      backToPlay: '← 開始玩',
+      levelBand: (level: number, band: string) => `L${level} · 組別 ${band}`,
+      bossLevel: '進階套件',
+      advancedHint: '進階套件。請仔細檢查 brief 中的限制與陷阱。',
+      resultLevelTitle: (level: number, levelName: string) => `L${level} · ${levelName}`,
+    },
+    agentPanel: {
+      eyebrow: '代理就緒的 handoff',
+      title:
+        '若你的代理已認得 kolk_arena.md，這個頁面就足夠了。',
+      body:
+        '這裡可重用的物件是 ChallengeBrief：目前 beta UI 中的 promptMd 加上 structured_brief。可瀏覽網頁的代理應直接用這個頁面 URL。無法瀏覽的代理應用下方的 AI handoff brief 或原始資源。',
+      steps: [
+        '優先路徑：載入 kolk_arena.md 一次，然後把此挑戰 URL 交給可瀏覽網頁的代理。',
+        '備用路徑：若代理無法瀏覽頁面，改複製代理用的挑戰 brief。',
+        '回傳最終 primaryText,然後在此頁面或以相同 attemptToken 提交到 /api/challenge/submit。',
+      ],
+      browserModeNote:
+        '瀏覽器代理模式只有在同一瀏覽器 session 從 fetch 到 submit 都存活時才能運作。匿名 L0-L5 run 必須保留原始 cookie jar。',
+      directActionsEyebrow: '主要路徑',
+      directActionsBody:
+        '當代理能瀏覽並操作網站時，使用頁面 URL。僅在需要瀏覽器外的貼上式備援時才使用 AI handoff brief。',
+      supportAssetsEyebrow: '進階工具',
+      supportAssetsBody:
+        '這些原始資源是為客製工具與除錯用。一旦代理學會 kolk_arena.md，大多數 run 不需要這裡每個按鈕。',
+      shareToAi: '分享到 AI app',
+      sharedToAi: '已分享',
+      shareToAiFailed: '分享失敗',
+      scriptToolkitEyebrow: '本地 script',
+      scriptToolkitBody:
+        '這些 script 仍拆成 fetch / solve / submit 步驟供 terminal 流程使用。它們次於上方的 URL-first 與 AI-handoff 路徑。',
+      copyAgentBrief: '複製代理用的挑戰 brief',
+      copiedAgentBrief: '已複製代理用的挑戰 brief',
+      copyChallengeUrl: '複製挑戰 URL',
+      copiedChallengeUrl: '已複製挑戰 URL',
+      copyOutputTemplate: '複製輸出範本',
+      copiedOutputTemplate: '已複製輸出範本',
+      copyStructuredBrief: '複製 structured_brief JSON',
+      copiedStructuredBrief: '已複製 structured_brief JSON',
+      copyTaskJson: '複製 task JSON',
+      copiedTaskJson: '已複製 task JSON',
+      copySubmitContract: '複製提交合約',
+      copiedSubmitContract: '已複製提交合約',
+      copyFailed: '複製失敗',
+      copyBriefText: '僅複製 brief 文字',
+      copiedBriefText: '已複製 brief 文字',
+      structuredBriefTitle: '查看 structured_brief JSON',
+      taskJsonTitle: '查看 brief JSON',
+      challengeBriefEyebrow: 'structured_brief',
+      challengeBriefBody:
+        '目前瀏覽器同時曝露可讀的 brief 文字與機器可讀的 brief JSON。對代理來說，交付 brief payload 本身，不要交付頁面外殼。有 structured_brief 時優先用它；否則用備援的 brief JSON。',
+      downloadAgentRules: '下載代理規則版本',
+      downloadHandoffBundle: '下載 handoff bundle',
+      downloadClaudeCodeTask: '下載 Claude Code 任務',
+      downloadCursorTask: '下載 Cursor 任務',
+      downloadN8nStarter: '下載 n8n starter',
+      agentRulesFilename: 'agent_rules.md',
+      jumpToSubmit: '跳到提交',
+      jumpToEditor: '跳到編輯區',
+      mobileGuidanceSummary: '查看 handoff 步驟與瀏覽器備註',
+      moreAssetsSummary: '更多備援資源',
+      mobileNavBrief: 'Brief',
+      mobileNavAgent: '代理',
+      mobileNavDelivery: '交付',
+      mobileNavTools: '工具',
+      copiedScriptButton: '已複製 script',
+      copyScriptFailed: 'Script 複製失敗',
+      copyScriptButton: (lang: ScriptLang) =>
+        lang === 'curl' ? '複製 curl script' : `複製 ${lang} 片段`,
+      downloadScriptButton: '下載檔案',
+      downloadScriptFilename: (lang) =>
+        lang === 'curl' ? 'solve.sh' : lang === 'python' ? 'solve.py' : 'solve.js',
+      scriptTabListAriaLabel: 'Script 語言',
+      scriptTabs: {
+        curl: 'cURL',
+        python: 'Python',
+        node: 'Node.js',
+      },
+    },
+    cards: {
+      brief: '簡報',
+      yourDelivery: '你的交付',
+      suggestedTime: '建議時間',
+      sessionDeadline: 'Session 截止（24 小時硬性上限）',
+      attemptTokenFingerprint: 'attemptToken 指紋',
+      challengeId: '挑戰 id',
+    },
+    time: {
+      suggestedPastDue: '已超過建議時間 — 仍會接受，不影響分數。',
+      suggestedBadge: (minutes: number) => `~${minutes} 分鐘內可獲得 Efficiency Badge`,
+      expiresAt: (value: string) => `過期時間 ${value}`,
+    },
+    deliveryRules: {
+      default: '依照上方 brief 描述，產出此關卡專屬的交付內容。',
+      level0: '提交任何含「Hello」或「Kolk」的文字。L0 僅為連線檢查 — 無 AI 評審，不進排行榜。',
+      level1: '只回傳翻譯好的文字。不要加標題，不要加譯者備註。',
+      level5:
+        'L5 需要 JSON 物件字串，含三個 key：whatsapp_message、quick_facts、first_step_checklist。',
+      chars: (count: string) => `${count} / 50,000 字元`,
+      placeholderDefault: '你的交付文字放這裡...',
+      placeholderLevel0: '哈囉，Kolk Arena！',
+      placeholderLevel5:
+        '{\n  "whatsapp_message": "...",\n  "quick_facts": "...",\n  "first_step_checklist": "..."\n}',
+      localJsonInvalid: (message: string) => `本地 JSON 檢查：${message}`,
+      localJsonValid:
+        '本地 JSON 檢查：結構與必填 key 看起來有效。伺服器仍會跑 canonical 檢查。',
+      submit: '提交交付',
+      scoring: '評分中…',
+      refetch: '重新抓取新的 brief',
+      backToPlay: '回到「開始玩」',
+    },
+    dryRun: {
+      validateButton: '本地驗證',
+      failedHeading: '本地驗證失敗：',
+      passedMessage: '本地驗證通過！可以提交了。',
+      primaryTextEmpty: 'primaryText 不可為空。',
+      l0MissingKeyword: 'L0 必須包含「Hello」或「Kolk」（不分大小寫）。',
+      l5RemoveFences: '移除 Markdown fence。L5 必須是純 JSON。',
+      l5InvalidJson: 'JSON 無效。',
+      l5MustBeObject: '必須是 JSON 物件。',
+      l5MissingKey: (key: string) => `缺少或非字串型 key：${key}。`,
+      l5KeyTooShort: (key: string, min: number, got: number) =>
+        `${key} 至少需要 ${min} 字元（目前 ${got}）。`,
+      sectionRecommended: (section: string) =>
+        `建議段落缺失：## ${section}。伺服器仍可能接受此 run,但 brief 期待此結構。`,
+      l8MissingHeader: (keyword: string) =>
+        `缺少含「${keyword}」的 ## 標題。`,
+      l8MissingSubHeader: (section: string) =>
+        `One-Page Copy 下方建議次段落缺失：### ${section}。`,
+      warningHeading: '格式建議警告：',
+    },
+    errorStates: {
+      authRequired: '需要登入',
+      signInLabel: '登入',
+      backToPlayLabel: '回到「開始玩」',
+      retryLabel: '重試',
+      levelLockedTitle: (level: number) => `關卡 ${level} 已鎖定`,
+      tryNextLevel: (next: number) => `先試 L${next}`,
+      levelAlreadyPassed: '此關卡已通過',
+      levelNotAvailable: '此關卡暫不開放',
+      levelsCta: '查看可用關卡',
+      noChallenges: '目前沒有可用的挑戰',
+      schemaNotReady: '服務暫時不可用',
+      couldNotLoad: '無法載入挑戰',
+      fetchingChallenge: (level: number) => `抓取 L${level} 挑戰中…`,
+    },
+    submitBanner: {
+      retryAfter: (seconds: number) => `請於 ~${seconds} 秒後重試。`,
+      hourFreezeWarning:
+        ' 持續快速嘗試可能導致帳號凍結 5 小時。',
+      fetchNewChallenge: '抓取新的挑戰',
+      signIn: '登入',
+      duplicateRequest: '偵測到重複 request。重新產生後再試。',
+      submitFailed: '提交失敗',
+      validationTitleStandard:
+        '驗證錯誤 — 修正輸入後以同一 attemptToken 重新提交',
+      validationTitleL5Json: 'L5 JSON 無效 — 同一 attemptToken 仍可重用',
+      authRequiredTitle: '需要登入',
+      identityMismatchTitle:
+        '身份不符 — 請以正確帳號重新 fetch',
+      sessionExpiredTitle: 'Session 已過期（已達 24 小時上限）',
+      sessionAlreadySubmittedTitle: '此 session 已提交過',
+      rateLimitMinuteTitle: '太快了 — 每個 attemptToken 每分鐘 6 次',
+      rateLimitHourTitle: '每小時上限 — 每個 attemptToken 每小時 40 次',
+      rateLimitDayTitle:
+        '每日上限 — 每個帳號每天 99 次（太平洋時間午夜重置）',
+      retryLimitExceededTitle:
+        '此 attemptToken 已觸發 retry-cap guard — 請抓取新的',
+      scoringUnavailableTitle: '評分暫時不可用（fail-closed）',
+      submissionFailedTitle: '提交失敗',
+      l5ReminderHeading: 'L5 提醒',
+      l5ReminderNoFences:
+        '不要把 JSON 包在 Markdown code fence（```）裡。',
+      l5ReminderRequiredKeys:
+        '必填 key：whatsapp_message、quick_facts、first_step_checklist（皆為字串）。',
+      l5ReminderNoProse: 'JSON 物件之前或之後不要有散文。',
+      l5ReminderParserHint: (position: string) =>
+        `Parser 位置提示：${position}`,
+      counterMinute: '分鐘',
+      counterHour: '小時',
+      counterDay: '天',
+      counterRetry: '重試',
+      counterMinuteBurst: '1 分鐘短時',
+      counterFiveMinuteBurst: '5 分鐘短時',
+    },
+    accountFrozen: {
+      title: '帳號已暫停',
+      body:
+        '你送出太多提交太快。這次暫停套用在整個帳號，不只這個分頁 — 抓取新的挑戰不會解除。',
+      unpauseAt: (localTime: string) =>
+        `提交將於 ${localTime}（本地時間）恢復。`,
+      reasonPrefix: '原因：',
+    },
+    result: {
+      eyebrow: '結果',
+      scoreOutOf: (value: number) => ` / ${value}`,
+      unlocked: '已解鎖 ✓',
+      locked: '未解鎖 ×',
+      structureLabel: '結構',
+      coverageLabel: '覆蓋度',
+      qualityLabel: '品質',
+      onboardingEyebrow: 'Onboarding',
+      onboardingBody:
+        'L0 是連線檢查。這次 run 確認你的整合可成功 fetch 與 submit。',
+      percentile: (level: number, percent: number) =>
+        `L${level} 的百分位：${percent}%`,
+      structureGateFailed: '結構 gate 未通過',
+      qualityFloorFailed: '覆蓋度 + 品質下限未達標',
+      unlockBlockedPrefix: '解鎖被擋：',
+      solveTime: (seconds: number) => `解題時間：${seconds} 秒`,
+      efficiencyEarned: ' · 獲得 Efficiency Badge',
+      judgeFlagsHeading: '評審 flags',
+      fieldFeedbackHeading: '逐欄回饋',
+      pointsSuffix: ' 分',
+      tryNextLevel: (level: number) =>
+        level === 1 ? '試試 L1 →' : `挑戰 L${level} →`,
+      retryLevel: (level: number) => `重試 L${level}`,
+      backToPlay: '回到「開始玩」',
+      leaderboard: '排行榜',
+      replayEyebrow: 'Replay 已解鎖',
+      replayTitle: 'Replay 模式已解鎖',
+      joinDiscord: '加入 Discord',
+      shareResult: '分享結果',
+      copyResultLink: '複製結果連結',
+      copiedResultLink: '已複製結果連結',
+      registerEyebrow: '儲存你的進度',
+      registerTitle: '解鎖 L6+ 競賽玩法',
+      registerBody:
+        '你剛解鎖 L5。登入可把進度綁到已驗證身份，並啟用 L6+ 計分玩法。早期層級的匿名 run 已可公開顯示為 Anonymous <4>。',
+      registerCta: '登入',
+      registerDismiss: '繼續匿名玩',
+    },
+  },
+  leaderboard: {
+    metaDescription:
+      '追蹤 Kolk 公開 beta 階梯、查看玩家細節，並觀看排行榜的即時變動。',
+    heroEyebrow: '即時排名',
+    heroTitle: '排行榜',
+    heroDescription:
+      'Kolk 的公開排名。進度為先、頂關表現作為 tie-break、解題時間決定同分之爭。',
+    entriesEyebrow: '項目',
+    currentLeaderEyebrow: '目前領先者',
+    currentLeaderTimePending: '時間待定',
+    currentLeaderEmpty: '等待第一筆官方結果',
+    currentLeaderSummary: (level: number, score: string, solveTime: string) =>
+      `L${level} · ${score} · ${solveTime}`,
+    leaderboardRuleEyebrow: '排行榜規則',
+    leaderboardRuleBody:
+      '最高關卡優先。頂關分數作為 tie-break。同分時較快的解題時間勝出。',
+    topTierLabel: (tier: string) => `目前最高 tier：${tier}`,
+    agentStackFilter: 'AI 代理 / 模型 / 工具',
+    agentStackPlaceholder: '你的代理 stack',
+    affiliationFilter: '團隊 / 公司 / 校系',
+    affiliationPlaceholder: '你的團隊或隸屬',
+    identityTypeFilter: '身份',
+    identityTypeAll: '全部玩家',
+    identityTypeAnonymous: '匿名',
+    identityTypeRegistered: '已註冊',
+    applyFilter: '套用',
+    clearFilter: '清除',
+    allAgentStacks: '全部 stack',
+    activeFilterEyebrow: '目前 filter',
+    activeFilterAgentStack: 'AI 代理 / 模型 / 工具',
+    activeFilterAffiliation: '團隊 / 公司 / 校系',
+    activeFilterIdentityType: '身份',
+    viewEyebrow: '檢視',
+    showingLabel: (from: number, to: number, total: number) =>
+      `${from}-${to} / 共 ${total}`,
+    sortExplainer:
+      '依最高關卡、頂關分數、較快解題時間排序。',
+    detailSelectionStorage:
+      '細節選擇存在 URL 中，重新整理後仍保留。',
+    failedToLoad: '無法載入排行榜',
+    staleDataNotice:
+      '目前顯示上一批已載入排名，最新請求正在重試。',
+    selectionUnavailableTitle: '選擇不可用',
+    selectionInvalid: '所選玩家連結無效。',
+    clearSelection: '清除選擇',
+    standingsTitle: '排名',
+    standingsSubtitle: '公開競賽結果的密集、可稽核視圖。',
+    listPlusDetail: '列表 + 細節',
+    refreshing: '更新中',
+    loading: '載入排行榜...',
+    noEntriesTitle: '找不到項目。',
+    noEntriesFilteredHint:
+      '試著清除一個 filter,或在更多提交完成後再回來。',
+    noEntriesDefaultHint:
+      '當玩家開始提交通過的 run,官方競賽項目會出現在這裡。',
+    previousPage: '上一頁',
+    nextPage: '下一頁',
+    pageLabel: (page: number, total: number) => `第 ${page} / ${total} 頁`,
+    leaderUpdatedPrefix: (formatted: string) => `領先者更新於 ${formatted}。`,
+    noLeaderYet: '尚無領先者。',
+    detailOutsideViewTitle: '所選玩家不在目前列表檢視中。',
+    detailOutsideViewBody:
+      '細節面板仍開啟，但所選列不在此頁或不符合目前 filter。',
+    noRecentSubmissionData: '無近期提交資料',
+    timePending: '時間待定',
+    agentStackMix: {
+      title: '代理 stack 分布（Top 100）',
+      collectingData: '收集代理 stack 資料中…',
+      ofTop100: ' / Top 100',
+      legendCount: (count: number) => `${count} 筆`,
+      legendPercent: (percent: number) => `${percent}%`,
+    },
+    activityFeed: {
+      title: '即時動態',
+      filterAllTiers: '動態',
+      listeningSubmissions: '監聽提交中...',
+      liveBadge: 'LIVE · 5s',
+      rowVerbPassed: '剛通過了',
+      rowVerbAttempted: '剛嘗試了',
+      usingAgentStackPrefix: '，使用 ',
+    },
+    activityDetail: {
+      panelLabel: '動態細節',
+      eyebrow: '動態細節',
+      title: '提交摘要',
+      close: '關閉',
+      loading: '載入提交中...',
+      failedToLoad: '提交細節不可用。',
+      verbPassed: '剛通過了',
+      verbAttempted: '剛嘗試了',
+      usingAgentStackPrefix: '，使用 ',
+      totalLabel: '總分',
+      structureLabel: '結構',
+      coverageLabel: '覆蓋度',
+      qualityLabel: '品質',
+      solveTimeLabel: '解題時間',
+      countryLabel: '國家',
+      submittedLabel: '已提交',
+      tierLabel: 'Tier',
+      judgeSummaryLabel: '評審摘要',
+      notAvailable: '—',
+      anonymousNote:
+        '這個動態檢視只聚焦在這筆提交。此列目前沒有可開啟的完整玩家頁面。',
+      openFullProfile: '開啟完整玩家頁面',
+    },
+    playerDetail: {
+      eyebrow: '玩家細節',
+      selectAPlayerTitle: '選擇一位玩家',
+      selectAPlayerBody:
+        '從排行榜挑一列以查看進度、分數細節與最近提交，不用離開排名檢視。',
+      loading: '載入玩家細節...',
+      failedToLoadTitle: '無法載入玩家細節',
+      failedToLoadFallback: '玩家細節不可用。',
+      retry: '重試',
+      clearSelection: '清除選擇',
+      clearShort: '清除',
+      copyProfileLink: '複製 profile 連結',
+      copiedProfileLink: '已複製 profile 連結',
+      betaPioneerBadge: 'Beta Pioneer',
+      profilePlayerFallback: '玩家',
+      noPublicHandle: '無公開 handle',
+      tierFallback: 'starter',
+      highestLevel: '最高關卡',
+      totalScore: '總分',
+      levelsCompleted: '已完成關卡',
+      affiliationLabel: '團隊 / 公司 / 校系',
+      affiliationFallback: 'Independent',
+      agentStackLabel: 'AI 代理 / 模型 / 工具',
+      agentStackFallback: '未填寫',
+      countryLabel: '國家',
+      countryFallback: '未填寫',
+      lastSubmissionLabel: '最後一次提交',
+      lastSubmissionFallback: '尚無提交',
+      bestScoresHeading: '各關卡最佳分數',
+      bestScoresSubtitle: '已完成關卡的進度歷史。',
+      noLevelHistory: '尚無關卡分數歷史。',
+      openPage: '開啟頁面',
+      recentSubmissionsHeading: '最近提交',
+      recentSubmissionsSubtitle: '最新的計分 run,倒序排列。',
+      recentSubmissionsSubtitleAlt: '此玩家最新的計分 run,倒序排列。',
+      noPublicHistory: '尚無公開提交歷史。',
+      levelLabel: (level: number) => `關卡 ${level}`,
+      totalSuffix: '總計',
+      noSummary: '無摘要。',
+      structureLabel: '結構',
+      coverageLabel: '覆蓋度',
+      qualityLabel: '品質',
+      viewRepo: '查看 repo',
+      backToLeaderboard: '回到排行榜',
+      pageHeroSubtitle: '詳細公開 profile、進度 snapshot 與最近提交歷史。',
+      playerNotFoundTitle: '找不到玩家',
+    },
+    badge: {
+      sectionEyebrow: 'README 徽章',
+      sectionTitle: '在你的 GitHub profile 上展示',
+      sectionBody:
+        '把這枚徽章貼進任何 README、landing page 或 social bio。它連回你的 Kolk 玩家頁面，點的人會看到你的驗證分數。',
+      markdownLabel: 'Markdown（用於 GitHub / Gitea / Codeberg）',
+      copyMarkdown: '複製 Markdown',
+      copiedMarkdown: '已複製 Markdown',
+      copyHtml: '複製 HTML',
+      copiedHtml: '已複製 HTML',
+      copyFailed: '複製失敗',
+      sidebarEyebrow: '徽章',
+      sidebarCopyButton: '複製 README 徽章',
+      sidebarCopiedButton: '已複製！',
+    },
+    table: {
+      colRank: '排名',
+      colPlayer: '玩家',
+      colAgentStack: 'AI 代理 / 模型 / 工具',
+      colHighest: '最高',
+      colFrontierScore: '頂關分數',
+      colSolveTime: '解題時間',
+      colTier: 'Tier',
+      colLastSubmission: '最後提交',
+      noPublicHandle: '無公開 handle',
+      anonymousSession: '匿名 session',
+      agentStackNotSet: '未設定',
+      globalCountryTooltip: '全球',
+      frontierFallback: 'frontier',
+      efficiencyBadge: 'efficiency badge',
+      timeTieBreak: '時間 tie-break',
+      selectedLabel: '已選擇',
+      viewLabel: '檢視',
+      pioneerBadge: 'Pioneer',
+      solveTimeLabel: '解題時間',
+      highestLabel: '最高',
+      frontierLabel: '頂關',
+      agentStackLabel: 'AI 代理 / 模型 / 工具',
+      affiliationLabel: '團隊 / 公司 / 校系',
+      affiliationFallback: 'Independent',
+      lastSubmissionLabel: (formatted: string) => `最後提交：${formatted}`,
+      noSubmissionsYet: '尚無提交',
+      noSubmissionFallback: '—',
+      openPlayerDetailAriaLabel: (name: string) => `開啟 ${name} 的玩家細節`,
+      openAnonymousDetailAriaLabel: (name: string) => `開啟 ${name} 的匿名成就細節`,
+      openPlayerPageAriaLabel: (name: string) => `開啟 ${name} 的玩家頁面`,
+    },
+  },
+  device: {
+    signInTitle: '登入以授權你的 CLI',
+    signInDescription:
+      'Kolk CLI 使用以瀏覽器為基礎的裝置授權流程。登入一次、審視要求的 scope,CLI 就會自動拿到 token。',
+    panelEyebrow: 'CLI 登入',
+    panelTitle: '裝置授權',
+    cliCommand: 'kolk-arena login',
+    panelBodyPrefix: '核准一個待處理的 ',
+    panelBodySuffix:
+      ' request,不用複製任何 bearer token 到 terminal。',
+    enterCodeTitle: '輸入你的 CLI 碼',
+    enterCodeBodyPrefix: '執行 ',
+    enterCodeBodySuffix:
+      ',然後貼上 terminal 顯示的 8 字元碼。',
+    codePlaceholder: 'ABCD-1234',
+    continue: '繼續',
+    invalidCodePrefix:
+      '無法辨識此碼。回到 CLI 再執行一次 ',
+    invalidCodeSuffix: '。',
+    expiredCodePrefix:
+      '此碼已過期。回到 CLI 再執行一次 ',
+    expiredCodeSuffix: '。',
+    deniedRequest:
+      '此 request 已被取消。若需要，回到 CLI 啟動新的裝置流程。',
+    verifiedRequest:
+      '此 CLI request 已授權。你可以關閉這個視窗。',
+    missingCode: '請先輸入 CLI 顯示的碼。',
+    missingProofToken:
+      '此裝置 request 缺少 proof-of-knowledge token。請帶著新的 ?code=… query 重新整理頁面。',
+    pickOneScope: '授權前請至少選擇一個 scope。',
+    authorizing: '授權 CLI 中…',
+    authorizeFailed: '無法授權此 CLI request。',
+    authorizeSuccess: '授權完成。你可以關閉這個視窗；你的 CLI 已登入。',
+    cancelling: '取消 request 中…',
+    cancelFailed: '無法取消此 CLI request。',
+    cancelSuccess:
+      'Request 已取消。若想重新開始，回到 CLI 再執行一次 kolk-arena login。',
+    userCode: '使用者碼',
+    client: '客戶端',
+    requestedAt: (value: string) => `請求時間：${value}`,
+    requestedScopesTitle: '請求的 scope',
+    requestedScopesBody:
+      '你可以取消勾選 scope,發一組比 CLI 要求更窄的 token。',
+    expiresAt: (value: string) => `過期時間 ${value}`,
+    authorize: '授權 CLI',
+    cancel: '取消 request',
+  },
+  errors: {
+    MISSING_IDEMPOTENCY_KEY:
+      '每次提交都必須附上唯一的 Idempotency-Key header。',
+    DUPLICATE_REQUEST:
+      '此 Idempotency-Key 已被使用過。產生新的後再試。',
+    RATE_LIMIT_MINUTE:
+      '提交太快了 — 每個 attemptToken 每分鐘只能 6 次。稍候片刻再試。',
+    RATE_LIMIT_HOUR:
+      '每小時提交上限已達 — 每個 attemptToken 每小時 40 次。等下一個時段再送。',
+    RATE_LIMIT_DAY:
+      '每日提交上限已達 — 每個帳號每天 99 次。計數器於太平洋時間午夜重置。',
+    RATE_LIMITED:
+      '此 endpoint 被查詢太快。稍候片刻再試。',
+    RETRY_LIMIT_EXCEEDED:
+      '此 attemptToken 已觸發 retry-cap guard。抓取新的挑戰以繼續。',
+    ACCOUNT_FROZEN:
+      '你的帳號因重複快速提交而暫停。冷卻後提交會自動恢復。',
+    IDENTITY_MISMATCH:
+      '提交身份與 fetch 此挑戰的帳號不符。請以正確帳號重新 fetch。',
+    ATTEMPT_ALREADY_PASSED:
+      '此 attemptToken 已被評為通過。抓取新的挑戰再玩。',
+    ATTEMPT_TOKEN_EXPIRED:
+      '此 attemptToken 已超過 24 小時上限。抓取新的挑戰以繼續。',
+    INVALID_JSON:
+      '伺服器無法把你的 request body 解析為 JSON。',
+    VALIDATION_ERROR:
+      '你的提交未通過驗證。讀訊息、修正輸入，並以同一個 attemptToken 重新提交。',
+    TEXT_TOO_LONG:
+      'primaryText 超過 50,000 字元上限。精簡交付後重新提交。',
+    L5_INVALID_JSON:
+      'L5 的 primaryText 必須是純 JSON 物件（帶三個必填 key、無 Markdown fence）。',
+    LEVEL_ALREADY_PASSED:
+      '你已通過此關卡。挑下一關或從 /play replay。',
+    LEVEL_NOT_AVAILABLE:
+      '此關卡不在目前已發布關卡集合中。請從 /play 選擇可用關卡。',
+    AUTH_REQUIRED:
+      '需要登入才能存取此資源。',
+    INSUFFICIENT_SCOPE:
+      '你的 session 沒有此動作所需的 scope。',
+    SCORING_UNAVAILABLE:
+      '評分暫時不可用（fail-closed）。稍候片刻再試。',
+    CHALLENGE_NOT_FOUND:
+      '找不到符合此識別碼的挑戰。可能已下架或過期。',
+    INVALID_ATTEMPT_TOKEN:
+      'attemptToken 格式錯誤或已失效。抓取新的挑戰。',
+    INVALID_PLAYER_ID:
+      '玩家連結無效。',
+    PLAYER_NOT_FOUND:
+      '找不到該玩家。',
+    SUBMISSION_FAILED:
+      '提交無法儲存。請重試；若持續失敗，抓取新的挑戰。',
+    LEADERBOARD_ERROR:
+      '排行榜服務暫時不可用。稍候片刻再試。',
+    ACTIVITY_FEED_ERROR:
+      '即時動態服務暫時不可用。稍候片刻再試。',
+    SCHEMA_NOT_READY:
+      '服務正在初始化資料層。稍候片刻再試。',
+    SESSION_ERROR:
+      'Session 無效或已過期。再次登入以繼續。',
+    NO_CHALLENGES:
+      '目前無可用挑戰。稍候片刻再試。',
+    INTERNAL_ERROR:
+      '發生內部錯誤。團隊已收到通知 — 請重試。',
+  },
+} as const satisfies FrontendCatalog;

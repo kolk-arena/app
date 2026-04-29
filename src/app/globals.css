@@ -1,0 +1,425 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --accent-memory: #b45309;
+  --accent-memory-hover: #92400e;
+  --accent-memory-soft: #fff7ed;
+  --accent-memory-border: #fcd34d;
+  --accent-memory-foreground: #92400e;
+  color-scheme: light;
+}
+
+@layer components {
+  .skip-link {
+    position: fixed;
+    left: 1rem;
+    top: 1rem;
+    z-index: 50;
+    transform: translateY(-150%);
+    border: 1px solid #cbd5e1;
+    border-radius: 0.75rem;
+    background-color: #ffffff;
+    padding: 0.625rem 0.875rem;
+    color: #020617;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.25rem;
+    box-shadow:
+      0 10px 15px -3px rgb(15 23 42 / 0.12),
+      0 4px 6px -4px rgb(15 23 42 / 0.12);
+    transition: transform 150ms ease;
+  }
+
+  .skip-link:focus-visible {
+    transform: translateY(0);
+    outline: 2px solid rgb(100 116 139 / 0.6);
+    outline-offset: 2px;
+  }
+
+  /*
+   * Design-system focus indicator — softer than a ring-2 + offset-2
+   * combo (which competes visually with the Hero CTAs) but still meets
+   * WCAG 2.1 1.4.11 non-text contrast on white and slate-50 surfaces.
+   * 2px outline, 2px offset, slate-500 at 60% alpha; no box-shadow so
+   * it doesn't interact with rounded backgrounds. Used project-wide via
+   * the `focus-gentle` class name on interactive elements that prefer
+   * a quieter focus treatment than the primary accent ring.
+   */
+  .focus-gentle:focus-visible {
+    outline: 2px solid rgb(100 116 139 / 0.6);
+    outline-offset: 2px;
+    border-radius: inherit;
+  }
+
+  .action-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    transition:
+      background-color 150ms ease,
+      border-color 150ms ease,
+      color 150ms ease,
+      box-shadow 150ms ease;
+    box-shadow: 0 1px 2px 0 rgb(15 23 42 / 0.05);
+  }
+
+  .action-button:focus-visible {
+    outline: 2px solid rgb(100 116 139 / 0.6);
+    outline-offset: 2px;
+  }
+
+  .action-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  .action-button-sm {
+    min-height: 2.5rem;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+    line-height: 1rem;
+  }
+
+  .action-button-md {
+    min-height: 2.75rem;
+    padding: 0.625rem 1rem;
+  }
+
+  .action-button-lg {
+    min-height: 3rem;
+    padding: 0.75rem 1.25rem;
+  }
+
+  .action-button-slate {
+    border-color: #e2e8f0;
+    background-color: #020617;
+    color: #ffffff;
+    font-weight: 600;
+  }
+
+  .action-button-slate:hover:not(:disabled) {
+    background-color: #1e293b;
+  }
+
+  .action-button-secondary {
+    border-color: #cbd5e1;
+    background-color: #ffffff;
+    color: #334155;
+    font-weight: 500;
+  }
+
+  .action-button-secondary:hover:not(:disabled) {
+    background-color: #f8fafc;
+    color: #020617;
+  }
+
+  .action-button-accent {
+    border-color: var(--accent-memory);
+    background-color: var(--accent-memory);
+    color: #ffffff;
+    font-weight: 600;
+  }
+
+  .action-button-accent:hover:not(:disabled) {
+    border-color: var(--accent-memory-hover);
+    background-color: var(--accent-memory-hover);
+  }
+
+  .action-button-danger {
+    border-color: #fecdd3;
+    background-color: #ffffff;
+    color: #9f1239;
+    font-weight: 600;
+  }
+
+  .action-button-danger:hover:not(:disabled) {
+    background-color: #fff1f2;
+  }
+
+  .action-button-dark {
+    border-color: rgb(255 255 255 / 0.3);
+    background-color: rgb(255 255 255 / 0.1);
+    color: #f1f5f9;
+    font-weight: 600;
+  }
+
+  .action-button-dark:hover:not(:disabled) {
+    background-color: #ffffff;
+    color: #020617;
+  }
+
+  .form-control {
+    min-height: 3rem;
+    width: 100%;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.75rem;
+    background-color: #ffffff;
+    padding: 0.75rem 1rem;
+    color: #020617;
+    box-shadow: 0 1px 2px 0 rgb(15 23 42 / 0.05);
+    outline: none;
+    transition: border-color 150ms ease;
+  }
+
+  .form-control:focus {
+    border-color: #94a3b8;
+  }
+
+  .status-message {
+    border: 1px solid;
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    line-height: 1.5rem;
+    box-shadow: 0 1px 2px 0 rgb(15 23 42 / 0.05);
+  }
+
+  .status-success {
+    border-color: #a7f3d0;
+    background-color: #ecfdf5;
+    color: #064e3b;
+  }
+
+  .status-error {
+    border-color: #fecdd3;
+    background-color: #fff1f2;
+    color: #881337;
+  }
+
+  .status-warning {
+    border-color: #fde68a;
+    background-color: #fffbeb;
+    color: #78350f;
+  }
+
+  .status-info {
+    border-color: #bae6fd;
+    background-color: #f0f9ff;
+    color: #0c4a6e;
+  }
+
+  .status-neutral {
+    border-color: #e2e8f0;
+    background-color: #f8fafc;
+    color: #1e293b;
+  }
+
+  .memory-accent-button {
+    border-color: var(--accent-memory);
+    background-color: var(--accent-memory);
+    color: #ffffff;
+  }
+
+  .memory-accent-button:hover {
+    border-color: var(--accent-memory-hover);
+    background-color: var(--accent-memory-hover);
+  }
+
+  .memory-accent-button:disabled:hover {
+    border-color: var(--accent-memory);
+    background-color: var(--accent-memory);
+  }
+
+  .memory-accent-chip {
+    border-color: var(--accent-memory-border);
+    background-color: var(--accent-memory-soft);
+    color: var(--accent-memory-foreground);
+  }
+
+  .memory-accent-rank {
+    border-color: var(--accent-memory-border);
+    background-color: var(--accent-memory-soft);
+    color: var(--accent-memory-foreground);
+  }
+
+  .card-hover {
+    transition:
+      border-color 150ms ease,
+      box-shadow 150ms ease;
+  }
+
+  @media (hover: hover) {
+    .card-hover:hover {
+      border-color: #cbd5e1;
+      box-shadow:
+        0 10px 15px -3px rgb(15 23 42 / 0.07),
+        0 4px 6px -4px rgb(15 23 42 / 0.07);
+    }
+  }
+
+  .code-block-shell .code-block-content .token.comment,
+  .code-block-shell .code-block-content .token.prolog,
+  .code-block-shell .code-block-content .token.doctype,
+  .code-block-shell .code-block-content .token.cdata {
+    color: #64748b;
+  }
+
+  .code-block-shell .code-block-content .token.punctuation {
+    color: #94a3b8;
+  }
+
+  .code-block-shell .code-block-content .token.property,
+  .code-block-shell .code-block-content .token.tag,
+  .code-block-shell .code-block-content .token.boolean,
+  .code-block-shell .code-block-content .token.number,
+  .code-block-shell .code-block-content .token.constant,
+  .code-block-shell .code-block-content .token.symbol,
+  .code-block-shell .code-block-content .token.deleted {
+    color: #f97316;
+  }
+
+  .code-block-shell .code-block-content .token.selector,
+  .code-block-shell .code-block-content .token.attr-name,
+  .code-block-shell .code-block-content .token.string,
+  .code-block-shell .code-block-content .token.char,
+  .code-block-shell .code-block-content .token.builtin,
+  .code-block-shell .code-block-content .token.inserted {
+    color: #16a34a;
+  }
+
+  .code-block-shell .code-block-content .token.operator,
+  .code-block-shell .code-block-content .token.entity,
+  .code-block-shell .code-block-content .token.url,
+  .code-block-shell .code-block-content .language-css .token.string,
+  .code-block-shell .code-block-content .style .token.string {
+    color: #0f766e;
+  }
+
+  .code-block-shell .code-block-content .token.atrule,
+  .code-block-shell .code-block-content .token.attr-value,
+  .code-block-shell .code-block-content .token.keyword {
+    color: #2563eb;
+  }
+
+  .code-block-shell .code-block-content .token.function,
+  .code-block-shell .code-block-content .token.class-name {
+    color: #7c3aed;
+  }
+
+  .code-block-shell .code-block-content .token.regex,
+  .code-block-shell .code-block-content .token.important,
+  .code-block-shell .code-block-content .token.variable {
+    color: #be123c;
+  }
+
+  .code-block-shell-dark .code-block-content .token.comment,
+  .code-block-shell-dark .code-block-content .token.prolog,
+  .code-block-shell-dark .code-block-content .token.doctype,
+  .code-block-shell-dark .code-block-content .token.cdata {
+    color: #94a3b8;
+  }
+
+  .code-block-shell-dark .code-block-content .token.punctuation {
+    color: #cbd5e1;
+  }
+
+  .code-block-shell-dark .code-block-content .token.property,
+  .code-block-shell-dark .code-block-content .token.tag,
+  .code-block-shell-dark .code-block-content .token.boolean,
+  .code-block-shell-dark .code-block-content .token.number,
+  .code-block-shell-dark .code-block-content .token.constant,
+  .code-block-shell-dark .code-block-content .token.symbol,
+  .code-block-shell-dark .code-block-content .token.deleted {
+    color: #fb923c;
+  }
+
+  .code-block-shell-dark .code-block-content .token.selector,
+  .code-block-shell-dark .code-block-content .token.attr-name,
+  .code-block-shell-dark .code-block-content .token.string,
+  .code-block-shell-dark .code-block-content .token.char,
+  .code-block-shell-dark .code-block-content .token.builtin,
+  .code-block-shell-dark .code-block-content .token.inserted {
+    color: #4ade80;
+  }
+
+  .code-block-shell-dark .code-block-content .token.operator,
+  .code-block-shell-dark .code-block-content .token.entity,
+  .code-block-shell-dark .code-block-content .token.url,
+  .code-block-shell-dark .code-block-content .language-css .token.string,
+  .code-block-shell-dark .code-block-content .style .token.string {
+    color: #5eead4;
+  }
+
+  .code-block-shell-dark .code-block-content .token.atrule,
+  .code-block-shell-dark .code-block-content .token.attr-value,
+  .code-block-shell-dark .code-block-content .token.keyword {
+    color: #60a5fa;
+  }
+
+  .code-block-shell-dark .code-block-content .token.function,
+  .code-block-shell-dark .code-block-content .token.class-name {
+    color: #c084fc;
+  }
+
+  .code-block-shell-dark .code-block-content .token.regex,
+  .code-block-shell-dark .code-block-content .token.important,
+  .code-block-shell-dark .code-block-content .token.variable {
+    color: #f472b6;
+  }
+}
+
+html {
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+body {
+  min-width: 320px;
+  overflow-x: hidden;
+  color: var(--foreground);
+  background: var(--background);
+  font-family:
+    var(--font-geist-sans),
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    "PingFang TC",
+    "Microsoft JhengHei",
+    "Noto Sans TC",
+    Arial,
+    Helvetica,
+    sans-serif;
+  /*
+   * Slashed zero — the entire product is level-identifier-dense
+   * ("L0", "L6", "L8" appear on every page). Geist Sans ships a
+   * circular zero by default which looks almost identical to an
+   * uppercase O in prose ("L0 is a non-AI connectivity check" reads
+   * as "LO" at a glance). Turning on the `zero` variant — which
+   * Geist implements via the `ss01` stylistic set — disambiguates
+   * digit-zero from letter-O everywhere. The `font-variant-numeric`
+   * line is the standard CSS way to request it; the
+   * `font-feature-settings` line is the direct OpenType fallback for
+   * older Safari that doesn't parse the shorthand. `<code>` already
+   * inherits Geist Mono which has a distinct zero, so this only
+   * changes proportional-font text.
+   */
+  font-variant-numeric: slashed-zero tabular-nums;
+  font-feature-settings: "ss01", "tnum";
+}
+
+::selection {
+  background-color: #cbd5e1;
+  color: #0f172a;
+}
+
+pre:focus-visible {
+  outline: 2px solid rgb(100 116 139 / 0.6);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

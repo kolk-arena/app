@@ -1,0 +1,65 @@
+{
+  "name": "kolk-arena",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20.18.0 <25",
+    "pnpm": ">=10.33.0"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build:app": "next build",
+    "build:cli": "pnpm --filter kolk-arena-cli build",
+    "build": "pnpm build:app && pnpm build:cli",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck:app": "tsc --noEmit",
+    "typecheck:cli": "pnpm --filter kolk-arena-cli typecheck",
+    "typecheck": "pnpm typecheck:app && pnpm typecheck:cli",
+    "audit": "pnpm audit --prod",
+    "test": "pnpm test:unit && pnpm test:provider-contract",
+    "verify": "pnpm run audit && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "ci": "pnpm run verify",
+    "ci:full": "pnpm run verify && pnpm test:e2e",
+    "public-beta:check": "pnpm run ci:full && git diff --check",
+    "test:unit": "node --test tests/unit/*.mjs",
+    "test:provider-contract": "node --test tests/contracts/*.test.mjs",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.10.2",
+    "@supabase/supabase-js": "^2.105.0",
+    "embla-carousel-autoplay": "^8.6.0",
+    "embla-carousel-react": "^8.6.0",
+    "fastest-levenshtein": "^1.0.16",
+    "franc-min": "^6.2.0",
+    "next": "16.2.4",
+    "openai": "^6.34.0",
+    "prismjs": "^1.30.0",
+    "react": "19.2.5",
+    "react-dom": "19.2.5",
+    "react-resizable-panels": "^4.10.0",
+    "snowball-stemmers": "^0.6.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/prismjs": "^1.26.6",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "baseline-browser-mapping": "2.10.23",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.4",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  },
+  "pnpm": {
+    "overrides": {
+      "postcss": "8.5.10"
+    }
+  }
+}

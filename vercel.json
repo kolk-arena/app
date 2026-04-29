@@ -1,0 +1,52 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "buildCommand": "pnpm --filter kolk-arena-cli build && next build",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "functions": {
+    "src/app/api/challenge/submit/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/auth/device/token/route.ts": {
+      "maxDuration": 10
+    },
+    "src/app/api/challenge/[level]/route.ts": {
+      "maxDuration": 15
+    },
+    "src/app/api/cron/brief-showcase/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/brief-showcase/route.ts": {
+      "maxDuration": 10
+    },
+    "src/app/api/leaderboard/route.ts": {
+      "maxDuration": 20
+    },
+    "src/app/api/activity-feed/route.ts": {
+      "maxDuration": 15
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/brief-showcase",
+      "schedule": "0 * * * *"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), interest-cohort=()" }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }
+      ]
+    }
+  ]
+}
