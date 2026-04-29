@@ -21,7 +21,6 @@ type AuthState =
 function getRecommendedLevel(maxLevel: number, signedIn: boolean) {
   if (maxLevel <= 0) return 0;
   if (!signedIn && maxLevel >= ANONYMOUS_BETA_MAX_LEVEL) return null;
-  if (signedIn && maxLevel >= 8) return null;
   return maxLevel + 1;
 }
 
@@ -119,12 +118,17 @@ export function PlayClient() {
   const maxLevel = auth.status === 'signed_in' ? auth.maxLevel : anonymousMaxLevel;
   const displayName = auth.status === 'signed_in' ? auth.displayName : null;
   const playUi = copy.play.cardUi;
-  const recommendedLevel = getRecommendedLevel(maxLevel, signedIn);
   const summary = copy.play.summary;
   const actions = copy.play.actions;
   const levelCards = copy.play.levelCards;
   const l0Card = levelCards.find((card) => card.level === 0) ?? levelCards[0];
   const ladderCards = levelCards.filter((card) => card.level > 0);
+  const publishedLevels = levelCards.map((card) => card.level);
+  const candidateRecommendedLevel = getRecommendedLevel(maxLevel, signedIn);
+  const recommendedLevel =
+    candidateRecommendedLevel != null && publishedLevels.some((level) => level === candidateRecommendedLevel)
+      ? candidateRecommendedLevel
+      : null;
 
   const primaryAction =
     auth.status === 'loading'
@@ -158,14 +162,14 @@ export function PlayClient() {
               ? {
                   level: recommendedLevel,
                   challengeUrl: absoluteUrl(`/challenge/${recommendedLevel}`),
-                  apiUrl: absoluteUrl(`/api/challenge/${recommendedLevel}`),
-                  action: 'open_challenge_url_in_same_browser_session',
-                }
+	                  apiUrl: absoluteUrl(`/api/challenge/${recommendedLevel}`),
+	                  action: 'open_challenge_url_in_same_browser_session',
+	                }
               : {
                   level: null,
                   challengeUrl: null,
                   apiUrl: null,
-                  action: signedIn ? 'public_beta_cleared' : 'sign_in_to_continue',
+                  action: signedIn ? 'open_catalog_or_replay' : 'sign_in_to_continue',
                 },
           levels: levelCards.map((card) => {
             const authRequired = card.level > ANONYMOUS_BETA_MAX_LEVEL;

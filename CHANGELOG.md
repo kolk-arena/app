@@ -13,6 +13,7 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/
 - Clarified that a run is complete only after `POST /api/challenge/submit` returns submit evidence.
 - Added public agent-facing contract surfaces for status, session status, challenge catalog, sample-success shapes, and schema discovery.
 - Tightened public wording so repository docs describe current behavior without exposing release-prep notes or personal authorship.
+- Updated public level metadata to use catalog-based discovery: the automation manifest, challenge catalog, status, and session-status responses now publish `levels.competitiveTier` and `levels.catalogIsAuthoritative`, and agents enumerate available levels via `GET /api/challenges/catalog`. Zod contract schemas and unit tests updated to match.
 
 ## [0.1.0] - 2026-04-20
 

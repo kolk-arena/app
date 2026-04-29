@@ -785,8 +785,8 @@ type ActivityFeedRow = Pick<
  *
  * Built as a JSX render helper rather than a `String.replace` template so
  * other locales can re-order subject / verb / object cleanly. The verb is
- * pulled from `copy.leaderboard.activityFeed` so future locales translate
- * "just passed" / "just attempted" / " using " independently.
+ * pulled from `copy.leaderboard.activityFeed` so locale catalogs translate the
+ * activity verbs independently.
  */
 function ActivityFeedItem({
   row,

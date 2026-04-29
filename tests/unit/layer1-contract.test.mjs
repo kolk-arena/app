@@ -139,7 +139,7 @@ test('agent contract publishes L3 runtime hints without math or item count', () 
   assert.equal(contract.sampleSuccessPath, '/api/sample-success/3');
 });
 
-test('agent contracts cover L2-L8 and require submit evidence', () => {
+test('agent contracts cover all ranked levels and require submit evidence', () => {
   const completion = agentContract.getAgentCompletionContract();
 
   assert.match(completion.notCompleteUntil, /POST \/api\/challenge\/submit/);

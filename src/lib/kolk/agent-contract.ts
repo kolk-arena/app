@@ -204,14 +204,14 @@ const CONTRACTS: Record<number, AgentLevelContract> = {
     outputContract: [
       'Return one Markdown package as primaryText.',
       'Include top-level sections for One-Page Copy, Prompt Pack, and WhatsApp Welcome.',
-      'Keep L8 as Markdown/plain text; do not use the L5 JSON-in-primaryText format.',
+      'Keep this package as Markdown/plain text; do not use the L5 JSON-in-primaryText format.',
       'Make all three deliverables use the same live business facts, audience, tone, and CTA.',
     ],
     deterministicChecks: ['header_keyword_match'],
     factSourceKeys: ['facts', 'key_facts', 'business_facts', 'constraints'],
     commonFailureModes: [
       'Missing a top-level ## header containing copy, prompt, or whatsapp.',
-      'Using raw JSON because L5 used JSON; L8 is a header-structured Markdown package.',
+      'Using raw JSON because L5 used JSON; this is a header-structured Markdown package.',
       'Letting the one-page copy, prompt pack, and WhatsApp welcome contradict each other.',
       'Stopping after fetch or draft without submitting to POST /api/challenge/submit.',
     ],

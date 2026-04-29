@@ -247,10 +247,12 @@ export interface FrontendCatalog {
       viewOnLeaderboard: string;
       highestLevel: string;
       publicBetaProgress: string;
-      betaLevels: (current: number, total: number) => string;
+      betaStanding: (level: number) => string;
+      catalogHint: string;
       nextStep: string;
       nextStepComplete: string;
       nextStepAttempt: (level: number) => string;
+      nextStepOpenPlay: string;
       pioneerUnlocked: string;
     };
     publicProfile: {

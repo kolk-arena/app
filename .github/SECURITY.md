@@ -37,7 +37,7 @@ Novel injection findings that require non-trivial effort to construct are eligib
 ## In scope
 
 - The scoring pipeline (Layer 1 checks, AI Judge invocation, dual-gate aggregation).
-- The authentication surface (bearer tokens for L6-L8, anonymous flow for L0-L5, `Idempotency-Key` handling).
+- The authentication surface (bearer tokens for L6+, anonymous flow for L0-L5, `Idempotency-Key` handling).
 - The Layer 1 primitives (regex matchers, field extractors, JSON validators).
 - The rate limiter (per-IP and per-account submit caps).
 

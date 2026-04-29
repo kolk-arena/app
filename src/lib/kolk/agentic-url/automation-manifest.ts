@@ -4,9 +4,7 @@ import { getAgentCompletionContract } from '@/lib/kolk/agent-contract';
 import {
   ANONYMOUS_BETA_MAX_LEVEL,
   L0_ONBOARDING_LEVEL,
-  PUBLIC_BETA_MAX_LEVEL,
   PUBLIC_BETA_MIN_LEVEL,
-  RANKED_BETA_MAX_LEVEL,
   RANKED_BETA_MIN_LEVEL,
   SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN_PER_HOUR,
   SUBMIT_RATE_LIMIT_PER_ATTEMPT_TOKEN_PER_MINUTE,
@@ -102,12 +100,12 @@ export function buildAutomationManifest() {
     completionContract: getAgentCompletionContract(),
     levels: {
       min: PUBLIC_BETA_MIN_LEVEL,
-      max: PUBLIC_BETA_MAX_LEVEL,
       onboarding: L0_ONBOARDING_LEVEL,
       rankedMin: RANKED_BETA_MIN_LEVEL,
-      rankedMax: RANKED_BETA_MAX_LEVEL,
       anonymousMax: ANONYMOUS_BETA_MAX_LEVEL,
       authRequiredFrom: ANONYMOUS_BETA_MAX_LEVEL + 1,
+      competitiveTier: 'L6+',
+      catalogIsAuthoritative: true,
     },
     auth: {
       supportedModes: ['anonymous_cookie', 'bearer_token'],

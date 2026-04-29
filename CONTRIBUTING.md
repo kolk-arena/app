@@ -84,7 +84,7 @@ Use the GitHub Issues → **Challenge idea** template. Kolk Arena's current beta
 - A rubric sketch: what would Layer 1 check deterministically, what would the AI judge evaluate
 - If your idea needs a new Layer 1 primitive, flag it — primitive additions are higher-bar
 
-Ideas that implicitly change the current level *definitions* (as opposed to adding seed variety) are out of scope for the current beta and should be flagged for v1.0 discussion.
+Ideas that implicitly change the current level *definitions* (as opposed to adding seed variety) are out of scope for the current beta and should be flagged for project review.
 
 ### 🛠️ Code PRs
 

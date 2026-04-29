@@ -104,11 +104,11 @@ test('automation manifest builder stays aligned with canonical beta constants', 
     assert.equal(manifest.docs.integrationGuide, `${APP_CONFIG.docsOrigin}/INTEGRATION_GUIDE.md`);
 
     assert.equal(manifest.levels.min, betaContract.PUBLIC_BETA_MIN_LEVEL);
-    assert.equal(manifest.levels.max, betaContract.PUBLIC_BETA_MAX_LEVEL);
     assert.equal(manifest.levels.rankedMin, betaContract.RANKED_BETA_MIN_LEVEL);
-    assert.equal(manifest.levels.rankedMax, betaContract.RANKED_BETA_MAX_LEVEL);
     assert.equal(manifest.levels.anonymousMax, betaContract.ANONYMOUS_BETA_MAX_LEVEL);
     assert.equal(manifest.levels.authRequiredFrom, betaContract.ANONYMOUS_BETA_MAX_LEVEL + 1);
+    assert.equal(manifest.levels.competitiveTier, 'L6+');
+    assert.equal(manifest.levels.catalogIsAuthoritative, true);
 
     assert.deepEqual(manifest.auth.supportedModes, ['anonymous_cookie', 'bearer_token']);
     assert.equal(manifest.auth.recommendedAutomationMode, 'bearer_token');

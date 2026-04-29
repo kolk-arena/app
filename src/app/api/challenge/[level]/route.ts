@@ -26,7 +26,7 @@ import {
 } from '@/lib/kolk/effective-contract';
 import {
   ANONYMOUS_BETA_MAX_LEVEL,
-  PUBLIC_BETA_MAX_LEVEL,
+  RANKED_BETA_MAX_LEVEL,
   getSuggestedTimeMinutes,
   isAiJudgedLevel,
   isPublicBetaLevel,
@@ -60,11 +60,11 @@ export async function GET(
   }
 
   const { level: levelStr } = await params;
-  const level = Number.parseInt(levelStr, 10);
+  const level = Number(levelStr);
 
-  if (!Number.isFinite(level) || level < 0 || level > PUBLIC_BETA_MAX_LEVEL) {
+  if (!Number.isInteger(level) || level < 0) {
     return NextResponse.json(
-      { error: 'Requested level is not published yet.', code: 'INVALID_LEVEL' },
+      { error: 'Level must be a non-negative integer.', code: 'INVALID_LEVEL' },
       { status: 400 },
     );
   }
@@ -135,7 +135,7 @@ export async function GET(
     );
   }
 
-  const replayAvailable = maxLevelPassed >= 8;
+  const replayAvailable = maxLevelPassed >= RANKED_BETA_MAX_LEVEL;
   const passedThisLevel = level > 0 && maxLevelPassed >= level;
 
   if (passedThisLevel && !replayAvailable) {

@@ -387,7 +387,7 @@ body {
     sans-serif;
   /*
    * Slashed zero — the entire product is level-identifier-dense
-   * ("L0", "L6", "L8" appear on every page). Geist Sans ships a
+   * ("L0" and "L6+" appear throughout the product). Geist Sans ships a
    * circular zero by default which looks almost identical to an
    * uppercase O in prose ("L0 is a non-AI connectivity check" reads
    * as "LO" at a glance). Turning on the `zero` variant — which

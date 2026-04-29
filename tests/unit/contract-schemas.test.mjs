@@ -234,11 +234,11 @@ test('built challenge catalog validates against CatalogResponseSchema', () => {
       schemaVersion: 'kolk-catalog.v1',
       publicBeta: {
         minLevel: beta.PUBLIC_BETA_MIN_LEVEL,
-        maxLevel: beta.PUBLIC_BETA_MAX_LEVEL,
         rankedMinLevel: beta.RANKED_BETA_MIN_LEVEL,
-        rankedMaxLevel: beta.RANKED_BETA_MAX_LEVEL,
         anonymousMaxLevel: beta.ANONYMOUS_BETA_MAX_LEVEL,
         authRequiredFromLevel: beta.ANONYMOUS_BETA_MAX_LEVEL + 1,
+        competitiveTier: 'L6+',
+        catalogIsAuthoritative: true,
       },
       completionContract: getAgentCompletionContract(),
       catalogScope: 'level_family_static',

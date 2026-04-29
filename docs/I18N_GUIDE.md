@@ -7,7 +7,7 @@ new locale?"
 ## 1. What lives where
 
 - `src/i18n/types.ts` — schema (the `FrontendCatalog` interface).
-- `src/i18n/locales/` — one file per locale (`en.ts`, future `es-mx.ts`, ...).
+- `src/i18n/locales/` — one file per maintained locale catalog.
 - `src/i18n/index.ts` — singleton selector. Exports `copy` and the
   `FrontendCopy` type alias.
 - `src/i18n/format.ts` — `Intl`-backed helpers
@@ -18,18 +18,14 @@ new locale?"
   not in the catalog.
 - `tests/unit/i18n-contract.test.mjs` — key-parity + leaf-shape contract test.
 
-## 2. Current locale support (as of 2026-04-23 / public beta update)
+## 2. Runtime locale support
 
-- `en` (`en-US`) — English default, shipped and the only active runtime locale.
-- `es-mx` (`es-MX`) — full structural parity with `en` (775-leaf catalog, enforced by contract test). **Catalog is present; not yet active at runtime.**
-- `zh-tw` (`zh-TW`) — full structural parity with `en`. **Catalog is present; not yet active at runtime.** Public beta punctuation pass normalized half-width `,` `;` `?` `!` that followed a CJK code point to their full-width forms (see §4.1).
-
-The runtime currently runs as a single-locale compile-time singleton: every
-route reads from `copy` directly (`src/i18n/index.ts` hardcodes `copy = en`).
-Adding the locale switcher (cookie + `Accept-Language` header + footer 🌐
-dropdown) is a deliberate public beta milestone — the catalogs are ready so
-that switch flip is the only remaining code change. See §6 for the criteria
-that promote us to route-level locales.
+- The public runtime serves English copy by default.
+- Locale catalog files are implementation assets. Keep every maintained
+  catalog shape-compatible with `en` and let `tests/unit/i18n-contract.test.mjs`
+  enforce parity.
+- Runtime selection lives behind `src/i18n/index.ts`; public routes should read
+  from `copy` rather than importing locale files directly.
 
 ## 3. How to add a new locale (4 steps)
 
@@ -41,8 +37,8 @@ that promote us to route-level locales.
 3. Run `node --test tests/unit/i18n-contract.test.mjs`. The test will diff the
    key-path set of every locale file against `en.ts` and fail loudly on any
    missing or extra keys.
-4. Switch the active locale in `src/i18n/index.ts` (today this is hardcoded to
-   `en`; route-level switching arrives only when §6's criteria are met).
+4. Update the active locale wiring in `src/i18n/index.ts` and keep route-level
+   selection logic in the same patch.
 
 ## 4. Coverage contract
 
@@ -101,22 +97,12 @@ catalog.
   frontend redeploy. The cost is one round-trip of "unstyled-but-correct"
   English error text in the brief window between server and frontend deploys.
 
-## 6. When to elevate to route-level locale
+## 6. Locale routing policy
 
-(i.e. `/en`, `/es-mx/` URL segments + middleware-based locale detection)
-
-Criteria — meet **all three** before promoting:
-
-- ≥ 2 active locales on the homepage (i.e., `es-mx` is fully translated and
-  the contract test is green for it).
-- ≥ 1000 monthly active users from a locale's primary market (e.g., LATAM
-  for `es-mx`). Below that, the SEO + maintenance overhead doesn't pay back.
-- SEO signal matters for that market (organic search traffic from
-  locale-specific queries — measured in Search Console, not assumed).
-
-Until then, the single-locale singleton in `src/i18n/index.ts` is simpler,
-cheaper, and ships faster. Resist the temptation to add middleware "just in
-case."
+The public frontend uses one canonical route tree. Locale routing changes must
+keep URLs, metadata, sitemap behavior, and contract tests aligned in the same
+review. Do not add middleware-only locale behavior without updating the public
+route contract and crawler-facing metadata.
 
 ## 7. Agent / tool / country / model names
 

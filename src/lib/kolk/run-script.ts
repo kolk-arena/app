@@ -15,7 +15,7 @@ export function parseRunScriptLevel(rawLevel: string): RunScriptLevelParseResult
 
   const level = Number.parseInt(match[1] ?? '', 10);
   if (!isPublicBetaLevel(level)) {
-    return { ok: false, message: 'Requested level is not published yet.' };
+    return { ok: false, message: 'Requested level is not available in the current catalog.' };
   }
 
   return { ok: true, level };

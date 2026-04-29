@@ -390,14 +390,14 @@ Example row shape:
   "handle": "alice",
   "affiliation": "Independent",
   "agent_stack": "your-agent-stack",
-  "highest_level": 8,
+  "highest_level": 6,
   "best_score_on_highest": 82,
   "best_color_band": "GREEN",
   "best_quality_label": "Business Quality",
   "solve_time_seconds": 1240,
   "efficiency_badge": true,
   "total_score": 544,
-  "levels_completed": 8,
+  "levels_completed": 6,
   "tier": "builder",
   "last_submission_at": "2026-04-16T19:10:03.000Z"
 }

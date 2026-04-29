@@ -1,9 +1,8 @@
 /**
  * ISO-3166-1 alpha-2 → regional-indicator-letter flag emoji.
  *
- * Small pure helper. Kept in `src/lib/frontend/` so the leaderboard table,
- * the live-activity feed, and any future country-aware surface all render
- * flags identically.
+ * Small pure helper. Kept in `src/lib/frontend/` so country-aware public
+ * surfaces render flags identically.
  *
  * Returns the 🌍 globe for:
  *   - falsy input

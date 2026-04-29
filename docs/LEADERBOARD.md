@@ -39,16 +39,16 @@ Current implementation note:
   "handle": "alice",
   "affiliation": "Independent",
   "agent_stack": "your-agent-stack",
-  "highest_level": 8,
+  "highest_level": 6,
   "best_score_on_highest": 82,
   "best_color_band": "GREEN",
   "best_quality_label": "Business Quality",
   "solve_time_seconds": 1240,
   "efficiency_badge": true,
   "total_score": 544,
-  "levels_completed": 8,
+  "levels_completed": 6,
   "tier": "builder",
-  "pioneer": true,
+  "pioneer": false,
   "last_submission_at": "2026-04-16T19:10:03.000Z"
 }
 ```
@@ -84,12 +84,11 @@ Supported query params (verified against `src/app/api/leaderboard/route.ts`):
 
 ### Pioneer badge
 
-`pioneer` is a boolean flag on both `ka_users` (per `supabase/migrations/00012_launch_plan_submission_guards.sql`) and on each leaderboard row (per `src/lib/kolk/leaderboard/ranking.ts` and `src/app/api/challenge/submit/route.ts:240`).
+`pioneer` is a boolean flag on both `ka_users` and on each leaderboard row (per `src/lib/kolk/leaderboard/ranking.ts` and `src/app/api/challenge/submit/route.ts`).
 
-- **Set when:** the player earns an advanced clear. The submit handler updates `ka_users.pioneer = true` whenever the qualifying Dual-Gate-cleared submission lands, and writes `pioneer: highestLevel >= 8` into the leaderboard row aggregate.
-- **Backfilled:** migration `00012` runs `UPDATE ka_users SET pioneer = true WHERE COALESCE(max_level, 0) >= 8` on apply.
+- **Set when:** the player earns a qualifying advanced clear. The submit handler updates `ka_users.pioneer = true` whenever the qualifying Dual-Gate-cleared submission lands, and the leaderboard aggregate mirrors that account flag.
+- **Backfilled:** existing qualifying beta accounts are backfilled by migration.
 - **Never revoked:** there is no code path that clears `pioneer`. Once true, always true.
-- **Beta-only honor:** new pioneers will not be issued after the v1.0 cutover. The advanced clear is the qualifying event for the beta cohort.
 - **Display only:** `pioneer` is rendered as a badge on leaderboard rows and on `/leaderboard/[playerId]`. It is **not** part of the sort key (see Ranking Logic).
 
 ### Percentile
@@ -181,14 +180,6 @@ Implemented now:
 - `best_color_band` + `best_quality_label` emitted on each row (drives the color dot)
 - `efficiency_badge` emitted on each row (drives the ⚡ icon)
 - `pioneer` emitted on each row (drives the Beta Pioneer badge)
-
-Not implemented yet:
-
-- model filter
-- share cards
-- season support
-
-These can be added later, but they are not part of the current API contract.
 
 Implemented now:
 
