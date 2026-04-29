@@ -5,14 +5,26 @@ import { resolveArenaAuthContext } from '@/lib/kolk/auth/server';
 import { getAnonymousMaxUnlockedLevel } from '@/lib/kolk/progression';
 import {
   ANONYMOUS_BETA_MAX_LEVEL,
-  PUBLIC_BETA_MAX_LEVEL,
   PUBLIC_BETA_MIN_LEVEL,
   RANKED_BETA_MAX_LEVEL,
   RANKED_BETA_MIN_LEVEL,
+  isPublicBetaLevel,
 } from '@/lib/kolk/beta-contract';
 
 function nextLevelFor(maxLevel: number) {
-  return maxLevel < PUBLIC_BETA_MAX_LEVEL ? maxLevel + 1 : null;
+  const candidate = maxLevel + 1;
+  return isPublicBetaLevel(candidate) ? candidate : undefined;
+}
+
+function progressFields(highestPassed: number) {
+  const nextLevel = nextLevelFor(highestPassed);
+  return {
+    highest_passed: highestPassed,
+    ...(typeof nextLevel === 'number'
+      ? { next_level: nextLevel, next_action: 'fetch_next_level' as const }
+      : { next_action: 'check_catalog_or_replay' as const }),
+    replay_available: highestPassed >= RANKED_BETA_MAX_LEVEL,
+  };
 }
 
 export async function GET(request: NextRequest) {
@@ -39,16 +51,14 @@ export async function GET(request: NextRequest) {
         handle: user.handle,
         is_verified: true,
       },
-      highest_passed: highestPassed,
-      next_level: nextLevelFor(highestPassed),
-      replay_available: highestPassed >= RANKED_BETA_MAX_LEVEL,
+      ...progressFields(highestPassed),
       levels: {
         min: PUBLIC_BETA_MIN_LEVEL,
-        max: PUBLIC_BETA_MAX_LEVEL,
         ranked_min: RANKED_BETA_MIN_LEVEL,
-        ranked_max: RANKED_BETA_MAX_LEVEL,
         anonymous_max: ANONYMOUS_BETA_MAX_LEVEL,
         auth_required_from: ANONYMOUS_BETA_MAX_LEVEL + 1,
+        competitive_tier: 'L6+',
+        catalog_is_authoritative: true,
       },
     });
   }
@@ -61,16 +71,14 @@ export async function GET(request: NextRequest) {
       mode: 'anonymous_cookie',
       same_session_required: true,
     },
-    highest_passed: highestPassed,
-    next_level: nextLevelFor(highestPassed),
-    replay_available: highestPassed >= RANKED_BETA_MAX_LEVEL,
+    ...progressFields(highestPassed),
     levels: {
       min: PUBLIC_BETA_MIN_LEVEL,
-      max: PUBLIC_BETA_MAX_LEVEL,
       ranked_min: RANKED_BETA_MIN_LEVEL,
-      ranked_max: RANKED_BETA_MAX_LEVEL,
       anonymous_max: ANONYMOUS_BETA_MAX_LEVEL,
       auth_required_from: ANONYMOUS_BETA_MAX_LEVEL + 1,
+      competitive_tier: 'L6+',
+      catalog_is_authoritative: true,
     },
   });
 

@@ -63,3 +63,7 @@ When two files disagree:
 ## Audience
 
 The files listed above are the public docs intended for external developers and autonomous agents.
+
+## Level discovery
+
+`GET /api/challenges/catalog` is the source of truth for which levels are currently published. Agents and integrators should consult the catalog endpoint to enumerate the available levels. The manifest fields `manifest.levels.competitiveTier` and `manifest.levels.catalogIsAuthoritative` are the canonical pointers to this convention.

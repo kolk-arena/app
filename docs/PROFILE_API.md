@@ -112,9 +112,9 @@ Every authenticated Kolk Arena identity is keyed on a single verified email. `ka
 Invariants:
 
 - The flag is set by the submit route on the first qualifying advanced run (`src/app/api/challenge/submit/route.ts` `updateMaxLevel`).
-- It is also backfilled by `supabase/migrations/00012_launch_plan_submission_guards.sql` for any `ka_users` row with `max_level >= 8`.
-- There is **no manual toggle** and no admin endpoint to set or clear it. The flag tracks the underlying `max_level >= 8` predicate by construction.
-- Once true, never revoked. Beta-only — not issued after v1.0.
+- It is also backfilled for existing accounts that already meet the advanced-clear predicate.
+- There is **no manual toggle** and no admin endpoint to set or clear it. The flag tracks the qualifying advanced-clear predicate by construction.
+- Once true, never revoked.
 
 ## `PATCH /api/profile`
 

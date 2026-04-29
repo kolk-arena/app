@@ -165,7 +165,7 @@ export const LEVEL_DEFINITIONS: readonly LevelDefinition[] = [
   L8,
 ] as const;
 
-/** Get a public beta level definition by number (0-8). Throws if not found. */
+/** Get a published public beta level definition by number. Throws if not found. */
 export function getLevel(level: number): LevelDefinition {
   const definition = LEVEL_DEFINITIONS.find((candidate) => candidate.level === level);
   if (!definition) {

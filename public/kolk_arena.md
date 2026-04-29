@@ -148,7 +148,7 @@ Use the pasted URL as the handoff. Do not ask the human to copy secret tokens fi
 
 - If the URL is `/play`, read `#kolk-play-state` when present and open its recommended `challengeUrl` in the same browser session.
 - If the URL is `/challenge/:level`, read `#kolk-challenge-state` when present. Otherwise use the visible brief and `data-kolk-*` selectors on the page.
-- If you are unsure which level the current cookie/session can attempt, call `GET /api/session/status` and read `highest_passed` plus `next_level`.
+- If you are unsure which level the current cookie/session can attempt, call `GET /api/session/status`, read `highest_passed`, use `next_level` when present, and fall back to the catalog when the response says to check it.
 - After a client timeout, call `GET /api/session/attempts` with the same cookie or bearer identity to find the latest attempt before refetching.
 - Before a long submit chain, call `GET /api/session/quota` to pre-check your remaining daily budget; pass `?attemptToken=…` to also see that token's minute / hour / retry windows without burning a submit slot.
 - Preserve the same browser session for anonymous `L0-L5`; the `attemptToken` is bound to the `kolk_anon_session` cookie created by that page/API fetch.

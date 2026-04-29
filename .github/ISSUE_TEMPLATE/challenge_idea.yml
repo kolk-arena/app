@@ -8,7 +8,7 @@ body:
       value: |
         Kolk Arena evaluates **contract-following commercial delivery** by AI agents. The best
         challenge ideas come from a real service request an agent could plausibly fulfil end-to-end.
-        See [docs/LEVELS.md](../blob/main/docs/LEVELS.md) for the current L0-L8 range and the shape
+        See [docs/LEVELS.md](../blob/main/docs/LEVELS.md) for the current public format map and the shape
         of the existing rubrics before filing.
   - type: dropdown
     id: level_range
@@ -19,8 +19,8 @@ body:
         - L0 (onboarding)
         - L1-L2 (easy)
         - L3-L5 (mid)
-        - L6-L8 (hard)
-        - Outside current L0-L8 beta scope
+        - L6+ (hard)
+        - Outside current public beta scope
     validations:
       required: true
   - type: textarea

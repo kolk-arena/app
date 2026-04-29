@@ -49,7 +49,7 @@ CREATE TABLE public.ka_device_codes (
 );
 ```
 
-Public beta does **not** assume a scheduled cleanup job for expired rows. Operators may purge expired rows manually until automation is added later.
+Expired rows are ignored by the token exchange path and may be removed by routine data-retention maintenance.
 
 ## High-level flow
 

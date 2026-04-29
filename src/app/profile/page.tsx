@@ -7,6 +7,7 @@ import { copy } from '@/i18n';
 import { AuthSignInPanel } from '@/app/auth-sign-in-panel';
 import { APP_CONFIG } from '@/lib/frontend/app-config';
 import { COUNTRY_OPTIONS, countryCodeFromInput, countryNameFromCode } from '@/lib/frontend/countries';
+import { ANONYMOUS_BETA_MAX_LEVEL } from '@/lib/kolk/beta-contract';
 import { ApiTokensPanel } from './api-tokens-panel';
 
 type Profile = {
@@ -312,15 +313,15 @@ export default function ProfilePage() {
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4">
                   <p className="text-xs font-medium text-slate-500">{p.progression.publicBetaProgress}</p>
-                  <div className="mt-2 h-2 w-full overflow-hidden rounded-full border border-slate-200 bg-slate-200">
-                    <div className="h-full bg-slate-900 transition-all" style={{ width: `${Math.min(100, (profile.max_level / 8) * 100)}%` }} />
-                  </div>
-                  <p className="mt-1 text-xs text-slate-600">{p.progression.betaLevels(Math.min(profile.max_level, 8), 8)}</p>
+                  <p className="mt-2 text-sm font-semibold text-slate-950">{p.progression.betaStanding(profile.max_level)}</p>
+                  <p className="mt-1 text-xs text-slate-600">{p.progression.catalogHint}</p>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4">
                   <p className="text-xs font-medium text-slate-500">{p.progression.nextStep}</p>
                   <p className="mt-2 text-sm font-medium text-slate-950">
-                    {profile.max_level >= 8 ? p.progression.nextStepComplete : p.progression.nextStepAttempt(profile.max_level + 1)}
+                    {profile.max_level < ANONYMOUS_BETA_MAX_LEVEL
+                      ? p.progression.nextStepAttempt(profile.max_level + 1)
+                      : p.progression.nextStepOpenPlay}
                   </p>
                 </div>
               </div>

@@ -547,7 +547,7 @@ export interface Layer1Config {
     requiredKeys: readonly string[];
     minLengths: Record<string, number>;
   };
-  /** L8 beta contract: required keyword substrings inside Markdown ## headers */
+  /** Composite package contract: required keyword substrings inside Markdown ## headers */
   requiredHeaderKeywords?: readonly string[];
 }
 

@@ -16,9 +16,7 @@ import { getAgentCompletionContract, getAgentLevelContract } from '@/lib/kolk/ag
 import { LEVEL_DEFINITIONS } from '@/lib/kolk/levels';
 import {
   ANONYMOUS_BETA_MAX_LEVEL,
-  PUBLIC_BETA_MAX_LEVEL,
   PUBLIC_BETA_MIN_LEVEL,
-  RANKED_BETA_MAX_LEVEL,
   RANKED_BETA_MIN_LEVEL,
   getSuggestedTimeMinutes,
   isAiJudgedLevel,
@@ -67,11 +65,11 @@ export function GET() {
       schemaVersion: 'kolk-catalog.v1',
       publicBeta: {
         minLevel: PUBLIC_BETA_MIN_LEVEL,
-        maxLevel: PUBLIC_BETA_MAX_LEVEL,
         rankedMinLevel: RANKED_BETA_MIN_LEVEL,
-        rankedMaxLevel: RANKED_BETA_MAX_LEVEL,
         anonymousMaxLevel: ANONYMOUS_BETA_MAX_LEVEL,
         authRequiredFromLevel: ANONYMOUS_BETA_MAX_LEVEL + 1,
+        competitiveTier: 'L6+',
+        catalogIsAuthoritative: true,
       },
       completionContract: getAgentCompletionContract(),
       catalogScope: 'level_family_static',

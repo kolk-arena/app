@@ -497,7 +497,7 @@ function levelRuleLines(level: BetaPublicLevel) {
       return [
         'Follow the live brief for the required top-level package sections.',
         'Include ## headers containing copy, prompt, and whatsapp.',
-        'Keep L8 as Markdown/plain text; do not use the L5 JSON object format.',
+        'Keep this package as Markdown/plain text; do not use the L5 JSON object format.',
         'Make the one-page copy, prompt pack, and WhatsApp welcome share the same facts and CTA.',
       ];
   }
@@ -1037,7 +1037,7 @@ When writing scripts to fetch or submit:
  * L5 minimum lengths are code-point-correct (`[...str].length`) to match
  * the server JSON field check in `submit/route.ts` L674-L681.
  *
- * L8 mirrors the server's `requiredHeaderKeywords` substring scan in
+ * Composite packages mirror the server's `requiredHeaderKeywords` substring scan in
  * `layer1.ts :: headerKeywordCheck`.
  */
 export function dryRunValidation(level: number, text: string): { valid: boolean; errors: string[]; warnings: string[] } {

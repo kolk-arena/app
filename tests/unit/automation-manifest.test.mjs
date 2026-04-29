@@ -98,9 +98,10 @@ test('automation manifest exposes the URL-first agent contract', () => {
     assert.equal(manifest.docs.submissionApi, 'https://www.kolkarena.com/docs/SUBMISSION_API.md');
     assert.equal(manifest.docs.integrationGuide, 'https://www.kolkarena.com/docs/INTEGRATION_GUIDE.md');
     assert.equal(manifest.levels.min, 0);
-    assert.equal(manifest.levels.max, 8);
     assert.equal(manifest.levels.anonymousMax, 5);
     assert.equal(manifest.levels.authRequiredFrom, 6);
+    assert.equal(manifest.levels.competitiveTier, 'L6+');
+    assert.equal(manifest.levels.catalogIsAuthoritative, true);
     assert.equal(manifest.auth.anonymousCookie.cookieName, 'kolk_anon_session');
     assert.deepEqual(manifest.auth.bearer.requiredScopes, [
       'fetch:challenge',

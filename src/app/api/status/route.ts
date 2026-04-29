@@ -3,9 +3,7 @@ import { assertRuntimeSchemaReady } from '@/lib/kolk/db';
 import { getAiReadinessSummary } from '@/lib/kolk/ai';
 import {
   ANONYMOUS_BETA_MAX_LEVEL,
-  PUBLIC_BETA_MAX_LEVEL,
   PUBLIC_BETA_MIN_LEVEL,
-  RANKED_BETA_MAX_LEVEL,
   RANKED_BETA_MIN_LEVEL,
 } from '@/lib/kolk/beta-contract';
 
@@ -38,11 +36,11 @@ export async function GET() {
     serverNowUtc,
     publicBeta: {
       minLevel: PUBLIC_BETA_MIN_LEVEL,
-      maxLevel: PUBLIC_BETA_MAX_LEVEL,
       rankedMinLevel: RANKED_BETA_MIN_LEVEL,
-      rankedMaxLevel: RANKED_BETA_MAX_LEVEL,
       anonymousMaxLevel: ANONYMOUS_BETA_MAX_LEVEL,
       authRequiredFromLevel: ANONYMOUS_BETA_MAX_LEVEL + 1,
+      competitiveTier: 'L6+',
+      catalogIsAuthoritative: true,
     },
     checks: {
       database: 'ok',
@@ -57,4 +55,3 @@ export async function GET() {
     },
   });
 }
-

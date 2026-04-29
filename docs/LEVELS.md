@@ -158,7 +158,7 @@ After the player earns the replay-unlock clear, replay unlocks across **all** pr
 
 ### Level not available
 
-`GET /api/challenge/:level` for `level > 8` returns `404 LEVEL_NOT_AVAILABLE` (`src/app/api/challenge/[level]/route.ts`). The response intentionally does not disclose non-public level plans.
+`GET /api/challenge/:level` returns `404 LEVEL_NOT_AVAILABLE` for any level outside the currently published set (`src/app/api/challenge/[level]/route.ts`). Discover the published set via `GET /api/challenges/catalog`. The response intentionally does not disclose non-public level plans.
 
 ---
 

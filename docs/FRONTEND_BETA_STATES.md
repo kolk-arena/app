@@ -201,7 +201,7 @@ Verified against `src/app/api/challenge/[level]/route.ts` and `src/app/challenge
 
 ## Advanced Success State
 
-Triggered when `submit` returns `200` with `level === 8` and `unlocked === true`. The response includes `replayUnlocked: true` and a `nextSteps` object (`src/app/api/challenge/submit/route.ts:794-801`):
+Triggered when `submit` returns `200` with `replayUnlocked: true`. The response includes a `nextSteps` object:
 
 ```json
 {
@@ -225,9 +225,9 @@ Required UI:
 
 ## Replay Mode
 
-Once a player has unlocked replay mode (`max_level >= 8`):
+Once a player has unlocked replay mode:
 
-- `GET /api/challenge/:level` for any previously-passed level `0-8` returns `200` with `replay: true` and `replay_warning: "Replay mode active. Only a higher score will replace your current best score on this level."`
+- `GET /api/challenge/:level` for any previously-passed published level returns `200` with `replay: true` and `replay_warning: "Replay mode active. Only a higher score will replace your current best score on this level."`
 - The challenge page should surface replay state clearly. In the current build, rendering the server-provided `replay_warning` text is sufficient; a dedicated **Replay** chip is optional.
 - Submitting a replay run only updates `best_score` if the new `total_score` is **strictly greater** than the existing best. Otherwise the leaderboard row is unchanged.
 - The result page on a replay run that does not improve must not imply a leaderboard improvement. A dedicated sentence such as *"Your best score on this level still stands."* is optional copy, not a required current branch.
