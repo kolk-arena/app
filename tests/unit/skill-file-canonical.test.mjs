@@ -12,7 +12,6 @@ const repoRoot = path.resolve(__dirname, '../..');
 const ALLOWED_REFS = new Set([
   'next.config.ts',
   'CHANGELOG.md',
-  'INTERNAL_OFFICIAL_LAUNCH_HISTORY_REWRITE.md', // gitignored, may not exist
   'tests/unit/skill-file-canonical.test.mjs', // this file describes the rule
 ]);
 

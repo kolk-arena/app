@@ -54,7 +54,7 @@ git.backup-*/
 # .branches/.temp/.env.local ignored so only the canonical SQL +
 # config.toml reach the repo.
 
-# frozen public-doc snapshots (do not publish until later ladder rollout)
+# local doc archive directories
 archieve/
 docs-archive/
 
