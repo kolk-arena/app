@@ -58,7 +58,7 @@ DECLARE
   probe record;
 BEGIN
   SELECT * INTO probe FROM public.ka_claim_attempt_submit_slot(
-    p_attempt_token := 'probe-nonexistent-00013',
+    p_attempt_token := 'qa_probe_seed', -- gitleaks:allow synthetic probe value, not a credential
     p_minute_limit := 2,
     p_hour_limit := 20,
     p_retry_cap := 10
