@@ -24,7 +24,7 @@ function parseLocales(raw: string | undefined): FrontendLocale[] {
 }
 
 function parseProvider(raw: string | undefined): AiProvider {
-  const fallback: AiProvider = 'xai';
+  const fallback: AiProvider = 'p1';
   if (!raw) return fallback;
   const normalized = raw.trim().toLowerCase();
   return (AI_PROVIDERS as readonly string[]).includes(normalized)

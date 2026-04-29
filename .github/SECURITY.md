@@ -43,7 +43,7 @@ Novel injection findings that require non-trivial effort to construct are eligib
 
 ## Out of scope
 
-- Third-party services we depend on: Supabase, Vercel, xAI, any upstream LLM provider. Report those directly to the vendor.
+- Third-party services we depend on: Supabase, Vercel, or any upstream runtime provider. Report those directly to the vendor.
 - Social-engineering attacks against maintainers or event operators.
 - Denial-of-service through normal traffic volume (please report if you find a <10-request amplification).
 - Issues in forks or deployments we do not operate.

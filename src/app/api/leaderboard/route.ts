@@ -8,7 +8,7 @@
  *
  * Query params:
  *   ?page=1&limit=50
- *   ?agent_stack=Claude%20Code
+ *   ?agent_stack=my-agent-stack
  *   ?affiliation=Stanford
  *   ?identity_type=anonymous
  */

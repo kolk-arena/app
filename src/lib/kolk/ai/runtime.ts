@@ -1,75 +1,85 @@
-import OpenAI from 'openai';
-
-export const AI_PROVIDERS = ['xai', 'openai', 'gemini'] as const;
+export const AI_PROVIDERS = ['p1', 'p2', 'p3'] as const;
 export type AiProvider = typeof AI_PROVIDERS[number];
-export type OpenAICompatibleProvider = Extract<AiProvider, 'xai' | 'openai'>;
+export type ChatProvider = Extract<AiProvider, 'p1' | 'p2'>;
+export type ContentProvider = Extract<AiProvider, 'p3'>;
 export const SCORING_GROUPS = ['G1', 'G2', 'G3'] as const;
 export type ScoringGroup = typeof SCORING_GROUPS[number];
 export const SCORING_COMBOS = ['A', 'B', 'C'] as const;
 export type ScoringCombo = typeof SCORING_COMBOS[number];
 
-export const SCORING_MODEL_DEFAULTS = {
-  G1_XAI: 'grok-4-1-fast-non-reasoning',
-  G2_OPENAI_NANO: 'gpt-5-nano',
-  G2_OPENAI_FALLBACK: 'gpt-5-mini',
-  G2_GEMINI_FLASH_LITE: 'gemini-2.5-flash-lite',
-  G3_GEMINI_FLASH: 'gemini-2.5-flash',
+export const SCORING_MODEL_ENV = {
+  G1_PRIMARY: 'KOLK_SCORING_G1_MODEL',
+  G2_PRIMARY: 'KOLK_SCORING_G2_MODEL',
+  G2_FALLBACK: 'KOLK_SCORING_G2_FALLBACK_MODEL',
+  G2_SECONDARY: 'KOLK_SCORING_G2_SECONDARY_MODEL',
+  G3_PRIMARY: 'KOLK_SCORING_G3_MODEL',
 } as const;
 
-const GEMINI_API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
+type ChatTokenMode = 'classic' | 'completion';
+type ProviderKind = 'chat' | 'content';
 
 type ProviderMetadata = {
+  kind: ProviderKind;
   apiKeyEnv: string;
-  baseURLEnv?: string;
-  defaultBaseURL?: string;
-  modelEnv?: string;
-  defaultModel?: string;
+  baseURLEnv: string;
+  modelEnv: string;
   judgeCompatible: boolean;
+  tokenMode?: ChatTokenMode;
+  temperatureAllowed?: boolean;
 };
 
 const PROVIDER_METADATA: Record<AiProvider, ProviderMetadata> = {
-  xai: {
-    apiKeyEnv: 'XAI_API_KEY',
-    baseURLEnv: 'XAI_BASE_URL',
-    defaultBaseURL: 'https://api.x.ai/v1',
-    modelEnv: 'XAI_MODEL',
-    defaultModel: SCORING_MODEL_DEFAULTS.G1_XAI,
+  p1: {
+    kind: 'chat',
+    apiKeyEnv: 'KOLK_SCORING_P1_API_KEY',
+    baseURLEnv: 'KOLK_SCORING_P1_BASE_URL',
+    modelEnv: SCORING_MODEL_ENV.G1_PRIMARY,
     judgeCompatible: true,
+    tokenMode: 'classic',
+    temperatureAllowed: true,
   },
-  openai: {
-    apiKeyEnv: 'OPENAI_API_KEY',
-    modelEnv: 'OPENAI_MODEL',
-    defaultModel: SCORING_MODEL_DEFAULTS.G2_OPENAI_FALLBACK,
+  p2: {
+    kind: 'chat',
+    apiKeyEnv: 'KOLK_SCORING_P2_API_KEY',
+    baseURLEnv: 'KOLK_SCORING_P2_BASE_URL',
+    modelEnv: SCORING_MODEL_ENV.G2_PRIMARY,
     judgeCompatible: true,
+    tokenMode: 'completion',
+    temperatureAllowed: false,
   },
-  gemini: {
-    apiKeyEnv: 'GEMINI_API_KEY',
-    modelEnv: 'GEMINI_MODEL',
-    defaultModel: SCORING_MODEL_DEFAULTS.G3_GEMINI_FLASH,
+  p3: {
+    kind: 'content',
+    apiKeyEnv: 'KOLK_SCORING_P3_API_KEY',
+    baseURLEnv: 'KOLK_SCORING_P3_BASE_URL',
+    modelEnv: SCORING_MODEL_ENV.G3_PRIMARY,
     judgeCompatible: true,
   },
 };
 
 export interface ProviderRuntimeConfig {
   provider: AiProvider;
+  kind: ProviderKind;
   apiKeyEnv: string;
   apiKey?: string;
-  baseURLEnv?: string;
+  baseURLEnv: string;
   baseURL?: string;
-  modelEnv?: string;
+  modelEnv: string;
   model?: string;
   available: boolean;
+  missingEnvKeys: string[];
   judgeCompatible: boolean;
 }
 
 export interface ConfiguredProviderRuntimeConfig extends ProviderRuntimeConfig {
   apiKey: string;
+  baseURL: string;
+  model: string;
   available: true;
 }
 
 export interface ConfiguredJudgeProviderRuntimeConfig extends ConfiguredProviderRuntimeConfig {
-  provider: OpenAICompatibleProvider;
-  model: string;
+  provider: ChatProvider;
+  kind: 'chat';
   judgeCompatible: true;
 }
 
@@ -79,6 +89,7 @@ export interface ProviderReadiness {
   judgeCompatible: boolean;
   activeJudgeCandidate: boolean;
   requiredForOperatorStack: boolean;
+  missingEnvKeys: string[];
 }
 
 export interface AiStackStatus {
@@ -88,17 +99,20 @@ export interface AiStackStatus {
   fullyConfigured: boolean;
 }
 
-export interface OpenAICompatibleRuntime {
-  provider: OpenAICompatibleProvider;
-  client: OpenAI;
+export interface ChatRuntime {
+  provider: ChatProvider;
+  apiKey: string;
+  baseURL: string;
   model: string;
+  tokenMode: ChatTokenMode;
+  temperatureAllowed: boolean;
 }
 
-export interface GeminiRuntime {
-  provider: 'gemini';
+export interface ContentRuntime {
+  provider: ContentProvider;
   apiKey: string;
-  model: string;
   baseURL: string;
+  model: string;
 }
 
 export interface ScoringGroupAvailability {
@@ -117,9 +131,9 @@ export interface ScoringComboAvailability {
 export interface AiReadinessSummary {
   fullyConfigured: boolean;
   operatorStackReady: boolean;
-  activeJudgeProvider: OpenAICompatibleProvider | null;
+  activeJudgeProvider: ChatProvider | null;
   activeJudgeReady: boolean;
-  activeJudgeProviders: OpenAICompatibleProvider[];
+  activeJudgeProviders: ChatProvider[];
   activeJudgeMissingEnvKeys: string[];
   missingEnvKeys: string[];
   scoringReady: boolean;
@@ -129,12 +143,47 @@ export interface AiReadinessSummary {
   scoringMissingEnvKeys: string[];
 }
 
-const JUDGE_PROVIDER_ORDER = ['xai', 'openai'] as const satisfies readonly OpenAICompatibleProvider[];
-const openAiCompatibleCache = new Map<string, OpenAI>();
+export type ChatMessage = {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+};
+
+export type ChatCompletionResponse = {
+  choices?: Array<{
+    finish_reason?: string;
+    message?: {
+      content?: string | null;
+    };
+  }>;
+  usage?: unknown;
+};
+
+const JUDGE_PROVIDER_ORDER = ['p1', 'p2'] as const satisfies readonly ChatProvider[];
 const SCORING_GROUP_PROVIDER_REQUIREMENTS: Record<ScoringGroup, readonly AiProvider[]> = {
-  G1: ['xai'],
-  G2: ['openai', 'gemini'],
-  G3: ['gemini'],
+  G1: ['p1'],
+  G2: ['p2', 'p3'],
+  G3: ['p3'],
+};
+const SCORING_GROUP_ENV_REQUIREMENTS: Record<ScoringGroup, readonly string[]> = {
+  G1: [
+    PROVIDER_METADATA.p1.apiKeyEnv,
+    PROVIDER_METADATA.p1.baseURLEnv,
+    SCORING_MODEL_ENV.G1_PRIMARY,
+  ],
+  G2: [
+    PROVIDER_METADATA.p2.apiKeyEnv,
+    PROVIDER_METADATA.p2.baseURLEnv,
+    SCORING_MODEL_ENV.G2_PRIMARY,
+    SCORING_MODEL_ENV.G2_FALLBACK,
+    PROVIDER_METADATA.p3.apiKeyEnv,
+    PROVIDER_METADATA.p3.baseURLEnv,
+    SCORING_MODEL_ENV.G2_SECONDARY,
+  ],
+  G3: [
+    PROVIDER_METADATA.p3.apiKeyEnv,
+    PROVIDER_METADATA.p3.baseURLEnv,
+    SCORING_MODEL_ENV.G3_PRIMARY,
+  ],
 };
 const SCORING_COMBO_GROUPS: Record<ScoringCombo, readonly ScoringGroup[]> = {
   A: ['G1', 'G2'],
@@ -148,28 +197,54 @@ function readOptionalEnv(name: string | undefined): string | undefined {
   return value ? value : undefined;
 }
 
+function unique(values: readonly string[]): string[] {
+  return [...new Set(values)];
+}
+
+function missingEnvKeys(keys: readonly string[]): string[] {
+  return unique(keys.filter((key) => !readOptionalEnv(key)));
+}
+
+function trimTrailingSlash(value: string): string {
+  return value.replace(/\/+$/, '');
+}
+
+function providerEnvKeys(provider: AiProvider): string[] {
+  const metadata = PROVIDER_METADATA[provider];
+  return [metadata.apiKeyEnv, metadata.baseURLEnv, metadata.modelEnv];
+}
+
+export function readScoringModel(key: keyof typeof SCORING_MODEL_ENV): string | undefined {
+  return readOptionalEnv(SCORING_MODEL_ENV[key]);
+}
+
 export function getProviderRuntimeConfig(provider: AiProvider): ProviderRuntimeConfig {
   const metadata = PROVIDER_METADATA[provider];
   const apiKey = readOptionalEnv(metadata.apiKeyEnv);
+  const baseURL = readOptionalEnv(metadata.baseURLEnv);
+  const model = readOptionalEnv(metadata.modelEnv);
+  const missing = missingEnvKeys(providerEnvKeys(provider));
 
   return {
     provider,
+    kind: metadata.kind,
     apiKeyEnv: metadata.apiKeyEnv,
     apiKey,
     baseURLEnv: metadata.baseURLEnv,
-    baseURL: readOptionalEnv(metadata.baseURLEnv) ?? metadata.defaultBaseURL,
+    baseURL,
     modelEnv: metadata.modelEnv,
-    model: readOptionalEnv(metadata.modelEnv) ?? metadata.defaultModel,
-    available: Boolean(apiKey),
+    model,
+    available: missing.length === 0,
+    missingEnvKeys: missing,
     judgeCompatible: metadata.judgeCompatible,
   };
 }
 
 export function getProviderRuntimeConfigs(): Record<AiProvider, ProviderRuntimeConfig> {
   return {
-    xai: getProviderRuntimeConfig('xai'),
-    openai: getProviderRuntimeConfig('openai'),
-    gemini: getProviderRuntimeConfig('gemini'),
+    p1: getProviderRuntimeConfig('p1'),
+    p2: getProviderRuntimeConfig('p2'),
+    p3: getProviderRuntimeConfig('p3'),
   };
 }
 
@@ -185,26 +260,29 @@ export function getProviderReadiness(): Record<AiProvider, ProviderReadiness> {
   const configs = getProviderRuntimeConfigs();
 
   return {
-    xai: {
-      provider: 'xai',
-      available: configs.xai.available,
-      judgeCompatible: configs.xai.judgeCompatible,
-      activeJudgeCandidate: configs.xai.available && configs.xai.judgeCompatible,
+    p1: {
+      provider: 'p1',
+      available: configs.p1.available,
+      judgeCompatible: configs.p1.judgeCompatible,
+      activeJudgeCandidate: configs.p1.available && configs.p1.judgeCompatible,
       requiredForOperatorStack: true,
+      missingEnvKeys: configs.p1.missingEnvKeys,
     },
-    openai: {
-      provider: 'openai',
-      available: configs.openai.available,
-      judgeCompatible: configs.openai.judgeCompatible,
-      activeJudgeCandidate: configs.openai.available && configs.openai.judgeCompatible,
+    p2: {
+      provider: 'p2',
+      available: configs.p2.available,
+      judgeCompatible: configs.p2.judgeCompatible,
+      activeJudgeCandidate: configs.p2.available && configs.p2.judgeCompatible,
       requiredForOperatorStack: true,
+      missingEnvKeys: configs.p2.missingEnvKeys,
     },
-    gemini: {
-      provider: 'gemini',
-      available: configs.gemini.available,
-      judgeCompatible: configs.gemini.judgeCompatible,
-      activeJudgeCandidate: configs.gemini.available && configs.gemini.judgeCompatible,
+    p3: {
+      provider: 'p3',
+      available: configs.p3.available,
+      judgeCompatible: configs.p3.judgeCompatible,
+      activeJudgeCandidate: false,
       requiredForOperatorStack: true,
+      missingEnvKeys: configs.p3.missingEnvKeys,
     },
   };
 }
@@ -218,12 +296,13 @@ export function getAiStackStatus(): AiStackStatus {
     providers,
     configuredProviders,
     missingProviders,
-    fullyConfigured: missingProviders.length === 0,
+    fullyConfigured: getMissingAiEnvKeys().length === 0,
   };
 }
 
 export function getMissingAiEnvKeys(): string[] {
-  return getAiStackStatus().missingProviders.map((provider) => PROVIDER_METADATA[provider].apiKeyEnv);
+  return unique(SCORING_GROUPS.flatMap((group) => SCORING_GROUP_ENV_REQUIREMENTS[group]))
+    .filter((key) => !readOptionalEnv(key));
 }
 
 export function isAiStackReady(): boolean {
@@ -233,96 +312,97 @@ export function isAiStackReady(): boolean {
 function getConfiguredJudgeProviders(): ConfiguredJudgeProviderRuntimeConfig[] {
   return JUDGE_PROVIDER_ORDER.flatMap((provider) => {
     const config = getProviderRuntimeConfig(provider);
-    const apiKey = config.apiKey;
+    const metadata = PROVIDER_METADATA[provider];
 
-    if (!config.available || !config.judgeCompatible || !config.model || !apiKey) {
+    if (
+      config.kind !== 'chat'
+      || !config.available
+      || !config.judgeCompatible
+      || !config.model
+      || !config.apiKey
+      || !config.baseURL
+    ) {
       return [];
     }
 
     return [{
       ...config,
       provider,
-      apiKey,
+      kind: 'chat',
+      apiKey: config.apiKey,
+      baseURL: config.baseURL,
       model: config.model,
       available: true,
       judgeCompatible: true,
+      tokenMode: metadata.tokenMode ?? 'classic',
+      temperatureAllowed: metadata.temperatureAllowed ?? false,
     }];
   });
 }
 
-export function getOpenAICompatibleRuntime(
-  provider: OpenAICompatibleProvider,
+export function getChatRuntime(
+  provider: ChatProvider,
   modelOverride?: string,
-): OpenAICompatibleRuntime | null {
+): ChatRuntime | null {
   const config = getProviderRuntimeConfig(provider);
+  const metadata = PROVIDER_METADATA[provider];
   const apiKey = config.apiKey;
+  const baseURL = config.baseURL;
   const model = modelOverride ?? config.model;
 
-  if (!config.available || !config.judgeCompatible || !apiKey || !model) {
+  if (config.kind !== 'chat' || !config.available || !apiKey || !baseURL || !model) {
     return null;
-  }
-
-  const cacheKey = `${config.provider}:${config.baseURL ?? 'default'}`;
-  let client = openAiCompatibleCache.get(cacheKey);
-
-  if (!client) {
-    client = new OpenAI({
-      apiKey,
-      ...(config.baseURL ? { baseURL: config.baseURL } : {}),
-    });
-    openAiCompatibleCache.set(cacheKey, client);
   }
 
   return {
     provider,
-    client,
+    apiKey,
+    baseURL,
     model,
+    tokenMode: metadata.tokenMode ?? 'classic',
+    temperatureAllowed: metadata.temperatureAllowed ?? false,
   };
 }
 
-export function getGeminiRuntime(modelOverride?: string): GeminiRuntime | null {
-  const config = getProviderRuntimeConfig('gemini');
+export function getContentRuntime(modelOverride?: string): ContentRuntime | null {
+  const config = getProviderRuntimeConfig('p3');
   const apiKey = config.apiKey;
+  const baseURL = config.baseURL;
   const model = modelOverride ?? config.model;
 
-  if (!config.available || !apiKey || !model) {
+  if (config.kind !== 'content' || !config.available || !apiKey || !baseURL || !model) {
     return null;
   }
 
   return {
-    provider: 'gemini',
+    provider: 'p3',
     apiKey,
+    baseURL,
     model,
-    baseURL: GEMINI_API_BASE_URL,
   };
 }
 
-export function getActiveJudgeProvider(): OpenAICompatibleProvider | null {
+export function getActiveJudgeProvider(): ChatProvider | null {
   return getConfiguredJudgeProviders()[0]?.provider ?? null;
 }
 
-export function getActiveJudgeRuntime(): OpenAICompatibleRuntime | null {
+export function getActiveJudgeRuntime(): ChatRuntime | null {
   const config = getConfiguredJudgeProviders()[0];
-  return config ? getOpenAICompatibleRuntime(config.provider, config.model) : null;
+  return config ? getChatRuntime(config.provider, config.model) : null;
 }
 
 export function getScoringGroupAvailability(): Record<ScoringGroup, ScoringGroupAvailability> {
-  const stack = getAiStackStatus();
-
   return Object.fromEntries(
     SCORING_GROUPS.map((group) => {
-      const providers = [...SCORING_GROUP_PROVIDER_REQUIREMENTS[group]];
-      const missingEnvKeys = providers
-        .filter((provider) => !stack.providers[provider].available)
-        .map((provider) => PROVIDER_METADATA[provider].apiKeyEnv);
+      const missing = missingEnvKeys(SCORING_GROUP_ENV_REQUIREMENTS[group]);
 
       return [
         group,
         {
           group,
-          available: missingEnvKeys.length === 0,
-          providers,
-          missingEnvKeys,
+          available: missing.length === 0,
+          providers: [...SCORING_GROUP_PROVIDER_REQUIREMENTS[group]],
+          missingEnvKeys: missing,
         } satisfies ScoringGroupAvailability,
       ];
     }),
@@ -377,15 +457,19 @@ export function getScoringMissingEnvKeys(): string[] {
     return [];
   }
 
-  return getMissingAiEnvKeys();
+  return unique(
+    getAvailableScoringGroups().length === 0
+      ? getMissingAiEnvKeys()
+      : SCORING_GROUPS.flatMap((group) => getScoringGroupAvailability()[group].missingEnvKeys),
+  );
 }
 
 export function getAiReadinessSummary(): AiReadinessSummary {
   const stack = getAiStackStatus();
   const activeJudgeProviders = getConfiguredJudgeProviders().map((provider) => provider.provider);
-  const activeJudgeMissingEnvKeys = JUDGE_PROVIDER_ORDER
-    .filter((provider) => !stack.providers[provider].available)
-    .map((provider) => PROVIDER_METADATA[provider].apiKeyEnv);
+  const activeJudgeMissingEnvKeys = unique(
+    JUDGE_PROVIDER_ORDER.flatMap((provider) => stack.providers[provider].missingEnvKeys),
+  );
   const availableScoringGroups = getAvailableScoringGroups();
   const availableScoringCombos = getAvailableScoringCombos();
 
@@ -403,4 +487,103 @@ export function getAiReadinessSummary(): AiReadinessSummary {
     preferredScoringCombo: availableScoringCombos[0] ?? null,
     scoringMissingEnvKeys: getScoringMissingEnvKeys(),
   };
+}
+
+export async function createChatCompletion(
+  runtime: ChatRuntime,
+  input: {
+    messages: ChatMessage[];
+    responseFormat?: unknown;
+    maxTokens: number;
+    temperature?: number;
+  },
+): Promise<ChatCompletionResponse> {
+  const body: Record<string, unknown> = {
+    model: runtime.model,
+    messages: input.messages,
+  };
+
+  if (input.responseFormat) {
+    body.response_format = input.responseFormat;
+  }
+
+  if (runtime.tokenMode === 'completion') {
+    body.max_completion_tokens = input.maxTokens;
+  } else {
+    body.max_tokens = input.maxTokens;
+    if (runtime.temperatureAllowed && input.temperature !== undefined) {
+      body.temperature = input.temperature;
+    }
+  }
+
+  const response = await fetch(`${trimTrailingSlash(runtime.baseURL)}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${runtime.apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw new Error(`Chat scoring request failed (${response.status}): ${text}`);
+  }
+
+  return response.json() as Promise<ChatCompletionResponse>;
+}
+
+export async function createContentGeneration(
+  runtime: ContentRuntime,
+  input: {
+    systemPrompt: string;
+    userContent: string;
+    maxTokens: number;
+    temperature?: number;
+    responseMimeType?: string;
+  },
+): Promise<string> {
+  const response = await fetch(
+    `${trimTrailingSlash(runtime.baseURL)}/models/${encodeURIComponent(runtime.model)}:generateContent?key=${encodeURIComponent(runtime.apiKey)}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        systemInstruction: {
+          parts: [{ text: input.systemPrompt }],
+        },
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: input.userContent }],
+          },
+        ],
+        generationConfig: {
+          temperature: input.temperature,
+          maxOutputTokens: input.maxTokens,
+          ...(input.responseMimeType ? { responseMimeType: input.responseMimeType } : {}),
+        },
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw new Error(`Content scoring request failed (${response.status}): ${text}`);
+  }
+
+  const payload = await response.json() as {
+    candidates?: Array<{
+      content?: {
+        parts?: Array<{ text?: string }>;
+      };
+    }>;
+  };
+
+  return payload.candidates?.[0]?.content?.parts
+    ?.map((part) => (typeof part.text === 'string' ? part.text : ''))
+    .join('')
+    .trim() ?? '';
 }

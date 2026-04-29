@@ -78,7 +78,7 @@ On viewports below the desktop breakpoint the challenge page collapses into a bo
 | Tab | i18n key | Panel content |
 |---|---|---|
 | Brief | `mobileNavBrief` | `promptMd` rendered, `taskJson` facts callout, suggested time + deadline |
-| Agent | `mobileNavAgent` | Agent handoff block (Claude Code / curl / python bundle), bearer example for L6+ |
+| Agent | `mobileNavAgent` | Agent handoff block (CLI task / curl / python bundle), bearer example for L6+ |
 | Delivery | `mobileNavDelivery` | `primaryText` editor + submit button + retry budget counters (minute / hour / day) |
 | Tools | `mobileNavTools` | Links to leaderboard, profile, and replay controls when `replay === true` |
 

@@ -103,7 +103,7 @@ jobs:
         run: pnpm test:e2e
         env:
           # The regression spec mocks every network call via page.route and
-          # never reaches real Supabase / xAI. The Next.js app only needs
+          # never reaches real upstream services. The Next.js app only needs
           # non-empty env values to reach schema-ready state.
           KOLK_SUPABASE_URL: https://ci.example.invalid
           KOLK_SUPABASE_ANON_KEY: ci-anon-placeholder

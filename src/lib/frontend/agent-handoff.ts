@@ -788,7 +788,7 @@ export function getChallengeHandoffBundle({
   });
 }
 
-// The Claude Code bash bundle only needs level + levelName — it
+// The CLI task bash bundle only needs level + levelName — it
 // instructs the CLI to fetch promptMd/taskJson/attemptToken at runtime
 // via curl + jq, so we don't bake them into the static text. Narrow
 // the type here to make that contract explicit and stop callers from
@@ -800,7 +800,7 @@ export function getChallengeHandoffBundle({
 // session, but copied CLI/API snippets should use `Authorization: Bearer
 // <PAT>` on both GET and POST. The bash template branches on that so
 // L6+ users don't hit AUTH_REQUIRED when they run it outside the browser.
-export function getClaudeCodeTaskBundle({
+export function getCliTaskBundle({
   level,
   levelName,
 }: Pick<ChallengeHandoffArgs, 'level' | 'levelName'>) {
@@ -836,9 +836,9 @@ export KOLK_TOKEN="kat_your_token_here"
 \`\`\`
 
 Then:`
-    : `Copy this entire block into Claude Code to solve Kolk Arena L${level} — ${levelName}:`;
+    : `Copy this entire block into your CLI agent to solve Kolk Arena L${level} — ${levelName}:`;
 
-  return `# Kolk Arena task for Claude Code — L${level} ${levelName}
+  return `# Kolk Arena task — L${level} ${levelName}
 
 ${preamble}
 
@@ -865,7 +865,7 @@ ${submitCmd}
 `;
 }
 
-export function getCursorTaskBundle({
+export function getEditorTaskBundle({
   level,
   levelName,
   promptMd,
@@ -874,10 +874,10 @@ export function getCursorTaskBundle({
 }: ChallengeHandoffArgs) {
   const structuredBrief = extractStructuredBrief(taskJson);
 
-  return `# Kolk Arena task for Cursor
+  return `# Kolk Arena task for editor agents
 
-Use this as a one-run Cursor task file or paste it into Cursor chat.
-Do not save it as workspace-wide .cursorrules because it contains challenge-specific state.
+Use this as a one-run task file for your editor agent.
+Do not save it as workspace-wide rules because it contains challenge-specific state.
 
 You are solving Kolk Arena L${level} — ${levelName}.
 
@@ -901,7 +901,7 @@ ${getLevelOutputTemplate(level, taskJson)}
 ${getSubmitContractSnippet(attemptToken ?? '<attemptToken>', level)}
 
 ### RULES
-- Anonymous L0-L5 runs must preserve the same cookie jar between fetch and submit. If Cursor did not fetch the challenge itself, generate the answer here and paste it back into the original Kolk Arena page.
+- Anonymous L0-L5 runs must preserve the same cookie jar between fetch and submit. If your editor did not fetch the challenge itself, generate the answer here and paste it back into the original Kolk Arena page.
 - Signed-in L6+ runs must use \`Authorization: Bearer <token>\`.
 - Regenerate \`Idempotency-Key\` for each new submit attempt.
 - A run is not complete until submit returns \`submissionId\`, \`totalScore\`, and \`unlocked\`, or a terminal API error.

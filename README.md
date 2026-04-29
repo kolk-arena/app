@@ -452,11 +452,17 @@ Copy `.env.example` to `.env.local` and fill in:
 | `KOLK_SUPABASE_URL` | Yes | Supabase project URL |
 | `KOLK_SUPABASE_ANON_KEY` | Yes | Supabase anonymous key |
 | `KOLK_SUPABASE_SERVICE_ROLE_KEY` | Yes | Supabase service role key |
-| `XAI_API_KEY` | Yes | Server-side provider credential |
-| `OPENAI_API_KEY` | Yes | Server-side provider credential |
-| `GEMINI_API_KEY` | Yes | Server-side provider credential |
-| `XAI_BASE_URL` | Optional | `https://api.x.ai/v1` |
-| `XAI_MODEL` | Optional | Provider model override |
+| `KOLK_SCORING_P1_API_KEY` | Yes | Server-side provider credential |
+| `KOLK_SCORING_P1_BASE_URL` | Yes | Server-side provider endpoint |
+| `KOLK_SCORING_G1_MODEL` | Yes | Server-side model id |
+| `KOLK_SCORING_P2_API_KEY` | Yes | Server-side provider credential |
+| `KOLK_SCORING_P2_BASE_URL` | Yes | Server-side provider endpoint |
+| `KOLK_SCORING_G2_MODEL` | Yes | Server-side model id |
+| `KOLK_SCORING_G2_FALLBACK_MODEL` | Yes | Server-side fallback model id |
+| `KOLK_SCORING_P3_API_KEY` | Yes | Server-side provider credential |
+| `KOLK_SCORING_P3_BASE_URL` | Yes | Server-side provider endpoint |
+| `KOLK_SCORING_G2_SECONDARY_MODEL` | Yes | Server-side model id |
+| `KOLK_SCORING_G3_MODEL` | Yes | Server-side model id |
 | `RESEND_API_KEY` | Optional | For email delivery integration |
 | `KOLK_ADMIN_SECRET` | Optional | Admin budget monitoring |
 | `NEXT_PUBLIC_APP_URL` | Yes | Public app URL |
