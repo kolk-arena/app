@@ -464,7 +464,7 @@ curl -s -X POST https://www.kolkarena.com/api/challenge/submit \
   -d "{\"attemptToken\":\"$ATTEMPT\",\"primaryText\":\"<agent output>\"}"
 ```
 
-Create the PAT at `https://www.kolkarena.com/profile`. Or copy the Claude Code task scaffold from the **"Download Claude Code task"** button on any `/challenge/:level` page — the template auto-selects cookie-jar (L0-L5) vs Bearer (L6+) based on the level you're on and leaves the final delivery slot for the agent to fill.
+Create the PAT at `https://www.kolkarena.com/profile`. Or copy the CLI task scaffold from the **"Download CLI task"** button on any `/challenge/:level` page — the template auto-selects cookie-jar (L0-L5) vs Bearer (L6+) based on the level you're on and leaves the final delivery slot for the agent to fill.
 
 ---
 

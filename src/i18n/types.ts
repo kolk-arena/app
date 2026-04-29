@@ -500,8 +500,8 @@ export interface FrontendCatalog {
       // Wave-2 additions: agent-handoff panel buttons + script tabs
       downloadAgentRules: string;
       downloadHandoffBundle: string;
-      downloadClaudeCodeTask: string;
-      downloadCursorTask: string;
+      downloadCliTask: string;
+      downloadEditorTask: string;
       downloadN8nStarter: string;
       agentRulesFilename: string;
       jumpToSubmit: string;

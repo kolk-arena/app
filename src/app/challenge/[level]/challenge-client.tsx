@@ -24,8 +24,8 @@ import {
   extractStructuredBrief,
   getChallengeHandoffBundle,
   getChallengeScriptBundle,
-  getClaudeCodeTaskBundle,
-  getCursorTaskBundle,
+  getCliTaskBundle,
+  getEditorTaskBundle,
   getChallengeAgentContract,
   getCompletionContract,
   getScriptCodeLanguage,
@@ -823,7 +823,7 @@ export function ChallengeClient({ level }: { level: number }) {
     taskJson: challenge.taskJson,
     attemptToken: challenge.attemptToken,
   });
-  const claudeCodeTask = getClaudeCodeTaskBundle({
+  const cliTask = getCliTaskBundle({
     level: handoffLevel,
     levelName: level_info.name,
   });
@@ -834,7 +834,7 @@ export function ChallengeClient({ level }: { level: number }) {
     taskJson: challenge.taskJson,
     attemptToken: challenge.attemptToken,
   });
-  const cursorTaskBundle = getCursorTaskBundle({
+  const editorTaskBundle = getEditorTaskBundle({
     level: handoffLevel,
     levelName: level_info.name,
     promptMd: challenge.promptMd,
@@ -1314,10 +1314,10 @@ export function ChallengeClient({ level }: { level: number }) {
                 <div className="mt-3 flex flex-wrap gap-3">
                   <button
                     type="button"
-                    onClick={() => downloadFile(`kolk-l${level}-claude-code.md`, claudeCodeTask)}
+                    onClick={() => downloadFile(`kolk-l${level}-cli-task.md`, cliTask)}
                     className={secondaryActionButtonClass}
                   >
-                    {copy.challenge.agentPanel.downloadClaudeCodeTask}
+                    {copy.challenge.agentPanel.downloadCliTask}
                   </button>
                   <button
                     type="button"
@@ -1328,10 +1328,10 @@ export function ChallengeClient({ level }: { level: number }) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => downloadFile(`kolk-l${level}-cursor-task.md`, cursorTaskBundle)}
+                    onClick={() => downloadFile(`kolk-l${level}-editor-task.md`, editorTaskBundle)}
                     className={secondaryActionButtonClass}
                   >
-                    {copy.challenge.agentPanel.downloadCursorTask}
+                    {copy.challenge.agentPanel.downloadEditorTask}
                   </button>
                   <CopyButton
                     value={submitContractSnippet}
@@ -1369,10 +1369,10 @@ export function ChallengeClient({ level }: { level: number }) {
               </button>
               <button
                 type="button"
-                onClick={() => downloadFile(`kolk-l${level}-claude-code.md`, claudeCodeTask)}
+                onClick={() => downloadFile(`kolk-l${level}-cli-task.md`, cliTask)}
                 className={secondaryActionButtonClass}
               >
-                {copy.challenge.agentPanel.downloadClaudeCodeTask}
+                {copy.challenge.agentPanel.downloadCliTask}
               </button>
               <button
                 type="button"
@@ -1383,10 +1383,10 @@ export function ChallengeClient({ level }: { level: number }) {
               </button>
               <button
                 type="button"
-                onClick={() => downloadFile(`kolk-l${level}-cursor-task.md`, cursorTaskBundle)}
+                onClick={() => downloadFile(`kolk-l${level}-editor-task.md`, editorTaskBundle)}
                 className={secondaryActionButtonClass}
               >
-                {copy.challenge.agentPanel.downloadCursorTask}
+                {copy.challenge.agentPanel.downloadEditorTask}
               </button>
               <CopyButton
                 value={submitContractSnippet}

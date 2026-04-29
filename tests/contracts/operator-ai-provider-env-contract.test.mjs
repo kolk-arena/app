@@ -12,15 +12,23 @@ const Module = require('module');
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');
 
-const DOCUMENTED_PROVIDER_KEYS = ['XAI_API_KEY', 'OPENAI_API_KEY', 'GEMINI_API_KEY'];
+const DOCUMENTED_PROVIDER_KEYS = [
+  'KOLK_SCORING_P1_API_KEY',
+  'KOLK_SCORING_P2_API_KEY',
+  'KOLK_SCORING_P3_API_KEY',
+];
 const MANAGED_ENV_KEYS = [
-  'XAI_API_KEY',
-  'XAI_BASE_URL',
-  'XAI_MODEL',
-  'OPENAI_API_KEY',
-  'OPENAI_MODEL',
-  'GEMINI_API_KEY',
-  'GEMINI_MODEL',
+  'KOLK_SCORING_P1_API_KEY',
+  'KOLK_SCORING_P1_BASE_URL',
+  'KOLK_SCORING_G1_MODEL',
+  'KOLK_SCORING_P2_API_KEY',
+  'KOLK_SCORING_P2_BASE_URL',
+  'KOLK_SCORING_G2_MODEL',
+  'KOLK_SCORING_G2_FALLBACK_MODEL',
+  'KOLK_SCORING_P3_API_KEY',
+  'KOLK_SCORING_P3_BASE_URL',
+  'KOLK_SCORING_G2_SECONDARY_MODEL',
+  'KOLK_SCORING_G3_MODEL',
 ];
 
 function readRepoFile(relativePath) {
@@ -65,7 +73,7 @@ function propertyByName(objectLiteral, name) {
 function documentedProviderKeysFromEnv() {
   const envExample = readRepoFile('.env.example');
   return Array.from(
-    envExample.matchAll(/^(XAI_API_KEY|OPENAI_API_KEY|GEMINI_API_KEY)=/gm),
+    envExample.matchAll(/^(KOLK_SCORING_P[123]_API_KEY)=/gm),
     (match) => match[1],
   );
 }
@@ -73,10 +81,30 @@ function documentedProviderKeysFromEnv() {
 function documentedProviderKeysFromReadme() {
   const readme = readRepoFile('README.md');
   return Array.from(
-    readme.matchAll(/\|\s*`(XAI_API_KEY|OPENAI_API_KEY|GEMINI_API_KEY)`\s*\|/g),
+    readme.matchAll(/\|\s*`(KOLK_SCORING_P[123]_API_KEY)`\s*\|/g),
     (match) => match[1],
   );
 }
+
+const P1_ENV = {
+  KOLK_SCORING_P1_API_KEY: 'p1-key',
+  KOLK_SCORING_P1_BASE_URL: 'https://p1.example/v1',
+  KOLK_SCORING_G1_MODEL: 'p1-model',
+};
+
+const P2_ENV = {
+  KOLK_SCORING_P2_API_KEY: 'p2-key',
+  KOLK_SCORING_P2_BASE_URL: 'https://p2.example/v1',
+  KOLK_SCORING_G2_MODEL: 'p2-primary',
+  KOLK_SCORING_G2_FALLBACK_MODEL: 'p2-fallback',
+};
+
+const P3_ENV = {
+  KOLK_SCORING_P3_API_KEY: 'p3-key',
+  KOLK_SCORING_P3_BASE_URL: 'https://p3.example/v1',
+  KOLK_SCORING_G2_SECONDARY_MODEL: 'p3-secondary',
+  KOLK_SCORING_G3_MODEL: 'p3-primary',
+};
 
 function withEnv(overrides, fn) {
   const previous = new Map(MANAGED_ENV_KEYS.map((key) => [key, process.env[key]]));
@@ -164,55 +192,96 @@ test('runtime readiness tracks the documented provider baseline and two-group sc
     assert.equal(summary.activeJudgeProvider, null);
     assert.equal(summary.activeJudgeReady, false);
     assert.deepEqual(summary.activeJudgeProviders, []);
-    assert.deepEqual(summary.activeJudgeMissingEnvKeys, ['XAI_API_KEY', 'OPENAI_API_KEY']);
-    assert.deepEqual(summary.missingEnvKeys, DOCUMENTED_PROVIDER_KEYS);
+    assert.deepEqual(summary.activeJudgeMissingEnvKeys, [
+      'KOLK_SCORING_P1_API_KEY',
+      'KOLK_SCORING_P1_BASE_URL',
+      'KOLK_SCORING_G1_MODEL',
+      'KOLK_SCORING_P2_API_KEY',
+      'KOLK_SCORING_P2_BASE_URL',
+      'KOLK_SCORING_G2_MODEL',
+    ]);
+    assert.deepEqual(summary.missingEnvKeys, MANAGED_ENV_KEYS);
     assert.equal(summary.scoringReady, false);
     assert.deepEqual(summary.availableScoringGroups, []);
     assert.deepEqual(summary.availableScoringCombos, []);
     assert.equal(summary.preferredScoringCombo, null);
-    assert.deepEqual(summary.scoringMissingEnvKeys, DOCUMENTED_PROVIDER_KEYS);
+    assert.deepEqual(summary.scoringMissingEnvKeys, MANAGED_ENV_KEYS);
   });
 
-  withEnv({ XAI_API_KEY: 'xai-key' }, () => {
+  withEnv(P1_ENV, () => {
     const runtime = loadRuntimeModule();
     const summary = runtime.getAiReadinessSummary();
     const activeJudge = runtime.getActiveJudgeRuntime();
 
     assert.equal(summary.fullyConfigured, false);
     assert.equal(summary.operatorStackReady, false);
-    assert.equal(summary.activeJudgeProvider, 'xai');
+    assert.equal(summary.activeJudgeProvider, 'p1');
     assert.equal(summary.activeJudgeReady, true);
-    assert.deepEqual(summary.activeJudgeProviders, ['xai']);
-    assert.deepEqual(summary.activeJudgeMissingEnvKeys, ['OPENAI_API_KEY']);
-    assert.deepEqual(summary.missingEnvKeys, ['OPENAI_API_KEY', 'GEMINI_API_KEY']);
-    assert.equal(activeJudge?.provider, 'xai');
-    assert.equal(activeJudge?.model, runtime.SCORING_MODEL_DEFAULTS.G1_XAI);
+    assert.deepEqual(summary.activeJudgeProviders, ['p1']);
+    assert.deepEqual(summary.activeJudgeMissingEnvKeys, [
+      'KOLK_SCORING_P2_API_KEY',
+      'KOLK_SCORING_P2_BASE_URL',
+      'KOLK_SCORING_G2_MODEL',
+    ]);
+    assert.deepEqual(summary.missingEnvKeys, [
+      'KOLK_SCORING_P2_API_KEY',
+      'KOLK_SCORING_P2_BASE_URL',
+      'KOLK_SCORING_G2_MODEL',
+      'KOLK_SCORING_G2_FALLBACK_MODEL',
+      'KOLK_SCORING_P3_API_KEY',
+      'KOLK_SCORING_P3_BASE_URL',
+      'KOLK_SCORING_G2_SECONDARY_MODEL',
+      'KOLK_SCORING_G3_MODEL',
+    ]);
+    assert.equal(activeJudge?.provider, 'p1');
+    assert.equal(activeJudge?.model, 'p1-model');
     assert.equal(summary.scoringReady, false);
     assert.deepEqual(summary.availableScoringGroups, ['G1']);
     assert.deepEqual(summary.availableScoringCombos, []);
-    assert.deepEqual(summary.scoringMissingEnvKeys, ['OPENAI_API_KEY', 'GEMINI_API_KEY']);
+    assert.deepEqual(summary.scoringMissingEnvKeys, [
+      'KOLK_SCORING_P2_API_KEY',
+      'KOLK_SCORING_P2_BASE_URL',
+      'KOLK_SCORING_G2_MODEL',
+      'KOLK_SCORING_G2_FALLBACK_MODEL',
+      'KOLK_SCORING_P3_API_KEY',
+      'KOLK_SCORING_P3_BASE_URL',
+      'KOLK_SCORING_G2_SECONDARY_MODEL',
+      'KOLK_SCORING_G3_MODEL',
+    ]);
   });
 
-  withEnv({ OPENAI_API_KEY: 'openai-key' }, () => {
+  withEnv(P2_ENV, () => {
     const runtime = loadRuntimeModule();
     const summary = runtime.getAiReadinessSummary();
     const activeJudge = runtime.getActiveJudgeRuntime();
 
     assert.equal(summary.fullyConfigured, false);
     assert.equal(summary.operatorStackReady, false);
-    assert.equal(summary.activeJudgeProvider, 'openai');
+    assert.equal(summary.activeJudgeProvider, 'p2');
     assert.equal(summary.activeJudgeReady, true);
-    assert.deepEqual(summary.activeJudgeProviders, ['openai']);
-    assert.deepEqual(summary.activeJudgeMissingEnvKeys, ['XAI_API_KEY']);
-    assert.deepEqual(summary.missingEnvKeys, ['XAI_API_KEY', 'GEMINI_API_KEY']);
-    assert.equal(activeJudge?.provider, 'openai');
-    assert.equal(activeJudge?.model, runtime.SCORING_MODEL_DEFAULTS.G2_OPENAI_FALLBACK);
+    assert.deepEqual(summary.activeJudgeProviders, ['p2']);
+    assert.deepEqual(summary.activeJudgeMissingEnvKeys, [
+      'KOLK_SCORING_P1_API_KEY',
+      'KOLK_SCORING_P1_BASE_URL',
+      'KOLK_SCORING_G1_MODEL',
+    ]);
+    assert.deepEqual(summary.missingEnvKeys, [
+      'KOLK_SCORING_P1_API_KEY',
+      'KOLK_SCORING_P1_BASE_URL',
+      'KOLK_SCORING_G1_MODEL',
+      'KOLK_SCORING_P3_API_KEY',
+      'KOLK_SCORING_P3_BASE_URL',
+      'KOLK_SCORING_G2_SECONDARY_MODEL',
+      'KOLK_SCORING_G3_MODEL',
+    ]);
+    assert.equal(activeJudge?.provider, 'p2');
+    assert.equal(activeJudge?.model, 'p2-primary');
     assert.equal(summary.scoringReady, false);
     assert.deepEqual(summary.availableScoringGroups, []);
     assert.deepEqual(summary.availableScoringCombos, []);
   });
 
-  withEnv({ OPENAI_API_KEY: 'openai-key', GEMINI_API_KEY: 'gemini-key' }, () => {
+  withEnv({ ...P2_ENV, ...P3_ENV }, () => {
     const runtime = loadRuntimeModule();
     const summary = runtime.getAiReadinessSummary();
 
@@ -227,10 +296,10 @@ test('runtime readiness tracks the documented provider baseline and two-group sc
 
   withEnv(
     {
-      XAI_API_KEY: 'xai-key',
-      OPENAI_API_KEY: 'openai-key',
-      GEMINI_API_KEY: 'gemini-key',
-      OPENAI_MODEL: 'custom-openai-model',
+      ...P1_ENV,
+      ...P2_ENV,
+      ...P3_ENV,
+      KOLK_SCORING_G2_MODEL: 'custom-p2-model',
     },
     () => {
       const runtime = loadRuntimeModule();
@@ -239,24 +308,24 @@ test('runtime readiness tracks the documented provider baseline and two-group sc
       const activeJudge = runtime.getActiveJudgeRuntime();
 
       assert.equal(stack.fullyConfigured, true);
-      assert.deepEqual(stack.configuredProviders, ['xai', 'openai', 'gemini']);
+      assert.deepEqual(stack.configuredProviders, ['p1', 'p2', 'p3']);
       assert.deepEqual(stack.missingProviders, []);
       assert.equal(summary.fullyConfigured, true);
       assert.equal(summary.operatorStackReady, true);
-      assert.equal(summary.activeJudgeProvider, 'xai');
+      assert.equal(summary.activeJudgeProvider, 'p1');
       assert.equal(summary.activeJudgeReady, true);
-      assert.deepEqual(summary.activeJudgeProviders, ['xai', 'openai']);
+      assert.deepEqual(summary.activeJudgeProviders, ['p1', 'p2']);
       assert.deepEqual(summary.activeJudgeMissingEnvKeys, []);
       assert.deepEqual(summary.missingEnvKeys, []);
       assert.equal(summary.scoringReady, true);
       assert.deepEqual(summary.availableScoringGroups, ['G1', 'G2', 'G3']);
       assert.deepEqual(summary.availableScoringCombos, ['A', 'B', 'C']);
       assert.equal(summary.preferredScoringCombo, 'A');
-      assert.equal(activeJudge?.provider, 'xai');
-      assert.equal(activeJudge?.model, runtime.SCORING_MODEL_DEFAULTS.G1_XAI);
-      assert.equal(runtime.getProviderRuntimeConfig('openai').model, 'custom-openai-model');
-      assert.equal(runtime.getProviderRuntimeConfig('gemini').judgeCompatible, true);
-      assert.equal(runtime.getGeminiRuntime()?.model, runtime.SCORING_MODEL_DEFAULTS.G3_GEMINI_FLASH);
+      assert.equal(activeJudge?.provider, 'p1');
+      assert.equal(activeJudge?.model, 'p1-model');
+      assert.equal(runtime.getProviderRuntimeConfig('p2').model, 'custom-p2-model');
+      assert.equal(runtime.getProviderRuntimeConfig('p3').judgeCompatible, true);
+      assert.equal(runtime.getContentRuntime()?.model, 'p3-primary');
     },
   );
 });

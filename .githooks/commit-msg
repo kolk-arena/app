@@ -39,30 +39,8 @@ if grep -qiE "^(${co_trailer}|${sign_trailer}|${gen_trailer}):" "$msg_file"; the
   exit 1
 fi
 
-# 2. Reject delegated-credit trailers whose visible NAME is a known AI
-#    vendor. This is redundant after the strict trailer rule above.
-if grep -qiE "^${co_trailer}:[[:space:]]+(Claude|ChatGPT|GPT-[0-9]|OpenAI|Gemini|Bard|Copilot|GitHub Copilot|Codeium|Cursor AI)\\b" "$msg_file"; then
-  echo "ERROR: AI vendor name in delegated-credit trailer." >&2
-  echo "       Remove the delegated-credit line from your" >&2
-  echo "       commit message and retry. The rule is case-insensitive and" >&2
-  echo "       covers Claude, ChatGPT/GPT-n, Gemini, Copilot, and similar." >&2
-  echo "" >&2
-  echo "       Policy: public-history commit hygiene." >&2
-  exit 1
-fi
-
-# 3. Belt-and-suspenders: reject delegated-credit trailers whose EMAIL is a
-#    known AI-bot address, even if the display name was stripped.
-if grep -qiE "^${co_trailer}:.*<[^>]*(noreply@anthropic\\.(com|ai)|noreply@openai\\.com|copilot@github\\.com)[^>]*>" "$msg_file"; then
-  echo "ERROR: AI-bot email domain in delegated-credit trailer." >&2
-  echo "       Remove the trailer and retry." >&2
-  echo "" >&2
-  echo "       Policy: public-history commit hygiene." >&2
-  exit 1
-fi
-
-# 4. Reject '🤖 Generated with <AI>' footers.
-if grep -qiE '🤖[[:space:]]*Generated with[[:space:]]+(Claude|ChatGPT|Copilot|Gemini|Bard|OpenAI)' "$msg_file"; then
+# 2. Reject generated-by footer lines.
+if grep -qiE '🤖[[:space:]]*Generated with[[:space:]]+[^[:space:]]+' "$msg_file"; then
   echo "ERROR: AI generation footer rejected." >&2
   echo "       Remove the '🤖 Generated with …' line and retry." >&2
   echo "" >&2

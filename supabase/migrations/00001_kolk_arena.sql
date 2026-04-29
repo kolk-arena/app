@@ -69,7 +69,7 @@ CREATE TABLE public.ka_challenges (
   prompt_md           text NOT NULL,             -- the brief (prompt.md)
   metadata_yaml       text NOT NULL,             -- routing envelope (metadata.yaml)
   time_limit_minutes  int NOT NULL DEFAULT 60,
-  generator_model     text,                      -- e.g. "grok-4-fast-non-reasoning"
+  generator_model     text,                      -- e.g. "example-scoring-model-id"
   generated_at        timestamptz NOT NULL DEFAULT now(),
   active              boolean NOT NULL DEFAULT true,
   UNIQUE (level, seed, variant)

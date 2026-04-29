@@ -11,7 +11,13 @@
  */
 
 import { z } from 'zod';
-import { getOpenAICompatibleRuntime, getGeminiRuntime } from '@/lib/kolk/ai/runtime';
+import {
+  createChatCompletion,
+  createContentGeneration,
+  getChatRuntime,
+  getContentRuntime,
+  type ContentRuntime,
+} from '@/lib/kolk/ai/runtime';
 import type { FrontendLocale } from '@/i18n/types';
 import { BRIEF_SHOWCASE_CONFIG } from './config';
 
@@ -55,38 +61,6 @@ Service types and typical USD market ranges:
 - Translation/Localization: $200–500 (context-aware translation)
 - Data Analysis/Reporting: $300–650 (data extraction, visualization, insights)
 ` as const;
-
-function isOpenAiReasoningModel(provider: 'xai' | 'openai', model: string) {
-  return provider === 'openai' && /^gpt-5(?:-|$)/i.test(model);
-}
-
-function buildOpenAiCompatibleParams(
-  runtime: { provider: 'xai' | 'openai'; model: string },
-  systemPrompt: string,
-  userContent: string,
-  temperature: number,
-) {
-  const baseParams = {
-    model: runtime.model,
-    messages: [
-      { role: 'system' as const, content: systemPrompt },
-      { role: 'user' as const, content: userContent },
-    ],
-  };
-
-  if (isOpenAiReasoningModel(runtime.provider, runtime.model)) {
-    return {
-      ...baseParams,
-      max_completion_tokens: 4096,
-    };
-  }
-
-  return {
-    ...baseParams,
-    temperature,
-    max_tokens: 4096,
-  };
-}
 
 function pickLevels(count: number): number[] {
   const pool = [...LEVELS];
@@ -138,64 +112,47 @@ Rules:
 async function generateEnglishBriefs(levels: number[]): Promise<GeneratedBrief[]> {
   const provider = BRIEF_SHOWCASE_CONFIG.provider;
 
-  if (provider === 'gemini') {
-    const gemini = getGeminiRuntime(BRIEF_SHOWCASE_CONFIG.model);
-    if (!gemini) throw new Error('Gemini provider not configured');
-    return generateWithGemini(levels, gemini);
+  if (provider === 'p3') {
+    const runtime = getContentRuntime(BRIEF_SHOWCASE_CONFIG.model);
+    if (!runtime) throw new Error('Content provider not configured');
+    return generateWithContentRuntime(levels, runtime);
   }
 
-  const runtime = getOpenAICompatibleRuntime(provider, BRIEF_SHOWCASE_CONFIG.model);
+  const runtime = getChatRuntime(provider, BRIEF_SHOWCASE_CONFIG.model);
   if (!runtime) throw new Error(`Provider ${provider} not configured`);
 
-  const response = await runtime.client.chat.completions.create(
-    buildOpenAiCompatibleParams(
-      runtime,
-      SYSTEM_PROMPT,
-      `Generate 8 live gig postings matching these levels in order: ${JSON.stringify(levels)}.
-For each gig, assign a realistic USD budget based on the SERVICE TYPE (refer to the system prompt ranges).
-Make the requestContext sound like a real client who needs this done ASAP.
-Put the budget exactly once in requestContext only; do not include the budget in scenarioTitle.
-Return ONLY the JSON array.`,
-      0.9,
-    ),
-  );
-
-  const raw = response.choices[0]?.message?.content ?? '';
-  return parseBriefJson(raw);
-}
-
-async function generateWithGemini(
-  levels: number[],
-  gemini: { apiKey: string; model: string; baseURL: string },
-): Promise<GeneratedBrief[]> {
-  const url = `${gemini.baseURL}/models/${gemini.model}:generateContent?key=${gemini.apiKey}`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-      contents: [
-        {
-          parts: [
-            { text: `Generate 8 live gig postings matching these levels in order: ${JSON.stringify(levels)}.
+  const response = await createChatCompletion(runtime, {
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: `Generate 8 live gig postings matching these levels in order: ${JSON.stringify(levels)}.
 For each gig, assign a realistic USD budget based on the SERVICE TYPE (refer to the system prompt ranges).
 Make the requestContext sound like a real client who needs this done ASAP.
 Put the budget exactly once in requestContext only; do not include the budget in scenarioTitle.
 Return ONLY the JSON array.` },
-          ],
-        },
-      ],
-      generationConfig: { temperature: 0.9, maxOutputTokens: 4096 },
-    }),
+    ],
+    maxTokens: 4096,
+    temperature: 0.9,
   });
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Gemini generation failed: ${res.status} ${text}`);
-  }
+  const raw = response.choices?.[0]?.message?.content ?? '';
+  return parseBriefJson(raw);
+}
 
-  const json = await res.json();
-  const raw = json.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+async function generateWithContentRuntime(
+  levels: number[],
+  runtime: ContentRuntime,
+): Promise<GeneratedBrief[]> {
+  const raw = await createContentGeneration(runtime, {
+    systemPrompt: SYSTEM_PROMPT,
+    userContent: `Generate 8 live gig postings matching these levels in order: ${JSON.stringify(levels)}.
+For each gig, assign a realistic USD budget based on the SERVICE TYPE (refer to the system prompt ranges).
+Make the requestContext sound like a real client who needs this done ASAP.
+Put the budget exactly once in requestContext only; do not include the budget in scenarioTitle.
+Return ONLY the JSON array.`,
+    maxTokens: 4096,
+    temperature: 0.9,
+  });
+
   return parseBriefJson(raw);
 }
 
@@ -248,65 +205,47 @@ async function translateBriefs(
     outputShape: b.outputShape,
   }));
 
-  if (provider === 'gemini') {
-    const gemini = getGeminiRuntime(BRIEF_SHOWCASE_CONFIG.model);
-    if (!gemini) throw new Error('Gemini not configured');
-    return translateWithGemini(items, locale, gemini);
+  if (provider === 'p3') {
+    const runtime = getContentRuntime(BRIEF_SHOWCASE_CONFIG.model);
+    if (!runtime) throw new Error('Content provider not configured');
+    return translateWithContentRuntime(items, locale, runtime);
   }
 
-  const runtime = getOpenAICompatibleRuntime(provider, BRIEF_SHOWCASE_CONFIG.model);
+  const runtime = getChatRuntime(provider, BRIEF_SHOWCASE_CONFIG.model);
   if (!runtime) throw new Error(`Provider ${provider} not configured`);
 
   const localeName =
     locale === 'zh-tw' ? 'Traditional Chinese (Taiwan)' :
     locale === 'es-mx' ? 'Mexican Spanish' : 'English';
 
-  const response = await runtime.client.chat.completions.create(
-    buildOpenAiCompatibleParams(
-      runtime,
-      TRANSLATION_PROMPT,
-      `Target locale: ${localeName}\n\n${JSON.stringify(items, null, 2)}`,
-      0.4,
-    ),
-  );
+  const response = await createChatCompletion(runtime, {
+    messages: [
+      { role: 'system', content: TRANSLATION_PROMPT },
+      { role: 'user', content: `Target locale: ${localeName}\n\n${JSON.stringify(items, null, 2)}` },
+    ],
+    maxTokens: 4096,
+    temperature: 0.4,
+  });
 
-  const raw = response.choices[0]?.message?.content ?? '';
+  const raw = response.choices?.[0]?.message?.content ?? '';
   return parseTranslationJson(raw);
 }
 
-async function translateWithGemini(
+async function translateWithContentRuntime(
   items: Pick<GeneratedBrief, 'scenarioTitle' | 'industry' | 'fictionalRequesterName' | 'requesterRole' | 'requestContext' | 'scoringFocus' | 'outputShape'>[],
   locale: FrontendLocale,
-  gemini: { apiKey: string; model: string; baseURL: string },
+  runtime: ContentRuntime,
 ): Promise<TranslatedBrief[]> {
   const localeName =
     locale === 'zh-tw' ? 'Traditional Chinese (Taiwan)' :
     locale === 'es-mx' ? 'Mexican Spanish' : 'English';
-  const url = `${gemini.baseURL}/models/${gemini.model}:generateContent?key=${gemini.apiKey}`;
 
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: TRANSLATION_PROMPT }] },
-      contents: [
-        {
-          parts: [
-            { text: `Target locale: ${localeName}\n\n${JSON.stringify(items, null, 2)}` },
-          ],
-        },
-      ],
-      generationConfig: { temperature: 0.4, maxOutputTokens: 4096 },
-    }),
+  const raw = await createContentGeneration(runtime, {
+    systemPrompt: TRANSLATION_PROMPT,
+    userContent: `Target locale: ${localeName}\n\n${JSON.stringify(items, null, 2)}`,
+    maxTokens: 4096,
+    temperature: 0.4,
   });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Gemini translation failed: ${res.status} ${text}`);
-  }
-
-  const json = await res.json();
-  const raw = json.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
   return parseTranslationJson(raw);
 }
 

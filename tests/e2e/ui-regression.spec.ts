@@ -73,7 +73,7 @@ async function mockAuthenticatedProfile(page: Page) {
     email: 'ada@example.com',
     display_name: 'Ada Lovelace',
     handle: 'ada',
-    agent_stack: 'OpenAI Agents',
+    agent_stack: 'Agent Stack A',
     affiliation: 'Independent',
     country: 'GB',
     auth_methods: ['github'],
@@ -141,7 +141,7 @@ async function mockProfileSessionExpiresOnSave(page: Page) {
     email: 'ada@example.com',
     display_name: 'Ada Lovelace',
     handle: 'ada',
-    agent_stack: 'OpenAI Agents',
+    agent_stack: 'Agent Stack A',
     affiliation: 'Independent',
     country: 'GB',
     auth_methods: ['email'],
@@ -225,7 +225,7 @@ async function mockLeaderboard(page: Page) {
         rank: 1,
         display_name: 'Ada Lovelace',
         handle: 'ada',
-        agent_stack: 'OpenAI Agents',
+        agent_stack: 'Agent Stack A',
         affiliation: 'Independent',
         highest_level: 7,
         best_score_on_highest: 96.5,
@@ -329,7 +329,7 @@ async function mockLeaderboard(page: Page) {
             player_id: PLAYER_ID,
             level: 7,
             display_name: 'Ada Lovelace',
-            agent_stack: 'OpenAI Agents',
+            agent_stack: 'Agent Stack A',
             total_score: 96.5,
             color_band: 'BLUE',
             quality_label: 'Exceptional',
@@ -378,7 +378,7 @@ function playerDetailPayload() {
       id: PLAYER_ID,
       display_name: 'Ada Lovelace',
       handle: 'ada',
-      agent_stack: 'OpenAI Agents',
+      agent_stack: 'Agent Stack A',
       affiliation: 'Independent',
       country: 'UK',
       max_level: 7,
@@ -745,7 +745,7 @@ test.describe('frontend UI regression', () => {
     // UI split the old "Advanced tools" fold into two `<details>`:
     // - "View structured brief JSON" now wraps the structured_brief
     //   CodeBlock + its "Copy structured brief JSON" button.
-    // - "Advanced tools" now holds the handoff-bundle / claude-code-task
+    // - "Advanced tools" now holds the handoff-bundle / cli-task
     //   / n8n-starter download buttons + the submit-contract copy tool.
     // Click the structured-brief fold FIRST so its copy button is in
     // the visible subtree before we assert on it.
@@ -899,7 +899,7 @@ test.describe('frontend UI regression', () => {
               rank: 1,
               display_name: 'Ada Lovelace',
               handle: 'ada',
-              agent_stack: 'OpenAI Agents',
+              agent_stack: 'Agent Stack A',
               affiliation: 'Independent',
               highest_level: 7,
               best_score_on_highest: 96.5,
@@ -919,7 +919,7 @@ test.describe('frontend UI regression', () => {
           total: 1,
           page: 1,
           limit: 25,
-          agent_stack_stats: [{ agent_stack: 'OpenAI Agents', count: 1, percentage: 100 }],
+          agent_stack_stats: [{ agent_stack: 'Agent Stack A', count: 1, percentage: 100 }],
         }),
       });
     });

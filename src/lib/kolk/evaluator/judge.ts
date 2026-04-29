@@ -9,13 +9,15 @@
 import { COVERAGE_MAX, QUALITY_MAX, TRUNCATE_FOR_JUDGE_CHARS } from '../constants';
 import type { VariantRubric } from '../types';
 import {
+  createChatCompletion,
+  createContentGeneration,
   getAvailableScoringCombos,
-  getGeminiRuntime,
-  getOpenAICompatibleRuntime,
-  SCORING_MODEL_DEFAULTS,
+  getChatRuntime,
+  getContentRuntime,
+  readScoringModel,
   type AiProvider,
-  type GeminiRuntime,
-  type OpenAICompatibleRuntime,
+  type ChatRuntime,
+  type ContentRuntime,
   type ScoringCombo,
   type ScoringGroup,
 } from '../ai';
@@ -68,7 +70,7 @@ type JudgeRawResponse = {
   summary?: string;
 };
 
-const OPENAI_JUDGE_RESPONSE_FORMAT = {
+const CHAT_JUDGE_RESPONSE_FORMAT = {
   type: 'json_schema' as const,
   json_schema: {
     name: 'kolk_arena_judge_scores',
@@ -388,8 +390,8 @@ function assertBudgetAvailable(budgetMax: number) {
   incrementBudget();
 }
 
-async function runOpenAIJudgeModel(
-  runtime: OpenAICompatibleRuntime,
+async function runChatJudgeModel(
+  runtime: ChatRuntime,
   systemPrompt: string,
   submissionText: string,
   rubric: VariantRubric,
@@ -398,35 +400,25 @@ async function runOpenAIJudgeModel(
   const invoke = async () => {
     assertBudgetAvailable(budgetMax);
 
-    // Budget parameter is provider-specific. Some OpenAI-compatible models
-    // reject `max_tokens` and require `max_completion_tokens`; others still
-    // use the classic parameter. The param is typed as `any` because the
-    // OpenAI TS client union does not cleanly express this runtime branch.
-    // We omit `temperature` on providers that reject non-default values.
-    const baseParams = {
-      model: runtime.model,
+    const response = await createChatCompletion(runtime, {
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: submissionText },
       ],
-      response_format: OPENAI_JUDGE_RESPONSE_FORMAT,
-    };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const params: any = runtime.provider === 'openai'
-      ? { ...baseParams, max_completion_tokens: 6000 }
-      : { ...baseParams, max_tokens: 6000, temperature: 0.1 };
+      responseFormat: CHAT_JUDGE_RESPONSE_FORMAT,
+      maxTokens: 6000,
+      temperature: 0.1,
+    });
 
-    const response = await runtime.client.chat.completions.create(params);
-
-    const content = response.choices[0]?.message?.content;
+    const content = response.choices?.[0]?.message?.content;
     if (!content) {
       // Emit enough context for Vercel logs to diagnose if this ever
       // happens again after the budget fix: the failure mode was
       // previously silent and cost us most of T-0 to root-cause.
-      const finishReason = response.choices[0]?.finish_reason;
+      const finishReason = response.choices?.[0]?.finish_reason;
       const usage = response.usage;
       throw new Error(
-        `Empty response from OpenAI-compatible judge (provider=${runtime.provider} model=${runtime.model} finish=${finishReason} usage=${JSON.stringify(usage)})`,
+        `Empty response from chat judge (provider=${runtime.provider} finish=${finishReason} usage=${JSON.stringify(usage)})`,
       );
     }
 
@@ -437,8 +429,8 @@ async function runOpenAIJudgeModel(
   return invokeWithRetry(`${runtime.provider}:${runtime.model}`, invoke);
 }
 
-async function runGeminiJudgeModel(
-  runtime: GeminiRuntime,
+async function runContentJudgeModel(
+  runtime: ContentRuntime,
   systemPrompt: string,
   submissionText: string,
   rubric: VariantRubric,
@@ -447,58 +439,23 @@ async function runGeminiJudgeModel(
   const invoke = async () => {
     assertBudgetAvailable(budgetMax);
 
-    const response = await fetch(
-      `${runtime.baseURL}/models/${encodeURIComponent(runtime.model)}:generateContent?key=${encodeURIComponent(runtime.apiKey)}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          systemInstruction: {
-            parts: [{ text: systemPrompt }],
-          },
-          contents: [
-            {
-              role: 'user',
-              parts: [{ text: submissionText }],
-            },
-          ],
-          generationConfig: {
-            temperature: 0.1,
-            responseMimeType: 'application/json',
-          },
-        }),
-      },
-    );
-
-    if (!response.ok) {
-      const body = await response.text().catch(() => '');
-      throw new Error(`Gemini judge request failed (${response.status}): ${body}`);
-    }
-
-    const payload = await response.json() as {
-      candidates?: Array<{
-        content?: {
-          parts?: Array<{ text?: string }>;
-        };
-      }>;
-    };
-
-    const text = payload.candidates?.[0]?.content?.parts
-      ?.map((part) => (typeof part.text === 'string' ? part.text : ''))
-      .join('')
-      .trim();
+    const text = await createContentGeneration(runtime, {
+      systemPrompt,
+      userContent: submissionText,
+      maxTokens: 6000,
+      temperature: 0.1,
+      responseMimeType: 'application/json',
+    });
 
     if (!text) {
-      throw new Error('Empty response from Gemini judge');
+      throw new Error('Empty response from content judge');
     }
 
     const parsed = JSON.parse(extractJsonText(text)) as JudgeRawResponse;
     return applyPenalties(parseJudgeResponse(parsed), rubric);
   };
 
-  return invokeWithRetry(`gemini:${runtime.model}`, invoke);
+  return invokeWithRetry(`${runtime.provider}:configured`, invoke);
 }
 
 async function runG1Score(
@@ -507,17 +464,17 @@ async function runG1Score(
   rubric: VariantRubric,
   budgetMax: number,
 ): Promise<GroupJudgeResult> {
-  const runtime = getOpenAICompatibleRuntime('xai', SCORING_MODEL_DEFAULTS.G1_XAI);
+  const runtime = getChatRuntime('p1', readScoringModel('G1_PRIMARY'));
   if (!runtime) {
     throw new Error('G1 unavailable');
   }
 
-  const scores = await runOpenAIJudgeModel(runtime, systemPrompt, submissionText, rubric, budgetMax);
+  const scores = await runChatJudgeModel(runtime, systemPrompt, submissionText, rubric, budgetMax);
 
   return {
     group: 'G1',
-    providers: ['xai'],
-    model: `${runtime.provider}:${runtime.model}`,
+    providers: ['p1'],
+    model: `${runtime.provider}:configured`,
     ...scores,
   };
 }
@@ -528,46 +485,46 @@ async function runG2Score(
   rubric: VariantRubric,
   budgetMax: number,
 ): Promise<GroupJudgeResult> {
-  const nanoRuntime = getOpenAICompatibleRuntime('openai', SCORING_MODEL_DEFAULTS.G2_OPENAI_NANO);
-  const miniRuntime = getOpenAICompatibleRuntime('openai', SCORING_MODEL_DEFAULTS.G2_OPENAI_FALLBACK);
-  const flashLiteRuntime = getGeminiRuntime(SCORING_MODEL_DEFAULTS.G2_GEMINI_FLASH_LITE);
+  const primaryRuntime = getChatRuntime('p2', readScoringModel('G2_PRIMARY'));
+  const fallbackRuntime = getChatRuntime('p2', readScoringModel('G2_FALLBACK'));
+  const secondaryRuntime = getContentRuntime(readScoringModel('G2_SECONDARY'));
 
-  if (!nanoRuntime || !miniRuntime || !flashLiteRuntime) {
+  if (!primaryRuntime || !fallbackRuntime || !secondaryRuntime) {
     throw new Error('G2 unavailable');
   }
 
-  const [nanoResult, flashLiteResult] = await Promise.allSettled([
-    runOpenAIJudgeModel(nanoRuntime, systemPrompt, submissionText, rubric, budgetMax),
-    runGeminiJudgeModel(flashLiteRuntime, systemPrompt, submissionText, rubric, budgetMax),
+  const [primaryResult, secondaryResult] = await Promise.allSettled([
+    runChatJudgeModel(primaryRuntime, systemPrompt, submissionText, rubric, budgetMax),
+    runContentJudgeModel(secondaryRuntime, systemPrompt, submissionText, rubric, budgetMax),
   ]);
 
-  if (nanoResult.status === 'fulfilled' && flashLiteResult.status === 'fulfilled') {
-    const nanoScores = nanoResult.value;
-    const flashScores = flashLiteResult.value;
-    const gap = calculateRelativeCoverageGap(nanoScores.coverageScore, flashScores.coverageScore);
+  if (primaryResult.status === 'fulfilled' && secondaryResult.status === 'fulfilled') {
+    const primaryScores = primaryResult.value;
+    const secondaryScores = secondaryResult.value;
+    const gap = calculateRelativeCoverageGap(primaryScores.coverageScore, secondaryScores.coverageScore);
 
-    if (Math.max(nanoScores.coverageScore, flashScores.coverageScore) === 0 || gap <= 0.65) {
+    if (Math.max(primaryScores.coverageScore, secondaryScores.coverageScore) === 0 || gap <= 0.65) {
       return {
         group: 'G2',
-        providers: ['openai', 'gemini'],
-        model: `${nanoRuntime.provider}:${nanoRuntime.model}+${flashLiteRuntime.provider}:${flashLiteRuntime.model}`,
-        coverageScore: roundScore((nanoScores.coverageScore + flashScores.coverageScore) / 2),
-        qualityScore: roundScore((nanoScores.qualityScore + flashScores.qualityScore) / 2),
-        fieldScores: mergeFieldScores([nanoScores, flashScores]),
-        qualitySubscores: averageQualitySubscores([nanoScores, flashScores]),
-        flags: mergeFlags([nanoScores, flashScores]),
+        providers: ['p2', 'p3'],
+        model: `${primaryRuntime.provider}:configured+${secondaryRuntime.provider}:configured`,
+        coverageScore: roundScore((primaryScores.coverageScore + secondaryScores.coverageScore) / 2),
+        qualityScore: roundScore((primaryScores.qualityScore + secondaryScores.qualityScore) / 2),
+        fieldScores: mergeFieldScores([primaryScores, secondaryScores]),
+        qualitySubscores: averageQualitySubscores([primaryScores, secondaryScores]),
+        flags: mergeFlags([primaryScores, secondaryScores]),
         summary: `G2 averaged primary pair (gap ${Math.round(gap * 100)}%).`,
       };
     }
   }
 
-  const miniScores = await runOpenAIJudgeModel(miniRuntime, systemPrompt, submissionText, rubric, budgetMax);
+  const fallbackScores = await runChatJudgeModel(fallbackRuntime, systemPrompt, submissionText, rubric, budgetMax);
 
   return {
     group: 'G2',
-    providers: ['openai', 'gemini'],
-    model: `${miniRuntime.provider}:${miniRuntime.model}`,
-    ...miniScores,
+    providers: ['p2', 'p3'],
+    model: `${fallbackRuntime.provider}:configured`,
+    ...fallbackScores,
     summary: 'G2 fallback scorer used.',
   };
 }
@@ -578,17 +535,17 @@ async function runG3Score(
   rubric: VariantRubric,
   budgetMax: number,
 ): Promise<GroupJudgeResult> {
-  const runtime = getGeminiRuntime(SCORING_MODEL_DEFAULTS.G3_GEMINI_FLASH);
+  const runtime = getContentRuntime(readScoringModel('G3_PRIMARY'));
   if (!runtime) {
     throw new Error('G3 unavailable');
   }
 
-  const scores = await runGeminiJudgeModel(runtime, systemPrompt, submissionText, rubric, budgetMax);
+  const scores = await runContentJudgeModel(runtime, systemPrompt, submissionText, rubric, budgetMax);
 
   return {
     group: 'G3',
-    providers: ['gemini'],
-    model: `${runtime.provider}:${runtime.model}`,
+    providers: ['p3'],
+    model: `${runtime.provider}:configured`,
     ...scores,
   };
 }

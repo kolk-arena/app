@@ -12,30 +12,47 @@ const Module = require('module');
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');
 
-function readScoringModelDefault(key) {
-  const source = readFileSync(path.join(repoRoot, 'src/lib/kolk/ai/runtime.ts'), 'utf8');
-  const match = new RegExp(`${key}: '([^']+)'`).exec(source);
-  assert.ok(match, `Expected scoring model default for ${key}`);
-  return match[1];
-}
-
 const MODEL_DEFAULTS = {
-  G1_XAI: readScoringModelDefault('G1_XAI'),
-  G2_OPENAI_NANO: readScoringModelDefault('G2_OPENAI_NANO'),
-  G2_OPENAI_FALLBACK: readScoringModelDefault('G2_OPENAI_FALLBACK'),
-  G2_GEMINI_FLASH_LITE: readScoringModelDefault('G2_GEMINI_FLASH_LITE'),
-  G3_GEMINI_FLASH: readScoringModelDefault('G3_GEMINI_FLASH'),
+  G1_PRIMARY: 'p1-model',
+  G2_PRIMARY: 'p2-primary',
+  G2_FALLBACK: 'p2-fallback',
+  G2_SECONDARY: 'p3-secondary',
+  G3_PRIMARY: 'p3-primary',
 };
 
 const MANAGED_ENV_KEYS = [
-  'XAI_API_KEY',
-  'XAI_BASE_URL',
-  'XAI_MODEL',
-  'OPENAI_API_KEY',
-  'OPENAI_MODEL',
-  'GEMINI_API_KEY',
-  'GEMINI_MODEL',
+  'KOLK_SCORING_P1_API_KEY',
+  'KOLK_SCORING_P1_BASE_URL',
+  'KOLK_SCORING_G1_MODEL',
+  'KOLK_SCORING_P2_API_KEY',
+  'KOLK_SCORING_P2_BASE_URL',
+  'KOLK_SCORING_G2_MODEL',
+  'KOLK_SCORING_G2_FALLBACK_MODEL',
+  'KOLK_SCORING_P3_API_KEY',
+  'KOLK_SCORING_P3_BASE_URL',
+  'KOLK_SCORING_G2_SECONDARY_MODEL',
+  'KOLK_SCORING_G3_MODEL',
 ];
+
+const P1_ENV = {
+  KOLK_SCORING_P1_API_KEY: 'p1-key',
+  KOLK_SCORING_P1_BASE_URL: 'https://p1.example/v1',
+  KOLK_SCORING_G1_MODEL: MODEL_DEFAULTS.G1_PRIMARY,
+};
+
+const P2_ENV = {
+  KOLK_SCORING_P2_API_KEY: 'p2-key',
+  KOLK_SCORING_P2_BASE_URL: 'https://p2.example/v1',
+  KOLK_SCORING_G2_MODEL: MODEL_DEFAULTS.G2_PRIMARY,
+  KOLK_SCORING_G2_FALLBACK_MODEL: MODEL_DEFAULTS.G2_FALLBACK,
+};
+
+const P3_ENV = {
+  KOLK_SCORING_P3_API_KEY: 'p3-key',
+  KOLK_SCORING_P3_BASE_URL: 'https://p3.example/v1',
+  KOLK_SCORING_G2_SECONDARY_MODEL: MODEL_DEFAULTS.G2_SECONDARY,
+  KOLK_SCORING_G3_MODEL: MODEL_DEFAULTS.G3_PRIMARY,
+};
 
 function withEnv(overrides, fn) {
   const previous = new Map(MANAGED_ENV_KEYS.map((key) => [key, process.env[key]]));
@@ -84,40 +101,9 @@ function clearRepoModuleCache() {
   }
 }
 
-function loadJudgeModule({ openaiResponses, geminiResponses }) {
+function loadJudgeModule({ chatResponses, contentResponses }) {
   const previousTsLoader = Module._extensions['.ts'];
-  const previousLoad = Module._load;
   const previousFetch = global.fetch;
-
-  class MockOpenAI {
-    constructor() {
-      this.chat = {
-        completions: {
-          create: async ({ model }) => {
-            const queue = openaiResponses[model];
-            if (!queue || queue.length === 0) {
-              throw new Error(`No mock OpenAI response queued for ${model}`);
-            }
-
-            const payload = queue.shift();
-            if (payload instanceof Error) {
-              throw payload;
-            }
-
-            return {
-              choices: [
-                {
-                  message: {
-                    content: JSON.stringify(payload),
-                  },
-                },
-              ],
-            };
-          },
-        },
-      };
-    }
-  }
 
   Module._extensions['.ts'] = (module, filename) => {
     const source = readFileSync(filename, 'utf8');
@@ -132,24 +118,23 @@ function loadJudgeModule({ openaiResponses, geminiResponses }) {
     module._compile(transpiled.outputText, filename);
   };
 
-  Module._load = function patchedLoad(request, parent, isMain) {
-    if (request === 'openai') {
-      return {
-        __esModule: true,
-        default: MockOpenAI,
-      };
-    }
-    return previousLoad.call(this, request, parent, isMain);
-  };
-
-  global.fetch = async (url) => {
+  global.fetch = async (url, init) => {
     const urlString = String(url);
-    const modelMatch = /\/models\/([^:]+):generateContent/.exec(urlString);
-    const model = modelMatch ? decodeURIComponent(modelMatch[1]) : null;
-    const queue = model ? geminiResponses[model] : null;
+    let model = null;
+    let queue = null;
+
+    if (urlString.endsWith('/chat/completions')) {
+      const body = JSON.parse(String(init?.body ?? '{}'));
+      model = body.model;
+      queue = model ? chatResponses[model] : null;
+    } else {
+      const modelMatch = /\/models\/([^:]+):generateContent/.exec(urlString);
+      model = modelMatch ? decodeURIComponent(modelMatch[1]) : null;
+      queue = model ? contentResponses[model] : null;
+    }
 
     if (!model || !queue || queue.length === 0) {
-      throw new Error(`No mock Gemini response queued for ${model ?? 'unknown model'}`);
+      throw new Error(`No mock scoring response queued for ${model ?? 'unknown model'}`);
     }
 
     const payload = queue.shift();
@@ -157,20 +142,29 @@ function loadJudgeModule({ openaiResponses, geminiResponses }) {
       throw payload;
     }
 
+    if (urlString.endsWith('/chat/completions')) {
+      return new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify(payload),
+              },
+            },
+          ],
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
+    }
+
     return new Response(
       JSON.stringify({
-        candidates: [
-          {
-            content: {
-              parts: [{ text: JSON.stringify(payload) }],
-            },
-          },
-        ],
+        candidates: [{ content: { parts: [{ text: JSON.stringify(payload) }] } }],
       }),
-      {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      },
+      { status: 200, headers: { 'Content-Type': 'application/json' } },
     );
   };
 
@@ -186,7 +180,6 @@ function loadJudgeModule({ openaiResponses, geminiResponses }) {
         delete Module._extensions['.ts'];
       }
 
-      Module._load = previousLoad;
       global.fetch = previousFetch;
     },
   };
@@ -232,23 +225,23 @@ const RUBRIC = {
 test('runJudge executes combo B with G2 averaging when required providers are available', async () => {
   await withEnv(
     {
-      OPENAI_API_KEY: 'openai-key',
-      GEMINI_API_KEY: 'gemini-key',
+      ...P2_ENV,
+      ...P3_ENV,
     },
     async () => {
       const loaded = loadJudgeModule({
-        openaiResponses: {
-          [MODEL_DEFAULTS.G2_OPENAI_NANO]: [makeScores({ coverage: 20, quality: 18 })],
-          [MODEL_DEFAULTS.G2_OPENAI_FALLBACK]: [],
+        chatResponses: {
+          [MODEL_DEFAULTS.G2_PRIMARY]: [makeScores({ coverage: 20, quality: 18 })],
+          [MODEL_DEFAULTS.G2_FALLBACK]: [],
         },
-        geminiResponses: {
-          [MODEL_DEFAULTS.G2_GEMINI_FLASH_LITE]: [makeScores({ coverage: 20, quality: 22 })],
-          [MODEL_DEFAULTS.G3_GEMINI_FLASH]: [makeScores({ coverage: 24, quality: 26 })],
+        contentResponses: {
+          [MODEL_DEFAULTS.G2_SECONDARY]: [makeScores({ coverage: 20, quality: 22 })],
+          [MODEL_DEFAULTS.G3_PRIMARY]: [makeScores({ coverage: 24, quality: 26 })],
         },
       });
 
       try {
-        const result = await loaded.judge.runJudge('Submission text', RUBRIC, 'Brief summary', 'Pro One-Page', 6, 'attempt-openai-gemini');
+        const result = await loaded.judge.runJudge('Submission text', RUBRIC, 'Brief summary', 'Pro One-Page', 6, 'attempt-p2-p3');
 
         assert.equal(result.error, false);
         assert.equal(result.combo, 'B');
@@ -268,20 +261,20 @@ test('runJudge executes combo B with G2 averaging when required providers are av
 test('runJudge executes G2 fallback when primary scorer pair diverges too much', async () => {
   await withEnv(
     {
-      XAI_API_KEY: 'xai-key',
-      OPENAI_API_KEY: 'openai-key',
-      GEMINI_API_KEY: 'gemini-key',
+      ...P1_ENV,
+      ...P2_ENV,
+      ...P3_ENV,
     },
     async () => {
       const loaded = loadJudgeModule({
-        openaiResponses: {
-          [MODEL_DEFAULTS.G1_XAI]: [makeScores({ coverage: 18, quality: 18 })],
-          [MODEL_DEFAULTS.G2_OPENAI_NANO]: [makeScores({ coverage: 30, quality: 25 })],
-          [MODEL_DEFAULTS.G2_OPENAI_FALLBACK]: [makeScores({ coverage: 12, quality: 14 })],
+        chatResponses: {
+          [MODEL_DEFAULTS.G1_PRIMARY]: [makeScores({ coverage: 18, quality: 18 })],
+          [MODEL_DEFAULTS.G2_PRIMARY]: [makeScores({ coverage: 30, quality: 25 })],
+          [MODEL_DEFAULTS.G2_FALLBACK]: [makeScores({ coverage: 12, quality: 14 })],
         },
-        geminiResponses: {
-          [MODEL_DEFAULTS.G2_GEMINI_FLASH_LITE]: [makeScores({ coverage: 5, quality: 8 })],
-          [MODEL_DEFAULTS.G3_GEMINI_FLASH]: [makeScores({ coverage: 24, quality: 26 })],
+        contentResponses: {
+          [MODEL_DEFAULTS.G2_SECONDARY]: [makeScores({ coverage: 5, quality: 8 })],
+          [MODEL_DEFAULTS.G3_PRIMARY]: [makeScores({ coverage: 24, quality: 26 })],
         },
       });
 

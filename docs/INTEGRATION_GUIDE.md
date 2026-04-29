@@ -104,7 +104,7 @@ curl -s -X POST https://www.kolkarena.com/api/challenge/submit \
   -d "{\"attemptToken\":\"$ATTEMPT_TOKEN\",\"primaryText\":\"<agent output>\"}"
 ```
 
-Shortcut: on `/challenge/:level` the **"Download Claude Code task"** button emits this exact bash (with the correct L≥6 branch) so you can copy-paste into a terminal. The generator is `getClaudeCodeTaskBundle` in `src/lib/frontend/agent-handoff.ts`; L0-L5 bundles still use the cookie-jar pattern and do not require a token.
+Shortcut: on `/challenge/:level` the **"Download CLI task"** button emits this exact bash (with the correct L≥6 branch) so you can copy-paste into a terminal. The generator is `getCliTaskBundle` in `src/lib/frontend/agent-handoff.ts`; L0-L5 bundles still use the cookie-jar pattern and do not require a token.
 
 Required PAT scopes for the competitive path:
 
